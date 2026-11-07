@@ -154,6 +154,46 @@
   .art .sign.compact .ti { -webkit-line-clamp: 1; }
   .art .sign .ti { text-shadow: 0 0 8px rgba(255, 95, 176, .7); }
   .art .poster { border-width: 0; }
+  /* ---- bubble look drafts (07 Nov 2026), ?bubstyle=1..5; none = the current dialog box ----
+     every look keeps the same box model (padding, max-width, 3-line clamp), so placement and stacking are unchanged */
+  :is(.bs1, .bs2, .bs3, .bs4, .bs5) .bub::after { border-top-color: var(--tc); }
+  :is(.bs1, .bs2, .bs3, .bs4, .bs5) .bub.below::after { border-top-color: transparent; border-bottom-color: var(--tc); }
+  /* light looks: the name sits on a dark chip so pale flair colors stay readable */
+  .bs1 .bub .bn, .bs2 .bub .bn, .bs4 .bub .bn { display: inline-block; padding: 1px 6px; margin-bottom: 3px; border-radius: 3px; background: #1c1524; }
+
+  /* 1 MARQUEE: warm cream marquee panel with a row of bulbs along the top */
+  .bs1 .bub { --tc: #3a2410; background: linear-gradient(#fff4d2, #f0d99c); color: #1f1408; border: 2px solid #3a2410;
+    border-radius: 4px; padding-top: 11px; box-shadow: 0 0 10px rgba(255, 196, 90, .45), 2px 3px 0 rgba(0, 0, 0, .6);
+    font: 800 18px/1.25 'Trebuchet MS', Verdana, sans-serif; }
+  .bs1 .bub::before { content: ''; position: absolute; left: 6px; right: 6px; top: 3px; height: 5px;
+    background: radial-gradient(circle, #fff7c0 0 1.6px, #ffb43a 2.2px, transparent 2.8px) 0 0 / 10px 5px repeat-x; }
+
+  /* 2 TICKET STUB: off-white admit-one stub, notched sides, typewriter text, red stamped name */
+  .bs2 .bub { --tc: #efe4cc; color: #2a2017; border: 0; border-radius: 2px; padding: 6px 16px 7px;
+    background: radial-gradient(circle at 0 50%, transparent 7px, #efe4cc 7.5px) left / 51% 100% no-repeat,
+                radial-gradient(circle at 100% 50%, transparent 7px, #efe4cc 7.5px) right / 51% 100% no-repeat;
+    box-shadow: none; filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .55)); font: 700 17px/1.28 'Courier New', Courier, monospace; }
+  .bs2 .bub::before { content: ''; position: absolute; left: 9px; top: 4px; bottom: 4px; border-left: 2px dashed rgba(120, 30, 30, .35); }
+  .bs2 .bub .bn { background: #8e1d1d; color: #fff3e0 !important; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+  .bs2 .bub .bn .rbt { -webkit-text-fill-color: #fff3e0; }
+
+  /* 3 NEON: dark glass with a rounded outline and a soft glow in the speaker's own name color */
+  .bs3 .bub { --tc: var(--nc, #9fd0ff); background: rgba(8, 6, 20, .86); border: 2px solid var(--nc, #9fd0ff); border-radius: 12px;
+    color: #fbf8ff; box-shadow: 0 0 8px color-mix(in srgb, var(--nc, #9fd0ff) 70%, transparent), inset 0 0 6px color-mix(in srgb, var(--nc, #9fd0ff) 35%, transparent);
+    font: 700 18px/1.28 Verdana, Tahoma, sans-serif; padding: 5px 12px 7px; }
+  .bs3 .bub .bn { text-shadow: 0 0 6px currentColor; }
+
+  /* 4 COMIC: white rounded speech balloon with a thick black outline */
+  .bs4 .bub { --tc: #111; background: #fff; color: #111; border: 3px solid #111; border-radius: 16px; padding: 5px 12px 7px;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, .55); font: 700 18px/1.25 'Comic Sans MS', 'Trebuchet MS', sans-serif; }
+  .bs4 .bub::after { border-width: 9px; margin-left: -9px; bottom: -11px; }
+  .bs4 .bub.below::after { top: -11px; bottom: auto; }
+
+  /* 5 RPG WINDOW: blue gradient game window, white double frame, drop-shadowed text, name over a rule */
+  .bs5 .bub { --tc: #e8ecff; background: linear-gradient(#3248b0, #121c5c 70%, #0b1240); color: #fff; border: 2px solid #e8ecff;
+    border-radius: 6px; outline: 2px solid #0a0d22; box-shadow: inset 0 0 0 2px #0a0d22, inset 0 0 0 3px rgba(232, 236, 255, .35), 3px 4px 0 rgba(0, 0, 0, .5);
+    text-shadow: 2px 2px 0 #000; padding: 6px 12px 8px; font: 700 18px/1.28 Verdana, Tahoma, sans-serif; }
+  .bs5 .bub .bn { padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1px solid rgba(232, 236, 255, .35); }
 </style>
 </head>
 <body>
@@ -821,6 +861,9 @@
   const queue = [];
   const bubOrder = [];
   const bubLayer = $('bubbles');
+  // bubble look: neon (owner's pick, 07 Nov 2026); ?bubstyle=0 the old dialog box, 1..5 the other drafts
+  const BUB_STYLE = Math.min(5, Math.max(0, Math.round(Number(q.get('bubstyle') ?? 3)) || 0));
+  if (BUB_STYLE) document.documentElement.classList.add(`bs${BUB_STYLE}`);
   const fx = $('fx');
   let wcBusy = null;
   let arcadeBusy = null;
@@ -1069,6 +1112,7 @@
     who.style.color = w.nm.style.color;
     if (w.nm.querySelector('.rbt')) { who.textContent = ''; who.append(h('span', 'rbt', w.nick)); }
     SB.renderTokens(b.appendChild(h('div', 'bt')), tokens, 24, 64);
+    if (BUB_STYLE) b.style.setProperty('--nc', w.nm.querySelector('.rbt') ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff'));
     bubLayer.append(b);
     w.bub = b;
     w.bubW = 0;      // measured on its first placement
@@ -2430,8 +2474,29 @@
     const tmp = (vel + om * ch) * dt;
     return [target + (ch + tmp) * e, (vel - om * tmp) * e];
   }
+  // Stacking order with hysteresis (bubble test, 07 Nov 2026): the lowest speaker is placed first, but two bubbles
+  // only swap places once one speaker is clearly lower (BUB_SWAP px). A plain sort by height swapped them every time
+  // two walkers crossed, so stacks flipped back and forth.
+  const BUB_SWAP = 36;
+  let bubStack = [];
+  function stackOrder() {
+    bubStack = bubStack.filter((w) => w.bub && !w.bubHidden);
+    for (const w of bubOrder) if (w.bub && !w.bubHidden && !bubStack.includes(w)) {
+      // a new one goes in at its true place (strict), after that only clear changes move it
+      let i = 0;
+      while (i < bubStack.length && bubStack[i].by >= w.by) i++;
+      bubStack.splice(i, 0, w);
+    }
+    for (let i = 1; i < bubStack.length; i++) {
+      for (let j = i; j > 0 && bubStack[j].by - bubStack[j - 1].by > BUB_SWAP; j--) [bubStack[j - 1], bubStack[j]] = [bubStack[j], bubStack[j - 1]];
+    }
+    return bubStack;
+  }
+  // A spot is kept until another one has been better for BUB_HOLD s; moving away from an overlap is immediate.
+  const BUB_HOLD = 0.6;
+  const BUB_GLIDE = 0.32;   // spring time for a change of spot (was 0.2: read as a jump)
   function layoutBubbles(dt) {
-    const list = bubOrder.filter((w) => w.bub && !w.bubHidden).sort((a, b) => b.by - a.by);
+    const list = stackOrder();
     const placed = [];
     // where the bubbles placed so far are drawn this frame (target + gliding offset + push). A later one that would
     // be drawn over one of them while it glides is pushed up above it (QA 04 Nov: overlaps 63 s -> 6 s in 2 min)
@@ -2448,32 +2513,46 @@
         if (!hit) break;
         by = hit.top - 6;
       }
-      const cands = [[w.bx, by]];
+      // candidates carry a kind, so the spot chosen last frame can be found again ('up' = over the head/stacked)
+      const cands = [['up', w.bx, by]];
       const soft = softRects.map(([l, t, r, b]) => [...toScreen(l, t), ...toScreen(r, b)]);   // world -> screen
-      for (const r of [...HARD_RECTS, ...soft]) {
-        if (over([r], w.bx, by, w)) cands.push([fit(r[0] - half - 6), by], [fit(r[2] + half + 6), by]);
-      }
+      [...HARD_RECTS, ...soft].forEach((r, i) => {
+        if (over([r], w.bx, by, w)) cands.push([`l${i}`, fit(r[0] - half - 6), by], [`r${i}`, fit(r[2] + half + 6), by]);
+      });
       const low = Math.max(w.by, vy0 + 8 + w.bubH);
-      cands.push([fit(w.bx + 2 * half + 12), low], [fit(w.bx - 2 * half - 12), low]);
-      const ok = cands.filter(([x, y]) => y - w.bubH >= vy0 + 8 &&!hitAt(x, y, w) && !over(HARD_RECTS, x, y, w));
-      const pick = ok.find(([x, y]) => !over(soft, x, y, w)) || ok[0];
+      cands.push(['R', fit(w.bx + 2 * half + 12), low], ['L', fit(w.bx - 2 * half - 12), low]);
+      const ok = cands.filter(([, x, y]) => y - w.bubH >= vy0 + 8 &&!hitAt(x, y, w) && !over(HARD_RECTS, x, y, w));
+      const best = ok.find(([, x, y]) => !over(soft, x, y, w)) || ok[0];
+      // stay on last frame's kind of spot while it still works; switch only after the better one held BUB_HOLD s
+      const prev = w.bubShown && ok.find((c) => c[0] === w.slotKind && !over(soft, c[1], c[2], w));
+      if (best && prev && best[0] !== prev[0]) w.slotT = (w.slotT || 0) + dt; else w.slotT = 0;
+      const pick = prev && w.slotT < BUB_HOLD ? prev : best;
       w.bubBlocked = !pick;
-      if (!pick) { w.bub.style.opacity = '0'; w.bubShown = false; continue; }
-      const [bx, bY] = pick;
+      if (!pick) { w.bub.style.opacity = '0'; w.bubShown = false; w.slotKind = null; continue; }
+      const [kind, bx, bYfree] = pick;
+      w.slotKind = kind;
+      // dy: moving up (out of the way) at once; dropping back down (the bubble below went) only once it held
+      let dyWant = bYfree - w.by;
+      if (!w.bubShown || dyWant <= (w.holdDy ?? dyWant) || kind !== w.holdKind) { w.holdDy = dyWant; w.dropT = 0; } else {
+        w.dropT += dt;
+        if (w.dropT >= BUB_HOLD) { w.holdDy = dyWant; w.dropT = 0; } else if (!hitAt(bx, w.by + w.holdDy, w) && w.by + w.holdDy - w.bubH >= vy0 + 8) dyWant = w.holdDy; else w.holdDy = dyWant;
+      }
+      w.holdKind = kind;
+      const bY = w.by + dyWant;
       placed.push({ x: bx, half, top: bY - w.bubH, bottom: bY });
       // the offset from the speaker's natural spot eases; the speaker's own movement is followed 1:1
       const dx = bx - w.bx;
       const dy = bY - w.by;
       if (!w.bubShown) { w.offX = dx; w.offY = dy; w.offVX = 0; w.offVY = 0; w.pushOff = 0; w.pushV = 0; w.bubShown = true; } else {
-        [w.offX, w.offVX] = spring(w.offX, dx, w.offVX, 0.2, dt);
-        [w.offY, w.offVY] = spring(w.offY, dy, w.offVY, 0.2, dt);
+        [w.offX, w.offVX] = spring(w.offX, dx, w.offVX, BUB_GLIDE, dt);
+        [w.offY, w.offVY] = spring(w.offY, dy, w.offVY, BUB_GLIDE, dt);
       }
       // kept on the stage while gliding too (the speaker can move on while a sideways offset is still easing)
       const cx = clamp(w.bx + w.offX, vx0 + half + 8, vx1 - 8 - half);
       const cy0 = w.by + w.offY;
       // a push eases back down on its own spring, but only while the way down is free (else it would sink into the
       // bubble below and be pushed out again every frame: a wobble)
-      const [relaxed, rv] = spring(w.pushOff, 0, w.pushV, 0.15, dt);
+      const [relaxed, rv] = spring(w.pushOff, 0, w.pushV, 0.3, dt);
       const y1 = cy0 + relaxed;
       if (!drawn.some((p) => Math.abs(p.x - cx) < p.half + half + 4 && y1 > p.top - 4 && y1 - w.bubH < p.bottom + 4)) { w.pushOff = relaxed; w.pushV = rv; } else w.pushV = 0;
       let cy = cy0 + w.pushOff;
@@ -2485,9 +2564,9 @@
       }
       cy = Math.max(cy, vy0 + 8 + w.bubH);   // never above the top edge either (a glide down from a high stacked spot)
       if (cy !== cy0 + w.pushOff) {
-        // pushed up at most 900 px/s: a quick slide, never a jump (a bubble gliding in sideways underneath)
+        // pushed up at most 600 px/s: a quick slide, never a jump (a bubble gliding in sideways underneath)
         const need = cy - cy0;
-        w.pushOff = need < w.pushOff ? Math.max(need, w.pushOff - 900 * dt) : need;
+        w.pushOff = need < w.pushOff ? Math.max(need, w.pushOff - 600 * dt) : need;
         w.pushV = 0;
         cy = cy0 + w.pushOff;
       }

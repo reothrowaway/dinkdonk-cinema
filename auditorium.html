@@ -152,6 +152,46 @@
     border: 7px solid transparent; border-top-color: rgba(200, 220, 255, .6); border-bottom: 0; }
   .bub.below::after { bottom: auto; top: -8px; border-top-color: transparent; border-bottom: 7px solid rgba(200, 220, 255, .6); border-top: 0; }
   .bub .sb-emote { vertical-align: middle; margin: 0 2px; }
+  /* ---- bubble look drafts (07 Nov 2026), ?bubstyle=1..5; none = the current dialog box ----
+     every look keeps the same box model (padding, max-width, 3-line clamp), so placement and stacking are unchanged */
+  :is(.bs1, .bs2, .bs3, .bs4, .bs5) .bub::after { border-top-color: var(--tc); }
+  :is(.bs1, .bs2, .bs3, .bs4, .bs5) .bub.below::after { border-top-color: transparent; border-bottom-color: var(--tc); }
+  /* light looks: the name sits on a dark chip so pale flair colors stay readable */
+  .bs1 .bub .bn, .bs2 .bub .bn, .bs4 .bub .bn { display: inline-block; padding: 1px 6px; margin-bottom: 3px; border-radius: 3px; background: #1c1524; }
+
+  /* 1 MARQUEE: warm cream marquee panel with a row of bulbs along the top */
+  .bs1 .bub { --tc: #3a2410; background: linear-gradient(#fff4d2, #f0d99c); color: #1f1408; border: 2px solid #3a2410;
+    border-radius: 4px; padding-top: 11px; box-shadow: 0 0 10px rgba(255, 196, 90, .45), 2px 3px 0 rgba(0, 0, 0, .6);
+    font: 800 18px/1.25 'Trebuchet MS', Verdana, sans-serif; }
+  .bs1 .bub::before { content: ''; position: absolute; left: 6px; right: 6px; top: 3px; height: 5px;
+    background: radial-gradient(circle, #fff7c0 0 1.6px, #ffb43a 2.2px, transparent 2.8px) 0 0 / 10px 5px repeat-x; }
+
+  /* 2 TICKET STUB: off-white admit-one stub, notched sides, typewriter text, red stamped name */
+  .bs2 .bub { --tc: #efe4cc; color: #2a2017; border: 0; border-radius: 2px; padding: 6px 16px 7px;
+    background: radial-gradient(circle at 0 50%, transparent 7px, #efe4cc 7.5px) left / 51% 100% no-repeat,
+                radial-gradient(circle at 100% 50%, transparent 7px, #efe4cc 7.5px) right / 51% 100% no-repeat;
+    box-shadow: none; filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .55)); font: 700 17px/1.28 'Courier New', Courier, monospace; }
+  .bs2 .bub::before { content: ''; position: absolute; left: 9px; top: 4px; bottom: 4px; border-left: 2px dashed rgba(120, 30, 30, .35); }
+  .bs2 .bub .bn { background: #8e1d1d; color: #fff3e0 !important; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+  .bs2 .bub .bn .rbt { -webkit-text-fill-color: #fff3e0; }
+
+  /* 3 NEON: dark glass with a rounded outline and a soft glow in the speaker's own name color */
+  .bs3 .bub { --tc: var(--nc, #9fd0ff); background: rgba(8, 6, 20, .86); border: 2px solid var(--nc, #9fd0ff); border-radius: 12px;
+    color: #fbf8ff; box-shadow: 0 0 8px color-mix(in srgb, var(--nc, #9fd0ff) 70%, transparent), inset 0 0 6px color-mix(in srgb, var(--nc, #9fd0ff) 35%, transparent);
+    font: 700 18px/1.28 Verdana, Tahoma, sans-serif; padding: 5px 12px 7px; }
+  .bs3 .bub .bn { text-shadow: 0 0 6px currentColor; }
+
+  /* 4 COMIC: white rounded speech balloon with a thick black outline */
+  .bs4 .bub { --tc: #111; background: #fff; color: #111; border: 3px solid #111; border-radius: 16px; padding: 5px 12px 7px;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, .55); font: 700 18px/1.25 'Comic Sans MS', 'Trebuchet MS', sans-serif; }
+  .bs4 .bub::after { border-width: 9px; margin-left: -9px; bottom: -11px; }
+  .bs4 .bub.below::after { top: -11px; bottom: auto; }
+
+  /* 5 RPG WINDOW: blue gradient game window, white double frame, drop-shadowed text, name over a rule */
+  .bs5 .bub { --tc: #e8ecff; background: linear-gradient(#3248b0, #121c5c 70%, #0b1240); color: #fff; border: 2px solid #e8ecff;
+    border-radius: 6px; outline: 2px solid #0a0d22; box-shadow: inset 0 0 0 2px #0a0d22, inset 0 0 0 3px rgba(232, 236, 255, .35), 3px 4px 0 rgba(0, 0, 0, .5);
+    text-shadow: 2px 2px 0 #000; padding: 6px 12px 8px; font: 700 18px/1.28 Verdana, Tahoma, sans-serif; }
+  .bs5 .bub .bn { padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1px solid rgba(232, 236, 255, .35); }
 </style>
 </head>
 <body>
@@ -205,6 +245,9 @@
   const world = $('world');
   const nameLayer = $('names');
   const bubLayer = $('bubbles');
+  // bubble look: neon (owner's pick, 07 Nov 2026); ?bubstyle=0 the old dialog box, 1..5 the other drafts
+  const BUB_STYLE = Math.min(5, Math.max(0, Math.round(Number(q.get('bubstyle') ?? 3)) || 0));
+  if (BUB_STYLE) document.documentElement.classList.add(`bs${BUB_STYLE}`);
 
   // ---------- pre-show + house lights ----------
   const phases = ['seating', 'dim', 'film', 'up'];
@@ -215,6 +258,7 @@
   const alwaysGreen = q.get('screen') === 'green';
   // Once the dim art has fully faded in, the lit art under it stops being drawn, so only one set is decoded.
   let dimDoneTimer = 0, lightsAt = -1e9;
+  let pushWanted = false;   // Film (push) with the lights down; Lights down alone keeps the wide shot (owner 7 Nov)
   function scheduleDimDone() {
     clearTimeout(dimDoneTimer);
     const st = $('stage').classList;
@@ -224,12 +268,18 @@
   function applyPhase() {
     // lightsOn: the house lights come up while the film keeps playing (credits); the next phase brings them back
     const down = (show.phase === 'dim' || show.phase === 'film') && !show.lightsOn;
-    if (down !== $('stage').classList.contains('lights-down')) {
+    const dimmed = down !== $('stage').classList.contains('lights-down');
+    if (dimmed) {
       $('stage').classList.toggle('lights-down', down);
       lightsAt = performance.now();
       scheduleDimDone();
-      // the director moves onto the screen 10 s in (not for Movie / Film outro, which keep the wide shot)
-      director.screenAt = down && show.shot === 'push' ? performance.now() + 10000 : 0;
+    }
+    // Film only: the director moves onto the screen 10 s after the lights go down, or at once when they already are
+    // (Lights down -> Film). Lights down alone, Movie and Film outro keep the wide shot.
+    const wantPush = down && show.phase === 'film' && show.shot === 'push';
+    if (wantPush !== pushWanted || (dimmed && wantPush)) {
+      pushWanted = wantPush;
+      director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || show.phase === 'film';
     $('screenq').style.display = screenPoly && green ? 'block' : 'none';
@@ -1528,8 +1578,11 @@
     who.style.color = w.nm.style.color;
     if (w.rainbow) { who.textContent = ''; who.append(h('span', 'rbt', w.nick)); }
     SB.renderTokens(b.appendChild(h('div', 'bt')), tokens, 22, 64);
+    if (BUB_STYLE) b.style.setProperty('--nc', w.rainbow ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff'));
     bubLayer.append(b);
     w.bub = b;
+    w.bubFresh = true;   // first placement snaps, later moves glide (placeBubble)
+    w.bubAge = 0;
     w.bubT = 6;
     w.nameT = 6;
     if (w.sitting) { w.bounce = 1; turnNeighbours(w); spotlight(w); }
@@ -1560,7 +1613,10 @@
   }
   function dropBubble(w) {
     if (!w.bub) return;
-    w.bub.remove();
+    // fades out like the lobby's (a removed bubble let the ones above it fall at once)
+    const old = w.bub;
+    old.animate([{ opacity: old.style.opacity || 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-out', fill: 'forwards' }).onfinish = () => old.remove();
+    setTimeout(() => old.remove(), 400);   // animations pause in a hidden tab: removed anyway
     w.bub = null;
     w.bubbleMeasured = null;
     const i = bubOrder.indexOf(w);
@@ -1580,26 +1636,68 @@
   }
   // Above the head; below the seat instead when it would cover the film screen. Bubbles placed earlier
   // this frame are avoided: a later one moves past them (up when above the head, down when below).
-  function placeBubble(w, placed) {
+  // Smooth placement (bubble test, 07 Nov 2026): the bubble follows its speaker (and the camera) 1:1, but its offset
+  // from the natural spot over the head eases on a spring, so making room, stacking and the above/below switch glide
+  // instead of jumping. Below the seat only after the screen was covered for BUB_HOLD s (and back the same way); a
+  // stacked bubble drops back down only once the room below held free for BUB_HOLD s.
+  const BUB_HOLD = 0.6;
+  const BUB_GLIDE = 0.32;
+  function spring(cur, target, vel, smooth, dt) {
+    const om = 2 / smooth;
+    const k = om * dt;
+    const e = 1 / (1 + k + 0.48 * k * k + 0.235 * k * k * k);
+    const ch = cur - target;
+    const tmp = (vel + om * ch) * dt;
+    return [target + (ch + tmp) * e, (vel - om * tmp) * e];
+  }
+  function placeBubble(w, placed, dt) {
     const b = w.bub;
     const [x, y] = toScreen(w.bx, w.by);
-    const head = toScreen(w.bx, w.by - w.emH)[1];
+    const head = toScreen(w.bx, w.by - w.emH - 13 * K)[1];   // + a walking hop, so the head never pokes into it
     const bw = w.bw;
     const bh = w.bh;
     const left = clamp(x - bw / 2, 8, 1912 - bw);
     const coversScreen = (t) => [[left, t], [left + bw, t], [left, t + bh], [left + bw, t + bh], [left + bw / 2, t]].some(([px, py]) => inScreen(px, py));
-    const below = coversScreen(head - bh - 14);
-    let top = below ? y + 18 : head - bh - 14;
+    const natural = head - bh - 14;
+    const wantBelow = coversScreen(natural);
+    if (w.bubFresh) { w.below = wantBelow; w.flipT = 0; } else if (wantBelow !== w.below) {
+      w.flipT += dt;
+      if (w.flipT >= BUB_HOLD) { w.below = wantBelow; w.flipT = 0; }
+    } else w.flipT = 0;
+    const below = w.below;
+    const hitAt = (t) => placed.find((r) => left < r.x1 + 6 && left + bw > r.x0 - 6 && t < r.y1 + 6 && t + bh > r.y0 - 6);
+    let top = below ? y + 18 : natural;
     for (let i = 0; i < 6; i++) {
-      const hit = placed.find((r) => left < r.x1 + 6 && left + bw > r.x0 - 6 && top < r.y1 + 6 && top + bh > r.y0 - 6);
+      const hit = hitAt(top);
       if (!hit) break;
       top = below ? hit.y1 + 6 : hit.y0 - bh - 6;
     }
-    top = clamp(top, 8, 1072 - bh);
+    // hold a stacked spot (further from the speaker) until the closer one stayed free BUB_HOLD s
+    let dy = top - natural;
+    const away = (d) => (below ? d : -d);   // larger = further from the speaker
+    if (w.bubFresh || below !== w.holdBelow || away(dy) >= away(w.holdDy)) { w.holdDy = dy; w.dropT = 0; } else {
+      w.dropT += dt;
+      const held = natural + w.holdDy;
+      if (w.dropT < BUB_HOLD && !hitAt(held) && held >= 8 && held <= 1072 - bh) dy = w.holdDy; else { w.holdDy = dy; w.dropT = 0; }
+    }
+    w.holdBelow = below;
+    top = clamp(natural + dy, 8, 1072 - bh);
     placed.push({ x0: left, y0: top, x1: left + bw, y1: top + bh });
-    b.classList.toggle('below', below);
-    b.style.transform = `translate(${left}px, ${top}px)`;
-    b.style.setProperty('--tail', `${clamp(x - (left + bw / 2), -bw / 2 + 12, bw / 2 - 12)}px`);
+    // eased offsets from the natural spot (x: from the clamped left edge; y: from over the head)
+    const ox = left - (x - bw / 2);
+    const oy = top - natural;
+    if (w.bubFresh) { w.offX = ox; w.offY = oy; w.offVX = 0; w.offVY = 0; w.bubFresh = false; b.classList.toggle('below', below); } else {
+      [w.offX, w.offVX] = spring(w.offX, ox, w.offVX, BUB_GLIDE, dt);
+      [w.offY, w.offVY] = spring(w.offY, oy, w.offVY, BUB_GLIDE, dt);
+    }
+    const dl = clamp(x - bw / 2 + w.offX, 8, 1912 - bw);
+    const dt2 = clamp(natural + w.offY, 8, 1072 - bh);
+    // the tail flips side once the box has passed the speaker's middle on its glide
+    b.classList.toggle('below', dt2 > (head + y) / 2);
+    b.style.transform = `translate(${dl.toFixed(1)}px, ${dt2.toFixed(1)}px)`;
+    w.bubAge = (w.bubAge || 0) + dt;
+    b.style.opacity = String(Math.min(1, w.bubAge / 0.25, Math.max(0, w.bubT) / 0.4).toFixed(3));
+    b.style.setProperty('--tail', `${clamp(x - (dl + bw / 2), -bw / 2 + 12, bw / 2 - 12).toFixed(0)}px`);
   }
 
   // ---------- frame ----------
@@ -1658,7 +1756,7 @@
       w.bw = w.bub.offsetWidth; w.bh = w.bub.offsetHeight; w.bubbleMeasured = w.bub;
     }
     const placed = [];
-    for (const w of bubOrder) if (w.bub && w.bub.style.visibility !== 'hidden') placeBubble(w, placed);
+    for (const w of bubOrder) if (w.bub && w.bub.style.visibility !== 'hidden') placeBubble(w, placed, dt);
   }
 
   // Neighbours who sit down together both showed their names on top of each other (QA 04 Nov: 16 clashes in 5 min,
@@ -1821,7 +1919,7 @@
       const [vx, vy] = toScreen(x, y - lift);
       w.bub.style.visibility = w.seen && vx > 10 && vx < 1910 && vy > 10 && vy < 1075 ? '' : 'hidden';
       if (w.seen) w.bubT -= dt;
-      if (w.bubT <= 0) dropBubble(w); else { w.bx = x; w.by = y - lift; }
+      if (w.bubT <= 0) dropBubble(w); else { w.bx = x; w.by = y; }   // standing height: hops and the seat bounce no longer bob the bubble
     }
     if (w.zz) {
       style(w.zz, 'transform', `translate(${(x + w.emW * grow * 0.3).toFixed(1)}px, ${(y - lift - w.emH * grow + 6).toFixed(1)}px)`);
@@ -1843,7 +1941,8 @@
   const cam = { x: 960, y: 540, z: 1, vx: 0, vy: 0, vz: 0, key: '' };
   const director = { on: DIRECTOR_ON, every: clamp(Number(q.get('director')) || 150, 30, 1800), zoom: ZOOM,
     follow: null, next: performance.now() + rand(45, 75) * 1000, wantNext: false, screenAt: 0, outro: false };
-  // Lights down: 10 s in, the camera eases onto the screen and stays while the lights are down. Always the same
+  // Film: 10 s after the lights go down (at once if Lights down already dimmed them), the camera eases onto the screen
+  // and stays while the lights are down. Lights down on its own keeps the wide shot. Always the same
   // framing, so OBS's corner-pin of the film can use these zoomed corners. No automatic follows meanwhile (F, R and
   // the control panel still cut away; W / "wide" cancels the shot until the lights go down again).
   const onScreen = (now) => director.on && director.screenAt > 0 && now >= director.screenAt && !!screenPoly;
@@ -1956,7 +2055,7 @@
         const again = c.value === 'film' && show.phase === 'film' && (show.shot !== 'push' || show.lightsOn);
         if (c.value === show.phase) show.lightsOn = false;   // the phase's own button dims the house lights again
         setPhase(c.value, true);
-        if (again) { director.screenAt = now; director.outro = false; endFollow(); }
+        if (again) { director.screenAt = now; director.outro = false; endFollow(); pushWanted = true; }
         show.shot = 'push';
         break;
       }
