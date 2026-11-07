@@ -11,7 +11,8 @@ __pycache__/
 *.log
 *.tar.gz
 *.zip
-*.pre57
+*.pre[0-9][0-9]
+/roxy3d/cloud/cloud-state*.json
 
 # roxy3d: the art working folders (drafts, QA shots, old packs, render caches; about 30 GB) stay local.
 # Kept: briefs, notes, scripts and source .blend files at the top; the live packs out10 + out10mist; memes, tools,

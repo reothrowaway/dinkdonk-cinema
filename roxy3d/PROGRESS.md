@@ -565,3 +565,64 @@ twins up for 6.5 s after lights-up. Headless check: twin opacity = background di
   Tested locally on 18772 with real chat and a mock obs-websocket: setup, direct and relay film pinning, film off when
   the auditorium closes, per-room isolation, revoke. Not deployed yet: no SSH access to the Hetzner server
   (2.29.56.208); web/deploy/deploy.sh is ready once access is added (web/README.md, "Server access").
+- 05 Nov 2026, hosted edition deployed: https://2-29-56-208.sslip.io (Hetzner dinkdonk-cinema, Ubuntu 26.04, Node 22,
+  Caddy + Let's Encrypt, ufw 22/80/443, key-only SSH, unattended upgrades). SSH key ~/.ssh/dinkdonk_cinema_v2_ed25519
+  (added by the owner). Checked on the public URL: HTTPS, keyless pages refused, lobby and auditorium load with no
+  missing files and real chat over the shared upstream, control panel commands (lights down), the film relay over wss,
+  wrong keys refused. Admin token is in a local file outside the repo. Still untested: the film pinned in real OBS.
+- 05 Nov 2026, hosted edition tested in the owner's real OBS 32.2.2: setup.html (now with "new scene collection",
+  a moving test-pattern film web/testfilm.html, a live OBS preview and "switch back") created a separate
+  "DinkDonk Cinema" collection; the auditorium inside OBS linked to OBS directly from the https page (obs=true);
+  control panel Lights down -> Film put the test film exactly on the cinema screen (pinned, follows the camera),
+  Lights up took it down. OBS switched back to "Moobies 1440p poll"; the local obs-bridge reconnected (film off).
+  The test collection "DinkDonk Cinema" stays in OBS. Not tested: the relay path on OBS 33+ (mock only).
+- 05 Nov 2026, relay path tested in real OBS 32.2.2: new setup option "Link the film through the control panel"
+  (#relay=1 in the auditorium URL, web/shim.js). With it, the OBS auditorium sent the screen corners through the
+  server to the control panel in Chrome, which applied them in OBS: test film pinned on the screen, Lights up took it
+  down. This is the path OBS 33+ falls back to (OBS 33's own block itself not tried: no OBS 33 here). OBS switched back
+  to "Moobies 1440p poll"; local obs-bridge OK.
+- 05 Nov 2026, setup.html step 1 is now a picture guide: real screenshots of the owner's OBS 32.2.2 (Tools menu,
+  WebSocket Server Settings; web/guide/, title bar cropped, password shown only as dots) with numbered marks on what
+  to click, the local-network-access prompt, obs-shaderfilter install, and a "not reachable / wrong password" help
+  section. The OBS windows were opened through UI Automation and closed without changing anything (Connect Info,
+  which shows the password, was not captured). Deployed.
+- 06 Nov 2026, fly-through transition: owner wants the lobby -> auditorium switch to be a camera fly-through
+  (iso -> first person, street, glass doors, lobby, hallway, screen door, auditorium tunnel, near the screen, pull back
+  to the auditorium iso view), rendered in Blender, with the live chatters composited in by the page (camera path +
+  depth per frame). Step 1 = route blockout: BRIEF-59 to Codex (fly/, 640x360 preview, camera_path.json, mapping.json).
+  Blockout done (NOTES-59, ~30 min Codex): fly/blockout_AB.mp4 (20 s, 640x360, Workbench), Screen 1 route, 20 scale
+  cards, camera_path.json (600 frames) + mapping.json; endpoints match the live views (<0.13 px). Found: lobby has no
+  ceiling (open cutaway, billboards/roofs visible from inside), Screen 1 door 1.55 units high (camera ducks), tunnel
+  low; full 4K Cycles estimate 6-10 h on a 4090. Sent to owner for route feedback.
+- 06 Nov 2026: owner on the blockout: route good; the iso->perspective warp at the start is the main issue; camera lower. BRIEF-60: three openings (top-down drop, flat zoom + quick swoop, soft dissolve) as full v2 videos, eye height ~1.15 units without ducking. Codex now runs at normal speed (service_tier default).
+  Brief 60 done (~50 min, normal speed): fly/v2_opening{1_topdown,2_swoop,3_dissolve}_AB.mp4 (20.7 s each), camera at 1.15 units with no ducking (tunnel clearance 0.197). Sent to owner to pick an opening.
+- 06 Nov 2026: owner picked opening 1 (top-down drop); wants a smoother, less sudden drop, a bus near-miss during the zoom, and a fixed door animation (Screen 1 leaves pressed against the camera, stretched texture, flying into the curtain). BRIEF-61 -> fly/v3_flythrough_AB.mp4.
+  Brief 61 done: fly/v3_flythrough_AB.mp4 (22.2 s): 5 s smooth top-down drop, d.gg bus from roxy_vehicles_pass9.blend passing under the camera (closest 0.32 units at A138, path in v3_bus_path.json), Screen 1 leaves hinge-swing outward + curtain parts into black, auditorium door cleaned. Sent to owner.
+- 06 Nov 2026: owner on v3: opening dives into plain street, should pan toward the door and be smoother. Codex review (reviews/flythrough-v3-opening.md) agreed; owner chose its 'door-led crane'. BRIEF-62 -> fly/v4_flythrough_AB.mp4.
+  Brief 62 done: fly/v4_flythrough_AB.mp4 (22.2 s): door-led crane, switch at A72 on the paving slab outside the entrance, threshold back by A90, bus crosses A84-88, joins v3 route at A194. Sent to owner.
+- 06 Nov 2026: owner on v4: worse. Drew the move (fly/owner-sketch-swoop.png): lift out left, dive to street beside the bus, glide into the entrance, S-curve to the screen door. Cause of warp = framing held while lens changes. BRIEF-63: three variants (V5A swoop + bus pass, V5B follow the bus, V5C follow a chatter), all with pull-back switch + drone feel.
+  Brief 63 done: fly/v5A/B/C_flythrough_AB.mp4 (23.8/25/26 s). Pull back to ortho scale 28 (A16-45), switch at A46 with 0.27 px max mismatch, swoop left and dive, banking, blur, lens drops; block edges fade to dark. Sent to owner to pick.
+- 06 Nov 2026: owner picked V5A (swoop + bus pass); camera 'bounces' at the start and moves are too fast/sudden; may be longer than 30 s. BRIEF-64 -> fly/v6_flythrough_AB.mp4 (one pull back/crest/dive, scale rate continuous across the switch, ~35-45 s, speed/turn limits, part B retimed too).
+  Brief 64 done: fly/v6_flythrough_AB.mp4 (54.2 s: A 36.7 s, B 17.5 s). Bounce = scale hitch at the switch + extra pullout (plot fly/v6_apparent_scale.png); v6 one smooth minimum. Peaks: 2.28 units/s, 18.3 deg/s (v5A had 15 units/s, 163 deg/s). Sent to owner.
+- 06 Nov 2026: owner approved v6 for a first version; final pod render 1080p 30 fps, nail the lobby's night look, fix frozen rain (static geometry), send frames as they render. BRIEF-65: production scenes + falling rain + depth pass, 5 local look-check frames, bundle-65 with split + peek.
+  Owner: motion blur must be strong and explicit -> BRIEF-65 updated (long shutter ~1 frame or more); Codex restarted before it had written anything.
+  Brief 65 done: fly/prod/ production scenes (lobby night look, animated rain, 1.25-frame shutter, 128/32 samples + OptiX), 5 look checks sent to owner (A1 vs live 1.87/255), depth PNGs, cloud/roxy-cloud-bundle-65.tar.gz (30 MB), cloud-render.sh + peek (backup .pre65). Needs a 20 GB volume. Estimate 4-5 billed h on one 4090, ~$3.6-4.5. RunPod balance $8.87. Waiting for owner OK on the look.
+- 06 Nov 2026 18:01: owner said go. Fly-through render on RunPod: pod f1fvtg3ldf6exq (RTX 4090 SECURE, EU-RO-1), volume cfomnqf1uo expanded to 20 GB, bundle-65, OUTDIR fly/prod/cloud-result. Balance before: $8.87.
+  18:03 first frames rendering on the pod, ~6.5 s/frame (ETA ~3 h for 1625). Warning in log: motion blur disabled for 'D10 stateless edge drips and impact crowns' (topology changes per frame). Peek check scheduled every 20 min.
+  18:21 frame 77/1625; pull-back frames ~13 s each (hold frames were ~6.5 s). At this pace ~6 h -> may hit the helper's 6 h MAX_HOURS at ~00:01 (then it deletes the pod and KEEPS volume cfomnqf1uo with the finished frames; recover by creating a pod on that volume + ADOPT_POD to resume). $0.89/h.
+  Owner wants a reminder after this render: (1) Codex profiling of fly/prod scenes for a 2-3x speed-up, (2) Eevee option with crossfades. Saved in memory + render-check cron.
+- 06 Nov 2026 23:33: fly-through render DONE (EXIT 0, marker DONE). 1625 frames + flythrough_1080p30.webm (55 MB) + depth_pngs.tar.gz (2.5 GB) + camera/bus/mapping JSON in fly/prod/cloud-result/flythrough65/ (5.2 GB). Pod f1fvtg3ldf6exq and volume cfomnqf1uo deleted. Balance $8.87 -> $3.92 ($4.95). Last frame = auditorium iso view. Sent the video to the owner; reminded them of the speed-up follow-ups.
+- 06 Nov 2026 23:4x: owner: do both speed-ups. BRIEF-66: Cycles profiling + optimized setup, and an Eevee test, on 6 test frames locally; comparison images fly/speed/compare_*.png.
+  Owner also asked for a parallel Opus 5.5 session doing BRIEF-66 independently (session opus-speed-test, local_a8085f34; folder fly/speed-opus/, NOTES-66-opus.md) to compare with Codex. Both share the RTX 3050, so timings are relative.
+- 07 Nov 2026 ~02:40: Brief 66 compared. Opus (NOTES-66-opus.md): optimized Cycles 2.3-2.5x faster locally (64/16 samples, threshold .03, light tree off, rain as one GN object, fog camera-only), image diff ~1.4-2.4/255, frame 1 vs live 2.49/255; est 4090 ~2.7 h; Eevee 14.5 s local but loses wet street. Codex (NOTES-66.md): optimized Cycles 23-33% faster (adaptive threshold preset), diff 0.4-0.8/255, frame 1 unchanged; est 4090 3.95 h; Eevee slower than Cycles (84-117 s). Both recommend optimized Cycles. Opus preset untested for flicker in motion.
+- 07 Nov 2026: owner review of flythrough65: jerky camera (speed oscillates), rain glitching outdoors, grey thing at the auditorium door, camera climbs tunnel steps, too long on the screen, grey flash during the final zoom-out. Wants faster turnaround; agreed: automated QA + cheap full-length draft before any final.
+- 07 Nov 2026: QA test on flythrough65 (~10 min, tools/qa-fly/campath.py + flash.py). Caught automatically: speed oscillation A450-1020 (0.8<->2.2 u/s), tunnel staircase (3 climbs B97-B153), camera nearly static frames 1356-1592 (~8 s at the screen), near-empty grey frames 1586-1595 before the ortho switch at 1596 (the grey flash). Missed by the scan, found only by eye where the owner pointed: flat brown-grey vestibule panel behind Screen 1 doors (~A1040-1065). Rain glitch not checked.
+- 07 Nov 2026: owner OK'd the fix round: 540p, 15 fps draft on one pod (~45-60 min, ~$1). BRIEF-67 to Codex: fix the 6 problems, Opus optA preset, QA must pass, bundle-67 with draft + final modes.
+- 07 Nov 2026: owner-approved cleanup (C: had 5.6 GB free): deleted qa10/draft4, roxy3d/cache/* except brief50, qa qa2-qa9 qa8b qa8shots qa58, fly preview frame folders v1-v6 (MP4s kept). Not deleted (owner chose to keep): old art packs, old cloud bundles.
+- 07 Nov 2026: Brief 67 done (50.13 s, 1504 frames; speed varies 0.07%, one tunnel rise, 1.32 s screen beat, rain topology stable, door backing black, no grey dropout). My campath check passes (turn rates now up to 37/66 deg/s). Draft started on pod: FLY_MODE=draft, MIN_BALANCE=2.5 (balance $3.92 < default 5.5 guard), out fly/v7/cloud-draft-result. Codex estimate draft 1.25-1.75 h incl. overhead; final 3-4 h (needs top-up).
+- 07 Nov 2026 09:50: draft peek: A185/A187 pure black (depth valid, far long-lens camera). Pod left running (rest of route likely fine). BRIEF-68 to Codex: diagnose (suspect fog camera-only), fix, render the affected range locally at draft settings for splicing, rebuild bundle-68.
+- 07 Nov 2026 ~09:55: owner cancelled the draft ('doesn't make sense to wait this long'). Helper stopped; it left pod ghhzf5iodu6qab running -> removed by hand; volume 60h4yq3ugv deleted; state file removed. Balance now $13.61 (owner topped up). Codex BRIEF-68 still running.
+- 07 Nov 2026: owner: fix only, no draft. Codex 68 stopped and resumed (codex exec resume --last) with the narrower task: diagnose + fix + bundle-68, proof = a few local final-quality frames of the pull-back; no draft render.
+- 07 Nov 2026: Brief 68 done: black pull-back = widened near clip exposed the outside of the sky shell (A107-A240); original A clip restored. 4 final proofs OK (fly/v7/qa68/four_final_proofs_old-left_fixed-right.png, sent to owner). Bundle-68 (sha 6e7b5038...) ready for the final.
+- 07 Nov 2026 10:23: owner: start the final. FLY_MODE=final bundle-68 on pod u15g05tzahjzr1 (4090 SECURE, EU-RO-1), volume 1jvd0l04mu expanded to 20 GB, out fly/v7/cloud-final-result. Balance before $13.61. Peek check every 20 min.
+- 07 Nov 2026: owner: switch to a game engine, Claude chose Godot (text scenes for AI agents, small, no account; UE5 too big for disk/GPU/automation). Godot 4.7.2 official win64 downloaded from github.com/godotengine/godot releases (86 MB, SHA512 verified) to standby/tools/godot-4.7.2/. BRIEF-69 Godot spike to Codex (lobby still compare + 10 s fly-through piece with sub-frame motion blur). The v7 Cycles final keeps rendering on the pod.

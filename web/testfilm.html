@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- DinkDonk Cinema, hosted edition: a moving test pattern to stand in for the film while trying the setup (setup.html
+     "Test pattern" film source). Corner marks and the frame show whether the film sits exactly on the cinema screen. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DinkDonk test film</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(() => {
+  'use strict';
+  const c = document.getElementById('c');
+  const g = c.getContext('2d');
+  const BARS = ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'];
+  function frame(t) {
+    const w = c.width = innerWidth, h = c.height = innerHeight;
+    BARS.forEach((col, i) => { g.fillStyle = col; g.fillRect(i * w / 7, 0, w / 7 + 1, h * 0.66); });
+    g.fillStyle = '#111'; g.fillRect(0, h * 0.66, w, h * 0.34);
+    // a ball sweeping across: shows the film is live, not a still
+    const x = (Math.sin(t / 1400) * 0.42 + 0.5) * w;
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(x, h * 0.83, h * 0.07, 0, Math.PI * 2); g.fill();
+    // frame and corner marks for checking the pin
+    g.strokeStyle = '#ff2fd0'; g.lineWidth = Math.max(4, h * 0.012); g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
+    g.fillStyle = '#ff2fd0';
+    const m = h * 0.08;
+    for (const [cx, cy] of [[0, 0], [w - m, 0], [0, h - m], [w - m, h - m]]) g.fillRect(cx, cy, m, m);
+    g.fillStyle = '#fff'; g.font = `700 ${Math.round(h * 0.09)}px system-ui, sans-serif`; g.textAlign = 'center';
+    g.fillText('DINK DONK TEST FILM', w / 2, h * 0.36);
+    g.font = `500 ${Math.round(h * 0.06)}px ui-monospace, Consolas, monospace`;
+    g.fillText(new Date().toTimeString().slice(0, 8), w / 2, h * 0.5);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

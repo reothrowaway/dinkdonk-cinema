@@ -35,6 +35,17 @@
   #log { white-space: pre-wrap; font: 13px/1.5 ui-monospace, Consolas, monospace; color: var(--dim); margin-top: 10px; }
   [hidden] { display: none !important; }
   a { color: var(--acc); }
+  /* step-by-step guide: real OBS screenshots with numbered marks (positions in % of the picture) */
+  .steps { list-style: none; padding: 0; margin: 4px 0 14px; counter-reset: step; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 38px; margin: 0 0 18px; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--acc); color: #06131e; font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+  .shot { position: relative; margin: 10px 0 4px; max-width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .shot img { display: block; width: 100%; height: auto; }
+  .mark { position: absolute; border: 3px solid #ff3b8b; border-radius: 7px; box-shadow: 0 0 0 3px rgba(255, 59, 139, .25); }
+  .mark b { position: absolute; top: -12px; left: -12px; width: 22px; height: 22px; border-radius: 50%; background: #ff3b8b; color: #fff; font: 700 13px/22px system-ui, sans-serif; text-align: center; }
+  .marks { margin: 4px 0 0; padding-left: 20px; } .marks li { margin: 2px 0; }
+  .marks li::marker { color: #ff3b8b; font-weight: 700; }
+  details { margin-top: 12px; color: var(--dim); } summary { cursor: pointer; color: var(--text); }
 </style>
 </head>
 <body>
@@ -44,10 +55,31 @@
 
   <div class="card">
     <h2>1 · Connect to OBS</h2>
-    <ol>
-      <li>In OBS: <b>Tools › WebSocket Server Settings</b> › tick <b>Enable WebSocket server</b>. Click <b>Show Connect Info</b> for the password.</li>
-      <li>For the film on the cinema screen, install the <a href="https://github.com/exeldro/obs-shaderfilter/releases" target="_blank" rel="noopener">obs-shaderfilter</a> plugin. Without it, the screen stays green and you place the film yourself.</li>
-      <li>Open this page on the PC that runs OBS. If your browser asks to allow access to devices on your local network, allow it: that's how this page reaches OBS.</li>
+    <p style="margin:0 0 12px">This page sets everything up in your OBS for you. For that it talks to OBS's built-in remote control (the "WebSocket server"), which is off until you switch it on. Do this on the PC that runs OBS, with OBS open.</p>
+    <ol class="steps">
+      <li>In OBS's menu bar, click <b>Tools</b>, then <b>WebSocket Server Settings</b>.
+        <div class="shot" style="width:594px"><img src="web/guide/obs-tools-menu.png" width="594" height="268" alt="OBS Tools menu with WebSocket Server Settings at the bottom">
+          <span class="mark" style="left:58.4%;top:0;width:8.9%;height:10.4%"><b>1</b></span>
+          <span class="mark" style="left:58.4%;top:75.4%;width:34.3%;height:11.2%"><b>2</b></span>
+        </div>
+        <span class="dim">No "WebSocket Server Settings" there? Your OBS is older than version 28: update it from <a href="https://obsproject.com/download" target="_blank" rel="noopener">obsproject.com</a>.</span>
+      </li>
+      <li>In the window that opens:
+        <div class="shot" style="width:691px"><img src="web/guide/obs-websocket-settings.png" width="691" height="639" alt="OBS WebSocket Server Settings window">
+          <span class="mark" style="left:25.9%;top:11.3%;width:27.2%;height:4.4%"><b>1</b></span>
+          <span class="mark" style="left:25.9%;top:38.3%;width:70.4%;height:10.6%"><b>2</b></span>
+          <span class="mark" style="left:26.0%;top:49.9%;width:70.4%;height:5.6%"><b>3</b></span>
+          <span class="mark" style="left:66.4%;top:91.2%;width:31.2%;height:6.3%"><b>4</b></span>
+        </div>
+        <ol class="marks">
+          <li>Tick <b>Enable WebSocket server</b>. Leave Server Port at 4455 and Enable Authentication ticked.</li>
+          <li>If the <b>Server Password</b> box is empty, click <b>Generate Password</b>.</li>
+          <li>Click <b>Show Connect Info</b>, then the <b>Copy</b> button next to <b>Server Password</b>. Close that small window.</li>
+          <li>Click <b>Apply</b>, then <b>OK</b>.</li>
+        </ol>
+      </li>
+      <li>Paste the password into the box below and click <b>Connect</b>. Your browser may ask whether this site can <b>look for and connect to devices on your local network</b>: click <b>Allow</b>. That only lets this page reach OBS on your own PC.</li>
+      <li>Optional, for the film moving on the cinema screen: install the <a href="https://github.com/exeldro/obs-shaderfilter/releases" target="_blank" rel="noopener">obs-shaderfilter</a> plugin (download the Windows installer from the newest release, close OBS, run it, open OBS again). Without it everything still works; the cinema screen just stays green, so you can key your film onto it yourself.</li>
     </ol>
     <div class="row">
       <label for="pw">Password</label><input id="pw" type="password" autocomplete="off" placeholder="OBS WebSocket password (empty if authentication is off)">
@@ -55,11 +87,22 @@
       <button class="primary" id="connect">Connect</button>
     </div>
     <div id="status" class="dim"></div>
+    <details>
+      <summary>It says OBS is not reachable, or the password is wrong</summary>
+      <ul style="margin:8px 0 0;padding-left:20px">
+        <li><b>Not reachable:</b> is OBS open on this PC? Is <b>Enable WebSocket server</b> ticked, and did you click <b>OK</b>? Is the port 4455 (or the same number as in OBS)?</li>
+        <li><b>Blocked the local network question by mistake?</b> Click the icon to the left of the address bar, open <b>Site settings</b>, set <b>Local network access</b> to <b>Allow</b>, and reload this page.</li>
+        <li><b>Password is wrong:</b> copy it again from <b>Show Connect Info</b>. If you clicked Generate Password, click Apply/OK in OBS before connecting.</li>
+        <li>Use Chrome or Edge on the OBS PC. Phones and other computers can't set up OBS (but the control panel works on a phone).</li>
+      </ul>
+    </details>
   </div>
 
   <div class="card" id="step2" hidden>
     <h2>2 · Create the scenes</h2>
+    <div class="row"><label><input type="checkbox" id="newcol"> Put them in a new scene collection, "DinkDonk Cinema", and leave the current one as it is (good for a first try; OBS switches to it)</label></div>
     <div class="row"><label for="film">Your film plays in</label><select id="film"></select></div>
+    <div class="row"><label><input type="checkbox" id="relayonly"> Link the film through the control panel (only if the film never shows up on the screen; then keep the control panel open in this browser during the film)</label></div>
     <div class="row">
       <label for="who">Who walks in</label>
       <select id="who"><option value="everyone">Everyone who chats</option><option value="tag">Only chatters who tag…</option></select>
@@ -68,6 +111,13 @@
     <p class="dim" style="margin:6px 0">This adds three scenes to your current scene collection: <b>DinkDonk Lobby</b>, <b>DinkDonk Cinema</b> (the auditorium) and <b>Film screen (src)</b>, a helper that holds your film source. Running it again updates them; nothing else is changed.</p>
     <div class="row"><button class="primary" id="create">Create scenes in OBS</button></div>
     <div id="log"></div>
+  </div>
+
+  <div class="card" id="check" hidden>
+    <h2>Check it · live from OBS</h2>
+    <p class="dim" style="margin:0 0 8px">The "DinkDonk Cinema" scene as OBS renders it. Open the control panel, pick Auditorium and click <b>Lights down</b>, then <b>Film</b>: the film should sit exactly on the cinema screen.</p>
+    <img id="shot" alt="" style="width:100%;border-radius:6px;background:#000;aspect-ratio:16/9;display:block">
+    <div class="row"><button id="back" hidden></button></div>
   </div>
 
   <div class="card">
@@ -96,7 +146,8 @@
 
   function who() { return $('who').value === 'tag' && $('nick').value.trim() ? `tag=${encodeURIComponent($('nick').value.trim().replace(/^@/, ''))}` : 'everyone=1'; }
   const lobbyUrl = () => `${base}lobby.html?k=${KEY}&${who()}`;
-  const audUrl = (pw, port) => `${base}auditorium.html?k=${KEY}&${who()}` + (pw !== undefined ? `#obs=${encodeURIComponent(pw)}&obsport=${port}` : '');
+  const audUrl = (pw, port) => `${base}auditorium.html?k=${KEY}&${who()}` +
+    (pw !== undefined ? `#obs=${encodeURIComponent(pw)}&obsport=${port}` + ($('relayonly').checked ? '&relay=1' : '') : '');
   function fillUrls() {
     $('u-lobby').value = lobbyUrl();
     $('u-aud').value = audUrl();
@@ -111,6 +162,12 @@
   fetch(`/api/room?k=${encodeURIComponent(KEY)}`).then((r) => r.json()).then((r) => {
     $('room').textContent = r.name ? `Room: ${r.name}` : 'This link is not valid any more. Ask for a new invite.';
   }).catch(() => { $('room').textContent = 'Server not reachable.'; });
+
+  // the connection saved on an earlier visit in this browser (see Connect), so a reload needs no retyping
+  try {
+    const saved = JSON.parse(localStorage.getItem('dd-obs') || 'null');
+    if (saved) { $('pw').value = saved.pw || ''; $('port').value = saved.port || 4455; }
+  } catch { /* storage blocked */ }
 
   // ---------- obs-websocket v5 ----------
   const obs = { ws: null, seq: 0, pending: new Map() };
@@ -157,6 +214,46 @@
   let canvas = { w: 1920, h: 1080 };
   let shader = null;   // true / false / null (unknown)
   const AUDIO_KINDS = /^(wasapi_|pulse_|alsa_|coreaudio_|jack_|sck_audio)/;
+  const TEST = '__test__', TEST_SRC = 'DinkDonk test film', NEW_COLLECTION = 'DinkDonk Cinema';
+  let currentInputs = [];
+  // A new collection starts empty, so the current one's sources can't be used there: test pattern or nothing.
+  function fillFilm() {
+    const pick = $('film');
+    pick.innerHTML = '';
+    pick.append(new Option('Nothing yet: I\'ll add my film source to "Film screen (src)" myself', ''));
+    pick.append(new Option('A moving test pattern (to try it out)', TEST));
+    if ($('newcol').checked) { pick.value = TEST; return; }
+    const ours = new Set([LOBBY_SRC, AUD_SRC, TEST_SRC]);
+    const guess = currentInputs.filter((i) => !AUDIO_KINDS.test(i.inputKind) && !ours.has(i.inputName));
+    for (const i of guess) pick.append(new Option(`${i.inputName}  (${i.inputKind.replace(/_/g, ' ')})`, i.inputName));
+    // preselect what looks like a film player
+    const film = guess.find((i) => /vlc|mpc|movie|film|media|player/i.test(i.inputName)) || guess.find((i) => /^(vlc_source|ffmpeg_source)$/.test(i.inputKind));
+    if (film) pick.value = film.inputName;
+  }
+  $('newcol').onchange = fillFilm;
+
+  // ---------- live preview of the cinema scene (GetSourceScreenshot), while this tab is visible ----------
+  let previewTimer = null;
+  function startPreview() {
+    $('check').hidden = false;
+    clearInterval(previewTimer);
+    previewTimer = setInterval(async () => {
+      if (document.hidden || !obs.ws || obs.ws.readyState !== 1) return;
+      try {
+        const { imageData } = await req('GetSourceScreenshot', { sourceName: CINEMA, imageFormat: 'jpg', imageWidth: 960, imageCompressionQuality: 70 });
+        $('shot').src = imageData;
+      } catch { /* scene gone or OBS busy: try again next tick */ }
+    }, 1500);
+  }
+  // set=false: only wait (CreateSceneCollection switches to the new collection by itself)
+  async function switchCollection(name, set = true) {
+    if (set) await req('SetCurrentSceneCollection', { sceneCollectionName: name });
+    for (let i = 0; i < 40; i++) {   // OBS answers before the switch is finished
+      await new Promise((r) => setTimeout(r, 250));
+      try { if ((await req('GetSceneCollectionList')).currentSceneCollectionName === name) { await req('GetSceneList'); return; } } catch { /* still switching */ }
+    }
+    throw new Error(`OBS did not switch to "${name}"`);
+  }
   $('connect').onclick = async () => {
     $('connect').disabled = true;
     $('status').textContent = 'Connecting…';
@@ -168,16 +265,8 @@
       const vs = await req('GetVideoSettings');
       canvas = { w: vs.baseWidth, h: vs.baseHeight };
       try { shader = (await req('GetSourceFilterKindList')).sourceFilterKinds.includes('shader_filter'); } catch { shader = null; }
-      const { inputs } = await req('GetInputList');
-      const pick = $('film');
-      pick.innerHTML = '';
-      pick.append(new Option('Nothing yet: I\'ll add my film source to "Film screen (src)" myself', ''));
-      const ours = new Set([LOBBY_SRC, AUD_SRC]);
-      const guess = inputs.filter((i) => !AUDIO_KINDS.test(i.inputKind) && !ours.has(i.inputName));
-      for (const i of guess) pick.append(new Option(`${i.inputName}  (${i.inputKind.replace(/_/g, ' ')})`, i.inputName));
-      // preselect what looks like a film player
-      const film = guess.find((i) => /vlc|mpc|movie|film|media|player/i.test(i.inputName)) || guess.find((i) => /^(vlc_source|ffmpeg_source)$/.test(i.inputKind));
-      if (film) pick.value = film.inputName;
+      currentInputs = (await req('GetInputList')).inputs;
+      fillFilm();
       $('status').innerHTML = `<span class="ok">Connected</span> to OBS ${v.obsVersion} · canvas ${canvas.w}×${canvas.h} · film warping: ` +
         (shader === true ? '<span class="ok">obs-shaderfilter found</span>' : shader === false ? '<span class="warn">obs-shaderfilter not installed (the screen will stay green)</span>' : 'unknown (older OBS)');
       $('step2').hidden = false;
@@ -213,10 +302,29 @@
     $('create').disabled = true;
     $('log').textContent = '';
     try {
+      let previous = null;
+      if ($('newcol').checked) {
+        const list = await req('GetSceneCollectionList');
+        previous = list.currentSceneCollectionName;
+        if (previous !== NEW_COLLECTION) {
+          if (list.sceneCollections.includes(NEW_COLLECTION)) { await switchCollection(NEW_COLLECTION); line(`~ switched OBS to the "${NEW_COLLECTION}" collection`); }
+          else {
+            await req('CreateSceneCollection', { sceneCollectionName: NEW_COLLECTION });
+            await switchCollection(NEW_COLLECTION, false);
+            line(`+ scene collection "${NEW_COLLECTION}" (OBS switched to it)`);
+          }
+        }
+      }
       const scenes = new Set((await req('GetSceneList')).scenes.map((s) => s.sceneName));
       const inputs = new Set((await req('GetInputList')).inputs.map((i) => i.inputName));
-      const film = $('film').value;
+      let film = $('film').value;
       const size = { width: canvas.w, height: canvas.h };
+
+      if (film === TEST) {
+        await ensureScene(FILM, scenes);
+        await ensureBrowser(FILM, TEST_SRC, { url: `${base}web/testfilm.html`, ...size, shutdown: false, reroute_audio: false }, inputs);
+        film = TEST_SRC;
+      }
 
       // the lobby: one browser source filling the canvas
       await ensureScene(LOBBY, scenes);
@@ -245,9 +353,21 @@
       await req('SetSceneItemIndex', { sceneName: CINEMA, sceneItemId: fid, sceneItemIndex: top });
       await req('SetSceneItemTransform', { sceneName: CINEMA, sceneItemId: fid, sceneItemTransform: { positionX: 0, positionY: 0, scaleX: 1, scaleY: 1, rotation: 0, boundsType: 'OBS_BOUNDS_NONE', alignment: 5 } });
 
+      if (previous && previous !== NEW_COLLECTION) {
+        // a collection of its own: show the cinema straight away, and offer the way back
+        await req('SetCurrentProgramScene', { sceneName: CINEMA });
+        $('back').textContent = `Switch OBS back to "${previous}"`;
+        $('back').hidden = false;
+        $('back').onclick = async () => {
+          $('back').disabled = true;
+          try { await switchCollection(previous); $('back').textContent = `OBS is back on "${previous}"`; clearInterval(previewTimer); }
+          catch (e) { $('back').textContent = e.message; $('back').disabled = false; }
+        };
+      }
       line('Done. Switch to "DinkDonk Cinema" or "DinkDonk Lobby" to see them.', 'ok');
       if (!film) line(`Add your film source into the "${FILM}" scene, sized to fill it.`, 'warn');
       if (shader === false) line('Install obs-shaderfilter and restart OBS for the film on the cinema screen; until then it stays green.', 'warn');
+      startPreview();
     } catch (e) {
       line(`Stopped: ${e.message}`, 'warn');
     } finally {

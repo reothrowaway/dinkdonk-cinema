@@ -88,7 +88,7 @@ Renders are made by the Codex CLI from numbered briefs (`roxy3d/BRIEF-NN-*.md`).
 `roxy3d/` and reports in `roxy3d/NOTES-NN.md`. Typical call, run in the background from `roxy3d/`:
 
 ```bash
-codex exec -s workspace-write --skip-git-repo-check -o codex-NN.md "Read BRIEF-NN-....md and do it." < /dev/null
+codex exec -c service_tier='"default"' -s workspace-write --skip-git-repo-check -o codex-NN.md "Read BRIEF-NN-....md and do it." < /dev/null
 ```
 
 A brief states what to change, what must stay the same, the exact deliverable (for example the single draft
@@ -107,7 +107,7 @@ image) and "write only inside roxy3d/". It ends with a STATUS line.
 | `dinkdonk.js` | dinkdonk.mov film data |
 | `lan-proxy.js` | optional view-only proxy for phones and tablets |
 | `package/` | builds the shareable zip; `package/art.js` lists the art the pages load |
-| `web/` | hosted edition (in progress) |
+| `web/` | hosted edition, live at https://2-29-56-208.sslip.io (see web/README.md) |
 | `roxy3d/` | art: briefs, notes, Blender scripts and `.blend` files, packs, cloud render helper |
 | `intro-dinkdonk/` | the DINK DONK intro video |
 | `hall-*.html`, `cinema-*.html`, `0*-*.html`, `concepts/` | earlier concepts (not live) |

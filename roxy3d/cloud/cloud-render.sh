@@ -20,11 +20,13 @@
 set -euo pipefail
 
 MODE="${1:-smoke}"
-case "$MODE" in smoke|full|fetch) ;; *) echo "usage: $0 smoke|full|fetch" >&2; exit 2 ;; esac
+case "$MODE" in smoke|full|fetch|peek) ;; *) echo "usage: $0 smoke|full|fetch|peek [N]" >&2; exit 2 ;; esac
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROXY="$(cd "$HERE/.." && pwd)"
 RPC="$ROXY/../tools/runpodctl/runpodctl.exe"
 KEY="$HOME/.ssh/runpod_ed25519"
+FLY_MODE="${FLY_MODE:-draft}"
+case "$FLY_MODE" in draft|final) ;; *) echo "FLY_MODE must be draft or final" >&2; exit 2;; esac
 ARCHIVE="${ARCHIVE:-$HERE/roxy-cloud-bundle.tar.gz}"   # Codex's packed bundle (contains bundle/)
 OUTDIR="${OUTDIR:-$ROXY/out10.new}"   # full-mode unpack destination; relative paths use the caller's cwd
 # first available wins (RunPod stock changes by the minute); override with GPUS="id1,id2"
@@ -43,6 +45,51 @@ say() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 js() { node -e "try{const j=JSON.parse(require('fs').readFileSync(0,'utf8'));console.log($1)}catch{console.log('')}"; }
 [ -x "$RPC" ] || { echo "runpodctl not found at $RPC" >&2; exit 1; }
 [ -f "$KEY" ] || { echo "ssh key $KEY missing" >&2; exit 1; }
+
+# Brief 65: read-only peek exits before resource state, traps or credit guards.
+if [ "$MODE" = peek ]; then
+  N="${2:-6}"
+  [[ "$N" =~ ^[0-9]+$ ]] && [ "$N" -ge 1 ] && [ "$N" -le 100 ] || { echo 'peek N must be 1..100' >&2; exit 2; }
+  PEEK_STATE="$HERE/cloud-state-${FETCH_MODE:-full}.json"
+  PEEK_ID="${PEEK_POD:-}"
+  if [ -z "$PEEK_ID" ]; then
+    [ -f "$PEEK_STATE" ] || { echo "No run state; set PEEK_POD for an existing split-render pod." >&2; exit 1; }
+    PEEK_ID="$(js 'j.pod||""' <"$PEEK_STATE")"
+  fi
+  [[ "$PEEK_ID" =~ ^[A-Za-z0-9_-]+$ ]] || { echo 'Invalid or missing pod id' >&2; exit 1; }
+  PEEK_JSON="$(rpc pod get "$PEEK_ID" -o json)"
+  read -r PEEK_HOST PEEK_PORT PEEK_USER < <(js 'j.ssh&&j.ssh.ip&&j.ssh.port?j.ssh.ip+" "+j.ssh.port+" "+(j.ssh.user||"root"):""' <<<"$PEEK_JSON") || true
+  [ -n "${PEEK_HOST:-}" ] || { echo 'Pod has no reachable SSH endpoint; peek leaves it untouched.' >&2; exit 1; }
+  PEEK_DEST="${PEEK_DEST:-$ROXY/fly/prod/peek}"; mkdir -p "$PEEK_DEST"
+  PEEK_SSH=(ssh -i "$KEY" -p "$PEEK_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 "$PEEK_USER@$PEEK_HOST")
+  PEEK_SCP=(scp -i "$KEY" -P "$PEEK_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
+  PEEK_LIST="$PEEK_DEST/.files-$$"
+  if ! "${PEEK_SSH[@]}" "python3 - $N" >"$PEEK_LIST" <<'PY65'
+import sys,json,re
+from pathlib import Path
+rows=[]
+for p in Path('/vol/results').glob('fly6[57]-*/*.json'):
+    if not re.fullmatch(r'[0-9]{5}',p.stem):continue
+    try:
+        r=json.loads(p.read_text())
+        if r.get('resolution') not in [[1920,1080],[960,540]]:continue
+        files=[p.with_suffix('.png'),p.with_name(p.stem+'_depth.png'),p]
+        if all(x.is_file() for x in files):rows.append((p.stat().st_mtime_ns,files))
+    except (OSError,ValueError):continue
+for _,files in sorted(rows)[-int(sys.argv[1]):]:
+    for p in files:print(p.as_posix())
+PY65
+  then rm -f "$PEEK_LIST"; exit 1; fi
+  while IFS= read -r REMOTE; do
+    [[ "$REMOTE" =~ ^/vol/results/(fly6[57]-[a-f0-9]+)/([0-9]{5}(_depth)?\.(png|json))$ ]] || { rm -f "$PEEK_LIST"; echo 'Unexpected peek path' >&2; exit 1; }
+    PEEK_SUB="${BASH_REMATCH[1]}"; PEEK_FILE="${BASH_REMATCH[2]}"; mkdir -p "$PEEK_DEST/$PEEK_SUB"
+    "${PEEK_SCP[@]}" "$PEEK_USER@$PEEK_HOST:$REMOTE" "$PEEK_DEST/$PEEK_SUB/$PEEK_FILE.partial" || { rm -f "$PEEK_LIST"; exit 1; }
+    mv "$PEEK_DEST/$PEEK_SUB/$PEEK_FILE.partial" "$PEEK_DEST/$PEEK_SUB/$PEEK_FILE"
+  done <"$PEEK_LIST"
+  rm -f "$PEEK_LIST"
+  echo "Newest completed frame pairs copied to $PEEK_DEST; render untouched."
+  exit 0
+fi
 
 # fetch works from the state file of the run it collects (FETCH_MODE=smoke for a smoke run)
 RUN_MODE="$MODE"; [ "$MODE" = fetch ] && RUN_MODE="${FETCH_MODE:-full}"
@@ -221,6 +268,7 @@ while IFS= read -r kv; do export "$kv"; done < <(tr '\0' '\n' < /proc/1/environ 
 R=/vol/results; mkdir -p $R; rm -f $R/EXIT
 cd /workspace/bundle && rm -f EXIT
 ( while :; do cp -f progress.log $R/ 2>/dev/null; sleep 300; done ) & SYNC=$!
+export FLY_MODE="${2:-draft}"
 bash run.sh "$1" > run.log 2>&1; CODE=$?
 kill $SYNC 2>/dev/null
 cp -f progress.log run.log $R/ 2>/dev/null
@@ -234,7 +282,7 @@ EOF
 # ADOPT_POD repair: the bundle is replaced by the fixed one; work/ (render cache) is kept, and the old out10
 # is moved aside because changed scripts change its build fingerprint (the pipeline refuses a foreign out10)
 ASIDE=""; [ -n "${ADOPT_POD:-}" ] && ASIDE="[ ! -d bundle/out10 ] || mv bundle/out10 bundle/out10.prev-\$(date +%s);"
-"${SSH[@]}" "cd /workspace && $ASIDE tar -xzf bundle.tar.gz && (nohup bash /workspace/launch.sh $MODE >/dev/null 2>&1 &) && echo started" | tee -a "$LOG"
+"${SSH[@]}" "cd /workspace && $ASIDE tar -xzf bundle.tar.gz && (nohup bash /workspace/launch.sh $MODE $FLY_MODE >/dev/null 2>&1 &) && echo started" | tee -a "$LOG"
 VOL_EMPTY=""
 
 DEADLINE=$(( $(date +%s) + $(node -e "console.log(Math.round($MAX_HOURS*3600))") ))

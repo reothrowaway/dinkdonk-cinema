@@ -198,7 +198,8 @@
       this.onopen = this.onmessage = this.onclose = this.onerror = null;
       this._last = { obs: false };
       this._target = null;
-      this._direct();
+      // #relay=1 (setup.html option): always through the control panel, for OBS builds that block the direct link
+      if (h.get('relay') === '1') { log('linking the film through the control panel'); this._relay(); } else this._direct();
       setTimeout(() => { this.readyState = 1; this._emit('open'); this._emit('message', JSON.stringify(this._last)); }, 0);
     }
     _deliver(obj) { this._last = obj; if (this.readyState === 1) this._emit('message', JSON.stringify(obj)); }

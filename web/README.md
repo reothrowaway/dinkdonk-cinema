@@ -3,7 +3,7 @@
 The lobby (`lobby.html`) and the auditorium (`auditorium.html`) served from one server, so other streamers only need
 OBS: no Node.js, no chat relay, no bridge, no unzipping. Each streamer gets a private invite link.
 
-Live address once deployed: `https://2-29-56-208.sslip.io/` (Hetzner server `dinkdonk-cinema`, Helsinki).
+Live at `https://2-29-56-208.sslip.io/` since 5 Nov 2026 (Hetzner server `dinkdonk-cinema`, Helsinki).
 
 ## For streamers (what to send them along with their invite link)
 

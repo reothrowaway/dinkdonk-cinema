@@ -59,6 +59,8 @@ copyTree(path.join(STANDBY, 'shared'), path.join(SITE, 'shared'));
 copyTree(path.join(STANDBY, 'assets'), path.join(SITE, 'assets'));
 for (const f of ['index.html', 'setup.html', 'admin.html']) copy(path.join(WEB, f), path.join(SITE, f));
 copy(path.join(WEB, 'shim.js'), path.join(SITE, 'web', 'shim.js'));
+copy(path.join(WEB, 'testfilm.html'), path.join(SITE, 'web', 'testfilm.html'));
+copyTree(path.join(WEB, 'guide'), path.join(SITE, 'web', 'guide'));   // OBS screenshots for setup.html
 copy(SHADER, path.join(SITE, 'web', 'corner-pin.shader'));
 
 // the server keeps dinkdonk.mov's cache in its data folder, outside the served site
