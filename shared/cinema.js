@@ -176,14 +176,26 @@
   function roomConnect() {
     const p = new URLSearchParams({ page: ROOM_PAGE, id: room.id, obs: window.obsstudio ? '1' : '0', who: TAG || '' });
     const es = new EventSource(`/ctl/room?${p}`);
-    let fallback = setTimeout(() => { if (!room.live) { localWalkIns = true; console.warn('[cinema] room unreachable: walk-ins decided here'); } }, 10000);
-    es.onopen = () => { room.live = true; localWalkIns = false; clearTimeout(fallback); };
-    es.onmessage = (e) => { try { roomEvent(JSON.parse(e.data)); } catch (error) { console.error('[cinema] room event', error); } };
+    let fellBack = false;
+    let fallback = setTimeout(() => { if (!room.live) { localWalkIns = fellBack = true; console.warn('[cinema] room unreachable: walk-ins decided here'); } }, 10000);
+    // the room counts as live once its snapshot arrived, not when the stream opens: a proxy that holds the stream back
+    // (compression, 7 Nov) opened it and then delivered nothing, and the page sat empty instead of falling back
+    es.onmessage = (e) => {
+      let ev;
+      try { ev = JSON.parse(e.data); } catch { return; }
+      if (ev.t === 'snapshot' && !room.live) {
+        room.live = true;
+        localWalkIns = false;
+        clearTimeout(fallback);
+        if (fellBack) { fellBack = false; console.info('[cinema] room back: walk-ins from the room'); }
+      }
+      try { roomEvent(ev); } catch (error) { console.error('[cinema] room event', error); }
+    };
     es.onerror = () => {
       if (room.live) {
         room.live = false;
         clearTimeout(fallback);
-        fallback = setTimeout(() => { if (!room.live) { localWalkIns = true; console.warn('[cinema] room lost: walk-ins decided here'); } }, 10000);
+        fallback = setTimeout(() => { if (!room.live) { localWalkIns = fellBack = true; console.warn('[cinema] room lost: walk-ins decided here'); } }, 10000);
       }
       // an answer other than 200 (an old server without /ctl/room) closes the stream for good: try again later
       if (es.readyState === EventSource.CLOSED) { clearTimeout(fallback); localWalkIns = true; setTimeout(roomConnect, 15000); }

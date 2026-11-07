@@ -209,7 +209,7 @@ async function controlRoute(req, res, pathname) {
   if (origin && origin !== `http://${HOST}:${PORT}` && origin !== `http://localhost:${PORT}`) { send(res, 403, 'text/plain', 'Forbidden'); return true; }
   if (req.method === 'POST' && !/^application\/json\b/.test(req.headers['content-type'] || '')) { send(res, 415, 'text/plain', 'JSON only'); return true; }
   if (pathname === '/ctl/events' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive' });
     res.write('retry: 3000\n\n');
     const params = new URL(req.url, `http://${HOST}:${PORT}`).searchParams;
     screens.set(res, { page: params.get('page') === 'auditorium' ? 'auditorium' : 'lobby', id: params.get('id') || '' });
@@ -248,7 +248,7 @@ async function controlRoute(req, res, pathname) {
     const params = new URL(req.url, `http://${HOST}:${PORT}`).searchParams;
     const page = params.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
     const id = (params.get('id') || '').slice(0, 16) || Math.random().toString(36).slice(2, 10);
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive' });
     res.write('retry: 3000\n\n');
     const who = params.has('who') ? params.get('who').replace(/[^A-Za-z0-9_]/g, '').slice(0, 25) || null : undefined;
     const off = room.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: params.get('obs') === '1', who });

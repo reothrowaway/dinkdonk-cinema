@@ -671,3 +671,9 @@ twins up for 6.5 s after lights-up. Headless check: twin opacity = background di
   had been started by a Claude preview; now runs from start-standby.bat in its own window), room on, live lobby.html
   joined it with no console errors. Web edition rebuilt and deployed (deploy.sh exit 0, healthz ok, 3 rooms, chat
   connected with 0 screens = rooms keep filling). Not yet seen with a streamer's invite link or inside OBS.
+- 07 Nov 2026: hosted lobby showed nobody: Caddy's `encode zstd gzip` held back the room's event stream (anything over
+  512 bytes) in browsers. web/server.js now sends its event streams with Cache-Control no-transform and
+  Content-Encoding identity (Caddy passes them through); shared/cinema.js counts the room live only once its snapshot
+  arrived, so a held-back stream falls back to local walk-ins after 10 s. Redeployed with the owner's OK; the owner's
+  lobby link showed 50 chatters.
+- 07 Nov 2026: Godot route v4: dissolve removed; ortho -> narrow frustum handoff at 3.0 s (0.546 px max mismatch, tight clip planes); single right turn 0-9 s, rejoins dive at 8.7 s; campath now reports yaw reversals (part A at 14.8/26.4/34.2 s, intentional). Live viewer reopened for the owner.

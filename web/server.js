@@ -260,6 +260,11 @@ bridgeWss.on('connection', (ws, req, key, role) => {
 });
 
 // ---------- control panel, per room ----------
+// Server-sent events must never be compressed: Caddy's encode (zstd/gzip) holds back everything over 512 bytes until
+// its buffer fills, so browsers got the room's snapshot and walk-ins late or never (7 Nov 2026). no-transform and an
+// explicit Content-Encoding both make Caddy pass the stream through as it is.
+const SSE_HEADERS = { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', 'Content-Encoding': 'identity',
+  Connection: 'keep-alive', 'X-Accel-Buffering': 'no' };
 async function controlRoute(req, res, pathname, key) {
   if (foreignOrigin(req)) return send(res, 403, 'text/plain', 'Forbidden');
   if (req.method === 'POST' && !/^application\/json\b/.test(req.headers['content-type'] || '')) return send(res, 415, 'text/plain', 'JSON only');
@@ -267,7 +272,7 @@ async function controlRoute(req, res, pathname, key) {
   const url = new URL(req.url, 'http://x');
   if (pathname === '/ctl/events' && req.method === 'GET') {
     if (room.screens.size >= MAX_SCREENS_PER_ROOM) return send(res, 429, 'text/plain', 'Too many screens open');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    res.writeHead(200, SSE_HEADERS);
     res.write('retry: 3000\n\n');
     room.screens.set(res, { page: url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby', id: url.searchParams.get('id') || '' });
     const ping = setInterval(() => res.write(': ping\n\n'), 20000);
@@ -280,7 +285,7 @@ async function controlRoute(req, res, pathname, key) {
     if ((room.roomSubs || 0) >= MAX_SCREENS_PER_ROOM) return send(res, 429, 'text/plain', 'Too many screens open');
     const page = url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
     const id = (url.searchParams.get('id') || '').slice(0, 16) || crypto.randomBytes(6).toString('base64url');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    res.writeHead(200, SSE_HEADERS);
     res.write('retry: 3000\n\n');
     const who = url.searchParams.has('who') ? url.searchParams.get('who').replace(/[^A-Za-z0-9_]/g, '').slice(0, 25) || null : undefined;
     const off = r.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: url.searchParams.get('obs') === '1', who });
