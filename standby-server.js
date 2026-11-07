@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const dinkdonk = require('./dinkdonk');
+const { createRoom } = require('./shared/room');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.STANDBY_PORT || 18770);
@@ -147,6 +148,47 @@ function sendVideo(req, res, file, type) {
   });
 }
 
+// ---------- shared room (web/PLAN-shared-rooms.md, shared/room.js) ----------
+// One persistent lobby and auditorium for every screen this server serves. It reads chat itself from the DSA relay,
+// so the room keeps filling while no screen is open, and saves to cache/ (a test server on another port keeps its
+// own file). STANDBY_ROOM=0 turns it off.
+const ROOM_ON = process.env.STANDBY_ROOM !== '0';
+const RELAY = process.env.DGG_RELAY || '127.0.0.1:18765';
+let emoteNameSet = new Set();
+async function refreshEmoteNames() {
+  try {
+    const list = JSON.parse((await cdnAsset('emotes.json')).body);
+    const names = new Set(list.map((e) => e?.prefix).filter((p) => typeof p === 'string'));
+    if (names.size) emoteNameSet = names;
+  } catch { /* keep the last list */ }
+}
+const room = ROOM_ON ? createRoom({
+  file: path.join(ROOT, 'cache', PORT === 18770 ? 'room-state.json' : `room-state-${PORT}.json`),
+  layoutFile: path.join(ROOT, 'roxy3d', 'qa11', 'cinema_layout_13.json'),
+  emoteNames: () => emoteNameSet,
+  log: (m) => console.log(m),
+}) : null;
+function roomChat() {
+  let retry = 0;
+  const connect = () => {
+    let ws;
+    try { ws = new WebSocket(`ws://${RELAY}/__dgg_chat_ws`); } catch { setTimeout(connect, 5000); return; }
+    let lastFrame = Date.now();
+    const watch = setInterval(() => { if (ws.readyState === 1 && Date.now() - lastFrame > 180_000) ws.close(); }, 15_000);
+    ws.onopen = () => { if (retry) console.log('Room: chat relay connected'); retry = 0; lastFrame = Date.now(); };
+    ws.onmessage = (ev) => { lastFrame = Date.now(); try { room.chatFrame(String(ev.data)); } catch (e) { console.error('Room:', e); } };
+    ws.onclose = () => { clearInterval(watch); setTimeout(connect, Math.min(30_000, 1000 * 2 ** retry++)); };
+    ws.onerror = () => {};
+  };
+  connect();
+}
+if (room) {
+  refreshEmoteNames();
+  setInterval(refreshEmoteNames, CACHE_MS).unref();
+  roomChat();
+  for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { room.close(); process.exit(0); });
+}
+
 // Control panel (control.html) <-> the screens: commands go to the selected scene as server-sent events;
 // each screen posts its state (chatters, director) back so the panel can list them. 127.0.0.1 only.
 const screens = new Map();          // open SSE response -> { page, id }; legacy connections are the lobby
@@ -180,6 +222,8 @@ async function controlRoute(req, res, pathname) {
     if (!cmd || typeof cmd.cmd !== 'string') { send(res, 400, TYPES['.json'], '{"error":"no cmd"}'); return true; }
     const page = cmd.page || 'lobby';   // old panels keep controlling every lobby screen
     if (!['lobby', 'auditorium'].includes(page)) { send(res, 400, TYPES['.json'], '{"error":"unknown page"}'); return true; }
+    try { room?.command(cmd); } catch (e) { console.error('Room:', e); }
+    if (cmd.cmd === 'who' || cmd.cmd === 'kicked' || cmd.cmd === 'left') { send(res, 200, TYPES['.json'], '{"screens":0}'); return true; }   // room only
     const line = `data: ${JSON.stringify(cmd)}\n\n`;
     let count = 0;
     for (const [s, target] of screens) {
@@ -193,9 +237,27 @@ async function controlRoute(req, res, pathname) {
   if (pathname === '/ctl/state' && req.method === 'POST') {
     const st = await readJson(req, 256 * 1024);
     if (st && typeof st.id === 'string') states.set(st.id.slice(0, 16), { at: Date.now(), state: st });
+    if (st && typeof st.id === 'string') try { room?.screenState(st); } catch (e) { console.error('Room:', e); }
     // closed screens drop out here too: with the panel closed, every scene reload left an entry (up to 256 KB)
     for (const [id, s] of states) if (Date.now() - s.at > 10000) states.delete(id);
     send(res, 204, 'text/plain', '');
+    return true;
+  }
+  // shared room: a room-mode screen's event stream, and the room's summary for the panel
+  if (pathname === '/ctl/room' && req.method === 'GET' && room) {
+    const params = new URL(req.url, `http://${HOST}:${PORT}`).searchParams;
+    const page = params.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
+    const id = (params.get('id') || '').slice(0, 16) || Math.random().toString(36).slice(2, 10);
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
+    res.write('retry: 3000\n\n');
+    const who = params.has('who') ? params.get('who').replace(/[^A-Za-z0-9_]/g, '').slice(0, 25) || null : undefined;
+    const off = room.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: params.get('obs') === '1', who });
+    const ping = setInterval(() => res.write(': ping\n\n'), 20000);
+    req.on('close', () => { clearInterval(ping); off(); });
+    return true;
+  }
+  if (pathname === '/ctl/room-state' && req.method === 'GET') {
+    send(res, room ? 200 : 404, TYPES['.json'], JSON.stringify(room ? room.summary() : { error: 'room off' }));
     return true;
   }
   if (pathname === '/ctl/state' && req.method === 'GET') {

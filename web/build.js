@@ -43,6 +43,7 @@ if (fs.existsSync(OUT)) {
 
 // server
 for (const f of ['server.js', 'package.json']) copy(path.join(WEB, f), path.join(OUT, f));
+copy(path.join(STANDBY, 'shared', 'room.js'), path.join(OUT, 'room.js'));   // shared room state (web/PLAN-shared-rooms.md)
 copyTree(path.join(WEB, 'node_modules'), path.join(OUT, 'node_modules'));
 copyTree(path.join(WEB, 'deploy'), path.join(OUT, 'deploy'));
 // they run on Linux: no CRLF from a Windows checkout
@@ -55,6 +56,8 @@ if (fs.existsSync(path.join(STANDBY, 'cache', 'dinkdonk.json'))) copy(path.join(
 // pages (unchanged; the server injects web/shim.js into them)
 // roxy.html is the redirect stub left by the lobby's rename to lobby.html (05 Nov), for old URLs
 for (const f of ['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', 'dinkdonk.js']) copy(path.join(STANDBY, f), path.join(SITE, f));
+// QA copies, for testing changes on the hosted server before they go live (same room key)
+for (const f of ['lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']) copy(path.join(STANDBY, f), path.join(SITE, f));
 copyTree(path.join(STANDBY, 'shared'), path.join(SITE, 'shared'));
 copyTree(path.join(STANDBY, 'assets'), path.join(SITE, 'assets'));
 for (const f of ['index.html', 'setup.html', 'admin.html']) copy(path.join(WEB, f), path.join(SITE, f));

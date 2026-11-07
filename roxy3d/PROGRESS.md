@@ -650,3 +650,24 @@ twins up for 6.5 s after lights-up. Headless check: twin opacity = background di
   (live was unchanged since 5 Nov); auditorium.html got only the bubble hunks, keeping the other session's 10:55 Film /
   Lights-down camera change (pushWanted). Neon is the default; ?bubstyle=0 the old box, 1..5 the other drafts. Checked
   on real chat: both scenes render neon, no console errors.
+- 07 Nov 2026: Godot workflow agreed (godot-spike/WORKFLOW.md): resume one Codex session, light rules, Claude does small tweaks, owner views live via godot-spike/run-live.bat (new live mode: live_view.gd; main_v2.gd backed up as main_v2.pre-live.gd).
+- 07 Nov 2026: live viewer got a progress bar (drag to scrub the whole route); owner likes it ('way better for me to give feedback').
+- 07 Nov 2026: owner live-view feedback (godot-spike, v7 route): 0-5 s opening broken in Godot (far long-lens camera); 10.8-16.5 s camera barely moves forward (waits for the bus) -> keep camera moving, time the bus to it; add plane/spaceship banking (roll into turns, horizon tilts opposite). Sent to the resumed Codex session (WORKFLOW.md rules).
+- 07 Nov 2026: shared, persistent rooms (owner plan web/PLAN-shared-rooms.md, approved today): new shared/room.js keeps
+  one lobby + one auditorium per room on the server (who walks in, crowd rules, caps, seats, the queue, shared director,
+  saved to cache/room-state.json locally / DATA/room-state/<key>.json hosted; keeps filling from chat with no screen
+  open). standby-server.js reads chat itself from the relay for it; web/server.js keeps its chat upstream while rooms
+  exist. Pages opt in with window.DD_ROOM_PAGE (shared/cinema.js; ?room=0 off): auditorium-qa.html and control-qa.html
+  done (refreshed from live first; old QA copies in backups/2026-11-07-pre-shared-rooms/), lobby-qa.html with the Lobby
+  Map session. Live lobby.html / auditorium.html / control.html unchanged; port 18770 not restarted. Checked on real
+  chat (test ports 18771, 18773 hosted): two tabs same 23 people, reload and server restart come back seated, Reset clears.
+- 07 Nov 2026: Godot route v3 done (NOTES-godot.md): opening rebuilt (pull-back near the scene, dissolve 2.8-3.8 s), steady 2.1 u/s dive+street, bus independent 5.6 u/s meets camera at 14.43 s, banking -11.9/+13.6 deg; campath ok; godot-spike/route_v3_preview_540p.mp4.
+- 07 Nov 2026: at the 'Web session persistence' session's request, lobby-qa.html refreshed from lobby.html and wired to the shared room (helper agent; tested on 18772, two tabs, reload, Clear lobby, no errors). lobby.html untouched. Gaps reported to that session: no 'left' command (leftRoom uses kicked/home), default emote differs across screens (pool shrinks), crowdEvery uses roster length.
+- 07 Nov 2026: owner: no more preview videos, reviews in the live viewer only. Feedback route v3: dissolve at 2.8-3.6 s unwanted; yaw back-and-forth 5-8.7 s (pans right while moving left, swings left ~6 s and ~8 s) -> one smooth turn. Sent to resumed Codex session.
+- 07 Nov 2026: owner agreed to drop Cycles-era overhead for Godot (cloud fly-through pipeline after v7 final, Codex status spam, draft/critique/comparison rules, Cycles speed follow-ups). Quiet Codex check replaces the 20-min status.
+- 07 Nov 2026: final workflow agreed: Godot drafts -> on approval port route/timing/fixes/lighting/blur to Blender -> Cycles on RunPod -> checks. RunPod pipeline stays (for finals only).
+- 07 Nov 2026: owner OK -> shared rooms live. lobby.html / auditorium.html / control.html = their QA copies (lobby title
+  back to "Lobby"); old live files in backups/2026-11-07-pre-shared-rooms-live/. Port 18770 restarted (the old process
+  had been started by a Claude preview; now runs from start-standby.bat in its own window), room on, live lobby.html
+  joined it with no console errors. Web edition rebuilt and deployed (deploy.sh exit 0, healthz ok, 3 rooms, chat
+  connected with 0 screens = rooms keep filling). Not yet seen with a streamer's invite link or inside OBS.

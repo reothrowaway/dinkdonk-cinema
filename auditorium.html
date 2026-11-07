@@ -221,6 +221,7 @@
   </div>
   <div id="bubbles"></div>
 </div>
+<script>window.DD_ROOM_PAGE = 'auditorium';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="shared/live.js"></script>
@@ -913,8 +914,20 @@
       w.cap.style.top = `${-w.emH + 6 * K - cap.anchor[1] * K}px`;
     }
   }
+  // the room's seed for this chatter (shared/room.js): their random looks are the same on every screen
+  function seeded(seed) {
+    if (!Number.isFinite(seed)) return Math.random;
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
   function makeWalker(m) {
     const key = m.nick.toLowerCase();
+    const rr = seeded(m.seed);
     const el = h('div', 'w');
     const sh = el.appendChild(h('div', 'sh'));
     const bod = el.appendChild(h('div', 'bod'));
@@ -924,9 +937,9 @@
     em.style.left = `${-parseFloat(em.style.width) / 2}px`;
     bod.append(em);
     // most bring something from the snack bar (owner: most should have popcorn); some check their phone once seated
-    const item = Math.random() < 0.85 ? itemEl(Math.random() < 0.2 ? 'soda' : 'popcorn') : null;
+    const item = rr() < 0.85 ? itemEl(rr() < 0.2 ? 'soda' : 'popcorn') : null;
     if (item) bod.append(item);
-    const phone = Math.random() < PHONE_SHARE ? bod.appendChild(h('div', 'phone')) : null;
+    const phone = rr() < PHONE_SHARE ? bod.appendChild(h('div', 'phone')) : null;
     const nm = nameLayer.appendChild(h('div', 'nm', m.nick));
     nm.style.visibility = 'hidden';
     world.append(el);
@@ -1000,7 +1013,14 @@
     for (const w of walkers.values()) {
       if (!w.sitting && Math.hypot(w.pos[0] - portal[0], w.pos[1] - portal[1], (w.pos[2] - portal[2]) / 60) < WALK_GAP) return false;
     }
-    const seat = chooseSeat(m);
+    // shared room: the server picked the seat (waiting outside until it has one); a seat already taken here (this
+    // screen drifted) falls back to the page's own choice
+    let seat;
+    if (m.room) {
+      if (!m.seat) return false;
+      seat = seatById(m.seat);
+      if (!seat || seat.taken) seat = chooseSeat(m);
+    } else seat = chooseSeat(m);
     if (!seat) return false;   // full house: retain the head of the FIFO outside the portal
     seat.taken = true;
     const w = makeWalker(m);
@@ -1012,16 +1032,18 @@
     pendingSpeech(w, m.tokens);
     pendingSpeech(w, m.more);
     walkers.set(w.key, w);
-    directorArrival(w);
+    directorArrival(w, m);
     return true;
   }
+  const seatById = (id) => seats.find((s) => `${s.row.name}:${s.block}:${s.u}` === id) || null;
 
   function onMessage(m) {
     const nick = String(m.nick || '').trim().slice(0, 25);
     if (!nick) return;
     if (m.features?.includes('moderator')) return;   // mods are the jannies (onModMessage): they never take a seat
     m = { nick, emote: m.emote || Cinema.defaultEmote(nick), text: String(m.text || '').slice(0, 512),
-      tokens: shortTokens(m.tokens), color: m.color, rainbow: !!m.rainbow };
+      tokens: shortTokens(m.tokens), color: m.color, rainbow: !!m.rainbow,
+      room: !!m.room, seat: m.seat ?? null, seed: m.seed, follow: !!m.follow };
     const key = nick.toLowerCase();
     const w = walkers.get(key);
     if (!w) {
@@ -1033,7 +1055,7 @@
         if (arrivals.length >= MAX_QUEUE) arrivals.splice(arrivals.reduce((o, x, i) => (x.at < arrivals[o].at ? i : o), 0), 1);
         m.at = now;
         arrivals.push(m);
-      } else { if (m.tokens.length) queued.more = m.tokens; queued.color = m.color; queued.rainbow = m.rainbow; queued.at = now; }
+      } else { if (m.tokens.length) queued.more = m.tokens; queued.color = m.color; queued.rainbow = m.rainbow; queued.at = now; if (m.seat) queued.seat = m.seat; }
       return;
     }
     if (w.out) return;   // on their way out (banned / muted)
@@ -1505,7 +1527,8 @@
       x.spot = { w: t, until: performance.now() + 3000 };
       hold(x, 2.5, (y) => {
         // (no kick once the lights are back up or the usher is clocking off)
-        if (walkers.get(t.key) !== t || !t.sitting || t.out || !dark() || y.leaving || Math.random() >= KICK) { go(y, [...there].reverse(), usherNext); return; }
+        if (walkers.get(t.key) !== t || !t.sitting || t.out || !dark() || y.leaving || Math.random() >= KICK || (inRoom() && !Cinema.room.lead)) { go(y, [...there].reverse(), usherNext); return; }
+        tellRoom('kicked', t.nick, 'kicked');
         // kicked: out through the entrance with the usher behind them
         y.task = 'kick';
         t.outWhy = 'kicked';
@@ -1727,7 +1750,8 @@
           if (!w.sitting || !w.dozing || w.out || w.jan || w.usher || director.follow?.w === w || now - w.lastMsg < LEAVE_MS) continue;
           if (!best || w.lastMsg < best.lastMsg) best = w;
         }
-        if (best) { lastLeave = now; goingOut(best, '💤 heading home'); standUp(best); }
+        if (best && inRoom() && !Cinema.room.lead) best = null;
+        if (best) { lastLeave = now; goingOut(best, '💤 heading home'); standUp(best); tellRoom('kicked', best.nick, 'home'); }
       }
     }
     if (L && arrivals.length && now >= nextArrival && !houseOut) {
@@ -1971,8 +1995,9 @@
     director.follow = null;
     director.next = performance.now() + director.every * 1000 * rand(0.85, 1.2);
   }
-  function directorArrival(w) {
+  function directorArrival(w, m) {
     if (director.follow) return;
+    if (inRoom()) { if (m?.follow) startFollow(w, false); return; }
     const now = performance.now();
     if (director.wantNext || (director.on && !director.screenAt && now >= director.next)) startFollow(w, director.wantNext);
   }
@@ -2077,8 +2102,8 @@
         autoPhase(now);
         break;
       case 'follow': followSomeone(key); break;
-      case 'random': followSomeone(); break;
-      case 'next': director.wantNext = true; break;
+      case 'random': if (!inRoom()) followSomeone(); break;   // the room picks one nick for every screen
+      case 'next': if (!inRoom()) director.wantNext = true; break;   // the room flags the next arrival
       case 'wide': director.wantNext = false; director.screenAt = 0; endFollow(); break;
       case 'director': director.on = !!c.on; if (director.on) director.next = Math.min(director.next, now + 20000); break;
       case 'every': if (Number.isFinite(+c.value)) director.every = clamp(+c.value, 30, 1800); break;
@@ -2087,22 +2112,11 @@
       case 'lights': show.lightsOn = !!c.on && show.phase === 'film'; applyPhase(); break;
       // Show over: everyone stands up and leaves, new arrivals wait until the next Seating (on: false stops it)
       case 'houseOut': houseOut = !!c.on; nextLeaver = 0; break;
-      case 'reset':
-        houseOut = false;
-        director.wantNext = false;
-        endFollow();
-        arrivals.length = 0;
-        nextArrival = 0;
-        for (const w of [...walkers.values()]) removeWalker(w);
-        for (const s of seats) s.taken = false;
-        bubOrder.length = 0;
-        bubLayer.replaceChildren();
-        audience();
-        if (doorShot) { doorShot.el.remove(); doorShot = null; doorCutout(false); }
-        break;
+      case 'reset': resetHall(); break;
       case 'remove': removeNick(key); break;
       case 'add':
       case 'say': {
+        if (inRoom()) break;   // the room sends it back as a walk-in, the same on every screen
         const nick = String(c.nick || '').trim().slice(0, 25);
         if (!nick) break;
         const text = String(c.text || '').slice(0, 200);
@@ -2114,7 +2128,98 @@
       default: break;
     }
   }
-  const pageId = Math.random().toString(36).slice(2, 8);
+  function resetHall() {
+    houseOut = false;
+    director.wantNext = false;
+    endFollow();
+    arrivals.length = 0;
+    nextArrival = 0;
+    for (const w of [...walkers.values()]) removeWalker(w);
+    for (const s of seats) s.taken = false;
+    bubOrder.length = 0;
+    bubLayer.replaceChildren();
+    audience();
+    if (doorShot) { doorShot.el.remove(); doorShot = null; doorCutout(false); }
+  }
+
+  // ---------- shared room (web/PLAN-shared-rooms.md, shared/room.js) ----------
+  // The server decides who is in the hall, who sits where and who waits outside; this screen draws it. A snapshot
+  // (on load and after every reconnect) puts everyone straight into their seat; this screen's own extras (jannies,
+  // the usher) stay its own.
+  const inRoom = () => !!Cinema.room?.page && Cinema.room.live;
+  function tellRoom(cmd, nick, why) {
+    if (!inRoom()) return;
+    fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cmd, page: 'auditorium', nick, why }), signal: AbortSignal.timeout(3500) }).catch(() => {});
+  }
+  const shortMsg = (m) => ({ ...m, tokens: shortTokens(m.tokens) });
+  // someone already seated in the room: in their seat at once, no walk in
+  function seatNow(m) {
+    const seat = seatById(m.seat);
+    if (!seat || seat.taken) return false;
+    seat.taken = true;
+    const w = makeWalker(shortMsg(m));
+    w.seat = seat;
+    w.sitting = true;
+    w.seen = true;
+    w.alpha = 1;
+    w.el.classList.add('sit');
+    w.pos = [seat.u, seat.v + SIT_DV, seat.z + SIT_Z];
+    SB.faceEmote(w.em, w.emName, 1);
+    placeItem(w);
+    walkers.set(w.key, w);
+    return true;
+  }
+  let pendingSnapshot = null;
+  function applySnapshot(ev) {
+    if (!L || !seats.length) { pendingSnapshot = ev; return; }
+    pendingSnapshot = null;
+    const s = ev.show;
+    if (s) {
+      if (s.phase !== show.phase) setPhase(s.phase);
+      Object.assign(show, { shot: s.shot, lightsOn: !!s.lightsOn, auto: !!s.auto });
+      if (houseOut !== !!s.houseOut) { houseOut = !!s.houseOut; nextLeaver = 0; }
+      applyPhase();
+    }
+    if (ev.director) {
+      director.on = !!ev.director.on;
+      if (Number.isFinite(ev.director.every)) director.every = clamp(ev.director.every, 30, 1800);
+      if (Number.isFinite(ev.director.zoom)) director.zoom = clamp(ev.director.zoom, 1.2, 3);
+    }
+    const want = new Map(ev.roster.map((m) => [m.nick.toLowerCase(), m]));
+    // gone from the room while this screen was away: out (staff and anyone already leaving stay)
+    for (const w of [...walkers.values()]) if (!w.jan && !w.usher && !w.out && !w.leaving && !want.has(w.key)) removeWalker(w);
+    for (let i = arrivals.length - 1; i >= 0; i--) if (!want.has(arrivals[i].nick.toLowerCase())) arrivals.splice(i, 1);
+    const now = performance.now();
+    for (const [key, m] of want) {
+      if (walkers.has(key)) continue;
+      const queued = arrivals.find((a) => a.nick.toLowerCase() === key);
+      if (queued) { queued.seat = m.seat; continue; }
+      if (m.seat && seatNow(m)) continue;
+      arrivals.push({ ...shortMsg(m), at: now });   // waiting outside, or a seat this screen has taken already
+    }
+    audience();
+  }
+  Cinema.onRoom((ev) => {
+    const key = String(ev.nick || '').toLowerCase();
+    switch (ev.t) {
+      case 'snapshot': applySnapshot(ev); break;
+      case 'seat': { const a = arrivals.find((x) => x.nick.toLowerCase() === key); if (a) a.seat = ev.seat; break; }
+      case 'follow': followSomeone(key); break;
+      case 'clear': resetHall(); break;
+      case 'remove': {
+        const w = walkers.get(key);
+        // the leading screen's usher kicked them (or they went home): the same exit here, without the usher
+        if ((ev.why === 'kicked' || ev.why === 'home') && w && w.sitting && !w.out) {
+          goingOut(w, ev.why === 'kicked' ? '🔦 kicked' : '💤 heading home');
+          standUp(w);
+        } else if (ev.why !== 'kicked' && ev.why !== 'home') removeNick(key);
+        break;
+      }
+      default: break;
+    }
+  });
+  const pageId = Cinema.room?.page ? Cinema.room.id : Math.random().toString(36).slice(2, 8);
   if (q.get('ctl') !== '0' && location.protocol.startsWith('http')) {
     let alive = true;
     let statePending = false;
@@ -2143,6 +2248,7 @@
   // ---------- start ----------
   Cinema.onWalkIn(onMessage);
   Cinema.onPurge(onPurge);
+  setInterval(() => { if (pendingSnapshot && L && seats.length) applySnapshot(pendingSnapshot); }, 500);
 
   (async () => {
     try {

@@ -414,6 +414,26 @@ prefix. Missing names count as `front` and are never mirrored. Pages mirror an e
 (`SB.faceEmote`). The labels were made from contact sheets with `tools/emote-sheet.html`, which is in the
 git-ignored `tools/` folder (local only). To label a new emote, add its line by hand.
 
+## Shared room (`shared/room.js`, 7 Nov 2026)
+
+One persistent lobby and auditorium per room, kept on the server (plan: [web/PLAN-shared-rooms.md](../web/PLAN-shared-rooms.md)).
+`standby-server.js` has one room (state in `cache/room-state.json`, `room-state-<port>.json` for test ports;
+`STANDBY_ROOM=0` turns it off; it reads chat from the relay itself, `DGG_RELAY`). `web/server.js` has one per
+invite key (`DATA/room-state/<key>.json`).
+
+- The server decides who walks in (tag / everyone, set by the panel or else the screens' links), the lobby's crowd
+  rules and caps, each chatter's room, detour and seed, auditorium seats and the queue, and the director's follows.
+  It keeps going with no screen open.
+- Pages opt in with `window.DD_ROOM_PAGE = 'lobby' | 'auditorium'` before `shared/core.js` (`?room=0` turns it off).
+  `shared/cinema.js` then feeds `Cinema.onWalkIn` from `GET /ctl/room` (server-sent events) and passes the other
+  events to `Cinema.onRoom`: `snapshot`, `seat`, `remove`, `follow`, `lead`, `clear`. Unreachable for 10 s: the page
+  decides walk-ins itself again.
+- `/ctl/cmd` commands are applied to the room, then forwarded to the screens as before. Room-only commands: `who`
+  (`value` tag|everyone, `nick`), `kicked` (the leading auditorium screen's usher kick or a dozer going home).
+  `reset` with `page: 'lobby'` clears the lobby.
+- `GET /ctl/room-state`: the room's counts for the panel. The leading screen (the OBS one, else the oldest) reports
+  places and the pre-show state through its `/ctl/state` posts (its id is `Cinema.room.id`).
+
 ## Looked wrong or inconsistent (5 Nov 2026)
 
 - **`lan-proxy.js --control` likely can't send commands.** The HTTP proxy passes the phone's `Origin` header

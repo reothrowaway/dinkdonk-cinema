@@ -42,11 +42,22 @@
 <div class="row"><label>Scene <select id="page"><option value="lobby">Lobby (lobby.html)</option><option value="auditorium">Auditorium (auditorium.html)</option></select></label></div>
 <div class="sub" id="screens">looking for open screens…</div>
 
+<div class="card" id="roomcard" hidden>
+  <h2>Shared room</h2>
+  <div class="state" id="roomstate"></div>
+  <div class="row" style="margin-top:10px">
+    <label>Who walks in <select id="who"><option value="tag">Only chatters who tag…</option><option value="everyone">Everyone who chats</option></select></label>
+    <input id="whonick" placeholder="nick" maxlength="25" style="width:160px">
+    <button id="whoset">Set</button>
+    <button id="clearlobby" class="danger" title="Empties the lobby on every screen; chat fills it again">Clear lobby</button>
+  </div>
+</div>
+
 <div class="card" id="preshow" hidden>
   <h2>Auditorium pre-show</h2>
   <div class="row">
-    <button data-phase="seating">Seating</button><button data-phase="dim">Lights down</button>
-    <button data-phase="film">Film</button><button id="movie" title="Film on the screen without the camera pushing in">Movie (no zoom)</button>
+    <button data-phase="seating">Seating</button><button data-phase="dim" title="House lights dim; the camera stays on the wide shot">Lights down</button>
+    <button data-phase="film" title="Lights down, the film plays and the camera pushes onto the screen">Film</button><button id="movie" title="Film on the screen without the camera pushing in">Movie (no zoom)</button>
     <button id="outro" title="The camera eases back out to the wide shot; the film keeps playing">Film outro</button>
     <button id="lightson" title="House lights up while the film keeps playing (e.g. the credits); press again to dim them">Lights on (film plays)</button>
     <button id="houseout" title="Everyone stands up and walks out, one after another; new arrivals wait until the next Seating">Everyone leaves</button>
@@ -101,7 +112,7 @@
   const $ = (id) => document.getElementById(id);
   let controlVersion = 0;
   const send = (cmd) => {
-    const page = $('page').value;
+    const page = cmd.page || $('page').value;
     if (page === 'auditorium' && controlVersion < 2) { $('screens').textContent = 'Restart standby-server.js to enable safe auditorium controls.'; return; }
     return fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...cmd, page }), signal: AbortSignal.timeout(3500) })
     .then((r) => r.json()).then((j) => { if (!j.screens) $('screens').textContent = 'No screen is open: start the standby screen (or the OBS source) first.'; })
@@ -119,6 +130,28 @@
   $('lightson').onclick = () => send({ cmd: 'lights', on: !preshow?.lightsOn });
   $('houseout').onclick = () => send({ cmd: 'houseOut', on: !preshow?.houseOut });
   $('reset').onclick = () => send({ cmd: 'reset' });
+  // shared room (web/PLAN-shared-rooms.md): the server keeps one lobby and one auditorium for every screen
+  $('clearlobby').onclick = () => { if (confirm('Clear the lobby on every screen?')) send({ cmd: 'reset', page: 'lobby' }); };
+  $('who').onchange = () => { $('whonick').hidden = $('who').value !== 'tag'; };
+  $('whoset').onclick = () => fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: 'who', page: 'lobby', value: $('who').value, nick: $('whonick').value.trim() }), signal: AbortSignal.timeout(3500) })
+    .then(refreshRoom).catch(() => {});
+  let whoEdited = false;
+  for (const id of ['who', 'whonick']) $(id).addEventListener('focus', () => { whoEdited = true; });
+  async function refreshRoom() {
+    let r;
+    try {
+      const res = await fetch('/ctl/room-state', { cache: 'no-store', signal: AbortSignal.timeout(3500) });
+      if (!res.ok) throw new Error();
+      r = await res.json();
+    } catch { $('roomcard').hidden = true; return; }   // an older server: no shared room
+    $('roomcard').hidden = false;
+    const a = r.auditorium;
+    $('roomstate').textContent = `Lobby: ${r.lobby.people} people · Auditorium: ${a.seated}/${a.seats} seated, ${a.waiting} waiting outside`
+      + ` · walk in: ${r.tag ? `chatters who tag ${r.tag}` : 'everyone who chats'}${r.fromPanel ? '' : ' (from the screen links; Set overrides them)'}`
+      + ` · ${r.lobby.screens + a.screens} screen${r.lobby.screens + a.screens === 1 ? '' : 's'} on the room. The room keeps filling with no screen open.`;
+    if (!whoEdited) { $('who').value = r.tag ? 'tag' : 'everyone'; $('whonick').value = r.tag || ''; $('whonick').hidden = !r.tag; }
+  }
   $('wide').onclick = () => send({ cmd: 'wide' });
   $('next').onclick = () => send({ cmd: 'next' });
   $('random').onclick = () => send({ cmd: 'random' });
@@ -232,6 +265,8 @@
   }
   refresh();
   setInterval(refresh, 1000);
+  refreshRoom();
+  setInterval(refreshRoom, 2000);
 })();
 </script>
 </body>

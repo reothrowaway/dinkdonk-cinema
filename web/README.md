@@ -16,7 +16,7 @@ Live at `https://2-29-56-208.sslip.io/` since 5 Nov 2026 (Hetzner server `dinkdo
 4. Pick the source your film plays in (window capture, game capture, media source, anything), choose who walks in, and
    click **Create scenes in OBS**. You get *DinkDonk Lobby*, *DinkDonk Cinema* and a helper scene *Film screen (src)*,
    sized to your canvas.
-5. Every stream: switch to those scenes. The **control panel** link (on the setup page) runs the camera, the
+5. Every stream: switch to those scenes. The **control panel** link (on the setup page, or Alt+C on the lobby or auditorium page in a browser) runs the camera, the
    automatic director and the auditorium phases (seating › lights down › film › lights up). It works on a phone too.
 6. **OBS 33 and newer:** keep the control panel open in the browser on the OBS PC during the film. Its top line
    should say "OBS connected · server connected". (Newer OBS doesn't let websites inside OBS reach OBS itself, so the

@@ -50,8 +50,9 @@
     const have = DEFAULT_POOL.filter((e) => SB.emotes.names.has(e));
     pool = have.length >= 4 ? have : [...SB.emotes.names].slice(0, 24);
     if (!pool.length) pool = DEFAULT_POOL;
-    if (SB.emotes.css) findBoxyEmotes();
+    if (SB.emotes.css) boxyCheck = findBoxyEmotes();
   });
+  let boxyCheck = null;   // the running square-emote check (the shared room waits for it, see below)
   // remember a bounded number of chatters (oldest forgotten first)
   function remember(map, key, value) {
     map.delete(key);
@@ -141,10 +142,70 @@
     for (const fn of roomFns) { try { fn(rooms, data); } catch (error) { console.error('[cinema] rooms handler', error); } }
   }
 
+  // ---------- shared room (web/PLAN-shared-rooms.md, shared/room.js) ----------
+  // A page that sets window.DD_ROOM_PAGE ('lobby' or 'auditorium') before loading this script gets its walk-ins from
+  // the server's room (GET /ctl/room) instead of deciding them itself: every screen of the room sees the same people,
+  // emotes, lines and seats, and a reload comes back to the same room. ?room=0 turns it off. While the room can't be
+  // reached (an old server, the server down) the page decides walk-ins itself, as before.
+  const ROOM_PAGE = ['lobby', 'auditorium'].includes(window.DD_ROOM_PAGE) && q.get('room') !== '0' &&
+    location.protocol.startsWith('http') ? window.DD_ROOM_PAGE : null;
+  const room = { page: ROOM_PAGE, id: Math.random().toString(36).slice(2, 10), live: false, lead: false };
+  const roomEvFns = [];
+  let localWalkIns = !ROOM_PAGE;
+
+  // a room entry (shared/room.js) as the walk-in object pages already take from onWalkIn
+  function fromEntry(e, ev = {}) {
+    const m = SB.parseMessage(e.d || { nick: e.nick, data: '' });
+    const emote = [e.emote, ...(e.alt || [])].filter(Boolean).find(okAvatar) || defaultEmote(e.nick);
+    return { nick: e.nick, emote, tokens: m.tokens, text: m.text, color: m.color, rainbow: m.rainbow, sub: m.sub,
+      ts: e.last || Date.now(), roomIndex: e.roomIndex ?? 0, detour: e.detour ?? null, features: m.features,
+      seed: e.seed >>> 0, seat: e.seat ?? null, place: e.place ?? null, at: e.at, follow: !!ev.follow,
+      again: !!ev.again, say: !!ev.say, room: true };
+  }
+  function roomEvent(ev) {
+    if (ev.page !== ROOM_PAGE) return;
+    if (ev.t === 'snapshot' || ev.t === 'lead') room.lead = ev.lead === room.id || ev.id === room.id;
+    if (ev.t === 'walk') {
+      const w = fromEntry(ev.e, ev);
+      for (const fn of walkFns) { try { fn(w); } catch (error) { console.error('[cinema] walk-in handler', error); } }
+      return;
+    }
+    if (ev.t === 'snapshot') ev = { ...ev, roster: ev.roster.map((e) => fromEntry(e)) };
+    for (const fn of roomEvFns) { try { fn(ev); } catch (error) { console.error('[cinema] room handler', error); } }
+  }
+  function roomConnect() {
+    const p = new URLSearchParams({ page: ROOM_PAGE, id: room.id, obs: window.obsstudio ? '1' : '0', who: TAG || '' });
+    const es = new EventSource(`/ctl/room?${p}`);
+    let fallback = setTimeout(() => { if (!room.live) { localWalkIns = true; console.warn('[cinema] room unreachable: walk-ins decided here'); } }, 10000);
+    es.onopen = () => { room.live = true; localWalkIns = false; clearTimeout(fallback); };
+    es.onmessage = (e) => { try { roomEvent(JSON.parse(e.data)); } catch (error) { console.error('[cinema] room event', error); } };
+    es.onerror = () => {
+      if (room.live) {
+        room.live = false;
+        clearTimeout(fallback);
+        fallback = setTimeout(() => { if (!room.live) { localWalkIns = true; console.warn('[cinema] room lost: walk-ins decided here'); } }, 10000);
+      }
+      // an answer other than 200 (an old server without /ctl/room) closes the stream for good: try again later
+      if (es.readyState === EventSource.CLOSED) { clearTimeout(fallback); localWalkIns = true; setTimeout(roomConnect, 15000); }
+    };
+  }
+  // After the emote list loaded and the square-emote check finished: emotes are resolved with both (a chatter's own
+  // emote, or the default from `pool`), so every screen must have the same list before the first walk-in, or
+  // chatters without an emote got different defaults on different screens (Lobby Map, 7 Nov). 25 s at the latest.
+  if (ROOM_PAGE) {
+    let started = false;
+    const start = () => { if (!started) { started = true; roomConnect(); } };
+    SB.on('emotes', () => {
+      if (!boxyCheck) { start(); return; }
+      Promise.race([boxyCheck, new Promise((ok) => setTimeout(ok, 20000))]).then(start, start);
+    });
+    setTimeout(start, 25000);
+  }
+
   SB.on('msg', (m) => {
     const own = m.emotes.find(okAvatar);   // their first emote that works as a body
     if (own) remember(lastEmote, m.nick, own);
-    if (!walksIn(m)) return;
+    if (!localWalkIns || !walksIn(m)) return;
     const last = lastEmote.get(m.nick);
     const emote = own || (okAvatar(last) ? last : null) || defaultEmote(m.nick);
     // Regulars mostly go back to the same room, sometimes they switch.
@@ -169,6 +230,9 @@
   window.Cinema = {
     onRooms(fn) { roomFns.push(fn); fn(rooms, data); },
     onWalkIn(fn) { walkFns.push(fn); },
+    // shared room only: fn(ev) for snapshot / seat / remove / follow / lead / clear (see shared/room.js)
+    onRoom(fn) { roomEvFns.push(fn); },
+    room,
     onCombo(fn) { SB.on('combo', fn); },
     onPurge(fn) { SB.on('purge', fn); },
     showtimes,

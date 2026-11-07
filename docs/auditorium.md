@@ -240,7 +240,8 @@ The download comes from `GET /qb/progress` every 2 s (`pollDownload()`), see
 [server-and-shared.md](server-and-shared.md). Without qBittorrent the pre-show shows a generic "The feature will
 begin shortly" and no automatic phases happen.
 
-**Film shots** (`show.shot`): `push` (Film: the camera pushes onto the screen 10 s after the lights go down), `movie`
+**Film shots** (`show.shot`): `push` (Film: the camera pushes onto the screen 10 s after the lights go down, or at once when
+Lights down already dimmed them; Lights down on its own keeps the wide shot), `movie`
 (Movie, no zoom: the film plays and the wide shot stays), `outro` (Film outro: eases back out while the film keeps
 playing). `show.lightsOn` (Lights on, film plays) raises the house lights during the film, e.g. for the credits.
 Changing phase resets both.
@@ -336,7 +337,7 @@ manual chroma key.
 | Automatic follow | on by default. The first one 45-75 s after load, then every `every` s × 0.85-1.2, at the next arrival after that time. Follows the walker from the door to the seat, holds 3.2 s after they sit (max 150 s), then eases back out. |
 | Tunnel | while the followed walker is hidden, the camera frames the tunnel mouth `[2.1, 9.4, 8]` |
 | Lead | the shot leads a little in the walking direction (smoothed velocity × 0.35, max 60/40 px) |
-| Screen shot | Film (`push`): 10 s after the lights go down the camera eases onto the screen (zoom fits its bounding box × 0.94, 1-3) with a slow 3.5 s spring and stays. Automatic follows stop meanwhile; manual ones (F, R, panel) still cut away. |
+| Screen shot | Film (`push`) only, never Lights down alone: 10 s after the lights go down (at once from Lights down) the camera eases onto the screen (zoom fits its bounding box × 0.94, 1-3) with a slow 3.5 s spring and stays. Automatic follows stop meanwhile; manual ones (F, R, panel) still cut away. |
 | Outro | eases back to the wide shot; automatic follows resume after one interval |
 | Zoom | `zoom` (default 1.85) for follows |
 

@@ -214,6 +214,7 @@
   </div>
   <div id="bubbles"></div>
 </div>
+<script>window.DD_ROOM_PAGE = 'lobby';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="shared/live.js"></script>
@@ -870,6 +871,11 @@
   let arcadeHiUntil = 0;
   const arrivals = {};               // side -> recent arrival times (staggering)
   const ARCADE = [12.95, 7.85];      // player spot in front of the cabinet's screen
+  // shared room (web/PLAN-shared-rooms.md, shared/room.js): the server decides who walks in, every screen draws it
+  const inRoom = () => !!Cinema.room?.page && Cinema.room.live;
+  // a walker's later coin flips (bench, quitting the line, stopping to talk, soda): drawn once from the room's seed at
+  // spawn, so every screen flips them the same way; a local walker has none and flips Math.random() as before
+  const roll = (w, k) => w.rolls?.[k] ?? Math.random();
 
   function splash(u, v) {
     const el = h('div', 'splash');
@@ -1084,7 +1090,7 @@
   }
   function giveCarry(w) {
     if (w.carry) return;
-    w.carry = itemEl(Math.random() < 0.3 ? 'soda' : 'popcorn', 'carry', HELD.carry);
+    w.carry = itemEl(roll(w, 'soda') < 0.3 ? 'soda' : 'popcorn', 'carry', HELD.carry);
     w.bod.append(w.carry);
     placeItem(w, w.carry, 'carry');
   }
@@ -1151,6 +1157,7 @@
     }
     doorGlow(w.doorRoom);
     chaseUntil[w.doorRoom + 1] = performance.now() + 4000;   // the poster's bulbs chase as they go in
+    leftRoom(w);
     removeWalker(w);
   }
 
@@ -1296,7 +1303,7 @@
   function tryBench(w) {
     if (benchBusy?.gone) benchBusy = null;
     if (benchBusy && benchBusy !== w && benchBusy.seated && !benchBusy.friend) benchBusy.friend = w;   // here they are
-    if (!L.bench || benchBusy || w.hurry || w.benched || queue.length > 3 || Math.random() >= 0.1) return false;
+    if (!L.bench || benchBusy || w.hurry || w.benched || queue.length > 3 || roll(w, 'bench') >= 0.1) return false;
     benchBusy = w;
     w.benched = true;
     const t0 = performance.now();
@@ -1325,7 +1332,7 @@
     w.qi = -1;
     w.plan = [];
     w.qT = 0;
-    w.quitAt = !w.hurry && Math.random() < QUIT_P ? rand(2.5, 7) : null;   // some lose patience (giveUp)
+    w.quitAt = !w.hurry && roll(w, 'quit') < QUIT_P ? 2.5 + 4.5 * roll(w, 'quitAt') : null;   // some lose patience (giveUp)
   }
 
   // Changed their mind: out of the line (by the rope lane's open end), back out into the rain, wait at the bus stop
@@ -1343,7 +1350,7 @@
   }
   function waitBus(w) {
     // art without a bus: they walk off along the sidewalk instead of waiting at the shelter for good
-    if (!VEH?.bus?.['+u']) { w.plan = [{ to: [-7, w.v] }, { call: (x) => { x.alphaT = 0; dropBubble(x); } }, { alpha: 0 }, { call: removeWalker }]; return; }
+    if (!VEH?.bus?.['+u']) { w.plan = [{ to: [-7, w.v] }, { call: (x) => { x.alphaT = 0; dropBubble(x); } }, { alpha: 0 }, { call: (x) => { leftRoom(x); removeWalker(x); } }]; return; }
     if (!activeBus()) nextBus = Math.min(nextBus, performance.now() + rand(6000, 14000));
     w.waitingBus = true;   // the bus waits for them (stepTraffic): they only board the frame after the last rider is off
     w.plan = [{ until: () => { const b = activeBus(); return !!b && b.state === 'stopped' && !b.riders.size; } }, { call: boardBus }];
@@ -1356,7 +1363,7 @@
     const door = STOPS.bus.door_ground;
     w.plan = [{ to: door }, { to: STOPS.bus.boarding_point || [door[0], door[1] + 0.15] },   // curb, then in at the door
       { call: () => { w.alphaT = 0; dropBubble(w); if (Math.random() < 0.5) floatAt(w, 'bye 👋', '#ffe08a'); } }, { alpha: 0 },
-      { call: (x) => { bus.boarders.delete(x); removeWalker(x); } }];
+      { call: (x) => { bus.boarders.delete(x); leftRoom(x); removeWalker(x); } }];
   }
   function leaveQueue(w) {
     const i = queue.indexOf(w);
@@ -1435,11 +1442,11 @@
 
   // an open umbrella in hand (pre-rendered sprite when the art has one); it is only open outside and folds at the
   // door (drawFigure). Everyone comes with one (it's pouring); someone heading back out gets theirs again.
-  function giveUmbrella(w) {
+  function giveUmbrella(w, r = Math.random()) {   // r: the colour pick (the room's seed: the same colour on every screen)
     w.umb?.remove();
     const colors = (UMB?.colors || []).filter((c) => UMB.open[c]?.file && validSheet(UMB.fold?.[c]));
     if (colors.length) {
-      const c = colors[Math.floor(Math.random() * colors.length)];
+      const c = colors[Math.floor(r * colors.length)];
       const o = UMB.open[c];
       const wet = UMB.wet?.[c];   // rendered rain on the canopy (BRIEF-53): a 24 fps loop, else the still sprite
       if (validSheet(wet)) {
@@ -1458,9 +1465,28 @@
       w.umbSpec = o;
     } else {
       w.umb = h('div', 'umb');
-      w.umb.style.setProperty('--c', ['#e8285c', '#2a8cff', '#ffd75a', '#1a1a24', '#7ff7f0'][Math.floor(Math.random() * 5)]);
+      w.umb.style.setProperty('--c', ['#e8285c', '#2a8cff', '#ffd75a', '#1a1a24', '#7ff7f0'][Math.floor(r * 5)]);
     }
     w.bod.append(w.umb);
+  }
+  // A chatter's figure and their random picks. From the room (wi.room) every pick comes from rng(wi.seed) in a fixed
+  // order (all drawn up front, whatever this screen then uses), so every screen of the room makes the same choices;
+  // rides, traffic and the world around them stay this screen's own.
+  function newChatter(wi, key) {
+    const rr = wi.room ? rng(wi.seed >>> 0) : Math.random;
+    const rs = (a, b) => a + rr() * (b - a);
+    const w = makeFigure(wi.nick, wi.emote, wi.color, false);
+    if (wi.rainbow) { w.nm.textContent = ''; w.nm.append(h('span', 'rbt', wi.nick)); }   // tier 5: rainbow name, as in DGG chat
+    w.key = key;
+    figures.add(w);
+    w.room = wi.roomIndex;
+    // with the real restroom (layout 3) about one in five drops by before the film (chat already sends ~5 %)
+    const r = rr();
+    w.detour = wi.detour || (RESTROOM && r < 0.16 ? 'bathroom' : r > 0.93 ? 'arcade' : null);
+    const pick = { umb: rr(), lane: rs(9.78, 10.05), dx: [rs(-0.4, 0.4), rs(-0.3, 0.3), rs(-0.6, 0.6)],
+      left: rr() < 0.5, jay: rr(), jayV: rs(-0.1, 0.1), jayX: rs(-0.4, 0.4), at: rr() };
+    if (wi.room) w.rolls = { bench: rr(), quit: rr(), quitAt: rr(), outside: rr(), lobby: rr(), hall: rr(), soda: rr(), umb: rr() };
+    return [w, pick];
   }
   function spawn(wi) {
     if (wi.features?.includes('moderator')) return;   // mods are the jannies (see onModMessage), they don't walk in
@@ -1468,29 +1494,24 @@
     const old = walkers.get(key);
     if (old && !old.entering && !old.removing) {
       setEmote(old, wi.emote);
-      queueLine(old, wi.tokens);   // said at their next conversation
+      // the panel's "say" (it comes back from the room as a walk-in): at once, as the panel's say did
+      if (wi.say) say(old, wi.tokens);
+      else queueLine(old, wi.tokens);   // said at their next conversation
       if (!old.doorBound) old.room = wi.roomIndex;
       return;
     }
-    if (crowdSkip(wi)) return;
+    if (!wi.room && crowdSkip(wi)) return;   // the room ran the crowd rule already, once for every screen
     // someone already going through a door keeps going (still updated via `figures`); a new one walks in
     if (old) walkers.delete(key);
-    const w = makeFigure(wi.nick, wi.emote, wi.color, false);
-    if (wi.rainbow) { w.nm.textContent = ''; w.nm.append(h('span', 'rbt', wi.nick)); }   // tier 5: rainbow name, as in DGG chat
-    w.key = key;
-    figures.add(w);
-    w.room = wi.roomIndex;
-    // with the real restroom (layout 3) about one in five drops by before the film (chat already sends ~5 %)
-    const r = Math.random();
-    w.detour = wi.detour || (RESTROOM && r < 0.16 ? 'bathroom' : r > 0.93 ? 'arcade' : null);
-    giveUmbrella(w);
+    const [w, pick] = newChatter(wi, key);
+    giveUmbrella(w, pick.umb);
     // each arrival gets its own lane on the sidewalk (clear of the bus stop and lamp), and arrivals
     // from the same side close together start further back, so groups trickle in instead of piling up
-    const lane = rand(9.78, 10.05);
+    const lane = pick.lane;
     // before going in, some stop on the sidewalk to talk (layout 3)
     // (back from a sidewalk group they first line up with the entrance, so nobody walks through the glass)
-    const walkIn = [{ to: [9.5 + rand(-0.4, 0.4), lane] }, { call: hangOutside }, { to: [9.5 + rand(-0.3, 0.3), 9.45] },
-      { to: [9.5 + rand(-0.6, 0.6), 8.6] }, { call: joinQueue }];
+    const walkIn = [{ to: [9.5 + pick.dx[0], lane] }, { call: hangOutside }, { to: [9.5 + pick.dx[1], 9.45] },
+      { to: [9.5 + pick.dx[2], 8.6] }, { call: joinQueue }];
     const ride = pickRide();
     if (ride) {
       // arrives by bus / taxi: hidden until the vehicle has stopped, then steps out of its door
@@ -1514,7 +1535,7 @@
         { call: () => { veh.riders.delete(w); w.ride = null; } },
         ...walkIn];
     } else {
-      const side = Math.random() < 0.5 ? 'l' : 'r';
+      const side = pick.left ? 'l' : 'r';
       const now = performance.now();
       const k = (arrivals[side] = (arrivals[side] || []).filter((t) => now - t < 1500)).length;
       arrivals[side].push(now);
@@ -1524,15 +1545,15 @@
       w.plan = walkIn;
       // now and then someone walks along the road with the traffic instead of the sidewalk; traffic doesn't stop
       // for them (stepTraffic runs them over), the rest step up to the sidewalk at the entrance
-      if (VEH && Math.random() < JAYWALK) {
-        w.v = (side === 'l' ? LANES.near : LANES.far) + rand(-0.1, 0.1);
-        w.plan = [{ to: [9.5 + rand(-0.4, 0.4), w.v] }, ...walkIn];
+      if (VEH && pick.jay < JAYWALK) {
+        w.v = (side === 'l' ? LANES.near : LANES.far) + pick.jayV;
+        w.plan = [{ to: [9.5 + pick.jayX, w.v] }, ...walkIn];
       }
     }
     walkers.set(key, w);
     queueLine(w, wi.tokens);   // said once they're in view (soloSpeech), or in a talk group if they join one first
     enforceCap();
-    directorArrival(w);
+    directorArrival(w, wi);
   }
 
   // Crowd control: once the street and the ticket line fill up (CROWD people outside or in line), only every 2nd new
@@ -1587,7 +1608,8 @@
         if (w.snack) leaveSnack(w);
       }
     }
-    if (live.length > HARD_CAP) {
+    // (in the room the server keeps the hard cap, once for every screen: a remove event, why 'cap')
+    if (live.length > HARD_CAP && !inRoom()) {
       const w = live.find((x) => !x.entering) || live[0];
       retire(w);
       w.plan = [{ alpha: 0 }, { call: removeWalker }];
@@ -1892,7 +1914,7 @@
       floatAt(w, '💥 BONK', '#ff7a7a');
       w.bounce = 1;
       w.alphaT = 0;
-      w.plan = [{ to: [w.u + v.sign * 1.3, w.v + rand(-0.15, 0.15)] }, { alpha: 0 }, { call: removeWalker }];
+      w.plan = [{ to: [w.u + v.sign * 1.3, w.v + rand(-0.15, 0.15)] }, { alpha: 0 }, { call: (x) => { leftRoom(x); removeWalker(x); } }];
     }
   }
   function place(v) {
@@ -2402,7 +2424,7 @@
         w.umbSpec = null;
       }
       if (w.out && !out) w.wetSteps = 4;   // in from the rain: a few wet prints on the lobby floor
-      if (w.out === false && out && !w.umb) giveUmbrella(w);   // back out into the rain (changed their mind)
+      if (w.out === false && out && !w.umb) giveUmbrella(w, roll(w, 'umb'));   // back out into the rain (changed their mind)
       w.out = out;
       w.el.classList.toggle('out', out);
     }
@@ -3160,7 +3182,7 @@ void main() {
     if (w.hurry || w.removing || (w.hung ||= new Set()).has(kind)) return;
     w.hung.add(kind);
     const [pTalk, pQuiet] = HANG_P[kind];
-    if (Math.random() > (w.lines?.length ? pTalk : pQuiet)) return;   // some just go in
+    if (roll(w, kind) > (w.lines?.length ? pTalk : pQuiet)) return;   // some just go in
     let g = groups.find((x) => x.kind === kind && !x.janitor && x.members.length < 4);
     if (!g) {
       const s = SPOTS[kind].find((s0) => !groups.some((x) => x.spot === s0));
@@ -3323,8 +3345,11 @@ void main() {
     director.next = performance.now() + director.every * 1000 * rand(0.85, 1.2);
   }
   // a new arrival: taken when the director is due, or when someone asked for the next one
-  function directorArrival(w) {
-    if (director.follow || w.hurry) return;
+  // (in the room the server's director picks the arrival, the same one on every screen: wi.follow; no local timer)
+  function directorArrival(w, wi) {
+    if (director.follow) return;
+    if (inRoom()) { if (wi?.follow) startFollow(w); return; }
+    if (w.hurry) return;
     if (director.wantNext || (director.on && performance.now() >= director.next)) startFollow(w);
   }
   function followSomeone(nick) {
@@ -3412,21 +3437,18 @@ void main() {
     const key = typeof c.nick === 'string' ? c.nick.trim().toLowerCase() : '';
     switch (c.cmd) {
       case 'follow': followSomeone(key); break;
-      case 'random': followSomeone(); break;
-      case 'next': director.wantNext = true; break;
+      case 'random': if (!inRoom()) followSomeone(); break;   // the room picks one nick for every screen (a follow event)
+      case 'next': if (!inRoom()) director.wantNext = true; break;   // the room flags the next arrival (wi.follow)
       case 'wide': director.wantNext = false; endFollow(); break;
       case 'director': director.on = !!c.on; if (director.on) director.next = Math.min(director.next, now + 20000); break;
       case 'every': if (Number.isFinite(+c.value)) director.every = clamp(+c.value, 30, 1800); break;
       case 'zoom': if (Number.isFinite(+c.value)) director.zoom = clamp(+c.value, 1.2, 3); break;
-      case 'remove':
-        for (const w of [...figures]) {
-          if (w.key !== key || w.removing) continue;
-          retire(w);
-          w.plan = [{ alpha: 0 }, { call: removeWalker }];
-        }
-        break;
+      case 'remove': removeNick(key); break;
+      // the panel's Clear lobby (older servers broadcast the auditorium's reset to every screen: only page 'lobby')
+      case 'reset': if (c.page === 'lobby') resetLobby(); break;
       case 'add':
       case 'say': {
+        if (inRoom()) break;   // the room sends it back as a walk-in (wi.say), the same on every screen
         const nick = String(c.nick || '').trim().slice(0, 25);
         if (!nick) break;
         const tokens = SB.tokenize(String(c.text || '').slice(0, 200));
@@ -3440,17 +3462,129 @@ void main() {
       default: break;
     }
   }
-  const pageId = Math.random().toString(36).slice(2, 8);
+  function fadeAway(w) {
+    retire(w);
+    w.plan = [{ alpha: 0 }, { call: removeWalker }];
+  }
+  function removeNick(key) {
+    for (const w of [...figures]) if (w.key === key && !w.removing) fadeAway(w);
+  }
+  // Clear lobby (panel, or the room's clear): every chatter goes at once, every line, slot and spot is free again.
+  // Jannies (mods) stay on duty: they are this screen's own, not people in the room.
+  function resetLobby() {
+    director.wantNext = false;
+    endFollow();
+    for (const w of [...figures]) if (!w.jan) removeWalker(w);
+    queue.length = 0;
+    gateLine.length = 0;
+    gateT = 0;
+    for (const win of windows) { win.cur = null; win.t = 0; }
+    for (const s of snackSpots) { s.line = []; s.t = 0; }
+    groups.length = 0;
+    wcBusy = wcWait = arcadeBusy = benchBusy = null;
+    setWC(restroomFull());
+    for (const k of Object.keys(arrivals)) delete arrivals[k];
+    crowdN = 0;
+    pendingSnapshot = null;   // a buffered snapshot is older than the clear
+  }
+
+  // ---------- shared room (web/PLAN-shared-rooms.md, shared/room.js) ----------
+  // The server decides who is in the lobby (walk-ins, the crowd rule, the hard cap, the director's follows); this
+  // screen draws it. A snapshot (on load and after every reconnect) puts everyone back where the leading screen last
+  // saw them, without a walk in. Traffic, staff, jannies and the janitor stay this screen's own.
+  // A screen tells the room when someone has left the lobby (in through their door, home on the bus, run over), so a
+  // reload doesn't bring them back and the room's head count (its crowd rule) stays the lobby's. The first screen to
+  // see it counts (with only the leading one telling, people a screen sent in before it led stayed in the room); the others walk
+  // them out on their own. 'left' is room-only (shared/room.js): the servers don't forward it to /ctl/events.
+  function leftRoom(w) {
+    if (!inRoom() || w.jan || w.staff || walkers.get(w.key) !== w) return;   // (a newer walker of theirs: still here)
+    fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cmd: 'left', page: 'lobby', nick: w.nick }), signal: AbortSignal.timeout(3500) }).catch(() => {});
+  }
+  // someone already in the room, put straight at their place (the leading screen's last status for them)
+  function placeChatter(wi, key) {
+    const [w, pick] = newChatter(wi, key);
+    walkers.set(key, w);
+    const spot = HANGOUTS[pick.at < 0.5 ? 0 : 1];
+    const inLobby = () => { [w.u, w.v] = [spot[0] + pick.dx[0], spot[1] + pick.dx[1] / 2]; };
+    const place = wi.place || '';
+    if (place === 'street' || place === 'on the bus' || place === 'in a taxi') {
+      // on the sidewalk in front of the cinema, then in as usual
+      giveUmbrella(w, pick.umb);
+      [w.u, w.v] = [5 + 9 * pick.at, pick.lane];
+      w.plan = [{ call: hangOutside }, { to: [9.5 + pick.dx[1], 9.45] }, { to: [9.5 + pick.dx[2], 8.6] }, { call: joinQueue }];
+    } else if (place === 'ticket line') {
+      // at their place in the line (in the order the room has them); no bench detour on the way
+      w.benched = true;
+      [w.u, w.v] = L.slot(Math.min(queue.length, (L.qmax || QMAX) - 1));
+      joinQueue(w);
+    } else if (place === 'snack bar') {
+      // a place in the shortest snack line, already standing in it (all full: on to the gate from the lobby)
+      giveStub(w);
+      w.detour = 'popcorn';
+      afterTicket(w);
+      if (w.snack) {
+        const i = w.snack.line.length - 1;
+        [w.u, w.v] = [w.snack.at[0] + (i ? (i % 2 ? 0.18 : -0.18) : 0), w.snack.at[1] + 0.6 * i];
+        joinSnack(w);
+      } else inLobby();
+    } else {
+      // anywhere else inside (lobby, gate, corridor, restroom, arcade, bench) or not seen by a screen yet: hanging out
+      // in the lobby (they stay to talk: the lobby flip is set), then on to the gate and their door
+      giveStub(w);
+      inLobby();
+      if (w.detour === 'popcorn' || w.detour === 'arcade') w.detour = null;
+      w.rolls.lobby = 0;
+      afterTicket(w);
+      w.plan.unshift({ call: hangOut });
+    }
+    w.nameT = 4;
+  }
+  let lobbyReady = false;   // layout and art set up (the start block below)
+  let pendingSnapshot = null;
+  function applySnapshot(ev) {
+    if (!lobbyReady) { pendingSnapshot = ev; return; }
+    pendingSnapshot = null;
+    if (ev.director) {
+      director.on = !!ev.director.on;
+      if (Number.isFinite(ev.director.every)) director.every = clamp(ev.director.every, 30, 1800);
+      if (Number.isFinite(ev.director.zoom)) director.zoom = clamp(ev.director.zoom, 1.2, 3);
+    }
+    const want = new Map(ev.roster.map((wi) => [wi.nick.toLowerCase(), wi]));
+    // gone from the room while this screen was away: out (jannies, and anyone already on their way out, stay)
+    for (const w of [...walkers.values()]) if (!w.jan && !w.entering && !w.removing && !w.quitting && !want.has(w.key)) fadeAway(w);
+    for (const [key, wi] of want) {
+      // (someone the leading screen last saw going through their door is gone)
+      if (walkers.has(key) || wi.place === 'going in' || wi.features?.includes('moderator')) continue;
+      placeChatter(wi, key);
+    }
+    enforceCap();
+  }
+  Cinema.onRoom((ev) => {
+    const key = String(ev.nick || '').toLowerCase();
+    switch (ev.t) {
+      case 'snapshot': applySnapshot(ev); break;
+      case 'follow': followSomeone(key); break;
+      case 'clear': resetLobby(); break;
+      // out of the room: fades out as with the panel's remove ('cap', 'panel'); 'left' (and the older 'home'/'kicked')
+      // comes from a screen's own leftRoom(), and every screen walks them out on its own
+      case 'remove': if (ev.why !== 'left' && ev.why !== 'home' && ev.why !== 'kicked') removeNick(key); break;
+      default: break;
+    }
+  });
+
+  // in the room this screen reports under its room id: the room takes chatters' places from the leading screen's report
+  const pageId = Cinema.room?.page ? Cinema.room.id : Math.random().toString(36).slice(2, 8);
   if (q.get('ctl') !== '0' && location.protocol.startsWith('http')) {
     let alive = true;
     let statePending = false;   // one post at a time, 3.5 s at most (as the auditorium): slow posts never pile up
-    const es = new EventSource('/ctl/events');
+    const es = new EventSource(`/ctl/events?page=lobby&id=${pageId}`);
     es.onmessage = (e) => { try { control(JSON.parse(e.data)); } catch (error) { console.error('[lobby] control', error); } };
     const postState = () => {
       if (!alive || statePending) return;
       const f = director.follow;
       // obs: this screen is the OBS source (the panel shows it before a bigger preview tab)
-      const body = { id: pageId, ts: Date.now(), size: [innerWidth, innerHeight], obs: !!window.obsstudio,
+      const body = { id: pageId, page: 'lobby', ts: Date.now(), size: [innerWidth, innerHeight], obs: !!window.obsstudio,
         director: { on: director.on, every: director.every, zoom: director.zoom, wantNext: director.wantNext,
           following: f && !f.w.gone ? f.w.nick : null, nextIn: Math.max(0, Math.round((director.next - performance.now()) / 1000)) },
         chatters: [...figures].filter((w) => !w.gone).map((w) => ({ nick: w.nick, emote: w.emName, status: statusOf(w), followed: f?.w === w })) };
@@ -3796,6 +3930,8 @@ void main() {
     art = await loadArt();
     useLayout(Number(q.get('layout')) || (LAYOUTS[art?.layout] ? art.layout : 1));   // ?layout= forces one (testing)
     if (art) setupArt(art); else buildProps();
+    lobbyReady = true;
+    if (pendingSnapshot) applySnapshot(pendingSnapshot);
     SB.on('resize', (s) => {
       scale = s;
       if (!art) { redrawBg(); redrawProps(); return; }

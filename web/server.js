@@ -14,6 +14,8 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const { WebSocket, WebSocketServer } = require('ws');
+// shared/room.js: the build copies it next to this file
+const { createRoom } = require(fs.existsSync(path.join(__dirname, 'room.js')) ? './room' : '../shared/room');
 
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || 8080);
@@ -44,8 +46,8 @@ const TYPES = {
   '.shader': 'text/plain; charset=utf-8', '.ico': 'image/x-icon',
 };
 // pages that need a room key; the shim goes into the ones that talk to the server
-const KEYED = new Set(['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', 'setup.html']);
-const SHIMMED = new Set(['lobby.html', 'auditorium.html', 'control.html']);
+const KEYED = new Set(['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', 'setup.html', 'lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']);
+const SHIMMED = new Set(['lobby.html', 'auditorium.html', 'control.html', 'lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']);
 const PRIVATE = /^(dinkdonk\.js|server\.js)$/i;
 
 // ---------- rooms ----------
@@ -59,6 +61,32 @@ function saveRooms() {
 }
 const validKey = (k) => typeof k === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(k) && !!rooms[k] && !rooms[k].revoked;
 const sameToken = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && crypto.timingSafeEqual(x, y); };
+
+// ---------- shared room state, one per key (web/PLAN-shared-rooms.md, shared/room.js) ----------
+// Every room keeps its lobby and auditorium going on the server, fed by the shared chat connection, which stays up
+// while any room exists so the rooms keep filling with no screen open. Saved in DATA/room-state/<key>.json.
+let emoteNameSet = new Set();
+async function refreshEmoteNames() {
+  try {
+    const list = JSON.parse((await cdnAsset('emotes.json')).body);
+    const names = new Set(list.map((e) => e?.prefix).filter((p) => typeof p === 'string'));
+    if (names.size) emoteNameSet = names;
+  } catch { /* keep the last list */ }
+}
+const roomStates = new Map();   // key -> room
+const roomFile = (k) => path.join(DATA, 'room-state', `${k}.json`);
+function ensureRoom(k) {
+  if (!roomStates.has(k)) {
+    roomStates.set(k, createRoom({ file: roomFile(k), layoutFile: path.join(SITE, 'roxy3d', 'qa11', 'cinema_layout_13.json'),
+      emoteNames: () => emoteNameSet, log: (m) => log(`${rooms[k]?.name || '?'}: ${m}`) }));
+  }
+  return roomStates.get(k);
+}
+function dropRoom(k) {
+  roomStates.get(k)?.close();
+  roomStates.delete(k);
+  try { fs.rmSync(roomFile(k), { force: true }); } catch { /* gone */ }
+}
 
 // per-room control state (same protocol as standby-server.js, one copy per key)
 const live = new Map();   // key -> { screens: Map(res -> {page,id}), states: Map(id -> {at,state}), chat: Set(ws) }
@@ -147,6 +175,7 @@ function chatConnect() {
       } catch { /* keep relaying */ }
     }
     for (const c of chat.clients) if (c.readyState === WebSocket.OPEN && c.bufferedAmount < 1 << 20) c.send(text);
+    for (const r of roomStates.values()) { try { r.chatFrame(text); } catch (e) { log(`room: ${e.message}`); } }
   });
   const down = (why) => {
     if (chat.ws !== ws) return;
@@ -155,7 +184,7 @@ function chatConnect() {
     log(`chat: closed (${why})`);
     // screens show "offline" and reconnect on their own; they come back once upstream is up again
     for (const c of chat.clients) c.close(1013, 'Destiny.gg chat reconnecting');
-    if (chat.clients.size) setTimeout(chatConnect, Math.min(30_000, 1000 * 2 ** chat.retry++));
+    if (chat.clients.size || roomStates.size) setTimeout(chatConnect, Math.min(30_000, 1000 * 2 ** chat.retry++));
   };
   ws.on('close', (code) => down(`code ${code}`));
   ws.on('error', (e) => { down(e.message); try { ws.terminate(); } catch { /* gone */ } });
@@ -176,7 +205,7 @@ wss.on('connection', (client, req, key) => {
     room.chat.delete(client);
     chat.clients.delete(client);
     // nobody watching: drop the upstream after a minute (scene switches reconnect within seconds)
-    if (!chat.clients.size) chat.idleTimer = setTimeout(() => { if (!chat.clients.size && chat.ws) { chat.ws.close(1000); } }, 60_000);
+    if (!chat.clients.size) chat.idleTimer = setTimeout(() => { if (!chat.clients.size && !roomStates.size && chat.ws) { chat.ws.close(1000); } }, 60_000);
   });
 });
 
@@ -245,11 +274,29 @@ async function controlRoute(req, res, pathname, key) {
     req.on('close', () => { clearInterval(ping); room.screens.delete(res); });
     return;
   }
+  // shared room: a room-mode screen's event stream, and the room's summary for the panel
+  if (pathname === '/ctl/room' && req.method === 'GET') {
+    const r = ensureRoom(key);
+    if ((room.roomSubs || 0) >= MAX_SCREENS_PER_ROOM) return send(res, 429, 'text/plain', 'Too many screens open');
+    const page = url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
+    const id = (url.searchParams.get('id') || '').slice(0, 16) || crypto.randomBytes(6).toString('base64url');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    res.write('retry: 3000\n\n');
+    const who = url.searchParams.has('who') ? url.searchParams.get('who').replace(/[^A-Za-z0-9_]/g, '').slice(0, 25) || null : undefined;
+    const off = r.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: url.searchParams.get('obs') === '1', who });
+    room.roomSubs = (room.roomSubs || 0) + 1;
+    const ping = setInterval(() => res.write(': ping\n\n'), 20000);
+    req.on('close', () => { clearInterval(ping); off(); room.roomSubs -= 1; });
+    return;
+  }
+  if (pathname === '/ctl/room-state' && req.method === 'GET') return json(res, 200, ensureRoom(key).summary());
   if (pathname === '/ctl/cmd' && req.method === 'POST') {
     const cmd = await readJson(req);
     if (!cmd || typeof cmd.cmd !== 'string') return json(res, 400, { error: 'no cmd' });
     const page = cmd.page || 'lobby';
     if (!['lobby', 'auditorium'].includes(page)) return json(res, 400, { error: 'unknown page' });
+    try { ensureRoom(key).command(cmd); } catch (e) { log(`room: ${e.message}`); }
+    if (cmd.cmd === 'who' || cmd.cmd === 'kicked' || cmd.cmd === 'left') return json(res, 200, { screens: 0 });   // room only
     const line = `data: ${JSON.stringify(cmd)}\n\n`;
     let count = 0;
     for (const [s, target] of room.screens) {
@@ -263,6 +310,7 @@ async function controlRoute(req, res, pathname, key) {
     const st = await readJson(req, 256 * 1024);
     if (st && typeof st.id === 'string' && (room.states.has(st.id.slice(0, 16)) || room.states.size < MAX_SCREENS_PER_ROOM)) {
       room.states.set(st.id.slice(0, 16), { at: Date.now(), state: st });
+      try { ensureRoom(key).screenState(st); } catch (e) { log(`room: ${e.message}`); }
     }
     for (const [id, s] of room.states) if (Date.now() - s.at > 10000) room.states.delete(id);
     return send(res, 204, 'text/plain', '');
@@ -289,6 +337,8 @@ async function adminRoute(req, res, pathname) {
     const key = crypto.randomBytes(18).toString('base64url');
     rooms[key] = { name, created: new Date().toISOString() };
     saveRooms();
+    ensureRoom(key);
+    chatConnect();
     log(`room created: ${name}`);
     return json(res, 200, { key, name });
   }
@@ -301,6 +351,7 @@ async function adminRoute(req, res, pathname) {
     const b = live.get(body.key)?.bridge;
     if (b) { b.host?.close(4003, 'room revoked'); for (const p of b.pages) p.close(4003, 'room revoked'); }
     for (const s of live.get(body.key)?.screens.keys() || []) s.end();
+    dropRoom(body.key);
     log(`room revoked: ${rooms[body.key].name}`);
     return json(res, 200, { ok: true });
   }
@@ -409,5 +460,13 @@ server.on('upgrade', (req, socket, head) => {
   if (roomLive(key).chat.size >= MAX_SCREENS_PER_ROOM) { socket.end('HTTP/1.1 429 Too Many Requests\r\n\r\n'); return; }
   wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req, key));
 });
+
+// every room keeps going from the start, so chat fills them before anyone opens a screen
+refreshEmoteNames().then(() => {
+  for (const k of Object.keys(rooms)) if (validKey(k)) ensureRoom(k);
+  if (roomStates.size) chatConnect();
+});
+setInterval(refreshEmoteNames, CACHE_MS).unref();
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { for (const r of roomStates.values()) r.close(); process.exit(0); });
 
 server.listen(PORT, HOST, () => log(`DinkDonk Cinema on http://${HOST}:${PORT} (${Object.keys(rooms).length} rooms, site ${SITE})`));

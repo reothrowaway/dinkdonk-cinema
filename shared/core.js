@@ -340,23 +340,30 @@
     for (const name of [].concat(names)) commands.set(name, { cooldown: cooldownMs, fn, last: 0 });
   }
 
-  function ingestMessage(d) {
+  // a DGG MSG payload as the scenes see it (also used for the shared room's walk-ins, shared/cinema.js)
+  function parseMessage(d) {
     const nick = String(d.nick || '');
     const text = String(d.data || '');
-    if (!nick || !text) return;
-    const now = Date.now();
     const features = Array.isArray(d.features) ? d.features : [];
     const tokens = tokenize(text);
     const emoteNames = tokens.filter((t) => t.t === 'emote').map((t) => t.name);
     const meaningful = tokens.filter((t) => t.t === 'emote' || t.v.trim());
     const onlyEmote = meaningful.length > 0 && meaningful.every((t) => t.t === 'emote') &&
       new Set(emoteNames).size === 1 ? emoteNames[0] : null;
-
     const fc = flairColor(features, d.roles, d.subscription?.tier ?? d.subTier);
-    const msg = {
-      nick, text, tokens, features, ts: now, onlyEmote,
+    return {
+      nick, text, tokens, features, ts: Date.now(), onlyEmote,
       emotes: emoteNames, color: fc.color, rainbow: fc.rainbow, sub: isSub(features),
     };
+  }
+
+  function ingestMessage(d) {
+    const nick = String(d.nick || '');
+    const text = String(d.data || '');
+    if (!nick || !text) return;
+    const msg = parseMessage(d);
+    const { tokens, onlyEmote, ts: now } = msg;
+    const emoteNames = msg.emotes;
 
     stats.times.push(now);
     for (const e of emoteNames) stats.emoteHits.push({ k: e, ts: now });
@@ -570,7 +577,7 @@
 
   window.SB = {
     cfg, on, emit, start, mountStage, fitCanvas, mountChat, command, stats, ...api,
-    emoteEl, emoteSize, emoteFacing, faceEmote, tokenize, renderTokens, nickColor, hashHue, timerText, clockText,
+    emoteEl, emoteSize, emoteFacing, faceEmote, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
     rand, pick, get status() { return status; }, get emotes() { return emotes; }, get view() { return stage.view; }, W, H,
     // For testing from the console: SB.say('someone', '!claw')
     say: (nick, data, features = []) => handleFrame(`MSG ${JSON.stringify({ nick, data, features })}`),

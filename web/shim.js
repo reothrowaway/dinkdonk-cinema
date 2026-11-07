@@ -246,7 +246,7 @@
 
   // ---------- relay host: the control panel in the streamer's own browser ----------
   // Uses the OBS password setup.html saved in this browser. Shows a small status line at the top of the panel.
-  if (PAGE === 'control.html') {
+  if (/^control(-qa)?\.html$/.test(PAGE)) {
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem('dd-obs') || 'null'); } catch { /* storage blocked */ }
     addEventListener('DOMContentLoaded', () => {
@@ -275,6 +275,37 @@
         ws.onclose = () => { state.relay = false; state.pages = 0; show(); setTimeout(open, 3000); };
       };
       open();
+    });
+  }
+
+  // ---------- control panel shortcut on the lobby and the auditorium ----------
+  // Alt+C (Option+C on a Mac) opens this room's control panel in its own tab, any time. When the page is opened in a
+  // normal browser, a hint saying so shows for the first 10 seconds. Never inside OBS (window.obsstudio), so it can't
+  // end up on stream.
+  if (/^(lobby|auditorium)(-qa)?\.html$/.test(PAGE)) {
+    const CTL_URL = `/control.html?k=${encodeURIComponent(KEY)}`;
+    const openPanel = () => window.open(CTL_URL, 'dd-control');
+    addEventListener('keydown', (e) => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyC') { e.preventDefault(); openPanel(); }
+    });
+    if (!window.obsstudio) addEventListener('DOMContentLoaded', () => {
+      const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+      const tip = document.createElement('div');
+      tip.setAttribute('role', 'status');
+      tip.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:2147483647;max-width:calc(100vw - 40px);box-sizing:border-box;' +
+        'display:flex;align-items:center;gap:14px;padding:12px 14px 12px 18px;border-radius:10px;background:rgba(11,10,18,.92);' +
+        'color:#e9ebf0;border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 30px rgba(0,0,0,.5);font:15px/1.4 system-ui,"Segoe UI",sans-serif;' +
+        'opacity:0;transform:translateY(8px);transition:opacity .35s,transform .35s';
+      const kbd = 'display:inline-block;padding:1px 7px;border-radius:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font:600 13px/1.5 system-ui,sans-serif';
+      tip.innerHTML = `<span><a href="${CTL_URL}" target="dd-control" style="color:#ffd27a;font-weight:600;text-decoration:underline">Click here to open the control panel</a>` +
+        ` <span style="color:#a3a8b8">or press</span> <span style="${kbd}">${mac ? 'Option' : 'Alt'}</span> + <span style="${kbd}">C</span></span>` +
+        '<button aria-label="Close" style="all:unset;cursor:pointer;color:#a3a8b8;font-size:20px;line-height:1;padding:0 4px">×</button>';
+      document.body.appendChild(tip);
+      const hide = () => { tip.style.opacity = '0'; tip.style.transform = 'translateY(8px)'; setTimeout(() => tip.remove(), 400); };
+      tip.querySelector('button').onclick = hide;
+      tip.querySelector('a').addEventListener('click', hide);
+      requestAnimationFrame(() => requestAnimationFrame(() => { tip.style.opacity = '1'; tip.style.transform = 'none'; }));
+      setTimeout(hide, 10000);
     });
   }
 })();
