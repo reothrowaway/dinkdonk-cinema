@@ -8,7 +8,9 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const dinkdonk = require('./dinkdonk');
+const pollDraft = require('./poll-draft');
 const { createRoom } = require('./shared/room');
+const { createSettings } = require('./shared/settings');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.STANDBY_PORT || 18770);
@@ -162,10 +164,16 @@ async function refreshEmoteNames() {
     if (names.size) emoteNameSet = names;
   } catch { /* keep the last list */ }
 }
+// scene settings the panel changes live (shared/settings.js); the screens' URL options are the defaults
+const settings = createSettings({
+  file: path.join(ROOT, 'cache', PORT === 18770 ? 'ctl-settings.json' : `ctl-settings-${PORT}.json`),
+  log: (m) => console.log(m),
+});
 const room = ROOM_ON ? createRoom({
   file: path.join(ROOT, 'cache', PORT === 18770 ? 'room-state.json' : `room-state-${PORT}.json`),
   layoutFile: path.join(ROOT, 'roxy3d', 'qa11', 'cinema_layout_13.json'),
   emoteNames: () => emoteNameSet,
+  crowd: () => settings.get('lobby').crowd,   // the panel's lobby crowd setting (undefined: the room's own 14)
   log: (m) => console.log(m),
 }) : null;
 function roomChat() {
@@ -212,7 +220,9 @@ async function controlRoute(req, res, pathname) {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive' });
     res.write('retry: 3000\n\n');
     const params = new URL(req.url, `http://${HOST}:${PORT}`).searchParams;
-    screens.set(res, { page: params.get('page') === 'auditorium' ? 'auditorium' : 'lobby', id: params.get('id') || '' });
+    const page = params.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
+    screens.set(res, { page, id: params.get('id') || '' });
+    res.write(`data: ${JSON.stringify(settings.message(page))}\n\n`);   // the panel's settings at once (pages ignore unknown cmds)
     const ping = setInterval(() => res.write(': ping\n\n'), 20000);
     req.on('close', () => { clearInterval(ping); screens.delete(res); });
     return true;
@@ -223,8 +233,12 @@ async function controlRoute(req, res, pathname) {
     const page = cmd.page || 'lobby';   // old panels keep controlling every lobby screen
     if (!['lobby', 'auditorium'].includes(page)) { send(res, 400, TYPES['.json'], '{"error":"unknown page"}'); return true; }
     try { room?.command(cmd); } catch (e) { console.error('Room:', e); }
+    // the lobby's roll-up poll screen: remembered here, so a reload or a second viewer sees it the same way
+    if (cmd.cmd === 'pollscreen' && page === 'lobby') pollDraft.setScreen(!!cmd.on);
     if (cmd.cmd === 'who' || cmd.cmd === 'kicked' || cmd.cmd === 'left') { send(res, 200, TYPES['.json'], '{"screens":0}'); return true; }   // room only
-    const line = `data: ${JSON.stringify(cmd)}\n\n`;
+    // a scene setting: remembered here, and every screen of the scene gets all of that scene's settings
+    const out = settings.command({ ...cmd, page }) ? { ...settings.message(page), ...(cmd.id ? { id: cmd.id } : {}) } : cmd;
+    const line = `data: ${JSON.stringify(out)}\n\n`;
     let count = 0;
     for (const [s, target] of screens) {
       if (target.page !== page || (cmd.id && cmd.id !== target.id)) continue;
@@ -256,6 +270,16 @@ async function controlRoute(req, res, pathname) {
     req.on('close', () => { clearInterval(ping); off(); });
     return true;
   }
+  // read-only roster (no subscription, no screen counted): the lobby's fly-through needs who sits where in the auditorium
+  if (pathname === '/ctl/room-roster' && req.method === 'GET' && room) {
+    const page = new URL(req.url, `http://${HOST}:${PORT}`).searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
+    send(res, 200, TYPES['.json'], JSON.stringify(room.snapshot(page)));
+    return true;
+  }
+  if (pathname === '/ctl/settings' && req.method === 'GET') {
+    send(res, 200, TYPES['.json'], JSON.stringify({ schema: settings.schema, values: settings.all() }));
+    return true;
+  }
   if (pathname === '/ctl/room-state' && req.method === 'GET') {
     send(res, room ? 200 : 404, TYPES['.json'], JSON.stringify(room ? room.summary() : { error: 'room off' }));
     return true;
@@ -269,10 +293,48 @@ async function controlRoute(req, res, pathname) {
   return false;
 }
 
+// Votes and the result of our poll once it is open: its public results page, read at most every 20 s while a lobby
+// screen asks (/dd/draft.json), plus the winners once it is among dinkdonk.mov's finished polls. Stops when final.
+let pollResultsAt = 0;
+let pollResultsBusy = null;
+function checkPollResults() {
+  const d = pollDraft.get();
+  if (!d?.pollId || d.state === 'building' || pollResultsBusy || Date.now() - pollResultsAt < 20000) return;
+  if (d.state === 'closed' && d.results?.winners?.length) return;   // final
+  pollResultsAt = Date.now();
+  pollResultsBusy = (async () => {
+    const detail = await dinkdonk.pollResults(d.pollId).catch(() => null);
+    let card = null;
+    try { card = ((await dinkdonk.data()).polls || []).find((p) => p.id === d.pollId) || null; } catch { /* site unreachable */ }
+    if (detail || card) pollDraft.setResults(d.pollId, detail, card ? card.winners : undefined);
+  })().catch((e) => console.error('Poll results:', e.message)).finally(() => { pollResultsBusy = null; });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
     if (url.pathname.startsWith('/ctl/') && await controlRoute(req, res, url.pathname)) return;
+    // the DinkDonk poll being built: sent by the poll builder's userscript (userscripts/dinkdonk-poll-draft.user.js).
+    // JSON + a custom header, so an ordinary web page can't post here (that needs a CORS preflight, never answered)
+    if (url.pathname === '/dd/draft' && req.method === 'POST') {
+      if (!/^application\/json\b/.test(req.headers['content-type'] || '') || req.headers['x-dd-draft'] !== '1') {
+        send(res, 403, 'text/plain', 'Forbidden');
+        return;
+      }
+      send(res, 200, TYPES['.json'], JSON.stringify({ draft: pollDraft.set(await readJson(req)) }));
+      return;
+    }
+    if (url.pathname === '/dd/poll-script.user.js' && req.method === 'GET') {   // the control panel's Install your poll script
+      fs.readFile(path.join(ROOT, 'userscripts', 'dinkdonk-poll-draft.user.js'), (error, body) => {
+        if (error) send(res, 404, 'text/plain', 'Not found'); else send(res, 200, 'text/javascript; charset=utf-8', body);
+      });
+      return;
+    }
+    if (url.pathname === '/dd/draft.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+      checkPollResults();
+      send(res, 200, TYPES['.json'], JSON.stringify({ draft: pollDraft.get(), screen: pollDraft.getScreen() }));
+      return;
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       send(res, 405, 'text/plain', 'Method not allowed');
       return;
@@ -312,7 +374,7 @@ const server = http.createServer(async (req, res) => {
     const type = TYPES[path.extname(file).toLowerCase()];
     // (case-insensitive: Windows serves /Standby-Server.js for standby-server.js; QA 05 Nov)
     const lower = file.toLowerCase();
-    if (!file.startsWith(ROOT + path.sep) || !type || ['standby-server.js', 'dinkdonk.js', 'lan-proxy.js'].includes(path.basename(lower)) ||
+    if (!file.startsWith(ROOT + path.sep) || !type || ['standby-server.js', 'dinkdonk.js', 'lan-proxy.js', 'poll-draft.js'].includes(path.basename(lower)) ||
         lower.startsWith(path.join(ROOT, 'cache').toLowerCase())) {
       send(res, 404, 'text/plain', 'Not found');
       return;

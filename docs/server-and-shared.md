@@ -159,6 +159,17 @@ in [auditorium.md](auditorium.md#control-commands); the lobby's in [lobby.md](lo
 `obs` (true inside OBS), `director`, `chatters[]` and, in the auditorium, `preshow` and `house`. A screen that gets
 404 here stops (an old server without control routes).
 
+**Scene settings** (`shared/settings.js`, 7 Nov 2026; live since 7 Nov). The show options that used to be
+URL-only (bubble look, rain/mist, janitor, crowd, doze, …; the list with ranges is `SCHEMA` in that file) can be
+changed live from the panel's "Scene settings" card. `{cmd: 'setting', page, key, value}` stores one (value `null` =
+back to the screen's URL value), `{cmd: 'settingsReset', page}` clears the page's. The server remembers them in
+`cache/ctl-settings.json` (`ctl-settings-<port>.json` off 18770) and sends `{cmd: 'settings', page, values}` with
+every override to all screens of that page, after each change and right after a screen connects to `/ctl/events`,
+so a reload keeps them. Pages apply `values` over their own URL values and report `settings` and `urlSettings` in
+their state. `GET /ctl/settings` → `{schema, values: {lobby, auditorium}}` for the panel. The lobby's `crowd` also
+reaches the shared room (`createRoom({crowd})`). Setup options that need a reload (`artdir`, `maxres`, `draft`,
+`layout`, `fit`, `ctl`, `room`, `bridge`, `relay`, …) stay URL-only.
+
 ## Control panel (`control.html`)
 
 One page for both scenes. It polls `GET /ctl/state` every second and sends commands with `POST /ctl/cmd` (3.5 s
@@ -261,6 +272,33 @@ error }`.
 - `stale: true` when the data is older than 10 minutes; `error` holds the last refresh error. With no cache and the
   site unreachable (for example Cloudflare blocks during LaLiga matches in Spain), the route answers 502.
 - `search(q)` (`/dd/search`): `{ q, more, entries }` from the history search, cached 10 minutes, at most 200 queries.
+
+### Poll being built / open (`poll-draft.js`, 7 Nov 2026)
+
+dinkdonk.mov lists a poll only once it has finished, and its vote page needs a DGG login. So the person building the
+poll runs the userscript `userscripts/dinkdonk-poll-draft.user.js` (Tampermonkey/Violentmonkey). It reads the
+builder form (`data-controller="create-poll"`; each movie is a hidden `options[]` input holding TMDB JSON) and
+posts the list to this server whenever it changes. After "Create" it reports the new poll id (`/poll/<id>`), and
+the results page reports it closed.
+
+- `POST /dd/draft`: JSON with header `X-DD-Draft: 1` (other pages can't send that without a preflight, which is
+  never answered). Body `{ title, type, state: building|open|closed, pollId, options: [{ title, year, poster }] }`,
+  or `{ clear: true }`. Leaving out `options` keeps the list already stored.
+- `GET /dd/draft.json`: `{ draft, screen: { open, at } }`. `draft` is null or `{ pollId, title, type, by, state,
+  options: [{ title, year, poster, addedAt }], results, startedAt, updatedAt, rev }`. `rev` goes up only on a real
+  change; `addedAt` lets the lobby pop new movies in.
+- `results` (once the poll has an id): `{ type, voters, endsAt, options: [{ title, year, poster, votes, pct }],
+  winners: [{ label, title }] }`, from `dinkdonk.pollResults(id)` (the poll's public `/poll/<id>/results` page, read
+  at most every 20 s while a lobby screen asks) and the winners from the finished-polls list. `endsAt` in the past or
+  the poll among the finished ones turns the state `closed`; reading stops once the winners are known.
+- `screen.open`: the lobby's roll-up poll screen, set by the panel command `{ cmd: 'pollscreen', on, page: 'lobby' }`
+  (`/ctl/cmd` stores it before forwarding), so reloads and second viewers match.
+- A new list starts when building begins again after a poll opened or closed. Untouched for 6 h = gone. Stored in
+  `cache/poll-draft.json`; a server on another port uses `cache/poll-draft-<port>.json`, so tests can't overwrite it.
+- Hosted edition (web/server.js): same module; each room key has its own poll and screen (`get(key)`, `getScreen(key)`).
+  Posting is by room key (`POST /dd/draft?k=KEY`, header `X-DD-Draft: 1`). Each streamer installs their own script from
+  their control panel (*Install your poll script* → `/dd/poll-script.user.js?k=KEY`: the userscript with `SERVER` and
+  `ROOM_KEY` filled in, plus `@connect`, `@updateURL`). Locally the same link serves the script as it is (127.0.0.1, no key).
 
 ## LAN proxy (`lan-proxy.js`)
 

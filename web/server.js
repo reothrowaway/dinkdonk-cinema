@@ -16,6 +16,8 @@ const path = require('node:path');
 const { WebSocket, WebSocketServer } = require('ws');
 // shared/room.js: the build copies it next to this file
 const { createRoom } = require(fs.existsSync(path.join(__dirname, 'room.js')) ? './room' : '../shared/room');
+// shared/settings.js (the panel's scene settings): copied next to this file too
+const { createSettings } = require(fs.existsSync(path.join(__dirname, 'settings.js')) ? './settings' : '../shared/settings');
 
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || 8080);
@@ -31,6 +33,11 @@ if (!fs.existsSync(process.env.DINKDONK_CACHE) && fs.existsSync(SEED)) {
   fs.copyFileSync(SEED, process.env.DINKDONK_CACHE);
 }
 const dinkdonk = require(path.join(SITE, 'dinkdonk.js'));
+// each room's DinkDonk poll (being built / open, sent by that streamer's own poll script, /dd/poll-script.user.js)
+// and its roll-up poll screen; the same module as the local server's (poll-draft.js)
+process.env.POLL_DRAFT_FILE = process.env.POLL_DRAFT_FILE || path.join(DATA, 'poll-draft.json');
+const pollDraft = require(path.join(SITE, 'poll-draft.js'));
+const POLL_SCRIPT = path.join(SITE, 'userscripts', 'dinkdonk-poll-draft.user.js');
 
 const CDN = 'https://cdn.destiny.gg';
 const CHAT_URL = 'wss://chat.destiny.gg/ws';
@@ -48,7 +55,7 @@ const TYPES = {
 // pages that need a room key; the shim goes into the ones that talk to the server
 const KEYED = new Set(['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', 'setup.html', 'lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']);
 const SHIMMED = new Set(['lobby.html', 'auditorium.html', 'control.html', 'lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']);
-const PRIVATE = /^(dinkdonk\.js|server\.js)$/i;
+const PRIVATE = /^(dinkdonk\.js|server\.js|poll-draft\.js)$/i;
 
 // ---------- rooms ----------
 const ROOMS_FILE = path.join(DATA, 'rooms.json');
@@ -78,14 +85,25 @@ const roomFile = (k) => path.join(DATA, 'room-state', `${k}.json`);
 function ensureRoom(k) {
   if (!roomStates.has(k)) {
     roomStates.set(k, createRoom({ file: roomFile(k), layoutFile: path.join(SITE, 'roxy3d', 'qa11', 'cinema_layout_13.json'),
-      emoteNames: () => emoteNameSet, log: (m) => log(`${rooms[k]?.name || '?'}: ${m}`) }));
+      emoteNames: () => emoteNameSet, log: (m) => log(`${rooms[k]?.name || '?'}: ${m}`),
+      crowd: () => roomSettings(k).get('lobby').crowd }));   // the panel's lobby crowd setting
   }
   return roomStates.get(k);
 }
 function dropRoom(k) {
   roomStates.get(k)?.close();
   roomStates.delete(k);
+  settingsStates.delete(k);
   try { fs.rmSync(roomFile(k), { force: true }); } catch { /* gone */ }
+  try { fs.rmSync(settingsFile(k), { force: true }); } catch { /* gone */ }
+}
+// the panel's scene settings, one set per key (shared/settings.js; the screens' URLs are the defaults).
+// Saved in DATA/settings/<key>.json, so a reload or a server restart keeps them.
+const settingsStates = new Map();   // key -> settings
+const settingsFile = (k) => path.join(DATA, 'settings', `${k}.json`);
+function roomSettings(k) {
+  if (!settingsStates.has(k)) settingsStates.set(k, createSettings({ file: settingsFile(k), log: (m) => log(`${rooms[k]?.name || '?'}: ${m}`) }));
+  return settingsStates.get(k);
 }
 
 // per-room control state (same protocol as standby-server.js, one copy per key)
@@ -274,7 +292,9 @@ async function controlRoute(req, res, pathname, key) {
     if (room.screens.size >= MAX_SCREENS_PER_ROOM) return send(res, 429, 'text/plain', 'Too many screens open');
     res.writeHead(200, SSE_HEADERS);
     res.write('retry: 3000\n\n');
-    room.screens.set(res, { page: url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby', id: url.searchParams.get('id') || '' });
+    const page = url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
+    room.screens.set(res, { page, id: url.searchParams.get('id') || '' });
+    res.write(`data: ${JSON.stringify(roomSettings(key).message(page))}\n\n`);   // the panel's settings at once
     const ping = setInterval(() => res.write(': ping\n\n'), 20000);
     req.on('close', () => { clearInterval(ping); room.screens.delete(res); });
     return;
@@ -295,14 +315,32 @@ async function controlRoute(req, res, pathname, key) {
     return;
   }
   if (pathname === '/ctl/room-state' && req.method === 'GET') return json(res, 200, ensureRoom(key).summary());
+  // read-only roster (no subscription): the lobby's fly-through needs who sits where in the auditorium
+  if (pathname === '/ctl/room-roster' && req.method === 'GET') {
+    return json(res, 200, ensureRoom(key).snapshot(url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby'));
+  }
+  // the fly-through's end: the lobby (inside OBS) asks for the cut to the cinema scene; this room's control panel, which
+  // holds the streamer's OBS link (relay host, web/shim.js), does it. 409 when no panel is connected to OBS.
+  if (pathname === '/ctl/cut-to-cinema' && req.method === 'POST') {
+    const b = roomBridge(key);
+    if (!b.host || b.host.readyState !== 1) return json(res, 409, { error: 'no control panel connected to OBS' });
+    sendIfOpen(b.host, '{"cut":true}');
+    return json(res, 200, { relayed: true });
+  }
+  if (pathname === '/ctl/settings' && req.method === 'GET') { const s = roomSettings(key); return json(res, 200, { schema: s.schema, values: s.all() }); }
   if (pathname === '/ctl/cmd' && req.method === 'POST') {
     const cmd = await readJson(req);
     if (!cmd || typeof cmd.cmd !== 'string') return json(res, 400, { error: 'no cmd' });
     const page = cmd.page || 'lobby';
     if (!['lobby', 'auditorium'].includes(page)) return json(res, 400, { error: 'unknown page' });
     try { ensureRoom(key).command(cmd); } catch (e) { log(`room: ${e.message}`); }
+    // the room's roll-up poll screen: remembered here, so a reload or a second viewer of this room sees it the same way
+    if (cmd.cmd === 'pollscreen' && page === 'lobby') pollDraft.setScreen(!!cmd.on, key);
     if (cmd.cmd === 'who' || cmd.cmd === 'kicked' || cmd.cmd === 'left') return json(res, 200, { screens: 0 });   // room only
-    const line = `data: ${JSON.stringify(cmd)}\n\n`;
+    // a scene setting: remembered for this room, and every screen of the scene gets all of that scene's settings
+    const sets = roomSettings(key);
+    const out = sets.command({ ...cmd, page }) ? { ...sets.message(page), ...(cmd.id ? { id: cmd.id } : {}) } : cmd;
+    const line = `data: ${JSON.stringify(out)}\n\n`;
     let count = 0;
     for (const [s, target] of room.screens) {
       if (target.page !== page || (cmd.id && cmd.id !== target.id)) continue;
@@ -357,6 +395,7 @@ async function adminRoute(req, res, pathname) {
     if (b) { b.host?.close(4003, 'room revoked'); for (const p of b.pages) p.close(4003, 'room revoked'); }
     for (const s of live.get(body.key)?.screens.keys() || []) s.end();
     dropRoom(body.key);
+    pollDraft.dropRoom(body.key);
     log(`room revoked: ${rooms[body.key].name}`);
     return json(res, 200, { ok: true });
   }
@@ -405,6 +444,39 @@ function sendStatic(req, res, file, rel) {
   });
 }
 
+// Votes and the result of a room's poll once it is open: its public results page, read at most every 20 s per room
+// while that room's screen asks, plus the winners once it is among dinkdonk.mov's finished polls (as
+// standby-server.js does). Stops when final.
+const pollResultsAt = new Map();   // room key -> last read
+function checkPollResults(key) {
+  const d = pollDraft.get(key);
+  if (!d?.pollId || d.state === 'building' || Date.now() - (pollResultsAt.get(key) || 0) < 20000) return;
+  if (d.state === 'closed' && d.results?.winners?.length) return;   // final
+  pollResultsAt.set(key, Date.now());
+  (async () => {
+    const detail = await dinkdonk.pollResults(d.pollId).catch(() => null);
+    let card = null;
+    try { card = ((await dinkdonk.data()).polls || []).find((p) => p.id === d.pollId) || null; } catch { /* site unreachable */ }
+    if (detail || card) pollDraft.setResults(d.pollId, detail, card ? card.winners : undefined, key);
+  })().catch((e) => log(`poll results: ${e.message}`));
+}
+// A room's own poll script: the userscript with this server and the room key filled in (installs from the control
+// panel; Tampermonkey keeps it up to date from the same address)
+function pollScript(req, key) {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').replace(/[^A-Za-z0-9.:-]/g, '');
+  const origin = `${req.headers['x-forwarded-proto'] === 'http' || /^(127\.0\.0\.1|localhost)(:|$)/.test(host) ? 'http' : 'https'}://${host}`;
+  const self = `${origin}/dd/poll-script.user.js?k=${key}`;
+  const name = rooms[key].name.replace(/[^\w .'-]/g, '').slice(0, 40);
+  let src = fs.readFileSync(POLL_SCRIPT, 'utf8');
+  const fill = (from, to) => { if (!src.includes(from)) throw new Error(`poll script: "${from}" not found`); src = src.replace(from, to); };
+  fill("const SERVER = 'http://127.0.0.1:18770';", `const SERVER = '${origin}';`);
+  fill("const ROOM_KEY = '';", `const ROOM_KEY = '${key}';`);
+  fill('// @connect      127.0.0.1', `// @connect      ${host.replace(/:\d+$/, '')}`);
+  fill('// @namespace    dinkdonk-cinema', `// @namespace    dinkdonk-cinema/${host}/${key.slice(0, 6)}`);
+  fill('// @name         DinkDonk poll → cinema lobby', `// @name         DinkDonk poll → cinema lobby (${name})\n// @downloadURL  ${self}\n// @updateURL    ${self}`);
+  return src;
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', 'http://x');
@@ -415,6 +487,13 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith('/api/admin/')) return await adminRoute(req, res, pathname);
     if (pathname === '/api/room') return validKey(key) ? json(res, 200, { name: rooms[key].name }) : json(res, 403, { error: 'unknown or revoked key' });
     if (pathname.startsWith('/ctl/')) return validKey(key) ? await controlRoute(req, res, pathname, key) : send(res, 403, 'text/plain', 'Room key needed');
+    // a streamer's poll script: their room's poll, by room key; JSON with a custom header (pages can't send that
+    // without a CORS preflight, which is never answered)
+    if (pathname === '/dd/draft' && req.method === 'POST') {
+      if (!validKey(key)) return json(res, 403, { error: 'unknown or revoked key' });
+      if (!/^application\/json\b/.test(req.headers['content-type'] || '') || req.headers['x-dd-draft'] !== '1') return send(res, 403, 'text/plain', 'Forbidden');
+      return json(res, 200, { draft: pollDraft.set(await readJson(req), key) });
+    }
 
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'text/plain', 'Method not allowed');
     // the qBittorrent download bar needs the streamer's own PC; hosted, the pre-show just runs without it
@@ -430,6 +509,16 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, a.type, a.body);
     }
     if (pathname === '/dd/data.json') return json(res, 200, await dinkdonk.data());
+    // this room's poll and its screen up/down (?k=, added by the shim)
+    if (pathname === '/dd/draft.json') {
+      if (!validKey(key)) return json(res, 200, { draft: null, screen: { open: false, at: 0 } });
+      checkPollResults(key);
+      return json(res, 200, { draft: pollDraft.get(key), screen: pollDraft.getScreen(key) });
+    }
+    if (pathname === '/dd/poll-script.user.js') {
+      if (!validKey(key)) return send(res, 403, 'text/plain', 'Room key needed');
+      return send(res, 200, 'text/javascript; charset=utf-8', pollScript(req, key), { 'Cache-Control': 'no-store' });
+    }
     if (pathname === '/dd/search') {
       const q = (url.searchParams.get('q') || '').trim().slice(0, 60);
       if (q.length < 2) return json(res, 400, { error: 'query too short' });

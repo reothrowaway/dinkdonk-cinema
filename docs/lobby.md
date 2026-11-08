@@ -535,15 +535,20 @@ winds it back to the start of the hold, so nobody walks through a closing door. 
 - Arcade screen prop loops: `attract`, `play` while someone stands at `ARCADE`, `hiscore` for 3.5 s after a high
   score.
 
-### Poll billboard / green screen
+### Poll screen (7 Nov 2026; earlier: no poll billboard)
 
-**The lobby has none.** The header says so ("no HUD, no green screen", owner, 02 Nov), `HARD_RECTS` is empty, and
-nothing reads `Cinema.green`. Leftovers: `drawSky` (flat fallback only) still draws a billboard frame on the tower
-at about x 1280-1888, y 26-382, with a comment about a green DOM rect that no longer exists. `README.txt` still
-documents a lobby green screen at x1296 y40 576x324. How the DinkDonk poll is shown now, if at all, is unknown
-from this file.
+A roll-up projection screen hangs on the corridor back wall between its left corner and screen 1's LED sign
+(`PS` in the "POLL SCREEN" block: u 0.1-3.98, v 0.45, z 156 down to 12; in front of the cardboard standee, whose cut-out is hidden while it is down), over the NEXT SHOWING board. Its case is
+always there; the panel's **Lower the poll screen** / **Roll it up** unroll it (2.6 s). On it, from `/dd/draft.json`
+(read every 2 s): the DinkDonk poll being built (movies pop in as they're added), then "VOTE NOW" with the countdown
+and voter count when dinkdonk.mov shows them, then the results (best first, winner in gold). Up to about 10 movies show
+as posters, more as a numbered list. **Zoom to the poll** (Camera card, `pollzoom`) sets `director.spot`: the camera holds on
+the screen (up to 4x) and automatic follows wait; Wide shot, a follow or rolling the screen up ends it.
+`?pollscreen=0` leaves it out (and the NEXT SHOWING overlay).
+A projector on a bracket on the corridor's left wall (`PJ`, u 0.1-0.55, v 2.08-2.42) switches on once the cloth is down: lens glow and a light beam (SVG, convex hull of lens + cloth corners); only then the picture fades in, with film grain, a flicker, vignette, warm tint, scratches and dust. While it is down, chatters on their way to a door stop in front of it for 6-14 s (75%, `WATCH_SPOTS`, `pollWatchSteps` at the start of `doorSteps`), and speech bubbles keep off it (a soft rect).
 
----
+**Next up (7 Nov 2026):** the newest finished film poll (ours from `/dd/draft.json`, or dinkdonk.mov's latest, whichever ended later) puts its winner on screen 1: LED sign `TITLE / NEXT UP`, door poster, and a `NEXT SHOWING: TITLE · CHAT'S PICK` overlay on the board (`buildNextBoard`). It goes back to the last watched film once the winner shows up in the watch history, or after 12 h.
+ Server side: [server-and-shared.md](server-and-shared.md) ("Poll being built / open").
 
 ## 7. Control panel and live reload
 

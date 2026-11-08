@@ -830,7 +830,37 @@
 
   // ---------- rooms (dinkdonk) ----------
   let rooms = [];
+  let ddData = null;
+  // The film coming up = the winner of the newest film poll (our own poll from /dd/draft.json first, set by the POLL
+  // SCREEN block; else dinkdonk.mov's finished polls), until it shows up in the watch history. Screen 1's door sign and
+  // poster show it as NEXT UP and the NEXT SHOWING board names it (owner, 07 Nov 2026). Polls older than 12 h don't count.
+  let pollWinner = null;
+  const YEAR_END = /\s*\((\d{4})\)\s*$/;   // "Title (2010)"
+  const filmKey = (t) => String(t || '').replace(YEAR_END, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  function upcomingFilm() {
+    let cand = pollWinner;
+    const ended = (p) => ddData?.details?.polls?.[p.id]?.endedAt || 0;
+    const polls = (ddData?.polls || []).map((p, i) => ({ p, i, w: (p.winners || []).find((x) => x.label !== 'Runner-up') }))
+      .filter(({ w }) => w && (w.poster || YEAR_END.test(w.title || '')))   // film polls only (not "Yes", "Continue Conducting")
+      .sort((a, b) => ended(b.p) - ended(a.p) || a.i - b.i);
+    const l = polls[0];
+    // whichever finished poll is newer: ours (fresh from /dd/draft.json) or dinkdonk.mov's latest (also others' polls)
+    if (l && ended(l.p) && (!cand || ended(l.p) > (cand.at || 0) + 60000)) cand = { title: l.w.title, poster: l.w.poster, at: ended(l.p), pollId: l.p.id };
+    if (!cand || Date.now() - (cand.at || 0) > 12 * 3600 * 1000) return null;
+    const key = filmKey(cand.title);
+    const played = (ddData?.history || []).some((h) => (cand.pollId && h.polls?.includes(cand.pollId)) || (filmKey(h.title) === key && h.watchedTs >= (cand.at || 0) - 60000));
+    if (played) return null;
+    return { title: cand.title.replace(YEAR_END, ''), year: (YEAR_END.exec(cand.title) || [])[1] || '', poster: cand.poster || '', next: true };
+  }
+  let nextBoard = null;   // the NEXT SHOWING board's text (built with the poll screen)
+  let POLLSCREEN = q.get('pollscreen') !== '0';   // the poll screen at all (?pollscreen=0 / panel setting; startPollScreen)
   function applyRooms(list) {
+    const film = upcomingFilm();
+    if (film) list = [film, ...list.slice(1)];
+    if (nextBoard) {
+      nextBoard.hidden = !film;
+      if (film) nextBoard.querySelector('.nb-t').textContent = film.title;
+    }
     list.forEach((r, i) => {
       const s = signs[i];
       if (!s) return;
@@ -839,7 +869,7 @@
       if (s.ti.textContent !== title) s.count = 0;
       s.ti.textContent = title;
       // number + title carry the sign; one secondary row: the DinkDonk rating (else the year) + the count
-      s.detail = r.rating != null ? `★ ${Number(r.rating).toFixed(1)}` : String(r.year || '');
+      s.detail = r.next ? 'NEXT UP' : r.rating != null ? `★ ${Number(r.rating).toFixed(1)}` : String(r.year || '');
       signMeta(s);
       s.ph.textContent = r.title || '';
       // a failed poster is retried on the next data refresh (every 2 min); an unchanged good one stays
@@ -851,8 +881,9 @@
       }
     });
   }
-  Cinema.onRooms((list) => {
+  Cinema.onRooms((list, data) => {
     rooms = list;
+    ddData = data || ddData;
     applyRooms(list);
   });
 
@@ -863,8 +894,14 @@
   const bubOrder = [];
   const bubLayer = $('bubbles');
   // bubble look: neon (owner's pick, 07 Nov 2026); ?bubstyle=0 the old dialog box, 1..5 the other drafts
-  const BUB_STYLE = Math.min(5, Math.max(0, Math.round(Number(q.get('bubstyle') ?? 3)) || 0));
+  // (the control panel can switch it live: setBubStyle, "panel settings" below)
+  let BUB_STYLE = Math.min(5, Math.max(0, Math.round(Number(q.get('bubstyle') ?? 3)) || 0));
   if (BUB_STYLE) document.documentElement.classList.add(`bs${BUB_STYLE}`);
+  function setBubStyle(v) {
+    document.documentElement.classList.remove(`bs${BUB_STYLE}`);
+    BUB_STYLE = Math.min(5, Math.max(0, Math.round(Number(v)) || 0));
+    if (BUB_STYLE) document.documentElement.classList.add(`bs${BUB_STYLE}`);
+  }
   const fx = $('fx');
   let wcBusy = null;
   let arcadeBusy = null;
@@ -1102,7 +1139,7 @@
   };
   // speech of someone not visible yet (still off screen, in the restroom) waits, so it can't push a
   // readable bubble out of the allowance (MAX_BUB on screen, ?bubbles=N; the oldest fades out for a new one)
-  const MAX_BUB = clamp(Number(q.get('bubbles')) || 8, 2, 14);
+  let MAX_BUB = clamp(Number(q.get('bubbles')) || 8, 2, 14);   // (panel settings can change it live)
   function fadeOut(el) {
     const a = el.animate([{ opacity: el.style.opacity || 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-out' });
     a.onfinish = () => el.remove();
@@ -1118,7 +1155,7 @@
     who.style.color = w.nm.style.color;
     if (w.nm.querySelector('.rbt')) { who.textContent = ''; who.append(h('span', 'rbt', w.nick)); }
     SB.renderTokens(b.appendChild(h('div', 'bt')), tokens, 24, 64);
-    if (BUB_STYLE) b.style.setProperty('--nc', w.nm.querySelector('.rbt') ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff'));
+    b.style.setProperty('--nc', w.nm.querySelector('.rbt') ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff'));   // (always: the look can change live)
     bubLayer.append(b);
     w.bub = b;
     w.bubW = 0;      // measured on its first placement
@@ -1142,7 +1179,7 @@
     // the destination is locked (at the usher at the latest): later messages can't change door or count
     lockDoor(w);
     const d = DOORS[w.doorRoom];
-    const steps = [];
+    const steps = pollWatchSteps(w);   // the poll screen is down: most stop and look at it for a bit first
     if (d.wall === 'u') steps.push({ to: [J[0], d.at] }, { to: [0.55, d.at] }, { call: startEnter }, { to: [0.1, d.at], slow: true }, { alpha: 0 }, { call: finishEnter });
     else steps.push({ to: J }, { to: [d.at, J[1]] }, { to: [d.at, 0.55] }, { call: startEnter }, { to: [d.at, 0.1], slow: true }, { alpha: 0 }, { call: finishEnter });
     return steps;
@@ -1337,7 +1374,7 @@
 
   // Changed their mind: out of the line (by the rope lane's open end), back out into the rain, wait at the bus stop
   // and go home on the next bus (which waits for them at the door). No bus coming soon: one is called earlier.
-  const QUIT_P = clamp(Number(q.get('quit')) || 0.06, 0, 1);   // ?quit=1: everyone in line gives up (testing)
+  let QUIT_P = clamp(Number(q.get('quit')) || 0.06, 0, 1);   // ?quit=1: everyone in line gives up (testing)
   const QUIT_LINES = ['nah, going home', 'changed my mind', 'not worth it', 'this line tho', 'I\'m out'];
   function giveUp(w) {
     const inLane = !outsideLane(w);
@@ -1559,7 +1596,7 @@
   // Crowd control: once the street and the ticket line fill up (CROWD people outside or in line), only every 2nd new
   // chatter walks in, every 3rd from 1.5x CROWD and every 5th from 2x CROWD or a full house (CAP). Chatters already
   // on screen keep talking and the host always walks in. ?crowd=<n> sets the threshold, ?crowd=0 lets everyone in.
-  const CROWD = q.get('crowd') === '0' ? 0 : clamp(Number(q.get('crowd')) || 14, 4, 60);
+  let CROWD = q.get('crowd') === '0' ? 0 : clamp(Number(q.get('crowd')) || 14, 4, 60);   // (the panel's crowd setting goes to the server room too)
   let crowdN = 0;
   function crowdEvery() {
     let outside = 0;
@@ -2129,6 +2166,15 @@
   const JAN_EMOTE = 'assets/cpMOP.webp';
   const JAN_H = 52;
   let mopper = null;
+  // ?janitor=always|3d, or the panel's Janitor setting (live): 'none' = only mods' jannies (default)
+  let JANITOR = ['always', '3d'].includes(q.get('janitor')) ? q.get('janitor') : 'none';
+  function applyJanitor(m = art) {
+    if (mopper && JANITOR !== 'always') { mopper.gone = true; mopper.el.remove(); mopper = null; }
+    if (janitor && JANITOR !== '3d') { janitor.el.remove(); npcs.splice(npcs.indexOf(janitor), 1); janitor = null; }
+    if (!m) return;   // the art isn't loaded yet: setupArt calls this again
+    if (JANITOR === '3d' && !janitor) { if (npcWalkSpecs(m.janitor) && validSheet(m.janitor.sweep) && validSheet(m.janitor.idle)) initJanitor(m.janitor); }
+    if (JANITOR === 'always' && !mopper) initMopper();
+  }
   function initMopper() {
     const el = h('div', 'w');
     const sh = h('div', 'sh');
@@ -2187,7 +2233,7 @@
   // types (any message, tagged or not) a cpMOP penguin wearing their name comes in from the staff corridor behind the
   // usher, mops a free lobby spot for a while, moves on to the next, and says their messages. Several mods, several
   // jannies (one per spot, so at most JAN_SPOTS.length); 10 min without a message and they clock off the way they came.
-  const JAN_IDLE = clamp(Number(q.get('janidle')) || 600, 20, 3600) * 1000;   // ?janidle=<s> for testing
+  let JAN_IDLE = clamp(Number(q.get('janidle')) || 600, 20, 3600) * 1000;   // ?janidle=<s> for testing
   const jannies = new Map();   // nick (lower case) -> figure
   function onModMessage(m) {
     if (!m.features?.includes('moderator')) return;
@@ -2644,14 +2690,27 @@
   // screen for the surface it rises from (taps), tinted by the light there: dark surfaces give no visible mist.
   // Styles: 1 splash sparkle (dense tiny crowns, faint veil), 2 edge spray (plumes off roof edges/curbs),
   //         3 lamp-lit mist (soft drifting mist that glows under lamps and neon), 4 wind sheets (gusts sweep across).
-  const MIST = clamp(Math.round(Number(q.get('mist')) || 0), 0, 4);   // off: style 2 live looked like water boiling off the edges (owner, 04 Nov)
-  const MIST_GAIN = clamp(Number(q.get('mistgain')) || 1, 0.1, 4);
+  let MIST = clamp(Math.round(Number(q.get('mist')) || 0), 0, 4);   // off: style 2 live looked like water boiling off the edges (owner, 04 Nov)
+  let MIST_GAIN = clamp(Number(q.get('mistgain')) || 1, 0.1, 4);
   const MIST_DIR = `roxy3d/${(q.get('mistdir') || 'out10mist').replace(/[^a-z0-9_-]/gi, '')}/`;
   let mist = null;
-  if (MIST) {
+  let mistStarted = false;   // the passes load once, the first time a style is on (URL or control panel)
+  function startMist() {
+    if (mistStarted) return;
+    mistStarted = true;
     const load = (f) => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = MIST_DIR + f; });
     Promise.all(['catch.png', 'rim.png', 'light.png', 'height.png'].map(load)).then(setupMist)
       .catch((e) => console.warn('[lobby] mist passes missing', e));
+  }
+  if (MIST) startMist();
+  // control panel: style 0-4 and brightness, live (the layer stays loaded once used; off just hides it)
+  function setMist(style, gain) {
+    if (style !== undefined) MIST = clamp(Math.round(Number(style)) || 0, 0, 4);
+    if (gain !== undefined) MIST_GAIN = clamp(Number(gain) || 1, 0.1, 4);
+    if (!mist) { if (MIST) startMist(); return; }
+    mist.gl.uniform1i(mist.gl.getUniformLocation(mist.pr, 'uMode'), MIST);
+    mist.gl.uniform1f(mist.gl.getUniformLocation(mist.pr, 'uGain'), MIST_GAIN);
+    $('mist').style.display = MIST ? 'block' : 'none';
   }
   const MIST_FS = `
 precision highp float;
@@ -2764,6 +2823,7 @@ void main() {
 }`;
   function setupMist([c, r, l, hgt]) {
     mist = glLayer($('mist'), MIST_FS, { uC: c, uR: r, uL: l, uH: hgt }, MIST, MIST_GAIN);
+    if (mist && !MIST) $('mist').style.display = 'none';   // switched off again while the passes loaded
   }
 
   // one full-screen WebGL pass over 1080p textures (mist, extra rain); null without WebGL or on a shader error
@@ -2830,10 +2890,11 @@ void main() {
     deluge: [1.15, 1.1, 0, 1, 0.4],
   };
   const WEATHER_ODDS = { light: 2, steady: 3, downpour: 2, curtains: 1.5, deluge: 1 };
-  const RAIN2 = q.has('morerain') ? clamp(Math.round(Number(q.get('morerain')) || 0), 0, 4) : 5;   // 5 = weather
-  const RAIN2_GAIN = clamp(Number(q.get('moreraingain')) || 1, 0.1, 4);
-  const WEATHER_SPEED = clamp(Number(q.get('weather')) || 1, 0.1, 100);
-  const RAIN2_FPS = q.has('rainfps') ? clamp(Number(q.get('rainfps')) || 0, 0, 120) : 24;   // 0 = every display frame
+  // (all four can change live from the control panel: setRain2, panel settings)
+  let RAIN2 = q.has('morerain') ? clamp(Math.round(Number(q.get('morerain')) || 0), 0, 4) : 5;   // 5 = weather
+  let RAIN2_GAIN = clamp(Number(q.get('moreraingain')) || 1, 0.1, 4);
+  let WEATHER_SPEED = clamp(Number(q.get('weather')) || 1, 0.1, 100);
+  let RAIN2_FPS = q.has('rainfps') ? clamp(Number(q.get('rainfps')) || 0, 0, 120) : 24;   // 0 = every display frame
   // fall speed of the extra rain's streaks: follows the weather (WEATHER[...][4]); ?rainspeed=x fixes it,
   // ?raintune=1 shows a slider that fixes it while testing
   let rainSpeed = 0.26;
@@ -2856,7 +2917,33 @@ void main() {
   let rain2 = null;
   const weather = { from: WEATHER.steady, to: WEATHER.steady, name: 'steady', fade: 1, fadeT: 15, hold: 60 };
   if (RAIN2 && RAIN2 < 5) weather.from = weather.to = WEATHER[['steady', 'downpour', 'curtains', 'deluge'][RAIN2 - 1]];
-  if (RAIN2) {
+  // control panel: switch the style live. The pass stays loaded once started (it also carries the foreground rain
+  // video), so "off" fades the extra rain's weights to 0 over 3 s instead of removing the layer.
+  function setRain2(style, gain) {
+    if (gain !== undefined) {
+      RAIN2_GAIN = clamp(Number(gain) || 1, 0.1, 4);
+      if (rain2) rain2.gl.uniform1f(rain2.gl.getUniformLocation(rain2.pr, 'uGain'), RAIN2_GAIN);
+    }
+    if (style === undefined) return;
+    const s = clamp(Math.round(Number(style)), 0, 5);
+    if (!Number.isFinite(s) || s === RAIN2) return;
+    RAIN2 = s;
+    const w = weather;
+    const f = w.fade * w.fade * (3 - 2 * w.fade);
+    w.from = w.from.map((a, i) => a + (w.to[i] - a) * f);   // from what shows now
+    const name = s === 0 ? 'off' : s === 5 ? 'steady' : ['steady', 'downpour', 'curtains', 'deluge'][s - 1];
+    w.to = s === 0 ? [0, 0, 0, 0, w.from[4]] : WEATHER[name];
+    w.name = name;
+    w.fade = 0;
+    w.fadeT = 3;
+    w.hold = rand(40, 120);
+    if (s) startRain2();
+  }
+  let rain2Started = false;   // the passes load once, the first time the extra rain is on (URL or control panel)
+  if (RAIN2) startRain2();
+  function startRain2() {
+    if (rain2Started) return;
+    rain2Started = true;
     const load = (f) => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = MIST_DIR + f; });
     Promise.all(['light.png', 'catch.png', 'height.png'].map(load)).then(([light, ctch, hgt]) => {
       // red = the extra rain may fall here, green = the baked foreground rain (rain_fg) shows here
@@ -2988,6 +3075,7 @@ void main() {
   }
   function stepWeather(dt) {
     const w = weather;
+    if (RAIN2 !== 5) w.fade = Math.min(1, w.fade + dt / w.fadeT);   // a fixed style or off set from the panel: 3 s fade
     if (RAIN2 === 5) {
       w.fade = Math.min(1, w.fade + dt * WEATHER_SPEED / w.fadeT);
       w.hold -= dt * WEATHER_SPEED;
@@ -3323,7 +3411,7 @@ void main() {
   const camEl = $('cam');
   const cam = { x: WIDE_X, y: 540, z: 1, vx: 0, vy: 0, vz: 0, key: '' };
   const director = { on: DIRECTOR_ON, every: clamp(Number(q.get('director')) || 150, 30, 1800), zoom: ZOOM,
-    follow: null, next: performance.now() + rand(45, 75) * 1000, wantNext: false };
+    follow: null, next: performance.now() + rand(45, 75) * 1000, wantNext: false, spot: null };   // spot: the camera on the poll screen
   function toScreen(x, y) { return [(x - cam.x) * cam.z + 960, (y - cam.y) * cam.z + 540]; }
   // critically damped spring: smooth start and stop, no overshoot, frame-rate independent
   function damp(c, v, target, time, dt) {
@@ -3336,6 +3424,7 @@ void main() {
   }
   function startFollow(w) {
     if (!w || w.gone || w.removing) return;
+    director.spot = null;
     director.follow = { w, since: performance.now(), lx: null, ly: null, ax: 0, ay: 0, tx: null, ty: null, endAt: 0 };
     director.wantNext = false;
   }
@@ -3347,7 +3436,7 @@ void main() {
   // a new arrival: taken when the director is due, or when someone asked for the next one
   // (in the room the server's director picks the arrival, the same one on every screen: wi.follow; no local timer)
   function directorArrival(w, wi) {
-    if (director.follow) return;
+    if (director.follow || director.spot) return;   // (looking at the poll screen: no automatic follows)
     if (inRoom()) { if (wi?.follow) startFollow(w); return; }
     if (w.hurry) return;
     if (director.wantNext || (director.on && performance.now() >= director.next)) startFollow(w);
@@ -3390,6 +3479,8 @@ void main() {
         }
         if (f.tx != null) { tx = f.tx; ty = f.ty; tz = director.zoom; }
       }
+    } else if (director.spot) {
+      tx = director.spot.x; ty = director.spot.y; tz = director.spot.z;   // "Zoom to the poll"
     }
     // the view never leaves the stage (with fit=cover only the cropped middle is on screen: its half size)
     const fit = (c, half, size) => clamp(c, half, size - half);
@@ -3432,6 +3523,37 @@ void main() {
     if (w.group) return w.group.janitor ? 'talking to the janitor' : 'chatting';
     return w.u < 3 || w.v < 3 ? 'corridor' : 'lobby';
   }
+  // ---------- panel settings (control.html "Scene settings", shared/settings.js; 7 Nov 2026) ----------
+  // The URL options are the defaults. The server remembers what the panel changed and sends this scene's settings
+  // to every lobby screen ({cmd: 'settings', values}), also right after it connects, so a reload keeps them; a
+  // setting the panel clears goes back to this screen's URL value. Units as in the panel (seconds, not ms).
+  const SETTINGS = {
+    bubstyle: { get: () => BUB_STYLE, set: (v) => setBubStyle(v) },
+    bubbles: { get: () => MAX_BUB, set: (v) => { MAX_BUB = clamp(Number(v) || 8, 2, 14); } },
+    pollscreen: { get: () => POLLSCREEN, set: (v) => setPollScreenOn(v) },
+    crowd: { get: () => CROWD, set: (v) => { CROWD = Number(v) === 0 ? 0 : clamp(Number(v) || 14, 4, 60); } },
+    quit: { get: () => QUIT_P, set: (v) => { QUIT_P = clamp(Number(v) || 0, 0, 1); } },
+    janitor: { get: () => JANITOR, set: (v) => { JANITOR = ['always', '3d'].includes(v) ? v : 'none'; applyJanitor(); } },
+    janidle: { get: () => JAN_IDLE / 1000, set: (v) => { JAN_IDLE = clamp(Number(v) || 600, 20, 3600) * 1000; } },
+    morerain: { get: () => RAIN2, set: (v) => setRain2(v) },
+    moreraingain: { get: () => RAIN2_GAIN, set: (v) => setRain2(undefined, v) },
+    rainspeed: { get: () => rainSpeedFixed ?? 0, set: (v) => { rainSpeedFixed = Number(v) > 0 ? clamp(Number(v), 0.1, 2) : null; } },
+    rainfps: { get: () => RAIN2_FPS, set: (v) => { RAIN2_FPS = clamp(Number(v) || 0, 0, 120); } },
+    weather: { get: () => WEATHER_SPEED, set: (v) => { WEATHER_SPEED = clamp(Number(v) || 1, 0.1, 100); } },
+    mist: { get: () => MIST, set: (v) => setMist(v) },
+    mistgain: { get: () => MIST_GAIN, set: (v) => setMist(undefined, v) },
+  };
+  const urlSettings = Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
+  const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
+  let panelSettings = {};   // what the panel set (the rest is the URL's)
+  function applySettings(values) {
+    panelSettings = values && typeof values === 'object' ? values : {};
+    for (const [k, s] of Object.entries(SETTINGS)) {
+      const v = Object.hasOwn(panelSettings, k) ? panelSettings[k] : urlSettings[k];
+      if (v === s.get()) continue;
+      try { s.set(v); } catch (error) { console.error(`[lobby] setting ${k}`, error); }
+    }
+  }
   function control(c) {
     const now = performance.now();
     const key = typeof c.nick === 'string' ? c.nick.trim().toLowerCase() : '';
@@ -3439,7 +3561,11 @@ void main() {
       case 'follow': followSomeone(key); break;
       case 'random': if (!inRoom()) followSomeone(); break;   // the room picks one nick for every screen (a follow event)
       case 'next': if (!inRoom()) director.wantNext = true; break;   // the room flags the next arrival (wi.follow)
-      case 'wide': director.wantNext = false; endFollow(); break;
+      case 'wide': director.wantNext = false; director.spot = null; endFollow(); break;
+      case 'pollscreen': setPollScreenOpen(!!c.on); break;   // the server remembers it too (/dd/draft.json)
+      case 'pollzoom': zoomToPollScreen(); break;
+      case 'fly': window.DD_FLY_PLAY?.({ cut: true }); break;   // fly-through to the auditorium, OBS cuts at the end
+      case 'settings': applySettings(c.values); break;   // the panel's scene settings (on connect and on every change)
       case 'director': director.on = !!c.on; if (director.on) director.next = Math.min(director.next, now + 20000); break;
       case 'every': if (Number.isFinite(+c.value)) director.every = clamp(+c.value, 30, 1800); break;
       case 'zoom': if (Number.isFinite(+c.value)) director.zoom = clamp(+c.value, 1.2, 3); break;
@@ -3564,7 +3690,7 @@ void main() {
     const key = String(ev.nick || '').toLowerCase();
     switch (ev.t) {
       case 'snapshot': applySnapshot(ev); break;
-      case 'follow': followSomeone(key); break;
+      case 'follow': if (!director.spot) followSomeone(key); break;   // the room's director waits while the camera is on the poll
       case 'clear': resetLobby(); break;
       // out of the room: fades out as with the panel's remove ('cap', 'panel'); 'left' (and the older 'home'/'kicked')
       // comes from a screen's own leftRoom(), and every screen walks them out on its own
@@ -3585,6 +3711,7 @@ void main() {
       const f = director.follow;
       // obs: this screen is the OBS source (the panel shows it before a bigger preview tab)
       const body = { id: pageId, page: 'lobby', ts: Date.now(), size: [innerWidth, innerHeight], obs: !!window.obsstudio,
+        settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         director: { on: director.on, every: director.every, zoom: director.zoom, wantNext: director.wantNext,
           following: f && !f.w.gone ? f.w.nick : null, nextIn: Math.max(0, Math.round((director.next - performance.now()) / 1000)) },
         chatters: [...figures].filter((w) => !w.gone).map((w) => ({ nick: w.nick, emote: w.emName, status: statusOf(w), followed: f?.w === w })) };
@@ -3634,7 +3761,7 @@ void main() {
       s.el.style.boxShadow = s.pulse ? `0 0 ${Math.round(30 * s.pulse)}px rgba(255,95,176,${(0.9 * s.pulse).toFixed(2)}), inset 0 0 ${Math.round(24 * s.pulse)}px rgba(255,95,176,${(0.6 * s.pulse).toFixed(2)})` : '';
     }
     if (rainOn) drawRain(dt);
-    if (mist) drawGL(mist, t, 1000);
+    if (mist && MIST) drawGL(mist, t, 1000);
     if (rain2) {
       stepWeather(dt);
       rainClock = (rainClock + dt * rainSpeed) % 1000;
@@ -3845,7 +3972,7 @@ void main() {
     if (npcWalkSpecs(m.cat) && validSheet(m.cat.sleep) && validSheet(m.cat.sit)) {
       initCat(validSheet(m.cat.stretch) ? m.cat : { ...m.cat, stretch: null });
     }
-    if (q.get('janitor') === '3d') { if (npcWalkSpecs(m.janitor) && validSheet(m.janitor.sweep) && validSheet(m.janitor.idle)) initJanitor(m.janitor); } else if (q.get('janitor') === 'always') initMopper();   // default: mods are the jannies
+    applyJanitor(m);   // ?janitor= / the panel's Janitor setting; default: mods are the jannies
     if (m.door_anims && Array.isArray(m.door_anims)) {
       for (const d of m.door_anims) if (validSheet({ ...d, anchor: [0, 0] }) && Number.isFinite(d.x) && Number.isFinite(d.y)) doorAnims[d.door] = d;
     }
@@ -3926,10 +4053,430 @@ void main() {
     }
   }
 
+  // ===== POLL SCREEN (roll-up projection screen on the corridor back wall, QA, 07 Nov 2026) ================
+  // A pull-down screen hangs in front of the back wall left of screen 1 (where the NEXT SHOWING board is). The panel's
+  // "Lower the poll screen" unrolls it; on it: the DinkDonk poll as it's being built on dinkdonk.mov (movies pop in as
+  // they're added), then the open poll, then the result. Data and the down/up state: /dd/draft.json (poll-draft.js),
+  // so a reload or a second viewer sees the same. "Zoom to the poll" points the camera at it; Wide shot comes back.
+  const PS = {
+    u0: 0.1, u1: 3.98,        // along the back wall (v = 0): from its left corner to screen 1's LED sign (covers the board)
+    off: 0.45,                // hangs this far in front of the wall: in front of the cardboard standee (v 0.22-0.38)
+    zTop: 156, zBot: 12,      // the case under the ceiling; the cloth's lowest point (covers the standee down to its feet)
+    W: 1200,                  // local layout width in px (mapped onto the wall; text stays sharp when zoomed)
+  };
+  PS.len = PS.u1 - PS.u0;
+  PS.H = Math.round(PS.W * (PS.zTop - PS.zBot) / (PS.len * Math.hypot(60, 30)));
+  const pollScreen = { el: null, cloth: null, img: null, open: false, rev: null, draft: null, screenAt: 0, shown: false };
+  function buildPollScreen() {
+    const st = document.createElement('style');
+    st.textContent = `
+      .pscr { position: absolute; left: 0; top: 0; transform-origin: 0 0; width: ${PS.W}px; height: ${PS.H}px; pointer-events: none; }
+      .pscr-case { position: absolute; left: -14px; right: -14px; top: 0; height: 32px; border-radius: 16px;
+        background: linear-gradient(#d7dae2, #9a9eaa 35%, #5d606b 75%, #3a3c44); box-shadow: 0 6px 12px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.55); }
+      .pscr-case::before, .pscr-case::after { content: ''; position: absolute; top: -4px; width: 24px; height: 40px; border-radius: 7px;
+        background: linear-gradient(#7d818c, #2b2d34); }
+      .pscr-case::before { left: -4px; } .pscr-case::after { right: -4px; }
+      .pscr-cloth { position: absolute; left: 10px; right: 10px; top: 20px; height: 0; overflow: hidden;
+        background: #e9e6df; box-shadow: 0 10px 24px rgba(0,0,0,.6); transition: height 2.6s cubic-bezier(.45,.05,.3,1); }
+      .pscr.down .pscr-cloth { height: ${PS.H - 20}px; }
+      .pscr-bar { position: absolute; left: -6px; right: -6px; bottom: 0; height: 14px; border-radius: 7px;
+        background: linear-gradient(#55585f, #1b1c21); box-shadow: 0 4px 6px rgba(0,0,0,.5); }
+      .pscr-pull { position: absolute; left: 50%; bottom: -26px; width: 4px; height: 26px; margin-left: -2px; background: #222; }
+      .pscr-pull::after { content: ''; position: absolute; left: -7px; bottom: -6px; width: 18px; height: 10px; border-radius: 5px; background: #2b2b30; }
+      /* the projected picture: fixed on the wall, the cloth only reveals it while it unrolls */
+      .pscr-img { position: absolute; left: 0; top: 0; width: ${PS.W - 20}px; height: ${PS.H - 34}px; box-sizing: border-box;
+        padding: 22px 34px 20px; color: #fff; font-family: Oswald, sans-serif; overflow: hidden;
+        background: radial-gradient(120% 90% at 50% 40%, #2a1747, #120a22 70%, #0a0614);
+        box-shadow: inset 0 0 0 10px #0b0711, inset 0 0 60px rgba(0,0,0,.8); }
+      .pscr-img::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(80% 70% at 50% 35%, rgba(255,255,255,.07), transparent 70%); }
+      .pscr-top { display: flex; align-items: center; gap: 18px; height: 52px; }
+      .pscr-logo { height: 52px; filter: drop-shadow(0 0 6px rgba(255,80,200,.6)); }
+      .pscr-kick { font: 400 40px/1 'Bebas Neue', sans-serif; letter-spacing: .06em; color: #ffd23f; text-shadow: 0 0 12px rgba(255,210,63,.55); }
+      .pscr-kick.vote { color: #7dff9a; text-shadow: 0 0 12px rgba(125,255,154,.6); }
+      .pscr-kick.res { color: #ff7af0; text-shadow: 0 0 12px rgba(255,122,240,.6); }
+      .pscr-meta { margin-left: auto; font: 500 26px/1 Oswald, sans-serif; color: #c9b8ff; white-space: nowrap; }
+      .pscr-title { font: 400 50px/1.05 'Bebas Neue', sans-serif; letter-spacing: .02em; margin: 10px 0 14px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pscr-grid { display: grid; gap: var(--gap); justify-content: center; align-content: center; height: var(--ah); }
+      .pscr-card { position: relative; display: flex; flex-direction: column; min-width: 0; }
+      .pscr-post { width: 100%; aspect-ratio: 2 / 3; border-radius: 4px; background: #2d2346 center / cover no-repeat;
+        box-shadow: 0 4px 10px rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; text-align: center;
+        font: 400 calc(var(--cw) * .16)/1.05 'Bebas Neue', sans-serif; padding: 6px; box-sizing: border-box; color: #e8dcff; overflow: hidden; }
+      .pscr-name { margin-top: 5px; font: 500 calc(max(18px, var(--cw) * .14))/1.1 Oswald, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pscr-year { color: #ffd27a; }
+      .pscr-vote { margin-top: 4px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.15); overflow: hidden; }
+      .pscr-vote i { display: block; height: 100%; background: linear-gradient(90deg, #7dff9a, #2fd2ff); transition: width 1s; }
+      .pscr-pct { font: 600 calc(max(14px, var(--cw) * .11))/1.2 Oswald, sans-serif; color: #7dff9a; }
+      .pscr-card.win .pscr-post { outline: 5px solid #ffd23f; box-shadow: 0 0 26px rgba(255,210,63,.8); }
+      .pscr-card.win::before { content: 'WINNER'; position: absolute; z-index: 1; left: 50%; top: -14px; transform: translateX(-50%);
+        background: #ffd23f; color: #1a1030; font: 400 22px/1 'Bebas Neue', sans-serif; padding: 3px 10px 1px; border-radius: 3px; }
+      .pscr-card.new { animation: pscr-pop .9s cubic-bezier(.2,1.6,.4,1) both; }
+      .pscr-card.fresh .pscr-post { outline: 4px solid #ff3d7f; }
+      @keyframes pscr-pop { from { transform: scale(.2) translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+      .pscr-list { columns: var(--cols); column-gap: 30px; font: 500 26px/1.35 Oswald, sans-serif; }
+      .pscr-list div { break-inside: avoid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pscr-list .win { color: #ffd23f; }
+      .pscr-empty { height: 70%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+        font: 400 64px/1 'Bebas Neue', sans-serif; color: #c9b8ff; letter-spacing: .04em; }
+      .pscr-empty small { font: 500 26px/1.2 Oswald, sans-serif; color: #8f84b5; letter-spacing: 0; }
+      /* projected, not printed: the picture only appears once the projector is on (.lit), with film grain, a flicker,
+         a vignette, a warm lamp tint and now and then a scratch */
+      .pscr-img, .pscr-film { opacity: 0; transition: opacity .5s; }
+      .pscr.lit .pscr-img { opacity: 1; animation: pscr-flick 3.2s steps(1) infinite; }
+      .pscr.lit .pscr-film { opacity: 1; }
+      @keyframes pscr-flick { 0% { opacity: 1; } 7% { opacity: .93; } 8% { opacity: 1; } 41% { opacity: .96; } 42% { opacity: 1; }
+        63% { opacity: .94; } 64% { opacity: .99; } 88% { opacity: .97; } }
+      .pscr-film { position: absolute; left: 0; top: 0; width: ${PS.W - 20}px; height: ${PS.H - 34}px; pointer-events: none; overflow: hidden; }
+      .pscr-film > div { position: absolute; inset: 0; }
+      .pscr-grain { inset: -64px !important; background-size: 128px 128px; mix-blend-mode: overlay; opacity: .4;
+        animation: pscr-grain .5s steps(1) infinite; }
+      @keyframes pscr-grain { 0% { transform: translate(0, 0); } 12.5% { transform: translate(-37px, 21px); } 25% { transform: translate(19px, -44px); }
+        37.5% { transform: translate(-52px, -9px); } 50% { transform: translate(33px, 48px); } 62.5% { transform: translate(-11px, -57px); }
+        75% { transform: translate(55px, 13px); } 87.5% { transform: translate(-24px, 36px); } }
+      .pscr-tint { background: radial-gradient(75% 85% at 50% 45%, rgba(255,236,200,.10), rgba(255,200,140,.06) 55%, rgba(20,10,0,.55) 100%); mix-blend-mode: soft-light; }
+      .pscr-vig { background: radial-gradient(70% 80% at 50% 48%, transparent 55%, rgba(0,0,0,.55) 100%); }
+      .pscr-scratch { left: 0; width: 2px !important; right: auto !important; background: rgba(255,250,235,.55); opacity: 0;
+        animation: pscr-scratch 7.3s steps(1) infinite; }
+      .pscr-scratch.b { width: 1px !important; background: rgba(20,12,4,.6); animation-duration: 11.1s; animation-delay: -4s; }
+      @keyframes pscr-scratch { 0% { opacity: 0; } 61% { opacity: 1; left: 23%; } 63% { left: 23.4%; } 65% { opacity: 0; }
+        82% { opacity: .8; left: 71%; } 83% { left: 70.6%; } 84% { opacity: 0; } }
+      .pscr-dust { background-size: 600px 400px; opacity: .5; animation: pscr-grain 1.7s steps(1) infinite reverse; }
+      .pscr-cloth { background: #ddd8cc; }`;
+    document.head.append(st);
+    const [x0, y0] = P(PS.u0, PS.off, PS.zTop);
+    const el = h('div', 'pscr');
+    el.style.transform = `matrix(${PS.len * 60 / PS.W},${PS.len * 30 / PS.W},0,${(PS.zTop - PS.zBot) / PS.H},${x0},${y0})`;
+    el.style.zIndex = String(depth(PS.u0, PS.off));   // behind anyone walking the corridor in front of it
+    const cloth = h('div', 'pscr-cloth');
+    const img = h('div', 'pscr-img');
+    const film = h('div', 'pscr-film');
+    // grain: one tile of random grey noise, jittered 8 times a second; dust: a few soft specks
+    const noise = (size, dots) => {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const g = c.getContext('2d');
+      if (!dots) {
+        const d = g.createImageData(size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+        g.putImageData(d, 0, 0);
+      } else {
+        for (let i = 0; i < dots; i++) {
+          g.fillStyle = Math.random() < 0.5 ? 'rgba(255,250,235,.7)' : 'rgba(10,6,2,.7)';
+          g.beginPath();
+          g.arc(Math.random() * size, Math.random() * size, rand(0.6, 2.2), 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      return `url(${c.toDataURL()})`;
+    };
+    const grain = h('div', 'pscr-grain');
+    grain.style.backgroundImage = noise(128, 0);
+    const dust = h('div', 'pscr-dust');
+    dust.style.backgroundImage = noise(400, 14);
+    film.append(grain, dust, h('div', 'pscr-tint'), h('div', 'pscr-vig'), h('div', 'pscr-scratch'), h('div', 'pscr-scratch b'));
+    const bar = h('div', 'pscr-bar');
+    bar.append(h('div', 'pscr-pull'));
+    cloth.append(img, film, bar);
+    el.append(cloth, h('div', 'pscr-case'));
+    world.append(el);
+    // the cardboard standee left of screen 1 stands behind the lowered screen: its cut-out (drawn over walkers) goes
+    // while the screen is down, and the screen covers the standee in the background art
+    const standee = artImgs.filter(([, f]) => /corridor_standee_1(_00)?(@2x)?\.png$/.test(f)).map(([im]) => im);
+    Object.assign(pollScreen, { el, cloth, img, standee });
+    buildProjector();
+  }
+  // ---- the projector: on a bracket high on the corridor's left wall (u = 0), between its posters and the restroom,
+  // aimed across the corridor at the screen; from the front it would sit right over the picture and hide its beam ----
+  const PJ = { u0: 0.1, u1: 0.55, v0: 2.08, v1: 2.42, z0: 140, z1: 158 };
+  function buildProjector() {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = (cls, z) => {
+      const s = document.createElementNS(NS, 'svg');
+      s.setAttribute('class', cls);
+      s.setAttribute('width', '1920');
+      s.setAttribute('height', '1080');
+      s.style.cssText = `position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:${z}`;
+      world.append(s);
+      return s;
+    };
+    const pts = (list) => list.map(([u, v, z]) => P(u, v, z).map((n) => n.toFixed(1)).join(',')).join(' ');
+    const { u0, u1, v0, v1, z0, z1 } = PJ;
+    // body: top, the face towards the camera (v = v1) and the side towards the screen (u = u1, with the lens);
+    // a wall plate and an arm out to it
+    const vm = (v0 + v1) / 2;
+    const lens = [u1, v0 + 0.09, z0 + 9];
+    const body = svg('pj-body', depth(u1, v1) + 2);
+    body.innerHTML = `
+      <defs><linearGradient id="pjTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5e69"/><stop offset="1" stop-color="#2d2f36"/></linearGradient>
+        <radialGradient id="pjGlass"><stop offset="0" stop-color="#8fa0b8"/><stop offset=".6" stop-color="#26303d"/><stop offset="1" stop-color="#0c0f14"/></radialGradient></defs>
+      <polygon points="${pts([[0.01, vm - 0.1, z0 - 14], [0.01, vm + 0.1, z0 - 14], [0.01, vm + 0.1, z0 + 2], [0.01, vm - 0.1, z0 + 2]])}" fill="#1b1c21"/>
+      <polygon points="${pts([[0.01, vm, z0 - 9], [u0 + 0.2, vm, z0 - 2], [u0 + 0.2, vm, z0], [0.01, vm, z0 - 5]])}" fill="#2a2c33"/>
+      <polygon points="${pts([[u0, v1, z0], [u1, v1, z0], [u1, v1, z1], [u0, v1, z1]])}" fill="#24262c"/>
+      <polygon points="${pts([[u1, v0, z0], [u1, v1, z0], [u1, v1, z1], [u1, v0, z1]])}" fill="#191a1f"/>
+      <polygon points="${pts([[u0, v0, z1], [u1, v0, z1], [u1, v1, z1], [u0, v1, z1]])}" fill="url(#pjTop)"/>
+      <polyline points="${pts([[u0 + 0.08, v1, z1 - 6], [u1 - 0.2, v1, z1 - 6]])}" stroke="#3c3f48" stroke-width="2"/>
+      <polyline points="${pts([[u0 + 0.08, v1, z1 - 10], [u1 - 0.2, v1, z1 - 10]])}" stroke="#3c3f48" stroke-width="2"/>
+      <circle class="pj-led" cx="${P(u0 + 0.12, v1, z0 + 5)[0]}" cy="${P(u0 + 0.12, v1, z0 + 5)[1]}" r="1.6" fill="#3a1010"/>
+      <polygon class="pj-vent" points="${pts([[u0 + 0.22, v1, z0 + 4], [u1 - 0.06, v1, z0 + 4], [u1 - 0.06, v1, z0 + 7], [u0 + 0.22, v1, z0 + 7]])}" fill="#2a2016"/>
+      <ellipse cx="${P(...lens)[0]}" cy="${P(...lens)[1]}" rx="4.2" ry="6" transform="skewY(-26.57) translate(0 ${(P(...lens)[0] * Math.tan(26.57 * Math.PI / 180)).toFixed(1)})" fill="url(#pjGlass)" stroke="#111" stroke-width="1"/>`;
+    // the beam: from the lens to the cloth's corners, as their outline (convex hull)
+    const corners = [[PS.u0 + 0.02, PS.off, PS.zTop - 8], [PS.u1 - 0.02, PS.off, PS.zTop - 8], [PS.u1 - 0.02, PS.off, PS.zBot + 4], [PS.u0 + 0.02, PS.off, PS.zBot + 4]];
+    const flat = [lens, ...corners].map(([u, v, z]) => P(u, v, z));
+    const hull = (() => {   // monotone chain
+      const p = [...flat].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const lo = [];
+      for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+      const up = [];
+      for (const q of [...p].reverse()) { while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+      return [...lo.slice(0, -1), ...up.slice(0, -1)];
+    })();
+    const [lx, ly] = flat[0];
+    const [cx, cy] = P((PS.u0 + PS.u1) / 2, PS.off, (PS.zTop + PS.zBot) / 2);
+    const beam = svg('pj-beam', depth(PS.u0, PS.off) + 1);
+    beam.innerHTML = `
+      <defs><linearGradient id="pjBeam" gradientUnits="userSpaceOnUse" x1="${lx}" y1="${ly}" x2="${cx}" y2="${cy}">
+        <stop offset="0" stop-color="#fff6dc" stop-opacity=".55"/><stop offset=".35" stop-color="#e9dcff" stop-opacity=".16"/>
+        <stop offset="1" stop-color="#cdb8ff" stop-opacity=".07"/></linearGradient>
+        <radialGradient id="pjLens"><stop offset="0" stop-color="#fffbe8"/><stop offset=".4" stop-color="#ffe9a8" stop-opacity=".8"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>
+      <polygon points="${hull.map((p) => p.map((n) => n.toFixed(1)).join(',')).join(' ')}" fill="url(#pjBeam)"/>
+`;
+    // the lit lens sits on the projector's body (above the beam)
+    body.insertAdjacentHTML('beforeend', `<circle class="pj-glow" cx="${lx}" cy="${ly}" r="11" fill="url(#pjLens)"/>`);
+    body.querySelector('defs').insertAdjacentHTML('beforeend', beam.querySelector('#pjLens').outerHTML);
+    const st = document.createElement('style');
+    st.textContent = `
+      .pj-beam { opacity: 0; transition: opacity .6s; mix-blend-mode: screen; }
+      .pj-beam.on { opacity: 1; animation: pj-flick 3.2s steps(1) infinite; }
+      @keyframes pj-flick { 0% { opacity: 1; } 7% { opacity: .82; } 8% { opacity: 1; } 63% { opacity: .86; } 64% { opacity: 1; } }
+      .pj-body.on .pj-led { fill: #ff4a3a; }
+      .pj-body.on .pj-vent { fill: #ffb35a; filter: drop-shadow(0 0 3px #ff9a3a); }
+      .pj-glow { opacity: 0; transition: opacity .6s; mix-blend-mode: screen; }
+      .pj-body.on .pj-glow { opacity: 1; }`;
+    document.head.append(st);
+    Object.assign(pollScreen, { beam, body });
+  }
+  // ---- watching the poll: on the way to their door, most chatters stop in front of the lowered screen for 6-14 s ----
+  // (spots on the corridor floor between the screen and the restroom wall, clear of the restroom door at u 1.4)
+  const WATCH_SPOTS = [[0.85, 1.0], [1.5, 0.95], [2.15, 1.0], [2.8, 0.95], [3.45, 1.05], [1.15, 1.6], [1.85, 1.65],
+    [2.5, 1.6], [3.15, 1.65], [3.75, 1.55], [2.25, 2.2], [2.95, 2.25]].map((c) => ({ c, by: null }));
+  function pollWatchSteps(w) {
+    if (!pollScreen.open || w.watched || w.hurry || w.removing || Math.random() > 0.75) return [];
+    for (const s of WATCH_SPOTS) if (s.by && (s.by.gone || s.by.watchSpot !== s)) s.by = null;
+    const free = WATCH_SPOTS.filter((s) => !s.by);
+    if (!free.length) return [];
+    const s = free[Math.floor(Math.random() * free.length)];
+    const [u, v] = [s.c[0] + rand(-0.12, 0.12), s.c[1] + rand(-0.1, 0.1)];
+    s.by = w;
+    w.watched = true;
+    w.watchSpot = s;
+    const done = (x) => { if (s.by === x) s.by = null; x.watchSpot = null; };
+    return [{ to: [u, v + 0.25] }, { to: [u, v], slow: true },   // the last steps towards the screen: facing it
+      { call: (x) => { x.watchUntil = performance.now() + rand(6000, 14000); } },
+      { until: () => !pollScreen.open || w.removing || performance.now() > w.watchUntil }, { call: done }];
+  }
+  // lit = the projector is on and the picture shows; it comes on once the cloth is down, and goes off first on the way up
+  function setProjector(on) {
+    pollScreen.el?.classList.toggle('lit', on);
+    pollScreen.beam?.classList.toggle('on', on);
+    pollScreen.body?.classList.toggle('on', on);
+  }
+  function pollScreenBox() {   // the screen's bounding box on the stage (for the camera)
+    const pts = [P(PS.u0, PS.off, PS.zTop), P(PS.u1, PS.off, PS.zTop), P(PS.u0, PS.off, PS.zBot), P(PS.u1, PS.off, PS.zBot)];
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  }
+  function setPollScreenOpen(open, animate = true) {
+    if (!pollScreen.el) return;
+    if (!animate) pollScreen.cloth.style.transition = 'none';
+    pollScreen.el.classList.toggle('down', open);
+    if (!animate) { void pollScreen.cloth.offsetHeight; pollScreen.cloth.style.transition = ''; }
+    pollScreen.open = open;
+    clearTimeout(pollScreen.lampT);
+    clearTimeout(pollScreen.standeeT);
+    // speech bubbles keep off the lowered screen (a soft rect: beside it if there is room, over it only if not)
+    if (open && !pollScreen.softRect) softRects.push(pollScreen.softRect = pollScreenBox());
+    if (!open && pollScreen.softRect) { softRects.splice(softRects.indexOf(pollScreen.softRect), 1); pollScreen.softRect = null; }
+    if (open) {
+      for (const im of pollScreen.standee || []) im.style.visibility = 'hidden';
+      if (animate) pollScreen.lampT = setTimeout(() => { if (pollScreen.open) setProjector(true); }, 2700);   // after the unroll
+      else setProjector(true);
+    } else {
+      setProjector(false);
+      // the standee's cut-out comes back once the cloth has rolled up past it
+      pollScreen.standeeT = setTimeout(() => { if (!pollScreen.open) for (const im of pollScreen.standee || []) im.style.visibility = ''; }, animate ? 1600 : 0);
+    }
+    // rolled up while the camera looks at it: back to the wide shot once it's up
+    if (!open && director.spot) setTimeout(() => { if (!pollScreen.open) director.spot = null; }, 2200);
+  }
+  function pollMeta(d) {
+    const r = d.results;
+    const n = d.options.length;
+    if (d.state === 'open') {
+      const left = r?.endsAt ? Math.max(0, Math.round((r.endsAt - Date.now()) / 1000)) : null;
+      return [left != null ? `ends in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '', r?.voters != null ? `${r.voters} voted` : '']
+        .filter(Boolean).join(' · ') || `${n} movies`;
+    }
+    if (d.state === 'closed') return r?.voters != null ? `${r.voters} voters` : '';
+    return `${n} movie${n === 1 ? '' : 's'} so far`;
+  }
+  function renderPollScreen() {
+    const d = pollScreen.draft;
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+    const logo = '<img class="pscr-logo" src="https://cdn.dinkdonk.mov/images/DinkDonk.png" alt="" onerror="this.remove()">';
+    if (!d) {
+      pollScreen.img.innerHTML = `<div class="pscr-top">${logo}<div class="pscr-kick">DINK DONK POLL</div></div>` +
+        '<div class="pscr-empty">The next poll starts soon<small>the movies show up here as they are added on dinkdonk.mov</small></div>';
+      return;
+    }
+    const r = d.results;
+    const closed = d.state === 'closed';
+    // results: the results page's own list (with votes), best first; otherwise the movies as they were added
+    let opts = d.options.map((o) => ({ ...o }));
+    if (r?.options?.length && d.state !== 'building') {
+      opts = r.options.map((o) => ({ ...o, addedAt: 0 }));
+      if (opts.some((o) => o.votes != null)) opts.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    }
+    const titleKey = (t) => String(t || '').toLowerCase().replace(/\s*\(\d{4}\)\s*$/, '').replace(/[^a-z0-9]+/g, '');
+    const winners = new Set((r?.winners || []).filter((w) => w.label !== 'Runner-up').map((w) => titleKey(w.title)));
+    if (closed && !winners.size && opts[0]?.votes) winners.add(titleKey(opts[0].title));
+    const votes = opts.some((o) => o.votes != null);
+    const now = Date.now();
+    const n = opts.length;
+    const kick = d.state === 'open' ? 'VOTE NOW · DINKDONK.MOV' : closed ? 'RESULTS' : 'POLL IN THE MAKING';
+    const cls = d.state === 'open' ? 'vote' : closed ? 'res' : '';
+    const meta = pollMeta(d);
+    let body;
+    // poster grid sized to fit every movie; past ~10 the posters get too small: a numbered list
+    const AW = PS.W - 20 - 68;
+    const AH = PS.H - 34 - 42 - 52 - 74;
+    const gap = 16;
+    let best = null;
+    for (let cols = 1; cols <= Math.max(1, n); cols++) {
+      const rows = Math.ceil(n / cols);
+      const cw = Math.min((AW - gap * (cols - 1)) / cols, ((AH - gap * (rows - 1)) / rows - (votes ? 62 : 34)) / 1.5);
+      if (!best || cw > best.cw) best = { cols, cw };
+    }
+    if (n && best.cw >= 90) {   // (smaller posters read worse than the list)
+      body = `<div class="pscr-grid" style="--ah:${AH}px;--gap:${gap}px;--cw:${best.cw.toFixed(1)}px;grid-template-columns:repeat(${best.cols},${best.cw.toFixed(1)}px)">` +
+        opts.map((o) => {
+          const k = titleKey(o.title);
+          const pop = pollScreen.seen && !pollScreen.seen.has(k) && !closed;
+          const fresh = !closed && now - (o.addedAt || 0) < 12000;
+          const post = o.poster ? `style="background-image:url('${esc(o.poster)}')"` : '';
+          const vote = votes ? `<div class="pscr-vote"><i style="width:${Math.max(0, Math.min(100, o.pct || 0)).toFixed(1)}%"></i></div>` +
+            `<div class="pscr-pct">${Math.round(o.pct || 0)}% · ${o.votes || 0}</div>` : '';
+          return `<div class="pscr-card${pop ? ' new' : ''}${fresh ? ' fresh' : ''}${winners.has(k) ? ' win' : ''}">` +
+            `<div class="pscr-post" ${post}>${o.poster ? '' : esc(o.title)}</div>` +
+            `<div class="pscr-name">${esc(o.title)} <span class="pscr-year">${esc(o.year)}</span></div>${vote}</div>`;
+        }).join('') + '</div>';
+    } else if (n) {
+      body = `<div class="pscr-list" style="--cols:${Math.min(4, Math.ceil(n / 9))}">` + opts.map((o, i) =>
+        `<div class="${winners.has(titleKey(o.title)) ? 'win' : ''}">${i + 1}. ${esc(o.title)} <span class="pscr-year">${esc(o.year)}</span>` +
+        `${votes ? ` <span class="pscr-pct">${Math.round(o.pct || 0)}%</span>` : ''}</div>`).join('') + '</div>';
+    } else {
+      body = '<div class="pscr-empty">Adding movies…</div>';
+    }
+    pollScreen.seen = new Set(opts.map((o) => titleKey(o.title)));
+    pollScreen.img.innerHTML = `<div class="pscr-top">${logo}<div class="pscr-kick ${cls}">${kick}</div><div class="pscr-meta">${esc(meta)}</div></div>` +
+      `<div class="pscr-title">${esc(d.title || 'DinkDonk poll')}</div>${body}`;
+  }
+  async function pollPollScreen() {
+    try {
+      const res = await fetch('/dd/draft.json', { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+      if (!res.ok) return;
+      const j = await res.json();
+      const open = !!j.screen?.open;
+      if (!pollScreen.shown || open !== pollScreen.open) setPollScreenOpen(open, pollScreen.shown);
+      pollScreen.shown = true;
+      const rev = j.draft ? j.draft.rev : -1;
+      // re-drawn on a change, and while a movie still wears its "just added" frame; the countdown ticks on its own
+      const freshUntil = Math.max(0, ...(j.draft?.options || []).map((o) => (o.addedAt || 0) + 12500));
+      if (rev !== pollScreen.rev || (pollScreen.freshUntil && Date.now() < pollScreen.freshUntil + 2500)) {
+        pollScreen.rev = rev;
+        pollScreen.freshUntil = freshUntil > Date.now() ? freshUntil : 0;
+        pollScreen.draft = j.draft || null;
+        renderPollScreen();
+        setPollWinner(j.draft);
+      } else if (j.draft?.state === 'open') {
+        const m = pollScreen.img.querySelector('.pscr-meta');
+        if (m) m.textContent = pollMeta(j.draft);
+      }
+    } catch { /* server without /dd/draft.json (or offline): the screen stays as it is */ }
+  }
+  // our finished poll's winner -> screen 1 + NEXT SHOWING (upcomingFilm in the rooms section)
+  function setPollWinner(d) {
+    const w = d?.state === 'closed' && (d.results?.winners || []).find((x) => x.label !== 'Runner-up');
+    let next = null;
+    if (w) {
+      const k = filmKey(w.title);
+      const o = [...(d.results?.options || []), ...d.options].find((x) => filmKey(x.title) === k);
+      if (o?.poster || o?.year || YEAR_END.test(w.title)) {   // a film (not "Continue Conducting")
+        next = { title: o?.year && !YEAR_END.test(w.title) ? `${w.title} (${o.year})` : w.title, poster: o?.poster || '',
+          at: d.results?.endsAt || d.updatedAt, pollId: d.pollId };
+      }
+    }
+    if (JSON.stringify(next) === JSON.stringify(pollWinner)) return;
+    pollWinner = next;
+    applyRooms(rooms);
+  }
+  function buildNextBoard() {
+    // flat on the NEXT SHOWING board's face (back wall, u 0.87-2.67, z 46-126), covering its baked text
+    const st = document.createElement('style');
+    st.textContent = `
+      .nb { position: absolute; left: 0; top: 0; width: 360px; height: 160px; transform-origin: 0 0; box-sizing: border-box;
+        background: #0d0c12; color: #f4f1ea; text-align: center; display: flex; flex-direction: column; justify-content: center;
+        gap: 4px; padding: 0 14px; pointer-events: none; }
+      .nb[hidden] { display: none; }
+      .nb-k { font: 500 22px/1 Oswald, sans-serif; letter-spacing: .12em; color: #d9d4ff; }
+      .nb-t { font: 400 56px/1 'Bebas Neue', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 10px rgba(255,255,255,.35); }
+      .nb-s { font: 500 20px/1 Oswald, sans-serif; letter-spacing: .1em; color: #ffd23f; }`;
+    document.head.append(st);
+    const [a0, a1, z0, z1, off] = [0.87, 2.67, 46, 126, 0.06];
+    const [x0, y0] = P(a0, off, z1);
+    const el = h('div', 'nb');
+    el.hidden = true;
+    el.style.transform = `matrix(${(a1 - a0) * 60 / 360},${(a1 - a0) * 30 / 360},0,${(z1 - z0) / 160},${x0},${y0})`;
+    el.style.zIndex = String(Math.min(depth(a0, off), depth(PS.u0, PS.off)) - 1);   // under the poll screen when that is down
+    el.append(h('div', 'nb-k', 'NEXT SHOWING:'), h('div', 'nb-t', ''), h('div', 'nb-s', "CHAT'S PICK"));
+    world.append(el);
+    nextBoard = el;
+    applyRooms(rooms);
+  }
+  // ?pollscreen=0 / the panel's "Poll screen on the back wall" off (POLLSCREEN): no poll screen and no NEXT SHOWING
+  // board (built the first time it is on; off later just hides both)
+  let pollStarted = false;
+  function startPollScreen() {
+    if (!POLLSCREEN || pollStarted) return;
+    pollStarted = true;
+    buildNextBoard();
+    buildPollScreen();
+    renderPollScreen();
+    pollPollScreen();
+    setInterval(pollPollScreen, 2000);
+  }
+  function setPollScreenOn(on) {
+    POLLSCREEN = !!on;
+    if (POLLSCREEN && art && lobbyReady) startPollScreen();
+    for (const el of [pollScreen.el, nextBoard]) if (el) el.style.display = POLLSCREEN ? '' : 'none';
+    if (!POLLSCREEN && director.spot) { director.spot = null; endFollow(); }   // the camera was on the poll: back to wide
+  }
+  function zoomToPollScreen() {
+    if (!pollScreen.el || !POLLSCREEN) return;
+    const [x0, y0, x1, y1] = pollScreenBox();
+    endFollow();
+    director.wantNext = false;
+    director.spot = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: clamp(Math.min(1920 * 0.94 / (x1 - x0), 1080 * 0.96 / (y1 - y0)), 1.2, 4) };   // (up to 4x: the screen's text is DOM, it stays sharp)
+  }
+  // ===== end POLL SCREEN ==================================================================================
+
   (async () => {
     art = await loadArt();
     useLayout(Number(q.get('layout')) || (LAYOUTS[art?.layout] ? art.layout : 1));   // ?layout= forces one (testing)
     if (art) setupArt(art); else buildProps();
+    if (art) startPollScreen();   // the roll-up poll screen on the corridor back wall
     lobbyReady = true;
     if (pendingSnapshot) applySnapshot(pendingSnapshot);
     SB.on('resize', (s) => {
@@ -3947,7 +4494,18 @@ void main() {
     requestAnimationFrame(loop);
     SB.start();
   })();
+
+  // fly-through blockout (shared/transition-qa.js): where everyone stands right now, and a way to force the wide shot
+  window.DD_FLY = {
+    figures: () => [...new Set([...figures, ...Object.values(staff)])].filter((w) => !w.gone && !w.removing).map((w) => ({
+      nick: w.nick, u: w.u, v: w.v, zpx: w.stand || 0, color: w.nm?.style.color || null, staff: !!w.staff,
+      ride: !!w.ride, alpha: w.alpha ?? 1, status: w.staff ? 'staff' : statusOf(w),
+      em: w.emName, emW: Number(w.em?.dataset.w) || 0, emH: parseFloat(w.em?.style.height) || 0,
+      flip: w.em?.dataset.flip === 'true', rainbow: !!w.nm?.classList.contains('rbt') })),
+    wide: () => { director.wantNext = false; director.spot = null; endFollow(); },
+  };
 })();
 </script>
+<script src="shared/transition.js"></script>
 </body>
 </html>

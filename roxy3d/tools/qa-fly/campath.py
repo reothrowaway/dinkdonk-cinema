@@ -12,10 +12,18 @@ print('frames:', len(fr))
 fps = 30
 M = np.array([f['matrix_world'] for f in fr], float)
 pos = M[:, :3, 3]; fwd = -M[:, :3, 2]
+# A matched long-lens handoff can move the optical eye without moving the
+# apparent route. Report both rather than misclassifying that optical retreat
+# as a physical speed swing. Older routes without this metadata are unchanged.
+reference = np.array([f.get('godot_reference_position_world', p) for f, p in zip(fr, pos)], float)
 part = ['A' if f['global_frame'] <= 1100 else 'B' for f in fr]
 typ = [f['camera_type'] for f in fr]
 lens = np.array([f['lens_mm'] for f in fr])
-step = np.linalg.norm(np.diff(pos, axis=0), axis=1) * fps          # units/s between frames
+eye_step = np.linalg.norm(np.diff(pos, axis=0), axis=1) * fps
+step = np.linalg.norm(np.diff(reference, axis=0), axis=1) * fps  # route units/s between frames
+if not np.array_equal(reference, pos):
+    print('speed QA uses route-reference positions; optical-eye speed min/median/max:',
+          '/'.join(f'{v:.2f}' for v in np.percentile(eye_step[:1099], [0, 50, 100])), 'u/s (part A, includes representation switch)')
 ang = np.degrees(np.arccos(np.clip((fwd[1:] * fwd[:-1]).sum(1), -1, 1))) * fps  # deg/s
 # ignore representation switches (ortho<->persp or huge jumps)
 bad = np.array([typ[i] != typ[i+1] for i in range(len(step))])
@@ -39,6 +47,33 @@ def report(lo, hi, name):
     return s
 report(0, 1099, 'part A')
 report(1100, len(sp), 'part B')
+# Signed horizontal heading is independent of bank. Ignore sub-2-deg/s
+# jitter, and never carry a turn sign across the A/B cut. Times are part-local
+# live-viewer seconds, (frame-1)/30. A reversal is confirmed only when the
+# opposite rate clears the deadband; estimate its zero crossing between the
+# last significant old rate and the first significant new rate.
+def yaw_reversals(lo, hi, deadband=2.0):
+    yaw = np.unwrap(np.arctan2(fwd[lo:hi, 1], fwd[lo:hi, 0]))
+    rate = np.degrees(np.diff(yaw)) * fps
+    reversals = []; previous = 0; last = None
+    for i, value in enumerate(rate):
+        sign = 1 if value > deadband else (-1 if value < -deadband else 0)
+        if not sign: continue
+        if previous and sign != previous:
+            zero = last + abs(rate[last]) / (abs(rate[last]) + abs(value)) * (i - last)
+            seconds = float((zero + 0.5) / fps)
+            reversals.append({'time_s': round(seconds, 3),
+                              'global_time_s': round((fr[lo]['global_frame'] - 1) / fps + seconds, 3),
+                              'direction': 'right -> left' if sign > 0 else 'left -> right',
+                              'confirmed_s': round((i + 0.5) / fps, 3)})
+        previous = sign; last = i
+    return reversals
+for name, lo, hi in [('A', 0, min(1100, len(fr))), ('B', 1100, len(fr))]:
+    changes = yaw_reversals(lo, hi)
+    print(f'\n== part {name} yaw-rate sign reversals (2 deg/s deadband; part-local seconds): {len(changes)}')
+    print('  ', changes)
+    if name == 'A':
+        print('  reversals in 0-9 s:', [r for r in changes if r['time_s'] <= 9])
 # part B camera height: staircase = alternating flat and rising stretches
 zb = pos[1100:, 2]; dz = np.diff(zb) * fps
 rising = dz > 0.02; flat = np.abs(dz) < 0.005

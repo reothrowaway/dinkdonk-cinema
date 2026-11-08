@@ -677,3 +677,238 @@ twins up for 6.5 s after lights-up. Headless check: twin opacity = background di
   arrived, so a held-back stream falls back to local walk-ins after 10 s. Redeployed with the owner's OK; the owner's
   lobby link showed 50 chatters.
 - 07 Nov 2026: Godot route v4: dissolve removed; ortho -> narrow frustum handoff at 3.0 s (0.546 px max mismatch, tight clip planes); single right turn 0-9 s, rejoins dive at 8.7 s; campath now reports yaw reversals (part A at 14.8/26.4/34.2 s, intentional). Live viewer reopened for the owner.
+- 07 Nov 2026: owner on route v4: 'pretty good'. Watch the light change at the bottom right at the ~3 s handoff (on the final checklist: godot-spike/FINAL-CHECKLIST.md). Screen 1 door doesn't open in Godot -> add door + curtain. Next: build the auditorium part (B) in Godot. Sent to resumed Codex session.
+- 07 Nov 2026: DinkDonk poll in the lobby, data side: poll-draft.js + POST /dd/draft, GET /dd/draft.json in standby-server.js; userscript userscripts/dinkdonk-poll-draft.user.js reads dinkdonk.mov's poll builder (hidden options[] TMDB JSON) and reports building/open/closed. Tested on 18771 with a copy of the builder form; not yet on the real builder page (needs DGG login). Live 18770 not restarted. Lobby display handed to the Lobby Map session.
+- 07 Nov 2026: request from 'Ding dong polling integration in lobby': show the DinkDonk poll (building/open, /dd/draft.json) in-world in the lobby. Blockout of candidate spots in lobby-qa.html behind ?pollspots=1 (helper agent, port 18773) -> owner picks.
+- 07 Nov 2026: live 18770 restarted with the poll endpoint (it had been down). Owner tested the userscript on the real dinkdonk.mov builder: title, type, movie title/year/TMDB poster arrive in /dd/draft.json.
+- 07 Nov 2026: poll spots blockout in lobby-qa.html (?pollspots=1 only; block marked POLL SPOTS BLOCKOUT + one call in the boot IIFE): A door poster frames (3), B NEXT SHOWING board (title + 4), C TICKETS board (title + ticker), D rooftop WCAT billboard (title + 6 with poster thumbs, newest flashes). Tested on 18774 with posted test data, real chat; screenshot qa10/poll-spots-blockout.png. Note: cache/poll-draft.json is shared by every server port, so test posts on another port overwrite the live server's saved draft - restored from 18770 afterwards. lobby.html untouched.
+- 07 Nov 2026: poll-spots blockout done (lobby-qa.html ?pollspots=1, qa10/poll-spots-blockout.png): A door poster frames (3), B Next Showing board (title + 4), C Tickets board (ticker), D rooftop billboard (6 with posters). Sent to owner to pick. Reported to polling session: cache/poll-draft.json shared across ports (test overwrote live copy; restored).
+- 07 Nov 2026: poll display work moved by the owner to the polling session (per its message); handed over the blockout location (lobby-qa.html 3929-4018), no further edits from here.
+- 07 Nov 2026: poll display taken over from Lobby Map (owner dropped the lobby-routing rule). Its ?pollspots=1 blockout in lobby-qa.html (spots A door frames, B NEXT SHOWING board, C TICKETS board, D rooftop billboard) checked with real chat on 18771; screenshots to owner for a pick. poll-draft.js: test ports now save to cache/poll-draft-<port>.json so they can't overwrite the live poll file.
+- 07 Nov 2026: Godot route v5 (NOTES-godot.md): handoff shadow-edge easing (peak 93.6 -> 31.9/255, some GI/fog shift left), Screen 1 doors + curtain animated (open by 35.40 s, camera through 36.27 s), auditorium built (draft-13 look, 37 approx lights), full 50.13 s A+B live timeline with dark cut at 36.667 s. Yaw reversals 14.8/26.4/34.2/43.2 s. Live viewer reopened for the owner.
+- 07 Nov 2026: owner: shudder 3-5 s in route v5; keep it simple, only touch 0-6 s. Diagnosis (tools/qa-fly/screenspeed.py, new): screen speed surges/brakes 33->22->51->9->16 px/f at frames 120/138/152/166 because retreat (60,000 units -> near) and lens are scheduled separately after the 3 s handoff; small dip at 1.8-2.2 s in the ortho pull-back. Sent narrow fix to resumed Codex (frames 1-180 only, 181+ identical).
+- 07 Nov 2026: owner: final renders on 5 pods (mixed GPUs ok). BRIEF-75 to a separate Codex job: cloud-render.sh multi (shared volume, work queue with chunk claims, mixed GPUs, per-pod cleanup, robust to helper kill), smoke locally, no pods.
+- 07 Nov 2026: opening fix done (frames 2-180 only; verified myself: A 181-1100 and part B unchanged vs route-v6-backup; screenspeed no surge/brake, one peak 33.8 px/f at frame 140). Live viewer reopened.
+- 07 Nov 2026: poll screen (owner picked spot B, bigger, roll-up): lobby-qa.html POLL SCREEN block replaces the pollspots blockout; control-qa.html card Lower/Roll up/Zoom to the poll; server stores screen up/down (pollscreen cmd) and reads votes/result from /poll/<id>/results (dinkdonk.pollResults) every 20 s while open. Tested on 18771 with real chat and a replay of today's real Moobies! poll (building, open, results). Not promoted to lobby.html/control.html; live 18770 not restarted.
+- 07 Nov 2026: poll screen made live (owner OK): lobby.html/control.html from QA (backups/2026-11-07-pre-pollscreen-live), 18770 restarted. Restart side effect: a ?everyone=1 check tab was the room's first screen and switched who-walks-in to everyone for a few minutes; restored to tag arealhumanbean (~16 extra walk-ins stayed). Then idea 2 (owner OK): the newest finished film poll's winner (ours from /dd/draft.json or dinkdonk.mov's) goes on screen 1's LED sign + poster as NEXT UP and a NEXT SHOWING overlay on the board, until it's in the watch history (12 h max). Checked with real data (Green Room won kVwkd at 13:02) on 18771, then live (backups/2026-11-07-pre-nextup-live).
+- 07 Nov 2026 (Claude, hands-on): live 'shudder' 3-5 s = playback at ~20 fps (SDFGI rebuilding cascades around the far camera, measured with live_view --perflog/--off=); SDFGI now off while the camera is >250 units out (A ~91-128) + live viewer capped at 30 fps -> 3-6 s ~30 fps, one ~65 ms hitch at ~4.3 s when SDFGI comes back; 0-3 s still ~17 fps (real GI work at 28-39 units). Auditorium black = B lights on layer 1 vs camera cull mask 16 -> light.layers=16, energies + surround matched to the live still. Oncoming car added (sedan_b, car_path.json, far lane, passes ~17.2 s).
+- 07 Nov 2026 13:50: v7 Cycles final DONE on pod (marker DONE), but the local helper crashed at the end (syntax error at line 319: Codex Brief 75 was editing cloud-render.sh while it ran); pod deleted, volume 1jvd0l04mu kept with the result. Fetching with a copy of cloud-render.sh.pre75 (cloud-render-fetch68.sh). Balance $10.43. Lesson: never edit cloud-render.sh while a run uses it - future multi-pod work goes in a separate file or waits.
+- 07 Nov 2026: poll screen round 2 (owner): screen moved forward (v 0.45, down to z 12) so it covers the corridor standee (its cut-out hidden while down); film look on the picture (grain, flicker, vignette, warm tint, scratches, dust); projector on a bracket on the corridor's left wall (u 0) with a light beam, lamp on after the unroll; chatters on their way to a door stop in front of the lowered screen 6-14 s (75%, 12 spots, pollWatchSteps in doorSteps); bubbles keep off the lowered screen (soft rect). Tested on 18771 with real chat, then live (backups/2026-11-07-pre-projector-live).
+
+- 7 Nov 2026 (Claude): Godot opening v7 (owner: "jitter still at 3 s… do the dolly-zoom effect instead"). v6 was a flat
+  ortho zoom-out 0-3 s, then a switch to an equivalent far long-lens camera flying in 3-6 s; the joint at 3 s (plus
+  the shadow fade and SDFGI switching there) read as a jolt. `godot-spike/opening_v7.py` replaces frames 1-180 with one
+  dolly zoom: far pinhole from frame 1 (matches the iso still to 0.06 px), position/dolly/zoom/turn on one eased screen
+  progress; the screen-centre ground point glides along the street like v6 (end swing kept to the last half).
+  QA: screenspeed 1-300 no new speed turns (259/269 pre-existing), campath no yaw reversals 0-9 s. main_v2.gd: shadow
+  fade removed; SDFGI bounce light fades in over the dolly (retreat 250->5) instead of popping. Frames 181+ untouched.
+  Backups: godot-spike/route-v7-backup/. FINAL-CHECKLIST updated.
+- 7 Nov 2026: v7 Cycles final (old route) fetched from volume 1jvd0l04mu (1,504 frames); fetch pod and volume deleted.
+  The helper crash after DONE was Codex Brief 75 editing cloud-render.sh mid-run; never edit it while a run uses it.
+- 07 Nov 2026: control panel: Zoom to the poll moved from the Poll screen card to the Camera card (lobby only); live (backups/2026-11-07-pre-zoombutton-live).
+- 7 Nov 2026: owner on the v7 dolly-zoom opening in the Godot live view: "looks good". v7 Cycles final (old route)
+  checks: flash scan finds no brightness spikes (largest frame-to-frame luma jump 0.016 at the doorway darkening,
+  A1063-1073); campath shows no yaw reversals in 0-9 s. 720p copy fly/v7/flythrough-v7-final-720p.mp4 (24 MB) sent.
+- 07 Nov 2026: poll screen for the hosted edition (not deployed yet): web/server.js /dd/draft (POLL_TOKEN) + /dd/draft.json (screen per room key) + pollscreen in /ctl/cmd + results check; poll-draft.js screens per room, POLL_DRAFT_FILE; shim adds ?k= to /dd/draft.json; build copies poll-draft.js; setup-server.sh makes POLL_TOKEN; userscript 0.2 also posts to the hosted server with a key set in its menu. Tested on web-test 18773 (two rooms: shared poll, separate screens, panel roll-up).
+- 7 Nov 2026 (Claude): auditorium (part B) lighting in Godot (owner: "too much now; the last frames look right").
+  The last frames are the Cycles still itself (endpoint.png overlay from B frame 1475); before that it is Godot light.
+  Measured Godot frame 1474 against endpoint.png per region: screen 3x, seats 2x, walls 1.6x too bright. Causes in
+  cinema_timeline.gd: Cycles AREA lights were converted to omni lights (all directions) with ~linear falloff, and
+  lights.json matrices aim lights down local -Y. Now: AREA -> 70-degree soft spot aimed down -Y, inverse-square falloff,
+  gains 0.02 area / 0.04 point, ambient 0.1; the eight row upholstery fills (which face the screen) no longer light the
+  screen mesh (layer 32). Last measured before the screen split: seats 1.19x, screen 1.6x (row fills alone account
+  for it: without them screen 0.136 vs render 0.141), walls ~0.55-0.7x (a bit dark). Final combination not rendered
+  (owner asked to stop test windows); check in the live view. Backup: route-v7-backup/cinema_timeline.pre-area.gd.
+- 07 Nov 2026 (owner change): hosted poll is per room, not shared: poll-draft.js keeps a poll per room; web/server.js takes a room's poll by room key (POST /dd/draft?k=, X-DD-Draft) and serves each room its own script (/dd/poll-script.user.js?k=: userscript template with SERVER/ROOM_KEY/@connect/@updateURL filled in); control panel: Install your poll script (local: the plain script). Shared POLL_TOKEN removed. Userscript 0.3 = template. Tested on web-test 18773 (2 rooms). Not deployed; control.html (live) not yet updated.
+- 07 Nov 2026: made live (owner OK): control.html from QA (backups/2026-11-07-pre-pollscript-live), local 18770 restarted (walk-in tag and poll kept), hosted edition deployed (healthz ok; per-room poll + /dd/poll-script.user.js checked with the arealhumanbean room: SERVER https://2-29-56-208.sslip.io, its key, @connect the domain).
+- 7 Nov 2026 (Claude): owner: "almost perfect", but shakiness in the first ~4 s and the last ~4-5 s of the auditorium
+  pull-back. Both are where the camera sits tens of thousands of units out. (1) 32-bit rounding at 60,000 units shakes
+  the render ~0.5 px per frame; (2) the B pull-back data itself had ~1 px per-frame aim-point noise (generated/stored
+  in 32-bit far out): speed jumped 0.35-2.2 px/f frame to frame. `godot-spike/cap_distance.py`: soft cap to ~20,000
+  along each frame's own axis (lens scaled, framing kept; frame 1 vs iso still 0.39 px), Gaussian-smoothed B aim point.
+  B 1441-1474 max accel 3.97 -> 0.4 px; swap to the end plate 1.2 px. QA: no new speed turns 1-300, no yaw reversals
+  0-9 s. Backup: route-v7-backup/camera_path.pre-cap.json. Not rendered (no test windows); owner checks live.
+- 7 Nov 2026: owner approved the Godot draft after the shake fix ("alright its good"). Next: Blender port per godot-spike/FINAL-CHECKLIST.md, review Brief 75 multi-pod tooling, then the 5-pod Cycles final on the owner's OK.
+- 7 Nov 2026: Blender port started: BRIEF-76-blender-port.md, Codex resumed (session 01a1b5ae), log codex-76.log, fly/v8/ + cloud/roxy-cloud-bundle-76. Reviewed Brief 75 multi tooling: credit guard needs $12.22 for 5 pods (balance $10.43); guardian MAX_HOURS default 6 h - use MAX_HOURS=2 for the run; stopped pods are removed by the helper or multi-cleanup; Linux side untested live.
+- 7 Nov 2026: Brief 76 done: fly/v8 + cloud/roxy-cloud-bundle-76.tar.gz (sha256 5aea4002...44dd). Paths byte-identical to Godot; car + lamps + wheels; D5 statics removed; sky outer face camera-transparent (far opening was black); 35 local 540p checks; opening 80-100 max luma step 0.59/255; no yaw reversals 0-9 s; legacy + multi smokes passed. Awaiting owner spend OK for the 5-pod final.
+- 7 Nov 2026 16:06: owner 'Go ahead' -> 5-pod Cycles final started (bundle 76). Balance $10.41, no leftovers. Limits: MAX_HOURS=1.5 per pod (guardian), ESTIMATE_HOURS=1.2 -> guard minimum $9.88. Log cloud/run76-final.log. Do not edit cloud/ scripts while it runs.
+- 7 Nov 2026 16:10: first live multi run: both workers failed setup - multi.py run() sent stdin in Windows text mode (CRLF), pod sha256sum saw names ending in CR. Fixed (bytes stdin; backup cloud/multi.py.pre-crlf), helper killed, MULTI_RESUME=1 reused the 2 live pods: both ready 16:10. Only 2/5 4090s available in EU-RO-1. Stale 09:28 'cloud-render.sh full' helper (draft run, waiting on a deleted pod/volume) still alive: WINPID 27788; kill was denied by the permission classifier - owner to close it.
+- 7 Nov 2026 16:15: owner asked me to clean stray processes myself: stale 09:28 helper killed. Owner: 'why only 2 pods?' - EU-RO-1 had only two 4090s free at start; tool doesn't add later. New cloud/add_workers76.py creates extra pods on the same volume (same bootstrap/guardian) and runs the same prepare: +1 4090 (oiaddnfzsceh3g) at 16:14; retry loop every 4 min for 2 more (ids in cloud/add_workers76.json - remove them and the volume after the helper finishes). With 2 GPUs ETA was ~160 min > 90 min cap.
+- 7 Nov 2026: owner: a data center showing High stock should win. cloud/multi.py rank_centers now estimates capacity from the stock label when no count is given (High 4, Medium 2, Low 1) and ranks by it (backup multi.py.pre-stock). Spot test: High beats two Lows. Run test_multi75.py after the live run (with MULTI_STATE pointed at a temp file). Retry loop added a 4th 4090 (5zi6osich80zn0) at 16:17.
+- 7 Nov 2026 16:25: owner saw low GPU use on the RunPod console. Measured on pod 59ol: GPU busy >50% only 27% of samples (mean 32%, ~107 W of ~450), blender at 100% of ONE core of 32. Receipts: 8.6 s/frame total, 7.2 s in render call (~2.5 s path tracing, rest single-threaded scene sync/BVH/motion-blur prep), ~1.4 s save/depth encode. Next time: 2-3 Blender workers per pod on the shared queue (VRAM 4.7 of 24 GB each) - not changed mid-run.
+- 7 Nov 2026 16:20-16:31 (owner: "change the running job", use the GPUs fully): one Blender worker per 4090 kept
+  the GPU ~32% busy (one CPU core does per-frame scene/BVH/motion-blur prep). Started extra workers on the live pods
+  (cloud/extra_worker76.sh copies the running worker's env, new worker name; the queue's per-chunk locks make it
+  safe). Measured: 2 workers 54-70% GPU, 4 workers 96% (VRAM 18.4 of 24 GB). Now 3 workers on 4 pods, 4 on 59ol.
+  ETA 48 -> ~15 min. Retry loop added a 5th 4090 (xg7rzh0y4e0waw) 16:26. cloud/keeper76.sh on every pod holds the
+  boot guardian off while any worker lives (it only watched the original worker) and marks COMPLETE after success.
+  Owner: automate this for all future renders (aim for ~100% GPU) - do after this run, with tests.
+- 7 Nov 2026 16:41: all 1504 frames rendered (~35 min on 5 4090s after tuning). Helper deleted its own 2 idle pods, saw none of its own left and exited (EXIT 1) before collecting - it doesn't know pods added by add_workers76. Finalize/encode ran on added pod oiaddnfzsceh3g (keeper held its guardian); 5zi6/xg7r already gone. Collecting with cloud/fetch76.py via oiad; then remove oiad + volume 1t9qz8nhzr. Lesson for automation: the helper must own every worker pod.
+- 7 Nov 2026 ~16:55: v8 final collected via fetch76.py (5.56 GB, sha ok: 30ec5759...440a), 1504 frames + flythrough_1080p30.webm (50 MB) in fly/v8/cloud-final-result/flythrough67-final. All run pods removed (2 added pods were EXITED and still held the volume), volume 1t9qz8nhzr deleted. Balance $8.21 (run cost ~$2.20). Old 3 Nov stopped pod m0dhqr1o60n2fn (empty, no cost) still awaits owner OK to delete.
+- 7 Nov 2026 17:00: v8 final QA: flash scan no spikes (max luma step 0.013 at A688; opening 0-200 max 0.0024; 1460-1504 none); campath no yaw reversals 0-9 s, one B rising stretch, only the final hold still. Noted: A140-166 (~4.7-5.5 s) nearly black - camera looks over the empty dark area left of the block (approved Godot framing, darker in Cycles). 720p copy fly/v8/flythrough-v8-final-720p.mp4 sent.
+- 7 Nov 2026: owner approved the v8 Cycles final ("alright this is good. gj"). Open: build multi-worker GPU tuning + own-every-pod + High-stock ranking into cloud tooling (owner asked); old 3 Nov stopped pod m0dhqr1o60n2fn awaits OK to delete.
+- 7 Nov 2026: owner 'Yes, build it' -> BRIEF-77-gpu-utilization.md to Codex (resumed session 01a1b5ae), log codex-77.log.
+- 7 Nov 2026 (Claude): chatters in the fly-through, BLOCKOUT (owner: "build the thing that places users inside the video,
+  like the original idea" = Brief 59's "the live page draws the real chatters into it"). roxy3d/fly/transition/
+  build_transition.py (Blender's Python) packs the v8 final into transition.webm 1920x1620: colour on top, two 960x540
+  depth tiles below (coarse 8-bit log depth per frame near/far + a folded fine ramp, period 32 steps; measured median
+  error ~0.03 steps, p95 0.15-0.4) + transition-camera.json (per-frame view/proj/near/far). shared/transition-qa.js:
+  WebGL player over the stage; labelled cards (A = lobby spot frozen at start, B = auditorium seat from the room)
+  stand upright at their world spots, hidden by the per-frame depth. Only lobby-qa.html loads it (key T or ?fly=N;
+  ?flyghost=1 shows hidden parts). standby-server.js: read-only GET /ctl/room-roster?page= (no subscription).
+  Live lobby.html/control.html untouched; 18770 not restarted.
+- 7 Nov 2026 ~17:30: Brief 77 done (multi_supervisor.py auto-tunes 2->4 workers by GPU<90%/VRAM<85%/CPU; guardian waits for all workers; helper tops up pods, owns every pod, reader-pod collection, cleans EXITED pods; telemetry; FRAMES test mode; 12 offline tests + guardian cases + 2-worker Blender smoke). Reviewed. Live test started: 1 pod, FRAMES=1100-1160, 15-min cap, log cloud/run77-test.log.
+- 7 Nov 2026 17:31: 1st live test failed at volume create: ranking picked EUR-IS-2 (4090 Low + 3090 Low), which has no network volumes (RunPod error lists supported DCs). Nothing created. multi.py: VOLUME_DCS allow-list (from RunPod's message; MULTI_VOLUME_DCS override) + VolumeUnsupported -> try next center (backup multi.py.pre-voldc). test_multi77.py 12/12 OK. Rerunning test.
+- 7 Nov 2026 17:34-17:40: Brief 77 live test PASSED: 1 4090 EU-RO-1 (skipped EUR-IS-2/US-MO-1), auto-tuned to 4 workers, GPU 96%, VRAM 13.8/24 GB, 30.6 f/min (vs ~7 f/min with 1 worker), 61/61 frames verified, pod + volume deleted automatically, cost ~$0.14 (balance $8.07).
+- 7 Nov 2026 (Claude): Brief 78 (owner: "Yes, local depth pass"): Codex built fly/v8-depth78/ (Cycles OptiX depth-only,
+  central pose, glass/glazing/rain/fog/steam excluded, 5720 objects in A listed in NOTES-78.md; same-pose opaque pixels
+  match exactly). Full run on 2 local workers stopped at 171/1504 at 18:09 on its 350 MB low-disk guard (free space
+  swung 1.8 GB -> 0.26 GB -> 1.6 GB while Brief 77's tests ran; likely page-file growth at ~0.8 GB commit headroom).
+  Resumed 18:12 with 2 workers after Brief 77 finished; FAILED renamed FAILED-1809-diskguard.txt.
+- 7 Nov 2026 18:20 (Claude): with only Brief 78 running, free disk fell to ~0.6 GB again: page file grew 18.5 -> 19.5 GB
+  (free commit 1.1 GB with 2 Blender workers at ~3.3 GB each). Stopped the job (207/1504 kept) and resumed with
+  -Workers 1 (~14 s/frame, ETA ~23:30). Lesson: on this PC one local Blender depth worker at a time.
+- 7 Nov 2026 (Claude, owner OK): deleted cloud/result-full.tar.gz (5.2 GB, packed v7 fly-through final; frames stay unpacked in fly/v7/cloud-final-result/) to free disk.
+- 7 Nov 2026 19:15 (Claude, owner: "do this on a runpod"): remaining Brief 78 depth frames >= 900 (600 frames) on one
+  RunPod RTX 5090 (pod m2jndut9ezrz07 "dd-depth78", secure, $1.19/h, no volume, 90 min self-stop; 4090s were gone).
+  fly/v8-depth78/podworker78.py + pod78.sh run the unchanged depth78.py (same signature -> receipts merge). Local job
+  keeps rendering below 900. Balance before: $8.07.
+- 7 Nov 2026 19:23 (Claude, owner: workers should adjust to GPU use): pod78.sh now runs a self-sizing pool:
+  podworker78.py workers share one queue (atomic mkdir claims), start 4, and every 15 s the controller adds one
+  (max 12, >=45 s apart) while the GPU averages <95% busy with >4 GB VRAM and >8 GB RAM free; dead workers' frames
+  are re-queued (3 rounds). Swapped the running pod job at 98/600 (first start failed: missing inventory-*.json, then
+  missing libEGL - the cloud helper's apt list is needed on runpod/base). Lesson: never `pkill -f <script>` over ssh
+  when the ssh command line contains that name (it killed the session).
+- 7 Nov 2026 19:38 (Claude): pod finished 600/600 (self-sizing pool went 4 -> 8 workers, GPU 91-99%, stopped at the
+  4 GB VRAM floor; ~40 frames/min). result78.tar sha a4c01be5... verified, pod deleted, no volumes; cost ~$0.61
+  (balance $7.46). Local job stopped after 1-899. Merged 595 pod frames (5 overlapped, 0 bad): fly/v8-depth78/depth
+  complete 1504/1504. Old first-hit video kept as fly/transition/transition-firsthit.webm; rebuilding transition.webm.
+- 7 Nov 2026 19:50 (Claude): transition.webm rebuilt from the glass-free depth (51 MB, was 82 MB). Checked on 18771
+  with real chat (62 in the lobby): frame 560 shows the people inside the lobby through the front glass (mullions cut
+  them correctly, no rain speckle); frame 700 shows both cashiers behind the ticket glass, counter hides their lower
+  half; queue ropes still occlude. Stills fly/transition/qa/f0560-noglass.jpg, f0700-noglass-cashiers.jpg.
+- 7 Nov 2026 (Claude, owner picked "Emote sprites"): shared/transition-qa.js draws each chatter's real emote (first
+  frame of its DGG sprite CSS, lobby size/facing: page px -> world w/84.85, h/73.48, so frame 1 matches) with the
+  name label above the head (14 px Oswald pill, chat colour / rainbow; staff unnamed). Auditorium entries use their
+  room emote (or Cinema.defaultEmote) and flair colour. Images go through /dgg/emote-img (proxy only takes the
+  versioned CDN path from emotes.json; CSS uses unversioned -> mapped by file name). Checked on 18771 with real chat:
+  frame 1 matches the lobby, frame 700 sprites behind ropes + cashiers behind glass, frame 1420 all 135 seated.
+  Not yet: animated emotes (first frame only), carried items/umbrellas/hats, walking poses. Stills fly/transition/qa/*-sprites.jpg.
+- 7 Nov 2026 (Claude, owner: names "Fixed screen size"): name labels are now separate screen-space quads (the lobby's
+  14 px Oswald pill at every distance, own 2x atlas), pinned 3 px above the head; a label shows only when its owner's
+  head point is visible in the depth (no names through walls, no per-pixel cut-off). Sprites stay world-size.
+  Checked on 18771 with real chat (frames 700 and 1420). Still fly/transition/qa/f0700-screenlabels.jpg.
+- 7 Nov 2026 (Claude, owner: "Animate emotes first"): transition-qa.js samples each emote's CSS animation (Web
+  Animations API, up to 24 frames: sprite-sheet steps + transforms; finite animations = end state) and decodes GIF
+  emotes (ImageDecoder), all frames in one atlas with timings; each chatter loops with its own phase. 5 s limit per
+  emote, emote fetches with timeouts, [fly] progress logs, QA hook DD_FLY_ANIMATED(). Checked on 18771 with real chat:
+  ~80 emotes / ~200 frames sampled in ~120 ms; pixel readback at the static end frame changes for animated chatters
+  (NODDERS, PoroPls, Skip) and stays fixed for static ones. Also: the video element is now full size under the canvas
+  and play() retries (Chrome paused the 2 px hidden video as "video-only background media"). Found: at the wide
+  auditorium end all 135 names cover the emotes (strip fly/transition/qa/f1500-anim-strip.jpg).
+- 7 Nov 2026 (Claude, owner: names "like the lobby"): flight names follow the lobby rule: only chatters whose last
+  message/arrival (room roster `last`) is under 120 s old when the flight starts get a name; per frame, most recent
+  first, a name overlapping one already placed (or off screen) fades out over 0.4 s until clear. Checked on 18771 with
+  real chat: the wide auditorium end shows the emotes with a few names instead of 135; frame 700 has a handful.
+  Stills fly/transition/qa/f1500-names-recent.jpg, f0700-names-recent.jpg.
+- 7 Nov 2026 (Claude, owner: "Bridge switches it"): fly-through hooked to the scene switch (QA copies + bridge).
+  control-qa.html: "Fly to the auditorium" (Camera card, lobby only) sends cmd 'fly'; lobby-qa.html control() plays
+  it in cut mode. transition-qa.js cut mode: auditorium 'wide' at the start and 2.5 s before the end; during part B
+  the canvas shifts by the lobby's cover crop (210 stage px for the 2000x1440 OBS source; jump hidden in the black
+  A1100->B1 cut) so the last frame = the cinema scene's left 2000 px; debug line hidden; on the last frames the copy
+  inside OBS (window.obsstudio, or ?flycut=1) POSTs http://127.0.0.1:18790/cut-to-cinema; if that fails the last frame
+  holds 20 s for a manual switch. obs-bridge.js: POST /cut-to-cinema (this PC + standby page origins only; {dry} reads
+  only): turns the auditorium source's "refresh when active" off, Cut transition, program -> "DinkDonk Cinema", then
+  restores Fade + refresh after 1.5 s. Tested end to end against a fake obs-websocket (fly/transition/test/fake-obs.js)
+  on 18774 with real chat: panel cmd -> flight -> shift 210 -> cut + restore in the right order; final lobby frame vs
+  auditorium-qa at 1280x720 line up. Not tested with real OBS (OBS was closed); bridge must be restarted to get it.
+  Not promoted: lobby.html/control.html live untouched. .claude/launch.json: standby-fly test server on 18774.
+- 7 Nov 2026 (Claude, owner: "migrate the url modifiers to the control panel"; picked "Show settings only" + "Server
+  remembers"): new panel card "Scene settings" in control-qa.html. Lobby: bubble look, bubbles max, poll screen on/off,
+  crowd, quit chance, janitor (none/always/3d), janny idle, extra rain style/brightness/speed/steps, weather clock,
+  mist style/brightness. Auditorium: bubble look, screen always green, slide change, seated size/lift, leave, doze,
+  chatty, phones, kick, janny idle. Setup/test options (artdir, maxres, draft, layout, fit, ctl, room, bridge, relay,
+  qb, raintune, demo) stay URL-only; everyone/tag, director, zoom, phase were already in the panel.
+  How: shared/settings.js (schema + validation, remembered in cache/ctl-settings.json); standby-server.js handles
+  {cmd:'setting'|'settingsReset'} on /ctl/cmd, sends {cmd:'settings', values} to every screen of the scene (also on
+  connect, so a reload keeps them), GET /ctl/settings for the panel. URL values stay the defaults; ↺ / "Reset all"
+  goes back to them. lobby-qa/auditorium-qa: the consts became live lets + setters (mist/extra rain load lazily the
+  first time they're on; extra rain "off" fades its weights to 0 so the fg rain video still shows); pages report
+  settings + urlSettings in /ctl/state. shared/room.js: optional crowd() hook so the panel's crowd reaches the room.
+  Tested on 18771 with real chat: every setting applied live in both QA scenes, reload and server restart keep them,
+  ↺ and Reset all restore the link values, old lobby.html/auditorium.html ignore the new messages, no console errors.
+  standby-server.js + shared/room.js changed in place (backward compatible; 18770 needs a restart to get it).
+  Not promoted: lobby.html, auditorium.html, control.html live untouched.
+- 7 Nov 2026 (Claude, owner: "Yes, promote"): scene settings promoted to lobby.html, auditorium.html, control.html.
+  Backup first: backups/2026-11-07-pre-scene-settings-live/ (the three live pages; plus git HEAD copies of
+  standby-server.js and shared/room.js). Ported only the settings edits: lobby.html = lobby-qa minus the fly-through
+  bits (DD_FLY, 'fly' case, transition-qa.js, "Lobby QA" title); control.html = control-qa minus the Fly button;
+  auditorium.html = auditorium-qa (they were identical before). Checked on 18771 with real chat: panel card shows 14
+  lobby / 11 auditorium settings, both live scenes react (comic bubbles, lamp-lit mist, green screen, seated size),
+  no console errors in fresh tabs; test settings reset, test server stopped. The 18770 server was not running; its
+  next start loads the new server code. Docs: docs/server-and-shared.md "Scene settings" now applies to the live pages.
+- 7 Nov 2026 ~20:52 (Claude, owner: "Yes, with OBS"): real-OBS run (not streaming/recording; collection
+  "Moobies 1440p poll"; lobby source temporarily -> lobby-qa.html, restored after): panel 'fly' -> flight in the lobby
+  scene -> bridge cut to "DinkDonk Cinema" ~52 s later, Fade restored. Flight's last frame correct in OBS. BUT the
+  auditorium was black at the cut and still loading 3 s later: SetInputSettings on a browser source (the bridge's
+  temporary refresh-off/on toggle) itself reloads the page. Bridge fixed: never touches source settings; warns if
+  "Refresh browser when scene becomes active" is on. Seamless cut needs that option off on "Browser 3" (owner's call).
+  Shots: fly/transition/test/obs-shots/. Test scripts: fly/transition/test/obs-status.js, obs-fly-test.js.
+- 7 Nov 2026 ~20:56 (Claude, owner: "Yes, you do it"): turned off "Refresh browser when scene becomes active" on OBS
+  source "Browser 3" (auditorium) via obs-websocket (not streaming/recording; reloaded the auditorium once). Real-OBS
+  run 2: panel 'fly' -> flight -> cut to "DinkDonk Cinema" ~52 s later with no auditorium reload; Fade restored; lobby
+  source URL restored to roxy.html. The cut is seamless: room, seats and seated chatters line up; only the page's own
+  speech bubbles, the screen slide and the right 560 px (poll builder area) change. Stills fly/transition/qa/obs-cut-
+  before.jpg / obs-cut-after.jpg. Left running: standby server 18770 and the updated obs-bridge (terminal tab).
+  Still QA-only: lobby.html/control.html not promoted (lobby-qa.html also holds the settings session's work).
+- 7 Nov 2026 (Claude, owner: "Yes, add it" = scene settings on the web edition): web/server.js keeps one settings set per
+  room key (shared/settings.js, DATA/settings/<key>.json; deleted on revoke), sends it on /ctl/events connect and on
+  'setting'/'settingsReset', serves GET /ctl/settings?k=; the room's crowd() hook reads the room's lobby crowd.
+  web/build.js copies shared/settings.js next to server.js. control.html needed no change (the shim keys /ctl/*).
+  Tested on the local web server 18773 with a fresh test room and real chat: card shows, lobby/auditorium react,
+  reload keeps the settings, another room's values stay empty, no key = 403, revoke removes the file, no console
+  errors. Not deployed to the Hetzner server yet (waiting for the owner's OK).
+- 7 Nov 2026 ~21:03 (Claude, owner: "Yes, make it live"): fly-through made live. Backups backups/2026-11-07-pre-
+  flythrough-live/ (lobby.html, control.html). lobby.html = lobby-qa.html (title Lobby, loads shared/transition.js, a
+  live copy of shared/transition-qa.js); control.html = control-qa.html (live and QA differed only by the fly changes;
+  the settings session's work was already live). docs/owner-workflow.md step 3 updated. Checked: live lobby loads with
+  no console errors; real OBS run with the live lobby source (roxy.html -> lobby.html) and the live panel's button:
+  cut to "DinkDonk Cinema" ~52 s later, no auditorium reload, Fade restored (fly/transition/qa/obs-live-cut-after.jpg).
+  18770 not restarted (it was started 20:50 with the room-roster route). obs-bridge must run the new code (restart).
+- 7 Nov 2026 21:10 (Claude, owner: "Yes, deploy"): web edition deployed to the Hetzner server (web/deploy/deploy.sh,
+  725 MB, exit 0, service active, healthz ok, 6 rooms reloaded). On the server: settings.js next to server.js, the
+  Scene settings card in site/control.html, applySettings in site/lobby.html. The build already had the fly-through
+  promotion (lobby.html loads shared/transition.js, Fly button), but not its assets (roxy3d/fly/transition/*) nor a
+  /ctl/room-roster route in web/server.js: the Fly button likely fails on the hosted site. Told the fly-through
+  session; nothing changed for it here.
+- 7 Nov 2026 (Claude, owner: hosted fly-through "Yes, make it work"): package/art.js lists the fly-through video +
+  camera table (zip and hosted builds); web/server.js: GET /ctl/room-roster, POST /ctl/cut-to-cinema (hands {cut} to
+  the room's control panel = relay host; 409 without one); web/shim.js: the page's POST :18790/cut-to-cinema goes to
+  /ctl/cut-to-cinema (JSON body: the server takes JSON only), the panel's makeBridge.cut() switches OBS to "DinkDonk
+  Cinema" with Cut and restores the transition right after (no timer, no source settings); web/setup.html creates the
+  auditorium source with restart_when_active false. Tested on web-test 18773 with a test room, real chat and a fake
+  OBS on the panel: panel Fly -> hosted flight (20 lobby + 15 seated) -> /ctl/cut-to-cinema 200 relayed -> fake OBS
+  got Cut + program DinkDonk Cinema + transition back. web/README.md row added. Deploying (deploy-fly.log).
+- 7 Nov 2026 ~21:25 (Claude): hosted edition deployed with the fly-through (build 778 MB; service active, healthz ok).
+  Checked on https://2-29-56-208.sslip.io: transition.webm + transition-camera.json + shared/transition.js served,
+  web/shim.js has the cut code, /ctl/room-roster without a key = 403. Not tried with a streamer's real OBS on the
+  hosted site. Existing hosted streamers re-run setup.html once to get the auditorium source without refresh.
+  The zip package (package/build.js) also picks up the fly-through files now, but it was not rebuilt.
+
+## 7 Nov 2026 - RunPod cleanup
+Deleted the old stopped pod m0dhqr1o60n2fn (dinkdonk-full, L40S, 3 Nov, empty) on owner OK. No pods left on the account.
+- 7 Nov 2026 (Claude): perf audit of lobby + auditorium with real chat. Earlier "jank" (auditorium p95 25 ms) came from
+  orphaned headless Edge left by the QA tools, not the pages. Clean: lobby ~105 fps p99 ~11 ms; auditorium 95-103 fps
+  p99 17-20 ms, only 3-6 long tasks in the first 15 s after load. Small style-write tweaks in lobby-qa/auditorium-qa:
+  safe, no measurable gain, not promoted (backups in backups/2026-11-07-pre-perf/). Fixed the QA tools to kill the
+  Edge tree on exit and to stream trace.mjs SAVE=1 output.
+- 8 Nov 2026 (Claude): measured live lobby.html and auditorium.html inside the portable OBS (2560x1440 @ 60, real chat,
+  60 s each). Lobby: 60 fps, p99 16.8 ms, 0 frames over 20 ms. Auditorium (135 walkers): 59.7 fps, p99 16.8 ms, 19
+  frames over 20 ms and 4 over 33 ms in 60 s (~0.5%). OBS render 0.21 ms, 0 skipped frames. Output:
+  roxy3d/qa-night/tools/res/obsmeasure-2026-11-08.txt. Portable OBS binaries copied back (~490 MB).
+- 8 Nov 2026 (Claude, owner: "the zoom amount on the control panel should work for the movie poll screen"):
+  lobby-qa.html: "Zoom to the poll" = the screen's fit zoom x (Zoom amount / default 1.85), clamped 1.2-4; moving the
+  slider while the camera is on the poll re-aims it (panel cmd and room snapshot). Checked on 18774 with real chat
+  (camera target via new QA hook DD_FLY.camera()): 1.85 -> 3.98 (unchanged), 1.30 -> 2.80, 2.60 -> 4.00 (cap; the fit
+  is already ~4, so in practice the slider only zooms the poll out). Not watched on screen (pane was not rendering).
+  QA only; lobby.html not promoted.

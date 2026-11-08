@@ -2,7 +2,8 @@
 
 // OBS bridge for the auditorium's film screen. The auditorium page inside OBS (Browser 3) sends where the screen is
 // on every camera move; this pins the VLC capture ("Film screen (src)") onto it through obs-websocket and shows it
-// only while the phase is Film. Nothing else in OBS is touched.
+// only while the phase is Film. The one other thing it does: on the lobby's request (POST /cut-to-cinema, at the end of
+// the fly-through) it cuts the program to the cinema scene (see cutToCinema). Nothing else in OBS is touched.
 //
 // Page -> bridge (WebSocket on PORT, text frames of JSON):
 //   { film: true|false, w: <viewport px>, h: <viewport px>, quad: [[x,y] TL, TR, BR, BL] }   (viewport px)
@@ -126,7 +127,57 @@ let busy = false;
 
 const ownAddresses = () => new Set(['127.0.0.1', '::1', ...Object.values(os.networkInterfaces()).flat().map((i) => i.address)]);
 
+// Lobby fly-through -> cinema (lobby page, POST /cut-to-cinema, body {dry?}): one hard cut to SCENE on the flight's last
+// frame, where the lobby shows the auditorium's own picture: the transition is a Cut for this one switch and is put
+// back right after. The auditorium source's settings are never touched here: changing any browser-source setting makes
+// OBS reload the page (seen in the 7 Nov real-OBS test: black at the cut). Its "Refresh browser when scene becomes
+// active" must be off for a seamless cut; if it is on, the cut still happens and the log says so.
+// {dry: true} only reads what it would do.
+async function cutToCinema(dry) {
+  const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
+  const aud = items.find((i) => i.inputKind === 'browser_source');
+  const { transitionName } = await request('GetCurrentSceneTransition');
+  const prev = aud ? (await request('GetInputSettings', { inputName: aud.sourceName })).inputSettings || {} : {};
+  const refreshOn = !!prev.restart_when_active;
+  const plan = { scene: SCENE, auditorium: aud?.sourceName || null, transition: transitionName, refreshOn };
+  if (dry) return { dry: true, ...plan };
+  if (refreshOn) log(`warning: "${aud.sourceName}" has "Refresh browser when scene becomes active" on: it reloads at the cut`);
+  try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message}): using ${transitionName}`); }
+  await request('SetCurrentProgramScene', { sceneName: SCENE });
+  setTimeout(async () => {
+    try { await request('SetCurrentSceneTransition', { transitionName }); } catch (e) { log(`restore after the cut failed: ${e.message}`); }
+  }, 1500);
+  return plan;
+}
+const LOCAL_PAGE = /^http:\/\/(127\.0\.0\.1|localhost):187\d\d$/;   // the standby screens (18770 live, 18771 test)
+function cutRoute(req, res) {
+  const from = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+  const origin = req.headers.origin || '';
+  const reply = (code, obj) => {
+    res.writeHead(code, { 'Content-Type': 'application/json', ...(LOCAL_PAGE.test(origin) ? { 'Access-Control-Allow-Origin': origin } : {}) });
+    res.end(JSON.stringify(obj));
+  };
+  // only the standby pages on this PC: no phone on the LAN and no other web page may switch the stream's scene
+  if (!ownAddresses().has(from) || (origin && !LOCAL_PAGE.test(origin))) return reply(403, { error: 'forbidden' });
+  let body = '';
+  req.on('data', (c) => { body += c; if (body.length > 1024) req.destroy(); });
+  req.on('end', async () => {
+    let b = {};
+    try { b = body ? JSON.parse(body) : {}; } catch { /* empty */ }
+    if (!obs.ready) return reply(503, { error: 'OBS not ready' });
+    try {
+      const r = await cutToCinema(!!b.dry);
+      log(r.dry ? `cut to cinema (dry): ${JSON.stringify(r)}` : `cut to "${SCENE}" (lobby fly-through)`);
+      reply(200, r);
+    } catch (e) {
+      log(`cut to cinema failed: ${e.message}`);
+      reply(500, { error: e.message });
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
+  if (req.method === 'POST' && req.url === '/cut-to-cinema') { cutRoute(req, res); return; }
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(`obs-bridge: OBS ${obs.ready ? 'ready' : 'not ready'}, ${pages.size} page(s), film ${want.film ? 'on' : 'off'}\n`);
 });

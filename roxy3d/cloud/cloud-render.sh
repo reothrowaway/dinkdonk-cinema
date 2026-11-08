@@ -19,6 +19,15 @@
 # Start it from a terminal of its own (not inside a Claude session), so it outlives the session.
 set -euo pipefail
 
+# Brief 75: isolated dispatcher; legacy full/smoke/fetch code below is unchanged.
+case "${1:-}" in
+  multi|multi-cleanup|multi-peek) exec bash "$(dirname "$0")/cloud-multi.sh" "$@" ;;
+  peek)
+    if [[ "${FETCH_MODE:-}" == multi || ( -z "${FETCH_MODE:-}" && -f "${MULTI_STATE:-$(dirname "$0")/cloud-state-multi.json}" ) ]]; then
+      exec bash "$(dirname "$0")/cloud-multi.sh" multi-peek "${2:-6}"
+    fi ;;
+esac
+
 MODE="${1:-smoke}"
 case "$MODE" in smoke|full|fetch|peek) ;; *) echo "usage: $0 smoke|full|fetch|peek [N]" >&2; exit 2 ;; esac
 HERE="$(cd "$(dirname "$0")" && pwd)"

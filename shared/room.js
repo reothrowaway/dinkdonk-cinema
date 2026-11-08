@@ -80,7 +80,7 @@ function seatsFromLayout(file) {
  *   layoutFile  roxy3d/qa11/cinema_layout_13.json (auditorium seats)
  *   emoteNames  () => Set of DGG emote names (may be empty until the emote list loaded)
  */
-function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set(), log = () => {} } = {}) {
+function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set(), log = () => {}, crowd = () => undefined } = {}) {
   let seats = null;
   const getSeats = () => (seats ||= (layoutFile && seatsFromLayout(layoutFile)) || null);
 
@@ -194,9 +194,13 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     // head count: the room's chatters the leading screen still shows (jannies are never in the roster), else the roster
     const keys = new Set(roster.map((e) => e.key));
     const live = rep ? rep.chatters.filter((c) => keys.has(String(c.nick || '').toLowerCase())).length : roster.length;
-    if (live >= LOBBY.CAP || outside >= LOBBY.CROWD * 2) return 5;
-    if (outside >= LOBBY.CROWD * 1.5) return 3;
-    return outside >= LOBBY.CROWD ? 2 : 1;
+    // the panel's lobby crowd setting (shared/settings.js, like lobby.html ?crowd=): 0 = never thin, else 4-60
+    const set = crowd();
+    if (set === 0) return 1;
+    const CROWD = Number.isFinite(set) ? clamp(set, 4, 60) : LOBBY.CROWD;
+    if (live >= LOBBY.CAP || outside >= CROWD * 2) return 5;
+    if (outside >= CROWD * 1.5) return 3;
+    return outside >= CROWD ? 2 : 1;
   }
   let crowdN = 0;
   function crowdSkip(nick) {

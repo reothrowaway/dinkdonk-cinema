@@ -64,9 +64,10 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
    delete pods and volumes afterwards, and never put API keys in files.
 8. **Files are byte-exact.** Art packs carry SHA-256 manifests, and `.gitattributes` turns off line-ending
    conversion. Don't re-save, re-encode or reformat art or manifests by hand.
-9. **This repo is public.** No passwords, tokens, API keys, stream keys, OBS websocket passwords, account IDs or
+9. **No computer use.** Agents (Codex included) must not drive other apps on the owner's PC (browser, history, media players); check videos by decoding frames.
+10. **This repo is public.** No passwords, tokens, API keys, stream keys, OBS websocket passwords, account IDs or
    billing details, in code or in docs.
-10. **Git.** Commit and push only when the owner asks. Auditorium art in `roxy3d/qa11/` is ignored as a folder;
+11. **Git.** Commit and push only when the owner asks. Auditorium art in `roxy3d/qa11/` is ignored as a folder;
     add exactly the files the page loads with the recipe in [README.md](README.md). Draft, QA and old pack folders
     stay local.
 

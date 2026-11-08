@@ -1,7 +1,8 @@
 // DinkDonk Cinema, hosted edition: loaded first in lobby.html, auditorium.html and control.html (the server injects it),
 // so the pages run unchanged from the local version:
-//   - /ctl/* calls get the room key (?k=) from this page's own URL
+//   - /ctl/* calls get the room key (?k=) from this page's own URL (and /dd/draft.json: the poll screen is up or down per room)
 //   - the chat socket (ws://127.0.0.1:18765/__dgg_chat_ws) goes to this server's shared relay instead
+//   - the fly-through's cut (POST :18790/cut-to-cinema) goes to this server, which hands it to the room's control panel
 //   - the auditorium's film-screen bridge (ws://<host>:18790) is answered right here, by the same logic as
 //     obs-bridge.js, talking to OBS's own WebSocket server on the streamer's PC (ws://127.0.0.1:4455):
 //       direct: the auditorium (inside OBS) talks to OBS itself. OBS password/port come from the URL's #fragment
@@ -21,12 +22,21 @@
   const keyed = (u) => {
     try {
       const url = new URL(u, location.href);
-      if (url.origin === location.origin && url.pathname.startsWith('/ctl/')) { url.searchParams.set('k', KEY); return url.href; }
+      // (the poll screen's state is per room too: /dd/draft.json)
+      if (url.origin === location.origin && (url.pathname.startsWith('/ctl/') || url.pathname === '/dd/draft.json')) { url.searchParams.set('k', KEY); return url.href; }
     } catch { /* not a URL: leave it */ }
     return u;
   };
   const nativeFetch = window.fetch.bind(window);
-  window.fetch = (input, init) => nativeFetch(typeof input === 'string' || input instanceof URL ? keyed(String(input)) : input, init);
+  // the fly-through's cut (shared/transition.js asks the local obs-bridge on :18790): here it goes to this server, which
+  // passes it to the room's control panel (it holds the streamer's OBS link) - see /ctl/cut-to-cinema in server.js
+  const isCut = (u) => { try { const x = new URL(u, location.href); return x.port === '18790' && x.pathname === '/cut-to-cinema'; } catch { return false; } };
+  window.fetch = (input, init) => {
+    if ((typeof input === 'string' || input instanceof URL) && isCut(String(input))) {
+      return nativeFetch(keyed('/ctl/cut-to-cinema'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: init?.signal });
+    }
+    return nativeFetch(typeof input === 'string' || input instanceof URL ? keyed(String(input)) : input, init);
+  };
   const NativeES = window.EventSource;
   window.EventSource = class extends NativeES { constructor(url, opts) { super(keyed(String(url)), opts); } };
   const NativeWS = window.WebSocket;
@@ -184,9 +194,20 @@
       if (obs.ready && obs.itemId != null && obs.filmShown) request('SetSceneItemEnabled', { sceneName: SCENE, sceneItemId: obs.itemId, sceneItemEnabled: false }).catch(() => {});
       if (obs.ws) obs.ws.close();
     }
+    // The fly-through's end (as obs-bridge.js cutToCinema): one hard cut to SCENE, then the streamer's transition back.
+    // Never touches source settings (that reloads a browser source). Restored right after the switch, not on a timer:
+    // the relay host may be a background tab.
+    async function cut() {
+      const { transitionName } = await request('GetCurrentSceneTransition');
+      try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message})`); }
+      try { await request('SetCurrentProgramScene', { sceneName: SCENE }); } finally {
+        await request('SetCurrentSceneTransition', { transitionName }).catch(() => {});
+      }
+      log(`cut to "${SCENE}" (lobby fly-through)`);
+    }
     addEventListener('pagehide', close);
     obsConnect();
-    return { onPage, close, isReady: () => obs.ready };
+    return { onPage, close, cut, isReady: () => obs.ready };
   }
 
   // What auditorium.html gets back from `new WebSocket('ws://<host>:18790')`: a socket-shaped object that answers like
@@ -270,6 +291,7 @@
           let m;
           try { m = JSON.parse(e.data); } catch { return; }
           if (typeof m.pages === 'number') { state.pages = m.pages; show(); return; }
+          if (m.cut === true) { bridge.cut().catch((err) => log(`cut failed: ${err.message}`)); return; }   // fly-through end
           bridge.onPage(e.data);
         };
         ws.onclose = () => { state.relay = false; state.pages = 0; show(); setTimeout(open, 3000); };

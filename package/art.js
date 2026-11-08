@@ -39,6 +39,11 @@ function artFiles(standby, fail) {
     // the @2x guesses and provenance-only names may not exist
     if (fs.existsSync(path.join(standby, audArt, rel))) { files.push(audArt + rel); audCount++; }
   }
+  // the lobby -> auditorium fly-through (shared/transition.js): packed video (colour + depth) and its camera table
+  for (const rel of ['roxy3d/fly/transition/transition.webm', 'roxy3d/fly/transition/transition-camera.json']) {
+    if (!fs.existsSync(path.join(standby, rel))) fail(`fly-through file missing: ${rel}`);
+    files.push(rel);
+  }
   return { files, draft, audArt, audCount };
 }
 

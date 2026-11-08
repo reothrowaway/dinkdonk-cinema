@@ -23,6 +23,8 @@
   button:hover { border-color: var(--acc); }
   button.on { background: var(--acc); color: #06131e; border-color: var(--acc); font-weight: 600; }
   button.danger:hover { border-color: var(--warn); color: var(--warn); }
+  a.btn { background: #262a35; color: var(--text); border: 1px solid #3a3f4d; border-radius: 7px; padding: 7px 13px; text-decoration: none; }
+  a.btn:hover { border-color: var(--acc); }
   input, select { background: #10121a; color: var(--text); border: 1px solid #3a3f4d; border-radius: 7px; padding: 7px 10px; font: inherit; }
   button:disabled { opacity: .45; cursor: default; }
   label { color: var(--dim); }
@@ -34,6 +36,14 @@
   .state { color: var(--dim); }
   .state b { color: var(--text); font-weight: 600; }
   .empty { color: var(--dim); padding: 10px 0; }
+  .sets { display: grid; grid-template-columns: minmax(200px, max-content) minmax(150px, max-content) 1fr; gap: 6px 14px; align-items: center; }
+  .sets h3 { grid-column: 1 / -1; margin: 10px 0 0; font-size: 13px; color: var(--dim); font-weight: 600; }
+  .sets h3:first-child { margin-top: 0; }
+  .sets .lab { color: var(--text); }
+  .sets .lab.set::before { content: '● '; color: var(--acc); }
+  .sets .note { color: var(--dim); font-size: 13px; }
+  .sets input[type=number] { width: 110px; }
+  .sets button.undo { padding: 2px 8px; font-size: 13px; margin-left: 6px; }
   kbd { background: #262a35; border: 1px solid #3a3f4d; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 13px; }
 </style>
 </head>
@@ -68,6 +78,17 @@
   <div class="state" id="downloadstate"></div>
 </div>
 
+<div class="card" id="pollcard">
+  <h2>Poll screen (lobby)</h2>
+  <div class="row">
+    <button id="pollopen" title="Unrolls the screen on the corridor back wall: the poll being built, then the open poll, then the result">Lower the poll screen</button>
+    <button id="pollclose" title="Rolls the screen back up">Roll it up</button>
+    <a id="pollscript" class="btn" href="/dd/poll-script.user.js" target="_blank" rel="noopener"
+      title="Needs Tampermonkey or Violentmonkey in your browser. Then build your poll on dinkdonk.mov as usual: the movies show up on your lobby's poll screen as you add them">Install your poll script</a>
+  </div>
+  <div class="state" id="pollstate"></div>
+</div>
+
 <div class="card">
   <h2>Camera</h2>
   <div class="row">
@@ -75,12 +96,22 @@
     <button id="next">Follow the next arrival</button>
     <button id="random">Follow someone now</button>
     <button id="auto">Automatic director</button>
+    <button id="pollzoom" title="Lobby: the camera moves in on the poll screen; Wide shot comes back">Zoom to the poll</button>
+    <button id="fly" title="Lobby: the camera flies through the street into the auditorium (about 50 s), then OBS cuts to the cinema scene (needs obs-bridge.js)">Fly to the auditorium</button>
   </div>
   <div class="row">
     <label>Every <input id="every" type="number" min="30" max="1800" step="10" style="width:90px"> s</label>
     <label>Zoom <input id="zoom" type="range" min="1.2" max="3" step="0.05" style="vertical-align:middle"> <span id="zoomv"></span>×</label>
   </div>
   <div class="state" id="dirstate"></div>
+</div>
+
+<div class="card" id="setcard" hidden>
+  <h2>Scene settings</h2>
+  <div class="state" style="margin-bottom:10px">Live on every screen of this scene. The server remembers them, so a reloaded
+    OBS source keeps them. <span style="color:var(--acc)">●</span> = set here; the rest come from the screen's link (URL).</div>
+  <div class="sets" id="sets"></div>
+  <div class="row" style="margin:12px 0 0"><button id="setreset" class="danger" title="Every setting of this scene goes back to what the screen links say">Reset all to the screen links</button></div>
 </div>
 
 <div class="card">
@@ -122,7 +153,7 @@
   let preshow = null;
   // switching scene clears the old scene's rows at once (a refresh in flight kept them clickable, and a Follow/Remove
   // there went to the newly selected scene)
-  $('page').onchange = () => { dir = null; for (const tr of chatterRows.values()) tr.remove(); chatterRows.clear(); refresh(); };
+  $('page').onchange = () => { dir = null; setScreen = null; for (const tr of chatterRows.values()) tr.remove(); chatterRows.clear(); refresh(); refreshSettings(); };
   for (const b of document.querySelectorAll('[data-phase]')) b.onclick = () => send({ cmd: 'phase', value: b.dataset.phase });
   $('phaseauto').onclick = () => send({ cmd: 'phaseAuto', on: !preshow?.auto });
   $('movie').onclick = () => send({ cmd: 'movie' });
@@ -130,6 +161,23 @@
   $('lightson').onclick = () => send({ cmd: 'lights', on: !preshow?.lightsOn });
   $('houseout').onclick = () => send({ cmd: 'houseOut', on: !preshow?.houseOut });
   $('reset').onclick = () => send({ cmd: 'reset' });
+  // the lobby's roll-up poll screen (lobby.html "POLL SCREEN"; the server remembers up/down for every screen)
+  $('pollopen').onclick = () => send({ cmd: 'pollscreen', on: true, page: 'lobby' }).then(refreshPoll);
+  // this room's own poll script (hosted: the room key goes along, and only this room's poll is changed by it)
+  { const k = new URLSearchParams(location.search).get('k'); if (k) $('pollscript').href = `/dd/poll-script.user.js?k=${encodeURIComponent(k)}`; }
+  $('pollclose').onclick = () => send({ cmd: 'pollscreen', on: false, page: 'lobby' }).then(refreshPoll);
+  $('pollzoom').onclick = () => send({ cmd: 'pollzoom', page: 'lobby' });
+  $('fly').onclick = () => send({ cmd: 'fly', page: 'lobby' });
+  async function refreshPoll() {
+    let j;
+    try { j = await (await fetch('/dd/draft.json', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('pollstate').textContent = 'No poll data (an older standby-server.js?).'; return; }
+    const d = j.draft;
+    const open = !!j.screen?.open;
+    $('pollopen').classList.toggle('on', open);
+    const what = !d ? 'no poll yet (build one on dinkdonk.mov with the userscript on)'
+      : `"${d.title || 'untitled'}" · ${{ building: 'being built', open: 'open for voting', closed: 'finished' }[d.state] || d.state} · ${d.options.length} movie${d.options.length === 1 ? '' : 's'}`;
+    $('pollstate').innerHTML = `Screen <b>${open ? 'down' : 'rolled up'}</b> · ${what.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`)}`;
+  }
   // shared room (web/PLAN-shared-rooms.md): the server keeps one lobby and one auditorium for every screen
   $('clearlobby').onclick = () => { if (confirm('Clear the lobby on every screen?')) send({ cmd: 'reset', page: 'lobby' }); };
   $('who').onchange = () => { $('whonick').hidden = $('who').value !== 'tag'; };
@@ -151,6 +199,74 @@
       + ` · walk in: ${r.tag ? `chatters who tag ${r.tag}` : 'everyone who chats'}${r.fromPanel ? '' : ' (from the screen links; Set overrides them)'}`
       + ` · ${r.lobby.screens + a.screens} screen${r.lobby.screens + a.screens === 1 ? '' : 's'} on the room. The room keeps filling with no screen open.`;
     if (!whoEdited) { $('who').value = r.tag ? 'tag' : 'everyone'; $('whonick').value = r.tag || ''; $('whonick').hidden = !r.tag; }
+  }
+  // ---------- scene settings (shared/settings.js: the server's list, its remembered values; the screens apply them) ----------
+  let setSchema = null;
+  let setValues = { lobby: {}, auditorium: {} };
+  let setBuiltFor = '';
+  let setScreen = null;   // the shown screen's { settings, urlSettings }
+  const setRows = new Map();   // key -> { lab, input, undo, note, def }
+  const fmt = (v) => (typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v));
+  const optLabel = (def, v) => (def.kind === 'select' ? (def.options.find((o) => String(o[0]) === String(v))?.[1] ?? fmt(v)) : fmt(v));
+  const sendSetting = (key, value) => Promise.resolve(send({ cmd: 'setting', key, value })).then(refreshSettings);
+  $('setreset').onclick = () => { if (confirm('Every setting of this scene goes back to the screen links?')) Promise.resolve(send({ cmd: 'settingsReset' })).then(refreshSettings); };
+  function buildSettings(page) {
+    const box = $('sets');
+    box.textContent = '';
+    setRows.clear();
+    setBuiltFor = page;
+    let group = '';
+    for (const def of setSchema[page] || []) {
+      if (def.group !== group) { group = def.group; box.append(Object.assign(document.createElement('h3'), { textContent: group })); }
+      const lab = Object.assign(document.createElement('div'), { className: 'lab', textContent: def.label });
+      const cell = document.createElement('div');
+      let input;
+      if (def.kind === 'bool') {
+        input = document.createElement('button');
+        input.onclick = () => sendSetting(def.key, !input.classList.contains('on'));
+      } else if (def.kind === 'select') {
+        input = document.createElement('select');
+        for (const [v, l] of def.options) input.append(new Option(l, String(v)));
+        input.onchange = () => sendSetting(def.key, input.value);
+      } else {
+        input = Object.assign(document.createElement('input'), { type: 'number', min: def.min, max: def.max, step: def.step });
+        input.onchange = () => { if (input.value !== '') sendSetting(def.key, Number(input.value)); };
+      }
+      input.onfocus = () => { input._editing = true; };
+      input.onblur = () => { input._editing = false; };
+      const undo = Object.assign(document.createElement('button'), { className: 'undo', textContent: '↺', title: "Back to the screen link's value" });
+      undo.onclick = () => sendSetting(def.key, null);
+      cell.append(input, undo);
+      const note = Object.assign(document.createElement('div'), { className: 'note' });
+      box.append(lab, cell, note);
+      setRows.set(def.key, { lab, input, undo, note, def });
+    }
+    showSettings();
+  }
+  function showSettings() {
+    const page = $('page').value;
+    const over = setValues[page] || {};
+    for (const [key, r] of setRows) {
+      const set = Object.hasOwn(over, key);
+      const url = setScreen?.urlSettings?.[key];
+      const now = setScreen?.settings?.[key] ?? (set ? over[key] : url ?? r.def.def);
+      r.lab.classList.toggle('set', set);
+      r.undo.hidden = !set;
+      if (r.def.kind === 'bool') { r.input.classList.toggle('on', !!now); r.input.textContent = now ? 'On' : 'Off'; }
+      else if (!r.input._editing && document.activeElement !== r.input) r.input.value = String(now);
+      r.note.textContent = [r.def.hint, url !== undefined ? `link: ${optLabel(r.def, url)}` : '', !setScreen ? '(no screen open)' : ''].filter(Boolean).join(' · ');
+    }
+  }
+  async function refreshSettings() {
+    try {
+      const res = await fetch('/ctl/settings', { cache: 'no-store', signal: AbortSignal.timeout(3500) });
+      if (!res.ok) throw new Error();
+      const j = await res.json();
+      setSchema = j.schema;
+      setValues = j.values;
+    } catch { $('setcard').hidden = true; return; }   // an older server: no scene settings
+    $('setcard').hidden = false;
+    if (setBuiltFor !== $('page').value) buildSettings($('page').value); else showSettings();
   }
   $('wide').onclick = () => send({ cmd: 'wide' });
   $('next').onclick = () => send({ cmd: 'next' });
@@ -184,6 +300,9 @@
     const screens = all.filter((s) => (s.page || 'lobby') === page);
     $('reset').hidden = page !== 'auditorium';
     $('preshow').hidden = page !== 'auditorium';
+    $('pollcard').hidden = page !== 'lobby';
+    $('pollzoom').hidden = page !== 'lobby';   // (the poll screen is in the lobby only)
+    $('fly').hidden = page !== 'lobby';        // (the fly-through starts in the lobby)
     const blocked = page === 'auditorium' && controlVersion < 2;
     for (const el of document.querySelectorAll('button, input')) el.disabled = blocked;
     $('screens').textContent = screens.length ? `${screens.length} screen${screens.length > 1 ? 's' : ''} open (${screens.map((s) => s.size.join('×')).join(', ')}) - commands go to all of them`
@@ -193,6 +312,8 @@
     // the OBS source is the one shown here (screens report obs: true inside OBS); else the biggest screen. A bigger
     // preview tab (a 4K monitor) used to win and the panel showed its chatters and director state, not the stream's
     const s = screens.sort((a, b) => (b.obs === true) - (a.obs === true) || b.size[0] * b.size[1] - a.size[0] * a.size[1])[0];
+    setScreen = s?.settings ? s : null;   // the scene settings show what this screen uses
+    if (setBuiltFor === page) showSettings();
     const house = s?.house;
     $('housestate').hidden = page !== 'auditorium' || !house;
     $('housestate').textContent = house ? `${house.occupied}/${house.capacity} seats reserved or occupied · ${house.waiting} waiting outside (up to ${house.queueLimit}). A free seat admits the next arrival.` : '';
@@ -267,6 +388,10 @@
   setInterval(refresh, 1000);
   refreshRoom();
   setInterval(refreshRoom, 2000);
+  refreshPoll();
+  setInterval(refreshPoll, 2000);
+  refreshSettings();
+  setInterval(refreshSettings, 2000);
 })();
 </script>
 </body>

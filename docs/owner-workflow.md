@@ -49,7 +49,11 @@ is shown a scene (a screenshot or a link), it is always with `everyone=1` and re
 2. While waiting, show the lobby. Chatters walk in from the street, queue at the box office and snack bar, and talk
    in speech bubbles. The dinkdonk.mov poll goes next to the lobby ("Lobby + Poll setup"); the lobby has no green
    screen of its own.
-3. Switch to the cinema scene. In the control panel pick **Auditorium** and check that the director is on.
+3. Switch to the cinema scene: in the control panel (scene Lobby) press **Fly to the auditorium**. The lobby plays the
+   ~50 s fly-through with the chatters in it (shared/transition.js), and at the end `obs-bridge.js` cuts OBS to
+   "DinkDonk Cinema" on the matching frame. (Switching by hand still works.) The auditorium source ("Browser 3") must
+   keep "Refresh browser when scene becomes active" **off**, or it reloads and shows black at the cut. Then pick
+   **Auditorium** in the panel and check that the director is on.
 4. The auditorium runs its phases: people take their seats, the lights go down, the film shows on the big screen,
    and the lights come back up. The OBS bridge shows the VLC film on the screen only during the film phase.
 

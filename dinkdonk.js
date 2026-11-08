@@ -265,6 +265,12 @@ async function data() {
   return { ...cache, stale: Date.now() - cache.fetchedAt > REFRESH_MS * 2, error: lastError };
 }
 
+// One poll's results page (votes per option, end time), read fresh: the lobby's poll screen uses it while voting.
+async function pollResults(id) {
+  if (!/^[A-Za-z0-9]{1,16}$/.test(id || '')) throw new Error('bad poll id');
+  return parsePollDetail(id, await get(`/poll/${id}/results`));
+}
+
 // "Have we watched X?" for the !watched chat command.
 const searches = new Map();
 async function search(q) {
@@ -278,4 +284,4 @@ async function search(q) {
   return result;
 }
 
-module.exports = { data, search, _parse: { parseHistory, parseRatingCards, parseRatingDetail, parsePollCards, parsePollDetail, parseSchedule } };
+module.exports = { data, search, pollResults, _parse: { parseHistory, parseRatingCards, parseRatingDetail, parsePollCards, parsePollDetail, parseSchedule } };

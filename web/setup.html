@@ -345,7 +345,7 @@
 
       // the auditorium: the browser source, with the film holder above it (hidden until the Film phase)
       await ensureScene(CINEMA, scenes);
-      await ensureBrowser(CINEMA, AUD_SRC, { url: audUrl($('pw').value, Number($('port').value) || 4455), ...size, shutdown: false, restart_when_active: true, reroute_audio: false }, inputs);
+      await ensureBrowser(CINEMA, AUD_SRC, { url: audUrl($('pw').value, Number($('port').value) || 4455), ...size, shutdown: false, restart_when_active: false, reroute_audio: false }, inputs);
       let fid = await itemId(CINEMA, FILM);
       if (fid == null) { fid = (await req('CreateSceneItem', { sceneName: CINEMA, sourceName: FILM, sceneItemEnabled: false })).sceneItemId; line(`+ "${FILM}" in "${CINEMA}"`); }
       const { sceneItems } = await req('GetSceneItemList', { sceneName: CINEMA });
