@@ -34,29 +34,37 @@ Arrival pacing now adapts to the number waiting: 1-5 use 1.4-2.2 seconds; 6-11 u
 with 0.9-1.4 seconds between groups. Every admission still checks crowding and capacity; no catch-up floods.
 The pacing slows automatically as the queue clears. These thresholds count pending lobby guests.
 
-Firefox and mpv.net: one bridge, OBS source selection
+Firefox, mpv.net and commercials: one bridge, OBS source selection
 
 Run start-obs-bridge.bat once. start-firefox-bridge.bat and start-mpv-bridge.bat are compatibility shortcuts
-for the same unified bridge; do not run two copies. It recognizes firefoxBrowserCinema and mpvCinema in
-scene dggCINEMAtheatre. Each can be a direct Window/Game Capture or a helper scene containing a capture.
+for the same unified bridge; do not run two copies. It recognizes firefoxBrowserCinema, mpvCinema and
+Retro Commercials in dggCINEMAtheatre. Movie inputs can be direct captures or helper scenes.
 
-Use the OBS eye icon to enable the source you want. Enabling either selects it and automatically hides the
-other. Hiding the selected source leaves the screen empty. Both shaders follow the theater camera.
-Show auditorium + Film / Movie (no zoom) displays the selected capture. Show lobby or leaving movie mode
-makes capture output transparent through the shader; the selected OBS eye remains enabled. You can select
-Firefox/mpv in any mode without the eye being forced back off. Return to movie mode to see the selected source.
+Retro Commercials is a full-canvas Browser Source at http://127.0.0.1:18790/preshow/player.
+Enable Shutdown source when not visible and Control audio via OBS. In the host panel under Auditorium
+pre-show, use Shuffle commercials or select a trailer and click Play now. A trailer plays once and
+releases the screen. Stop hides the source. The same corner pin follows Wide and POV.
+
+The bridge reads the library path from CINEMA_PRESHOW_ROOT or
+%LOCALAPPDATA%\DinkDonkCinema\preshow-library.txt. The library holds player.html, videos for commercials
+and trailers for manually selected clips. Drop MP4 or WebM files into trailers. The list refreshes
+automatically and shows each clip's runtime as Title (Year) (m:ss) using ffprobe on PATH. Starting
+playback does not change the auditorium camera or lighting.
+
+Use the OBS eye icon to enable the source you want. Enabling one selects it and hides the others.
+Hiding the selected source leaves the screen empty. Film / Movie (no zoom) displays the selected movie
+capture. In Seating or Lights down, Firefox and mpv keep their eye enabled while their picture is hidden.
 
 Sizing uses the OBS base canvas. Direct captures stretch to fill the screen; helper scenes preserve capture
 aspect ratio inside a full-canvas wrapper. Window resizing or moving between monitors no longer requires
-manual refitting. The bridge configures both available sources on startup/reconnect, and recognizes a newly
+manual refitting. The bridge configures available sources on startup/reconnect, and recognizes a newly
 added source. Restart it after changing canvas resolution. Keep the cinema Browser Source fitted to canvas.
 Audio is separate: check the mixer and avoid capturing the player twice through desktop and app audio.
 
-Lobby eye gating (current behavior): Show lobby turns both capture source eyes off and remembers selection.
-Returning to the auditorium restores the selected eye even in seating/dim mode. Film/Movie phase still
-controls visible pixels through Cinema_Visible. Thus eye controls work in auditorium mode, and lobby
-automatically disables both. Bridge polls the local /ctl/state every 500 ms to distinguish view from phase;
-CINEMA_CONTROL_URL can override its endpoint. Unavailable control state or no scene page hides both.
+Show lobby turns the capture eyes off and remembers the selection. Returning to the auditorium restores
+the selected source. The bridge polls the local /ctl/state every 500 ms to distinguish view from phase.
+CINEMA_CONTROL_URL can override its endpoint. Unavailable control state or a disconnected auditorium
+page hides the sources. The commercial player also shuts down when its screen corners are unavailable.
 
 cinema_dgg_lobby.bat now also starts/reuses the unified movie bridge hidden on 18790.
 All three service ports are checked before startup; unrelated listeners cause an error rather than being stopped.

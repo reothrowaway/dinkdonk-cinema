@@ -1,7 +1,7 @@
 'use strict';
 
 // Keep host visibility gating separate from the viewer's choice in OBS.
-function createCaptures({ request, sceneName, filterName, log = () => {} }) {
+function createCaptures({ request, sceneName, filterName, preshowSource, log = () => {} }) {
   let targets = [], selected = null;
   function configure(items) {
     const previous = selected;
@@ -22,6 +22,14 @@ function createCaptures({ request, sceneName, filterName, log = () => {} }) {
     log(`screen source: ${selected || 'none'}`);
     return true;
   }
+  const has = (name) => targets.some(target => target.name === name);
+  function select(name, enabled) {
+    if (!has(name)) return false;
+    if (enabled) selected = name;
+    else if (selected === name) selected = null;
+    log(`screen source: ${selected || 'none'}`);
+    return true;
+  }
   async function enabled(target, value) {
     if (target.enabled === value) return;
     target.echoes.push(value);
@@ -31,20 +39,22 @@ function createCaptures({ request, sceneName, filterName, log = () => {} }) {
     } catch (error) { target.echoes = []; target.enabled = !value; throw error; }
   }
   async function render({ film, quad, active = true }) {
-    const settings = { ...(quad || {}), Cinema_Visible: !!(active && film && quad) };
-    const key = JSON.stringify(settings);
-    // Host visibility uses shader alpha, leaving the selected eye icon enabled.
+    // Movie captures keep their eye enabled while the shader hides their picture.
+    // The commercial browser source can also play before Film.
     for (const target of targets) {
+      const settings = { ...(quad || {}), Cinema_Visible: !!(active && quad && (film || target.name === preshowSource)) };
+      const key = JSON.stringify(settings);
       if (target.quad !== key) {
         await request('SetSourceFilterSettings', { sourceName: target.name,
           filterName, filterSettings: settings, overlay: true });
         target.quad = key;
       }
     }
-    const chosen = targets.find(t => t.name === selected);
-    for (const target of targets) if (!active || target !== chosen) await enabled(target, false);
-    if (active && chosen) await enabled(chosen, true);
+    // Shut down the commercial player when it has nowhere to project, so its audio stops too.
+    const chosen = active && targets.find(t => t.name === selected && (t.name !== preshowSource || quad));
+    for (const target of targets) if (target !== chosen) await enabled(target, false);
+    if (chosen) await enabled(chosen, true);
   }
-  return { configure, visibility, render, selected: () => selected };
+  return { configure, visibility, render, select, has, selected: () => selected };
 }
 module.exports = { createCaptures };

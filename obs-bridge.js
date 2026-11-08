@@ -1,8 +1,8 @@
 'use strict';
 
 // OBS bridge for the auditorium's film screen. The auditorium page inside OBS (Browser 3) sends where the screen is
-// on every camera move; both capture shaders follow it, and OBS visibility selects the capture shown
-// only while the phase is Film. Capture bounding boxes track changing window sizes.
+// on every camera move; the selected source follows it. Movie captures wait for Film, while the
+// commercial player can also run during seating. Capture bounds track changing window sizes.
 //
 // Page -> bridge (WebSocket on PORT, text frames of JSON):
 //   { film: true|false, w: <viewport px>, h: <viewport px>, quad: [[x,y] TL, TR, BR, BL] }   (viewport px)
@@ -18,11 +18,13 @@ const os = require('node:os');
 const path = require('node:path');
 const { fitCapture } = require('./bridge-sizing');
 const { createCaptures } = require('./bridge-captures');
+const { createPreshowMedia } = require('./preshow-media');
 
 const PORT = Number(process.env.OBS_BRIDGE_PORT || 18790);
 const OBS_URL = process.env.OBS_WS || 'ws://127.0.0.1:4455';
 const SCENE = 'dggCINEMAtheatre';
-const CAPTURES = ['firefoxBrowserCinema', 'mpvCinema'];
+const COMMERCIALS = 'Retro Commercials';
+const CAPTURES = ['firefoxBrowserCinema', 'mpvCinema', COMMERCIALS];
 const FILTER = 'Corner pin (live)';
 const SHADER = path.join(__dirname, 'cinema-screen.shader');
 const OBS_CONFIG = path.join(process.env.APPDATA || '', 'obs-studio', 'plugin_config', 'obs-websocket', 'config.json');
@@ -55,7 +57,10 @@ function obsConnect() {
       setReady(false);
       setup();
     } else if (m.op === 5 && m.d.eventType === 'SceneItemEnableStateChanged') {
-      if (captures.visibility(m.d.eventData)) pump();
+      if (captures.visibility(m.d.eventData)) {
+        preshow.syncSelection(captures.selected() === COMMERCIALS);
+        pump();
+      }
     } else if (m.op === 5 && ['SceneItemCreated', 'SceneItemRemoved'].includes(m.d.eventType)
         && m.d.eventData.sceneName === SCENE) {
       setReady(false);
@@ -122,6 +127,7 @@ async function setup() {
       await request('SetSourceFilterEnabled', { sourceName, filterName: FILTER, filterEnabled: true });
     }
     captures.configure(items);
+    preshow.syncSelection(captures.selected() === COMMERCIALS);
     setReady(true);
     log(`ready: ${items.map(i => i.sourceName).join(', ')} in ${SCENE}; choose with OBS eye icons`);
     log(`screen source: ${captures.selected() || 'none (enable one in OBS)'}`);
@@ -145,12 +151,30 @@ function setReady(on) {
 const pages = new Set();
 let driver = null;   // the page whose corners we follow: the latest one to connect
 const want = { film: false, quad: null, active: false };
-const captures = createCaptures({ request, sceneName: SCENE, filterName: FILTER, log });
+const captures = createCaptures({ request, sceneName: SCENE, filterName: FILTER, preshowSource: COMMERCIALS, log });
+const preshow = createPreshowMedia({
+  port: PORT,
+  isReady: () => obs.ready && captures.has(COMMERCIALS),
+  select(enabled) {
+    if (!obs.ready || !captures.select(COMMERCIALS, enabled)) return false;
+    pump();
+    return true;
+  },
+});
 let busy = false, pumpAgain = false;
 
 const ownAddresses = () => new Set(['127.0.0.1', '::1', ...Object.values(os.networkInterfaces()).flat().map((i) => i.address)]);
 
 const server = http.createServer((req, res) => {
+  if (req.url.startsWith('/preshow/')) {
+    preshow.route(req, res).catch(error => {
+      log('Pre-show media:', error.message);
+      if (res.headersSent) return res.destroy();
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Could not access the local pre-show media.' }));
+    });
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(`obs-bridge: OBS ${obs.ready ? 'ready' : 'not ready'}, ${pages.size} page(s), film ${want.film ? 'on' : 'off'}, selected ${captures.selected() || 'none'}\n`);
 });
@@ -186,6 +210,8 @@ server.on('upgrade', (req, socket) => {
     // the auditorium source shut down (scene switched away) or reloaded: no film floating over the next page
     driver = [...pages].pop() || null;
     want.film = false;
+    want.quad = null;
+    if (driver) wsSend(driver, { obs: obs.ready });
     pump();
   };
   socket.on('close', gone);
@@ -247,8 +273,8 @@ async function pump() {
   } finally { busy = false; }
 }
 
-// View gating is independent of film phase: lobby closes both OBS eyes, whereas
-// dim/seating in the auditorium keeps the selected eye available for switching.
+// View gating is independent of film phase: lobby closes the capture eyes, whereas
+// dim/seating in the auditorium keeps the selected source available.
 let checkingView = false;
 async function refreshView() {
   if (checkingView) return;

@@ -4,11 +4,11 @@ const assert=require('node:assert/strict');
 const {createCaptures}=require('../bridge-captures');
 const names=['firefoxBrowserCinema','mpvCinema'];
 const quad={Top_Left_X:-70,Top_Left_Y:-50};
-function make(initial=[true,false]){
+function make(initial=[true,false],sources=names){
  const calls=[],visible=new Map(initial.map((v,i)=>[i+1,v]));let c;
- c=createCaptures({sceneName:'main',filterName:'pin',async request(type,data){calls.push({type,data});
+ c=createCaptures({sceneName:'main',filterName:'pin',preshowSource:'Retro Commercials',async request(type,data){calls.push({type,data});
  if(type==='SetSceneItemEnabled'){visible.set(data.sceneItemId,data.sceneItemEnabled);c.visibility({...data});}return {};}});
- c.configure(names.map((name,i)=>({sourceName:name,sceneItemId:i+1,sceneItemIndex:i,sceneItemEnabled:initial[i]})));
+ c.configure(sources.map((name,i)=>({sourceName:name,sceneItemId:i+1,sceneItemIndex:i,sceneItemEnabled:initial[i]})));
  const user=(id,value)=>{visible.set(id,value);return c.visibility({sceneName:'main',sceneItemId:id,sceneItemEnabled:value})};
  return {c,calls,visible,user};
 }
@@ -58,4 +58,28 @@ test('lobby closes both eyes and auditorium restores the remembered selection ev
  await h.c.render({active:true,film:false,quad});
  assert.deepEqual([...h.visible.values()],[false,true]);
  assert(h.calls.filter(c=>c.type==='SetSourceFilterSettings').every(c=>c.data.filterSettings.Cinema_Visible===false));
+});
+
+test('commercials project during seating and stop when the screen or selection goes away',async()=>{
+ const commercials='Retro Commercials';
+ const h=make([true,false,false],[...names,commercials]);
+ h.user(3,true);
+ await h.c.render({film:false,quad});
+ assert.deepEqual([...h.visible.values()],[false,false,true]);
+ const settings=h.calls.filter(c=>c.type==='SetSourceFilterSettings');
+ assert(settings.every(c=>c.data.filterSettings.Cinema_Visible===(c.data.sourceName===commercials)));
+
+ await h.c.render({film:false,quad:null});
+ assert.deepEqual([...h.visible.values()],[false,false,false]);
+ assert.equal(h.c.selected(),commercials);
+ await h.c.render({film:false,quad});
+ assert.deepEqual([...h.visible.values()],[false,false,true]);
+
+ await h.c.render({active:false,film:false,quad});
+ assert.deepEqual([...h.visible.values()],[false,false,false]);
+ await h.c.render({active:true,film:false,quad});
+ assert.deepEqual([...h.visible.values()],[false,false,true]);
+ h.user(2,true);
+ await h.c.render({film:true,quad});
+ assert.deepEqual([...h.visible.values()],[false,true,false]);
 });

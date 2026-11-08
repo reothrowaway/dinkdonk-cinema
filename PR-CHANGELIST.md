@@ -18,7 +18,9 @@ Adds a single OBS cinema browser output with persistent lobby/auditorium switchi
 
 7. **Optional seated POV.** Added an F10 seated view with a ceiling and right/rear enclosure, a host-panel POV button, image plates, camera/depth data, and seat-back anchors. The existing live audience is projected into this view with seat/room occlusion, distance scaling, and screen-clearance fading. The OBS bridge uses the matching POV screen corners. Switching back preserves the auditorium instance and audience.
 
-8. **Verification and documentation.** Added startup and workspace documentation, progress notes, and automated coverage for guest handoffs, arrival pacing, capture sizing, and capture selection/visibility. Changes were staged in QA copies and checked with real DGG chat and live OBS.
+8. **Pre-show media.** Added host controls for shuffled commercials, one-shot trailers, and Stop. The bridge pins the `Retro Commercials` Browser Source in seating and movie views. Trailer durations refresh from the local media library using `ffprobe`.
+
+9. **Verification and documentation.** Added startup and workspace documentation, progress notes, and automated coverage for guest handoffs, arrival pacing, capture sizing, and capture selection/visibility. Changes were staged in QA copies and checked with real DGG chat and live OBS.
 
 ## Required OBS setup
 
@@ -29,6 +31,7 @@ The current bridge uses these exact names. Other setups must use matching names 
 | Main scene | `dggCINEMAtheatre` | Contains the cinema Browser Source and screen captures |
 | Firefox capture | `firefoxBrowserCinema` | Firefox Window Capture, or a helper scene containing it |
 | mpv capture | `mpvCinema` | mpv.net Game/Window Capture, or a helper scene containing it |
+| Pre-show player | `Retro Commercials` | Optional full-canvas Browser Source at `http://127.0.0.1:18790/preshow/player` |
 | Capture filter | `Corner pin (live)` | Created/configured by the bridge using `cinema-screen.shader` |
 
 At least one recognized capture is needed for the bridge. Place captures above the cinema Browser Source. The Browser Source's name is arbitrary. Its URL is `http://127.0.0.1:18770/cinema.html?everyone=1`, and it should fill the OBS canvas. Leave shutdown-when-hidden and refresh-on-activation unchecked to preserve audience state.
@@ -37,9 +40,10 @@ OBS WebSocket must be enabled on port **4455**, and **obs-shaderfilter** must be
 
 ## Validation and remaining work
 
-- All **18 automated tests** passed with `node --test tests/*.test.js`.
+- All **20 automated tests** passed with `node --test tests/*.test.js`.
 - Real-chat checks verified door handoffs, continued background activity, and persistent room instances across view changes.
 - Live OBS checks verified Firefox/mpv selection, lobby eye-off behavior, restoration on return, shader visibility, and capture bounding boxes.
 - POV remains experimental. Flat emotes still look awkward in seated perspective, and carried items/details need further work in that view.
+- The pre-show player and video library are configured locally. See `LOCAL-START.md` for the library layout and setup.
 - Local Blender working files require separate sharing. Scene/source names and launcher assumptions currently reflect the local Windows setup.
 - Package file lists were updated for the bridge modules and shader. A complete rebuilt distribution has not been validated as part of these checks.

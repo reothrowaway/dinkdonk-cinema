@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pre-show media</title>
+  <style>
+    :root { color-scheme: dark; font: 15px/1.45 system-ui, sans-serif; color: #e9ebf0; }
+    body { margin: 0; padding: 1px 2px; }
+    h1 { margin: 0 0 8px; font-size: 15px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+    button, select { border: 1px solid #3a3f4d; border-radius: 7px; background: #262a35; color: inherit; padding: 7px 10px; font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { opacity: .45; cursor: default; }
+    button:focus-visible, select:focus-visible { outline: 2px solid #59aeea; outline-offset: 1px; }
+    button[aria-pressed="true"] { background: #59aeea; color: #06131e; }
+    select { max-width: min(100%, 32rem); background: #10121a; }
+    p { margin: 0; color: #8b90a0; }
+  </style>
+</head>
+<body>
+  <h1>Pre-show media</h1>
+  <div class="row">
+    <button id="shuffle" type="button" aria-pressed="false" disabled>Shuffle commercials</button>
+    <button id="stop" type="button" disabled>Stop</button>
+  </div>
+  <div class="row">
+    <label for="trailers">Trailer</label>
+    <select id="trailers" disabled><option value="">Choose a trailer</option></select>
+    <button id="play" type="button" disabled>Play now</button>
+  </div>
+  <p id="status" role="status">Checking the media library…</p>
+  <script>
+    const $ = id => document.getElementById(id);
+    const trailers = $('trailers');
+    function label(name) {
+      const title = name.replace(/\.[^.]+$/, '');
+      const duration = state?.trailerDurations?.[name];
+      if (!Number.isFinite(duration)) return title;
+      const seconds = Math.round(duration);
+      return title + ' (' + Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') + ')';
+    }
+    let state;
+    let busy = false;
+    let error = '';
+    let listKey = '';
+
+    function render() {
+      const locked = busy || !state?.ready || !state.configured;
+      $('shuffle').disabled = locked || !state.commercialCount;
+      $('stop').disabled = locked || state.mode === 'stop';
+      trailers.disabled = locked || !state.trailers.length;
+      $('play').disabled = trailers.disabled || !trailers.value;
+      $('shuffle').setAttribute('aria-pressed', String(state?.mode === 'shuffle'));
+      const status = error || (!state ? 'Could not reach the cinema bridge.'
+        : !state.configured ? 'Set the local pre-show library to enable playback.'
+        : !state.ready ? 'Waiting for Retro Commercials in OBS.'
+        : state.mode === 'shuffle' ? 'Shuffling ' + state.commercialCount + ' commercials.'
+        : state.mode === 'trailer' ? 'Trailer selected: ' + label(state.name)
+        : state.notice || 'Drop MP4 or WebM files in the trailers folder to add them here.');
+      if ($('status').textContent !== status) $('status').textContent = status;
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch('library', { cache: 'no-store', signal: AbortSignal.timeout(2500) });
+        if (!response.ok) throw new Error('Library unavailable');
+        state = await response.json();
+        const key = JSON.stringify(state.trailers.map(name => [name, label(name)]));
+        if (key !== listKey) {
+          const selected = trailers.value;
+          trailers.replaceChildren(new Option('Choose a trailer', ''),
+            ...state.trailers.map(name => new Option(label(name), name)));
+          if (state.trailers.includes(selected)) trailers.value = selected;
+          listKey = key;
+        }
+      } catch {
+        state = undefined;
+      }
+      render();
+    }
+
+    async function choose(mode, name) {
+      if (busy) return;
+      busy = true;
+      error = '';
+      render();
+      try {
+        const response = await fetch('state', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode, name }), signal: AbortSignal.timeout(3500) });
+        const next = await response.json();
+        if (!response.ok) error = next.error;
+      } catch {
+        error = 'Could not reach the cinema bridge.';
+      } finally {
+        busy = false;
+        await refresh();
+      }
+    }
+
+    $('shuffle').onclick = () => choose('shuffle');
+    $('stop').onclick = () => choose('stop');
+    $('play').onclick = () => choose('trailer', trailers.value);
+    trailers.onchange = render;
+    refresh();
+    setInterval(() => { if (!busy) refresh(); }, 2000);
+  </script>
+</body>
+</html>

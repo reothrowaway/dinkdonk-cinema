@@ -735,3 +735,23 @@ Adjusted seated POV scale relative to the previous sizes: row E +60%, D +40%, C 
 
 - 6 Nov 2026: added PR-CHANGELIST.md with the upstream-relative feature summary, required OBS
   scene/source names and ports, validation, local Blender sharing requirements, and POV limitations.
+
+- 6 Nov 2026: verified DGG identity, created dggTrivia/dinkdonk-cinema fork, committed the review
+  branch codex/cinema-host-controls-and-pov and opened upstream draft PR #1 with PR-CHANGELIST.md
+  as its description. Published 38 changed files including active POV assets, source and launcher.
+  Used GitHub noreply commit identity. Credential-pattern scan found no embedded credentials.
+  Ignored Blender working files and the unused older POV preview remain local.
+
+- 7 Nov 2026: added ten Cartoon Network promos to the local commercial library, for 69 clips total.
+  The OBS bridge now pins Retro Commercials to the auditorium screen during seating and movie shots.
+  Verified live wide and seated POV output against the Blender screen quad and checked OBS audio.
+- 7 Nov 2026: added local pre-show controls for shuffled commercials, a manually selected trailer, and
+  Stop. The bridge lists the trailers folder automatically. Verified one-shot playback and release
+  of the OBS source after the clip ends. Tested the control panel before promoting it and restored MPV.
+
+- 7 Nov 2026: added measured runtimes to the trailer menu. The bridge probes new or replaced files
+  automatically so trailer labels stay current.
+
+- 8 Nov 2026: prepared the pre-show controls, trailer durations, bridge changes, and tests for
+  the existing PR branch. All 20 Node tests passed. The pre-show player/library and unused
+  earlier POV preview remain local.

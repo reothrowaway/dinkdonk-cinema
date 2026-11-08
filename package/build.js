@@ -51,7 +51,7 @@ if (fs.existsSync(OUT)) {
 fs.mkdirSync(SCREENS, { recursive: true });
 
 // ---------- 1. pages, server, bridge ----------
-for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-server.js', 'dinkdonk.js', 'obs-bridge.js', 'bridge-sizing.js', 'bridge-captures.js', 'cinema-screen.shader', 'lan-proxy.js']) {
+for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-server.js', 'dinkdonk.js', 'obs-bridge.js', 'bridge-sizing.js', 'bridge-captures.js', 'preshow-media.js', 'preshow-control.html', 'video-response.js', 'cinema-screen.shader', 'lan-proxy.js']) {
   copy(path.join(STANDBY, f), path.join(SCREENS, f));
 }
 copyTree(path.join(STANDBY, 'shared'), path.join(SCREENS, 'shared'));

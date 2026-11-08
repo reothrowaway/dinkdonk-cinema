@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const dinkdonk = require('./dinkdonk');
+const { sendVideo } = require('./video-response');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.STANDBY_PORT || 18770);
@@ -117,34 +118,6 @@ async function qbProgress() {
     return value;
   })();
   try { return await qbPending; } finally { qbPending = null; }
-}
-
-// Video loops (the lobby's rain/neon light loop) need byte ranges: Chrome streams and loops media with them.
-function sendVideo(req, res, file, type) {
-  fs.stat(file, (error, st) => {
-    if (error || !st.isFile() || st.size === 0) { send(res, 404, 'text/plain', 'Not found'); return; }
-    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
-    let start = 0;
-    let end = st.size - 1;
-    if (m) {
-      start = m[1] ? Number(m[1]) : Math.max(0, st.size - Number(m[2]));
-      end = m[1] && m[2] ? Math.min(Number(m[2]), st.size - 1) : st.size - 1;
-      if (start > end || start >= st.size) {
-        res.writeHead(416, { 'Content-Range': `bytes */${st.size}` });
-        res.end();
-        return;
-      }
-    }
-    const head = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Cache-Control': 'no-cache' };
-    if (m) head['Content-Range'] = `bytes ${start}-${end}/${st.size}`;
-    res.writeHead(m ? 206 : 200, head);
-    if (req.method === 'HEAD') { res.end(); return; }
-    // the player cancels requests all the time (seeking, looping): close the file with the response
-    const stream = fs.createReadStream(file, { start, end });
-    stream.on('error', () => res.destroy());
-    res.on('close', () => stream.destroy());
-    stream.pipe(res);
-  });
 }
 
 // Control panel (control.html) <-> the screens: commands go to the selected scene as server-sent events;
