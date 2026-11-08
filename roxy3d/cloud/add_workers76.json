@@ -1,0 +1,20 @@
+{
+  "volume": "1t9qz8nhzr",
+  "pods": [
+    {
+      "id": "oiaddnfzsceh3g",
+      "name": "dinkdonk-m75-20261107-160555-a84533b4-x1",
+      "gpu": "NVIDIA GeForce RTX 4090"
+    },
+    {
+      "id": "5zi6osich80zn0",
+      "name": "dinkdonk-m75-20261107-160555-a84533b4-x2",
+      "gpu": "NVIDIA GeForce RTX 4090"
+    },
+    {
+      "id": "xg7rzh0y4e0waw",
+      "name": "dinkdonk-m75-20261107-160555-a84533b4-x3",
+      "gpu": "NVIDIA GeForce RTX 4090"
+    }
+  ]
+}
