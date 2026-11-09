@@ -362,7 +362,8 @@
     $('pollcard').hidden = page !== 'lobby';
     $('pollzoom').hidden = page !== 'lobby';   // (the poll screen is in the lobby only)
     $('fly').hidden = page !== 'lobby';        // (the fly-through starts in the lobby)
-    $('cutwarm').hidden = page !== 'lobby';
+    // (hosted rooms, ?k=: no obs-bridge.js on the streamer's PC, so no warm-up cut there)
+    $('cutwarm').hidden = page !== 'lobby' || new URLSearchParams(location.search).has('k');
     // (needs obs-bridge-qa.js's /warm-lobby; the live bridge does not have it yet: shown only with ?lobbycut=1)
     $('cutlobby').hidden = page !== 'auditorium' || new URLSearchParams(location.search).get('lobbycut') !== '1';
     const blocked = page === 'auditorium' && controlVersion < 2;

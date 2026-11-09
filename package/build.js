@@ -87,7 +87,9 @@ const SCENES = ['DinkDonk Cinema', 'Lobby + Poll setup', 'Lobby (src)', 'Film sc
 // OBS adds " 2" to a duplicated or re-made scene (8 Nov 2026 the live one became "Lobby + Poll setup 2", lobby only):
 // take the live one under whatever number, and ship it under the plain name (owner's choice, 8 Nov)
 if (!byName[SCENES[1]]) {
-  const alt = live.sources.find((s) => s.id === 'scene' && /^Lobby \+ Poll setup \d+$/.test(s.name));
+  // (9 Nov 2026 the live one is called just "Lobby", still holding "Lobby (src)")
+  const alt = live.sources.find((s) => s.id === 'scene' && /^Lobby \+ Poll setup \d+$/.test(s.name))
+    || live.sources.find((s) => s.id === 'scene' && s.name === 'Lobby' && (s.settings.items || []).some((it) => it.name === 'Lobby (src)'));
   if (alt) { byName[SCENES[1]] = { ...alt, name: SCENES[1] }; log(`OBS scene "${alt.name}" ships as "${SCENES[1]}"`); }
 }
 const DROP = new Set(['Poll setup label']);   // a scratch text label ("testing")
