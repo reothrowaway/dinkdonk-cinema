@@ -912,3 +912,402 @@ Deleted the old stopped pod m0dhqr1o60n2fn (dinkdonk-full, L40S, 3 Nov, empty) o
   (camera target via new QA hook DD_FLY.camera()): 1.85 -> 3.98 (unchanged), 1.30 -> 2.80, 2.60 -> 4.00 (cap; the fit
   is already ~4, so in practice the slider only zooms the poll out). Not watched on screen (pane was not rendering).
   QA only; lobby.html not promoted.
+
+## 8 Nov 2026 - improvement concept drafts (lobby x5, auditorium x5)
+- Owner asked for 5 design drafts each of what to improve. Made overlay mockups on today's scenes (lobby: live
+  screenshot with real chat; auditorium: draft 13 art) in `concepts/improve/index.html` (`?s=L1..A5` for one at
+  1920x1080), PNGs in `concepts/improve/drafts/`. Nothing live changed, no renders.
+- Lobby: L1 street marquee over the doors, L2 name-tag chips, L3 searchlights + skyline, L4 wet-street light,
+  L5 rooftop LED countdown board. Auditorium: A1 film lights the room (queue 58), A2 aisle/step lights,
+  A3 projector beam, A4 designed pre-show card, A5 side-wall dressing. L1 and A5 need art (blockout first).
+
+## 8 Nov 2026 - owner queue 49-60, first pass (Claude, owner: "alright start with these")
+All in QA copies (lobby-qa, auditorium-qa, control-qa, transition-qa) plus shared server code; nothing promoted to
+lobby.html / auditorium.html / control.html. Tested on the 18774 test server with real chat; stills in
+`roxy3d/qa-queue-0811/`. Backups of every shared file touched: `backups/2026-11-08-queue/`.
+- 59 facing: shared/emote-facing.json BLESSTINY, NOBULLY, WAOW "front" -> "left" (art checked enlarged: BLESSTINY
+  turned left, NOBULLY points left, WAOW three-quarter face, nose left). Shared file: live on the next page load.
+- 52 Yee front row: shared/room.js chooseSeat: non-Yee never get a front-row seat (they wait outside); Yee overflow
+  into the other rows only when the front row is full; seatQueue no longer stops at the first non-Yee who can't sit
+  (a Yee behind them still gets in). Same in auditorium-qa.html's own seating (+ arrivals loop skips a blocked head).
+  The Yee list matches every Yee emote on DGG today (13). Seated chatters keep their entry emote, so switching emotes
+  can't break it. Node test: 150 PEPE + 25 YEE -> 0 non-Yee in front, 18 Yee in front, 7 Yee waiting (hall full).
+  Note: room.js runs in the server, so this goes live at the next standby-server.js start.
+- 53 Empty both: control-qa.html "Empty lobby + auditorium" at the top (confirm dialog), = reset lobby + reset
+  auditorium. Tested (commands): both rosters 0.
+- 54 Screen picker: room show.screen auto | upnext | loading | audience | film (panel select in the pre-show card).
+  A slide is held (no rotation, also during Film); "The film" puts the film up whatever the phase; Film / Movie set it
+  back to auto. Pages: filmOnScreen() drives the green screen, the bridge's film flag and the fill. Tested.
+- 60 Litter: room show.litter + show.fullAt (first moment >= 60% seated; reset / toggle clear it; 'show' event with
+  server time). auditorium-qa draws up to 140 SVG pieces (popcorn clusters, tipped boxes, cups, wrappers, napkins)
+  from 10 min after fullAt over 25 min, depth-sorted with the slices, dimmed with the lights; weighted to the open
+  floor (cross-aisle, front, stairs) since legroom litter hides behind seated people. Same pieces on every screen
+  (seeded by fullAt). Panel: Litter on/off + status line. ?littermin=<min> previews. Tested (clock 598 s after on).
+- 51 Poll countdown: lobby-qa poll screen: big clock next to the title while the poll is open (from dinkdonk.mov's
+  end time, which the server already reads), ticks every second, orange in the last minute, red pulsing in the last
+  10 s, "CLOSING..." at 0. Tested with a copy of today's real poll set open on the test server (file restored).
+- 50 Vote: shared/room.js voteFollow: a message containing "vote" gets the director once 40% of the usual gap has
+  passed (new arrivals via follow flag, people already in the room via a follow event); page fallback in lobby-qa.
+- 57 Stall gag: the room picks two lobby chatters every 10-20 min ('gag' event); lobby-qa walks them into one free
+  stall, hearts float up for ~9 s, they come out one after the other (blush emojis) and carry on; the director follows
+  the first for at most 30 s. Tested on 18774 (forced via /ctl/cmd {cmd:'gag'}): camera held on the stall, hearts,
+  both left for the usher gate afterwards.
+- 56 Interesting spots: a third of the lobby director's turns look at a spot for 7 s ('peek' event): wcat and eatfresh
+  billboards, the roof sign, cashiers, snack clerks, usher, screen posters 1-3, the cat, the bus shelter ad. Framing
+  checked for sign, cashiers, snack bar. Candidate list to be confirmed by the owner.
+- Gating: room events the old pages can't play (peek, gag, vote) only go out when a screen of the page says it can
+  (window.DD_ROOM_CAPS -> shared/cinema.js 'caps' param -> standby-server.js / web/server.js -> room.subscribe).
+  The QA pages set it; lobby.html / auditorium.html don't, so a server restart before promotion changes nothing
+  for them (checked: live pages load clean on the new server).
+- 55 First-cut warm-up: obs-bridge.js POST /warm-cinema (lobby asks at the start of a cut-mode flight, OBS copy only):
+  the auditorium browser source is added hidden into the program (lobby) scene, moved off-canvas, shown (counts as
+  shown, so OBS loads it), and removed 1.5 s after the cut (or after 2 min). Hosted: shim -> /ctl/warm-cinema ->
+  panel bridge.warm(). Tested with fake OBS (test/fake-obs.js extended): ADD hidden, MOVE x 2960 on a 2560 canvas,
+  enable, cut, REMOVE. Not tested: real OBS from a fresh start (needs the owner, not while streaming); hosted path.
+- 58 Screen glow, draft: auditorium-qa bloom (box-shadow on a div mapped onto the screen like the pre-show) and a
+  floor spill ellipse, both screen-blended, only with the film up and the lights down. Colour from ?glow=<hex> or
+  ?glow=cycle for now; step 2 (after the owner OKs the look): the bridge samples the film's average colour.
+  Draft still: qa-queue-0811/58-glow-draft.jpg (the screen there shows a stand-in gradient, OBS shows the film).
+- 49 (poll zoom) unchanged: waiting for the OK to go live with everything above.
+
+## 8 Nov 2026 - queue 58 screen glow: colour follows the film (Claude, owner OK'd the glow look: "Looks right")
+- obs-bridge.js: while the film is up (and a page is connected), GetSourceScreenshot of "Film screen (src)" at 96x54 PNG
+  about every 500 ms; a small PNG decoder (zlib, 8-bit RGB/RGBA, all row filters) takes the alpha-weighted average
+  (the source is corner-pinned, so most of its frame is transparent) and sends {glow:[r,g,b]} to the pages when it
+  changes. Errors are logged once, then the loop slows to every 5 s. Old pages ignore {glow}.
+- auditorium-qa.html: filmColour() lifts the film average into a light colour (keeps hue, a bit more saturation,
+  level from its brightness: dark scenes glow faintly, bright ones fully); ~0.6 s easing; without readings for 3 s
+  (outside OBS, old bridge) back to the cool white of the draft. ?glow=<hex>/cycle still override.
+- Hosted: web/shim.js samples the same way in the browser (createImageBitmap + canvas) in direct and relay mode;
+  web/server.js passes host {glow} readings (3 integers 0-255 only) on to the room's pages; BridgeSocket only
+  replays {obs} on open.
+- Tested: fake OBS (test/fake-obs.js now answers GetSourceScreenshot with a pinned-film PNG whose rows use all five
+  filters, colour changing every 4 s) + test bridge on 18791 + auditorium-qa loaded as if in OBS
+  (test/obs-wrap.html): glow went blue -> green -> orange with the film, stopped with film off, back to the idle
+  white 3 s after the bridge went away. Decoder = browser result on real PNGs (RGBA emote, RGB frame).
+  Not tested: real OBS (GetSourceScreenshot cost and the real film's look), hosted path end to end.
+- Backups: backups/2026-11-08-glow/.
+
+## 8 Nov 2026 - queue 49-60 live (Claude, owner: "Go live")
+- Promoted: lobby-qa.html -> lobby.html (title "Lobby", loads shared/transition.js), auditorium-qa.html ->
+  auditorium.html, control-qa.html -> control.html, shared/transition-qa.js -> shared/transition.js (live header kept).
+  The DD_ROOM_CAPS lines came along (lobby 'peek,gag,vote', auditorium 'vote'). Also carried along: the 7 Nov perf-QA
+  bubble changes that were already in the QA copies (bubble sizes measured before the frame's writes, opacity only
+  written on a change). Backups of the old live files: backups/2026-11-08-golive/.
+- Checked on the 18774 test server (new server code): live lobby, auditorium and panel load with no console errors;
+  panel shows Empty both, screen picker, litter toggle + status.
+- Still running old code until restarted: the 18770 server (room.js: Yee front row, litter clock, screen picker kept
+  in the room, peek spots, stall gag, vote follows) and obs-bridge.js (film-colour glow, first-cut warm-up). Until then
+  the new pages work without those: no litter, no peeks/gags, screen picker per screen only, glow in the idle white.
+  OBS sources show the new pages after their next reload.
+- 56: went live with the 11 candidate spots as built (owner hasn't trimmed the list).
+- Not done: hosted deploy and zip rebuild (owner OK needed), real-OBS test of the warm-up and the glow colour.
+- 8 Nov ~19:19, owner "Restart now": the 18770 standby server and obs-bridge.js restarted in their own windows
+  (start-standby.bat / start-obs-bridge.bat; my first try with cmd /K windows didn't start node, so both were down
+  for about 4 min). Checked: room state now carries screen/litter/fullAt (new room.js), lobby chat active, bridge
+  "OBS ready". OBS (started 19:16) connected to the new bridge. The room's auditorium show was left in Film/outro with
+  house out from earlier - unchanged.
+- 8 Nov ~19:40, owner "Yes, both": hosted edition rebuilt and deployed (web/deploy/deploy.sh; service active, chat
+  connected, the deployed pages/room/server carry the queue 49-60 code; the old version stays in
+  /opt/dinkdonk-cinema/previous). First deploy try failed at the build (my shell sat in dist/web and locked it);
+  nothing had been uploaded.
+- Zip rebuilt: dist/DinkDonk-Cinema.zip (775 MB). Two package/build.js fixes:
+  - the live OBS lobby scene is now "Lobby + Poll setup 2" (lobby only, no poll builder): the build takes a numbered
+    copy and ships it as "Lobby + Poll setup" (owner chose "your current scene"); README line updated.
+  - the packaged server could not start since 7 Nov (standby-server.js requires poll-draft.js, which the build did
+    not copy): now copies poll-draft.js and userscripts/dinkdonk-poll-draft.user.js. Smoke test on 18771: server
+    starts, lobby/auditorium/control/room.js/dd/draft.json answer 200.
+
+## 8 Nov 2026 - queue 61: picked drafts L3, L4, A2, A3 built in QA (Claude)
+- lobby-qa.html: three page layers over the background, under #world (z 3): #skyline (far skyline blocks across the
+  black top-left, normal blend), #skyfx (warm haze along the top edge, red aircraft light, two roof searchlights
+  sweeping 23 s / 29 s; screen blend), #wetfx (purple spill from the glass front onto the sidewalk + vertical puddle
+  reflections under the lamp, video store, pink neon and corner shop, slow shimmer; screen blend). Gradients only, no
+  blur filters; motion is transform/opacity only. ?sky=0 / ?wet=0 turn them off. The draft's extra lit windows and
+  brake-light smear were left out (windows didn't line up with the render's grid; a fixed red smear vs moving cars).
+- auditorium-qa.html: A2 aisle lights from the layout JSON (amber nosing strip on every tread of both stair aisles,
+  lamps at each raised row's aisle ends, cyan cove strip along the stage edge at v 0.3, red/green halos at the two
+  EXIT signs), depth-sorted with depthZ, fading in with lights-down (6 s). A3 projector beam from a booth above the
+  back wall (u = screen centre - 2.3, v = back wall, z 580, where the picked draft had it) to the screen corners:
+  three nested hulls with a gradient (no blur), 48 drifting dust motes clipped to the beam; on with the film +
+  lights down, tint and brightness from the screen glow (stepGlow). ?aisle=0 / ?beam=0 turn them off.
+- Checked in the browser pane with real chat (lobby-qa ?everyone=1; auditorium-qa ?room=0&phase=film&glow=ff9a50):
+  no console errors. Not checked: inside OBS (black screen + pinned film), performance with a full house, hosted.
+  Live files untouched. Screenshots: concepts/improve/qa/.
+- 8 Nov ~19:45, owner "Go live": lobby-qa.html -> lobby.html (title "Lobby", shared/transition.js kept),
+  auditorium-qa.html -> auditorium.html. Before that, diffed: live = QA apart from these changes and the live header.
+  Backups: backups/2026-11-08-queue61/. Checked on the 18771 test server (stopped afterwards) with real chat: lobby
+  sky 6 + wet 5 layers, auditorium 60 lamps + beam on in film/lights down; no console errors except the favicon 404.
+  Found the 18770 standby server and obs-bridge.js NOT running (only the chat relay on 18765) - not restarted, owner
+  asked. Hosted edition and zip not updated.
+- 8 Nov ~19:50, owner "Start them": started start-standby.bat (18770) and start-obs-bridge.bat (18790) in their own
+  windows. Checked: lobby/auditorium/control.html 200 and serve the queue-61 layers; bridge status "OBS ready,
+  1 page(s), film on". OBS browser sources still need a refresh to pick up the new pages (not done by me).
+- 8 Nov ~20:00, owner "you can update the hosted site": `bash web/deploy/deploy.sh` (build 778 MB, exit 0). Server:
+  service active, /healthz ok (chat true, 0 screens). /opt/dinkdonk-cinema/current/site/lobby.html has the sky/wet
+  layers, auditorium.html the beam/aisle code; previous version kept in /opt/dinkdonk-cinema/previous. Keyed pages
+  answer 403 without ?k= (as designed). Zip not rebuilt. L1 marquee: later (owner).
+
+## 8 Nov 2026 - lag on camera moves and light changes (Claude, owner: "still lag, bad")
+- Owner's OBS recording (Videos/2026-11-08 19-27-22.mp4, decoded frame by frame): the camera advanced only every 2-3
+  output frames (20-30 fps) in both scenes, and the auditorium froze up to 12 frames (~200 ms) during the light fade.
+- Causes (headless Edge 2560x1440, real chat, RTX 3050 laptop):
+  - #cam had no will-change: every director move/zoom re-rastered the whole lobby/auditorium.
+  - Auditorium fade: `--dim` was a registered, inherited custom property with a 6 s transition on #stage, so every
+    frame of the fade restyled all ~9000 elements (430 ms/s style) and repainted the room incl. the full-frame dim
+    picture.
+- Fix in lobby-qa.html and auditorium-qa.html (live files untouched):
+  - `#cam { will-change: transform }` in both.
+  - auditorium: the fade is driven from script (stepDim, same 6 s ease-in-out, reversals continue from the current
+    level); #bg-dim is its own layer (will-change: opacity) and gets every frame's value; the culled dim pieces and
+    the door sheet get the value in 1/64 steps and on being shown (no blocks mid-fade).
+- Measured (same tests, live -> QA): lobby camera moving 63.6 fps / p99 50 ms -> 118 fps / p99 17 ms (uncapped);
+  auditorium camera 75 -> 120 fps, p99 33 -> 17 ms; auditorium light fade 27 fps / p99 267 ms / max 725 ms ->
+  68 fps / p99 50 ms / max 83 ms. Zoom-in sharpness (edge score on fixed signs) unchanged; mid-fade and full-dark
+  shots match live. Not measured inside OBS.
+- tools/trace.mjs: `JS=` env runs an expression 3 s after load.
+- Later (owner: keep testing; multi-threading? GPU use?), in the portable OBS (tools/obsbench.mjs, obsshow.mjs):
+  - Found: the live OBS browser sources ("Browser" lobby, "Browser 3" auditorium in Moobies 1440p poll) have
+    "Use custom frame rate" on with no rate = OBS's default 30 fps, on a 60 fps canvas. Owner to untick it (or 60).
+  - Hidden sources are paused by OBS (rAF 0, document.hidden): a second page costs ~nothing.
+  - In OBS @60: live lobby with camera moves 56.4 fps / 98 frames >20 ms per 30 s -> QA 59.9 / 1; auditorium
+    light fade live 33.6 fps / 769 -> QA 59.1 / 21 -> (after the two fixes below) 59.4-59.6 / 7-18.
+  - GPU stayed 11-35% throughout; the limits were main-thread style/paint and the browser's one GPU-process thread,
+    not the GPU or a lack of threads (page script ~1 ms per frame), so workers/OffscreenCanvas would gain little.
+  - auditorium-qa.html, more: chatters' emote/item dimming stepped from script (stepEmoteDim, 1/32 steps) instead of
+    a 6 s CSS filter transition on every chatter (headless fade 94 -> 120 fps uncapped); the no-dim-art fallback dim is
+    its own class (lights-flat) and the lit pieces are hidden per displayed piece in cullPieces, so a lights toggle
+    no longer restyles all ~4600 slice images. Film phase checked: beam, dust, glow and hidden lit pieces as live.
+  - Test server 18771 seeded with a copy of the live room (cache/room-state-18771.json; its old file kept as
+    room-state-18771.bak-pre-fullhouse.json) for full-house show runs.
+- 8 Nov ~22:00-22:35, full house of real chatters (test server 18771 seeded from the live room: 397 auditorium /
+  55 lobby; ~137 chatters on screen) driven through the real panel commands (tools/obsshow.mjs: follows, zooms,
+  lights down, film push-in, house lights up/down, outro, movie, lights up), in the portable OBS set up like the
+  owner's output (tools/obsrec-setup.mjs: 2560x1440 -> 1920x1080 @60, NVENC CBR 8000) and RECORDED: a frame counter
+  injected by the test (top-left block) is decoded from the recording (tools/recana.mjs), so the numbers are what
+  reached the output. Owner runs the sources at a custom 30 fps on purpose (style): target = a steady 30.
+  - @30, frames per second actually shown, live -> QA auditorium: lit steps 28-30 -> 30.0; lights down 20.3 -> 30.0;
+    film push-in 25.8 -> 30.0; house lights up/down in film 19.4/19.0 -> 29.9/30.0; follow in the dark 19.3 -> 30.0;
+    lights up 22.2 -> 30.0. QA's remaining unevenness: ~10% of frames held 3 ticks then 1 (late by a tick, none
+    dropped), mostly while zooming (the re-raster that keeps zooms sharp). Lobby: live 29.4-30 with hitches to
+    100 ms -> QA a clean 30.
+  - auditorium-qa.html, more: one fade clock (~8 Hz) for everything painted with the room (dim pieces, door sheet,
+    chatters' emote/item brightness, aisle lamps; lamps lost their 6 s CSS transition); the dim twins of displayed
+    pieces stay drawn at 0.5% while lit (DIM_WARM) and the lit art stays drawn under the dim art (no dim-done
+    hiding), because Chrome drops decoded images it no longer draws and each fade start decoded ~800 of them
+    (40-80 ms raster stalls).
+  - Pitfalls found: OBS reloads a browser source only when its settings change (obsshow adds run=); two drivers on
+    the same source spoil both runs (tools/obslock.mjs now refuses a second one); a portable OBS up for hours
+    drifts - restart it between long batches.
+- 8-9 Nov night, more (portable OBS, @30, full house):
+  - Full lobby (crowd thinning off on 18771, 64 on screen): QA a clean 30 in every step; live mostly 30 but zooming
+    out jitters (36 of 197 frames uneven) with a 100 ms hold.
+  - Soaks (tools/soak.mjs, one page load, show cycled): auditorium-qa 42 min / lobby-qa 31 min: every cycle 29.9 fps,
+    worst frame 34 ms, no slow frames, heap 5-12 MB, DOM steady - no degradation over time.
+  - Cut lobby -> auditorium with the auditorium hidden (OBS pauses hidden sources and drops their tiles):
+    ~430-480 ms freeze, live and QA alike (the owner's recording froze ~230 ms at its cut). With the auditorium
+    shown off-canvas 5 s first (what obs-bridge's /warm-cinema does for the fly-through): 50-67 ms, invisible. Only
+    the fly-through warms; a plain cut (hotkey/scene click) freezes. Idea for the owner: a panel "cut to cinema"
+    that warms first (not built).
+  - Tried and reverted: spreading each fade update over 4 frames by stage band (no measurable gain).
+  - Pacing: custom 30 fps gives an even 30 (every page frame held 2 ticks). Custom 60 vs custom off was
+    inconsistent between runs (earlier claim withdrawn).
+  - Residual auditorium unevenness (~5-15% of frames one tick late, none dropped; lobby ~1%): A/B in OBS shows it
+    comes from drawing the ~137 chatters' emote images in the shared room layer (hidden emotes or grey boxes: mostly
+    gone; paused sprite animations, no clip-path, no name shadows, no emote scale: no change). A trace of a zoom-in
+    in OBS has only ~300 small decodes and one GPU task >20 ms in 9 s: timing variance, not stalls. Not pursued: the
+    fix would be compositing emotes, which the 4 Nov QA found explodes layers.
+  - Checked: zoom sharpness inside OBS (poll-screen zoom, live vs QA: same edge scores); both lobby videos
+    (light_loop_2x 4K VP9, rain_fg) are hardware-decoded (D3D11VideoDecoder), 0.8% dropped video frames.
+  - Test tools added in roxy3d/qa-night/tools: obsbench, obsshow (REC=1, CSS=), recana, obsrec-setup, obstrace,
+    soak, cuttest, obsshot, obslock, longtasks, pageinfo. Kept recordings: rec/ (30 fps show, QA vs live).
+- 9 Nov ~01:00-01:30:
+  - Fly-through (panel "fly", ?flycutdry=1, @30 in OBS): clean in live and QA - 30 fps shown, <1% late, the
+    transition video's frames presented in sequence (1499/1500).
+  - Standby server 0.2% of a core, test server 0.9%, chat relay 0.3%: not a factor.
+  - Cut freeze anatomy (tools/cuttrace.mjs): ~550 ms of image decoding + a 270 ms first frame; OBS drops a hidden
+    page's decoded images. Tried loading the auditorium's dim set while hidden (decode() never settles hidden):
+    the cut got worse (433 -> 600-650 ms, the first frame then decodes both sets) - reverted, comment left.
+  - lobby-qa.html: a vehicle's old body slices were removed only after the new ones decode()d, which never happens
+    while OBS keeps the lobby hidden, so they piled up for the whole film (2.5 min hidden: live 31 vehicle images,
+    QA 20). Hidden, the old set now goes at once.
+  - Tried and dropped: emotes on their own GPU layers (no gain beyond run-to-run noise, longer worst frames).
+  - Headroom @60 (custom off), full house: lobby-qa 57-60 fps shown in every step (could run at 60);
+    auditorium-qa 41-55 fps - 30 is the right rate for a full auditorium on this laptop (the owner's choice).
+  - auditorium-qa.html: the projector dust (48 motes) was a CSS keyframe with var() values, which Chrome runs on the
+    main thread: ~5000 style recalcs a second, also with the dust off (seating). Now a Web Animation per mote with
+    explicit values (same rnd() draws, same paths), paused while the dust is off. @60 full house, lit steps:
+    seating 54.8 -> 59.4, follow 53.8 -> 58.8, zoom 50.5 -> 57.6, film push-in 51.0 -> 57.9 fps shown.
+    Film-phase screenshot: dust in the same places.
+  - Found and left: the lobby's wet footprints (7 s opacity fades, up to 30) restyle on the main thread; small.
+  - auditorium-qa.html, litter: the 140 pieces were SVG <img>s, which Chrome redraws from their vector shapes on
+    every repaint of their tiles (A/B @60: no litter = fades ~10 fps faster; litter without its filter = no change).
+    Each design is now drawn once into a PNG at 4x its stage size (sharp at 3x zoom on 1440p) and the pieces use
+    that; their filter steps with the room's fade (no 1.5 s CSS transition; the litter now dims with the room over
+    6 s). @60 full house with full litter, fades: lights down 42-48 -> 50-56, house lights up 32-39 -> 47-55, down
+    33-42 -> 52-53, lights up 33-45 -> 53 fps shown, worst frames 67-100 -> 33 ms. Tried and dropped first: SVGs
+    with the two looks baked in (swapping 140 SVGs per fade was worse).
+  - Final check @30, full house with full litter, recorded (QA vs live): QA 29.9-30.0 fps shown in every step with
+    0-8 late frames per step (before the dust/litter fixes: 20-60); live 18.4-26.1 in the dark/fade steps (lights
+    down worst frame 183 ms). Soak 25 min on the final QA: 29.9 every cycle, worst 34 ms, no growth.
+  - Keeping the auditorium warm all the time (off-canvas in the lobby scene) fixes every cut but costs 2.6-3.1
+    browser cores and 22-27% GPU vs 0.8 / 10% while the lobby is up: not worth it. On-demand instead:
+    control-qa.html has a "Cut to cinema" button (lobby page): obs-bridge /warm-cinema, 5 s, /cut-to-cinema; result
+    shown on the button. Checked only up to the bridge (OBS was off: 503 "OBS not ready", no cut sent); the real
+    warm + cut needs the owner's OBS.
+  - Machine load during the show @30 (portable OBS, full house): auditorium QA 0.72 browser cores / 12% GPU vs live
+    1.80 / 17%; lobby QA 0.95-1.22 / 17% vs live 1.57-1.65 / 22%. GPU memory with a full house: QA +64 MB lit,
+    -65 MB dark vs live (~1.8-1.9 GB total) - the always-drawn lit/dim art costs nothing measurable.
+  - Per-feature cost in OBS @30, one page load, feature off/on in alternating windows (tools/featab.mjs; a do-nothing
+    control lands within +-0.1 cores): lobby-qa total ~0.75 cores - prop loops (~70 sprite loops, 58 wet
+    highlights at 24 fps) 0.27 cores, everything else (light loop, sky, wet layer, vehicles, rain GL, bubbles) at
+    noise level. auditorium-qa full house: ~0.5 cores / 5% GPU lit, ~0.6 / 8% in the film; nothing above noise
+    lit; in the film the projector set (beam, dust, bloom, spill) <= ~0.1-0.2 cores also with drifting film colours
+    (tools/fakebridge.mjs stands in for obs-bridge on 18799). No hotspot left to fix.
+  - obs-bridge's film-colour sampling (GetSourceScreenshot 96x54 PNG every 500 ms): 2-3 ms per shot, no OBS render
+    or output lag, recording cadence unchanged (tools/glowstall.mjs). Safe.
+  - House out with a full house (panel "house out" after lights up; tools/obsshow.mjs audout, test room re-seeded
+    from the live room before each run, tools/outpair.sh): live and QA both hold 30 with no drops, but QA had more
+    one-tick-late frames (30-118 per 20 s vs live 8-25). A/B: the always-drawn warm dim twins (every piece toggled by
+    someone walking past also toggled its twin); the camera layer was not it. auditorium-qa.html: no twins during a
+    house out with the lights up and no fade -> 0-5 late per 20 s (two runs), better than live. Tried first: twins
+    only for pieces up 2 s (worse, reverted).
+  - Full show @30 on the final QA (house-out fix in): 29.8-30 fps shown in every step, 0-4 late frames per step.
+  - Scene settings in OBS @30 (tools/setab.mjs: set through the test server's panel commands, alternating with the
+    default): lobby - all 6 bubble looks, extra rain off/deluge, mist 1-4, janitor penguin/3D, 14 bubbles: no slow
+    frames; mist 3-4 cost ~+4-5% GPU, the 3D janitor ~+0.2 cores. Auditorium (full house) - all bubble looks and 14
+    bubbles: ~0.4 cores / 4% GPU, no difference, no slow frames.
+  - Stress: full show @30 with a film playing in OBS at the same time (tools/obsfilm.mjs: a looping 1080p60 media
+    source, hardware decode, composited in the scene; recording on): QA a clean 30 in every step (0-4 late), 0.60
+    browser cores / 16% GPU; live 18.7-25.9 fps in the dark steps (worst 233 ms), 1.78 cores / 21% GPU.
+  - Ready for the owner's OK: roxy3d/qa-night/tools/promote-perf.mjs (dry run by default; --apply backs the live
+    files up to backups/2026-11-09-perf/, copies lobby-qa/auditorium-qa/control-qa over the live pages with the
+    lobby's live header kept, and refuses if a live file changed since 9 Nov). Dry run passes; the promoted lobby
+    differs from live by exactly the two lobby fixes.
+  - Tried and rejected: the lobby's prop loops on their own GPU layers (.proploop will-change) - 0.21 cores less, but
+    zoom-ins of the loops went soft (poster/bulb edge detail -9..-20% at 2.5x): breaks the full-resolution rule.
+
+### 9 Nov 2026 - long soaks of the QA pages (portable OBS, 30 fps, test server 18771, real chat)
+- auditorium-qa, 2 h full house (134-137 walkers, light cycles all the way): 58/58 cycles at 29.9 fps, p99 33-34 ms,
+  max 34 ms, 0 slow frames. Heap 6-12 MB (sawtooth, no growth), DOM nodes 6376 -> 6424, images 4919 -> 4925.
+- lobby-qa, 1 h (12-42 walkers): 40/40 cycles at 29.9 fps, max 34 ms, 0 slow. Heap 4-8 MB, nodes 495-741 follow
+  the walker count (no leak).
+- No slowdown or leak over time; the fixes hold for a full movie night.
+
+### 9 Nov 2026 - fresh-load hitches (new tool qa-night/tools/loadwave.mjs: buffered long-animation-frames in OBS)
+- Found a QA regression: the litter bitmaps (from the 9 Nov SVG fix) were drawn on GPU canvases and encoded with
+  toDataURL; with litter down, a fresh load did all ~20 designs at once and each waited for a GPU readback:
+  hitches of 390 and 490 ms about 7 s after load (live has no such frames). It would also hit mid-show the first
+  time a new design appears.
+- Fix (auditorium-qa.html rasterLitter): one design at a time (40 ms apart), CPU canvas (willReadFrequently),
+  toBlob + blob URL. After: no litter script in any long frame; all 140 pieces on blob bitmaps, same pixel sizes,
+  look unchanged (shots/litter/blob_zoom.png).
+- Left as known: on both live and QA, ~5-6 s after a fresh load the room snapshot places the full house at once
+  (script 150-210 ms), then one ~400 ms frame waits for the first decode (560 ms on workers) and GPU raster
+  (475 ms) of 135 walkers. Happens once per source load, never mid-show (soaks: max 34 ms over 2 h).
+- After that first second: QA auditorium 3 frames > 50 ms in 35 s vs live 130-150 (51-88 ms, the dark-scene cost
+  the 8-9 Nov fixes remove). Lobby: both clean after the first ~1.1 s.
+- tool fix: loadwave's script sort threw on LoAF's frozen scripts array (that was the "hang").
+- Show sweeps after the litter fix (OBS, full house 135 walkers): at 30 every step p99 33.4 ms, one late frame in the
+  whole show (first lights-down); at 60 every step 16.7/16.8 except the first lights-down (3 frames > 40 ms, max 83)
+  and 2 frames each in movie / lights up. The 8 Nov qa5 run at 60 had 10-15 such frames per fade, max 150.
+- Tried and reverted: resting #bg-dim at 0.005 instead of 0 (keep its decoded image): first lights-down A/B
+  (firstdim.mjs, 3 rounds at 60) 3-6 late frames in 8 s either way. The rest are room repaints on the fade clock.
+- Checked against the owner's active collection (Moobies 1440p poll, read-only): sources on 127.0.0.1:18770,
+  2560x1440, custom fps (30), shutdown off, film on its own scene with the shader filter; no OBS browser docks.
+  Same as the test setup. The four node processes (servers, bridge, relay) use ~0 CPU.
+- Hidden full-house auditorium behind the visible lobby: no measurable cost (lobby 0.6-0.7 cores, 30.0 fps either way).
+- Show at 30 under film load (new filmsrc.mjs: looping 4K60 h264 media source, hw decode, over the screen area) with
+  NVENC recording: page 30.0 fps every step, GPU 25-30%; recording 29.9-30.0 fps per step, no page frame lost,
+  at most 7 frames per step held one output frame longer (longest 50 ms), mostly 30-on-60 phase jitter.
+- Same film-load show on the LIVE auditorium.html (recording, 30 fps): camera moves 27.4-28.0 fps (up to 83 ms),
+  lights down 20.1 fps (up to 233 ms), fades in the film 18.6-19.4 fps, follow in the dark 19.3 fps; browser
+  1.5-2.3 cores vs QA 0.3-1.0. QA in the same run: 29.9-30.0 fps every step. Recordings kept in qa-night/rec/
+  (auditorium-LIVE-/QA-30fps-fullhouse-film4k-show.mp4).
+- Lobby show + fly-through sweeps at 30 (QA): every step 30.0 fps, max 33.5 ms; fly-through video 0/1504 dropped.
+  Sunday-morning chat emptied the lobby to 11-19 walkers by the time the sweeps ran; at the 55 cap (fresh-load runs)
+  it was clean after the first second. Promote dry run still passes (includes the litter fix).
+- Busy-chat runs (9 Nov, 15:10-16:10 UTC, 87 msgs/min, 53 chatters; QA pages, test OBS at 30, recording on):
+  - Auditorium show, full house (135), 4K film source playing: page 30.0 fps every step (max 33.5 ms, 1-2 frames of
+    67 ms in the dim and lights-up fades); main thread over 30 s after the show: 2 long frames, rAF p99 33.4 ms.
+    Recording: 29.7-30.0 fps per step, 2 page frames never shown in 145 s; more 30-on-60 phase jitter than in quiet
+    chat (up to 29/333 frames held one output frame longer, in lights up), all on the OBS/compositor side.
+  - Lobby show (52 walkers) and fly-through: page 30.0 fps every step; recording 29.7-30.0, 3 page frames never shown
+    in "next arrival"; fly-through video 1/1504 dropped. Lobby browser 1.0-1.8 cores vs 0.6-0.8 in quiet chat.
+  - Where the lobby's extra time goes (Chromium trace, 10 s): JS only ~57 ms/s; image decode on worker threads
+    ~0.2 cores (167 png decodes/s, some large sheets re-decoded ~3x/s). Hiding the umbrellas (A/B, 2 rounds) did not
+    change it; the count swings with the camera, not a single asset. Left alone: off the main thread, no page frames lost.
+  - 30-min lobby soak: 29.9-30.0 fps every cycle, 1 frame over 40 ms in 30 min, heap 4.5-8.9 MB, nodes and images
+    follow the walker count (36-63), no growth.
+  - 30-min auditorium soak, full house (135-137), busy chat: 29.9 fps every cycle, max 34 ms, 0 slow frames, heap
+    7-12 MB, nodes/images flat (6378-6438 / 4927); running animations level off at ~97 after the first lights cycle.
+  - Verdict: no new stutter under busy chat on either QA page; nothing new to fix. Waiting on the owner's OK to promote.
+
+### 9 Nov 2026 (evening) - lobby prop loops off the image cache; the auditorium lights-up blackout
+- New tools (qa-night/tools): decab.mjs (fresh load in the test OBS, Chromium trace per camera state: png decodes,
+  raster ops, GPU/main-frame time, CPU), abcss.mjs (A/B one injected CSS rule on the loaded page), artscan.mjs (finds
+  one-frame glitches in an OBS recording: a patch that differs from the page frames before and after while those agree;
+  EXCL= leaves out a region such as a film source).
+- Lobby, busy chat: the extra CPU was image decoding. A/B with the 74 prop loops hidden: png decodes 170-350/s -> 10/s,
+  raster ops 2500-2800/s -> ~930, browser 1.6-1.9 -> ~1.0 cores. Each loop step (background-position on a div) repainted
+  its patch of the lobby's one big #cam layer, and the sheets (~220 MB decoded, more than Chrome's decoded-image cache
+  keeps) were decoded again and again.
+- lobby-qa.html: loops now ?loopcv=2 (default): the whole sheet drawn once on its own canvas (from fetch -> blob ->
+  ImageBitmap -> OffscreenCanvas copy: bitmaps from an <img>, or straight from a blob, were still re-decoded on every
+  draw) behind a frame-sized overflow:hidden window, and a step only moves it (compositor transform). ?loopcv=1 = one
+  frame drawn per step on a frame-sized canvas; ?loopcv=0 = the old div. Fresh-load A/B in the test OBS (2 loads each,
+  3 camera states): cores 1.57-2.16 / 1.27-1.46 / 1.26-1.47, GPU task 211-320 / 186-251 / 134-202 ms/s, raster ops
+  2700-3100 / 2600-3100 / 965-1630 per s, png decodes 78-316 / 4-15 / 7-34 per s (modes 0 / 1 / 2). GPU memory
+  ~+550 MB with mode 2 (owner, 9 Nov: more RAM/VRAM is fine for less stutter). Same look in side-by-side shots.
+  Recorded lobby show (mode 1 vs 0, chat thinning, 24 vs 41 walkers): 0-3 vs 1-39 late output frames per step.
+- lobby-qa.html: LED title dots drawn from ImageBitmaps instead of a canvas (?ledbmp=0 = old): removes ~4000 canvas
+  snapshots/s, no measurable CPU/GPU change. Kept (harmless).
+- Auditorium artifact the owner remembered: in LIVE auditorium.html, when the house lights come up in the film, every
+  chatter in the seats (and the seat/aisle lights) vanishes for one frame - an empty dark auditorium for 1/30 s
+  (artscan: 59-80 blocks, luma 60 -> 1-9; all 3 live recordings at that moment). Cause: live hides the lit art at
+  dim-done, so the first lights-up frame has to decode the whole lit room again and OBS shows a frame before it is
+  ready. auditorium-qa.html keeps the lit art drawn under the dim art (8 Nov change): 4 QA recordings from 9 Nov show
+  no blackout (worst 5 blocks: the usher's flashlight / phones). The 8 Nov 22:24 QA recording still had it (not checked
+  whether that run predates the change). Camera-move "glitches" in all recordings are animated emotes at 2.5x, not rendering faults.
+  Fixed on stream with the promotion.
+- Lobby mode-2 loops after OBS hides the lobby (cut to the auditorium and back): cut-back freeze 283-300 ms (old way
+  300-383 ms, cuttest.mjs with the pages swapped); hidden 90 s then shown (new hidetest.mjs + grabsrc.mjs: OBS's own
+  render of the source): loops drawn 1 s after showing (popcorn popping, menus lit) - the GPU canvases survive.
+- Auditorium lights changes (new lightcycle.mjs: 4 down/up cycles on one load, full house, 30): 0 late page frames in
+  8 lights-downs and 8 lights-ups, worst 34 ms, litter on or off. A trace of a lights-up shows 172 small png decodes
+  (56 ms on workers) and one 33 ms GPU task at the first fade step, but no page frame is late. The 1-2 frames of 67 ms
+  in the full show are not from the lights change alone; not reproducible this way, left alone.
+- Cut back to the lobby (cinema -> lobby, lobby hidden by OBS; new cutprof.mjs = CPU profile across the cut): ~300 ms
+  freeze. First lobby frame 121 ms (116 ms waiting on the compositor commit inside rAF), WebGL rain drawArrays 80-165 ms
+  in the first 2 s, ~350 ms raster and ~260 ms png decoding in the first 0.3 s. Tried: skip drawing while
+  document.hidden (rain, mist, LEDs; simulation kept) - no change (drawArrays 155 vs 166 ms), reverted. With the extra
+  rain off (?morerain=0, test only) the freeze is the same (283-317 vs 300-383 ms); the rain only adds small holds
+  ~1.3 s later. The freeze is OBS re-rendering a page it hid; the page cannot keep it. Fix = warm the lobby off-canvas
+  before the cut, like the panel's "Cut to cinema" (needs a lobby warm-up in obs-bridge.js: not touched, owner's call).
+
+## 9 Nov 2026: L1 street marquee, blockout (Brief 79)
+Owner: render the marquee in Blender at full quality, as its own layer over out10 (alpha + light + depth slice), not a
+full pack re-render. Brief 79 (Codex) made the layout blockout: `marquee/blockout.png` (Workbench, production camera).
+Canopy 4.6 m wide x 0.6 m projection x 1.0 m fascia, soffit 3.1 m, centered on the entrance (u 7.2-11.8, v 9.0-9.6),
+two rear risers to the 2.05 m header. Sidewalk is only 1.5 m deep, so it projects less than the L1 mockup.
+Stage-px corners in `marquee/marquee_geom.json`. Waiting for owner layout OK. Estimate for the full layer render on
+the RTX 3050: 15-30 min at 4K.
+- 9 Nov ~19:20: PROMOTED on the owner's OK ("promote whatever you did to prod"): promote-perf.mjs --apply,
+  lobby-qa -> lobby, auditorium-qa -> auditorium, control-qa -> control (backups in backups/2026-11-09-perf/).
+  Includes the 8-9 Nov fixes, the lobby loops (mode 2) and the LED bitmaps; the auditorium lights-up blackout fix goes
+  live with it. The panel's new "Cut to lobby" button is hidden unless control.html?lobbycut=1: it needs
+  obs-bridge-qa.js (lobby warm-up), which is not promoted yet. Hosted edition and zip not rebuilt (owner's call).
+- Testing from now on at 60 (owner, 9 Nov: the stricter test), with a confirm at 30 in OBS before a promote.
+- 9 Nov, owner: "deeper, and no gap between the entrance and the marquee". Blockout B (`marquee/blockout_b.png`,
+  `build_marquee_b.py`, `marquee_geom_b.json`): projection 1.2 m (0.3 m short of the curb), soffit flush on the
+  2.05 m entrance header, risers removed. Same width 4.6 m, fascia 1.0 m. Waiting for owner layout OK.
+- 9 Nov, owner: "Layout OK" for blockout B. Brief 80 started (Codex): one styled final-quality draft
+  `qa10/draft25-marquee.png` (dark canopy, red trim, backlit cream letterboards with page-style sample text,
+  amber bulb rows, soffit downlights on the wet sidewalk). Codex weekly usage 50% at start.
+- Cut back to the lobby with a warm-up (cuttest.mjs PREWARM=5, pages swapped): longest hold 50-83 ms vs 317-333 ms
+  plain (3 trials each). New obs-bridge-qa.js (copy of obs-bridge.js + POST /warm-lobby and /cut-to-lobby; lobby
+  source found inside the "Lobby" scene, nested scenes included) and control-qa.html "Cut to lobby" (auditorium page,
+  shown with ?lobbycut=1). Functional test in the portable OBS with the owner's layout (new bridgetest.mjs, bridge on
+  18791): warm puts "Browser" off-canvas into "DinkDonk Cinema" (source active), a second warm says already, the cut
+  lands on "Lobby", the warm item is removed, a warm with the lobby on is skipped. First version picked the wrong
+  source (any lobby URL) - fixed to search the Lobby scene. Not in the live bridge yet (owner's call).

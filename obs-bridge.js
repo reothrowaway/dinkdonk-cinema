@@ -2,13 +2,16 @@
 
 // OBS bridge for the auditorium's film screen. The auditorium page inside OBS (Browser 3) sends where the screen is
 // on every camera move; this pins the VLC capture ("Film screen (src)") onto it through obs-websocket and shows it
-// only while the phase is Film. The one other thing it does: on the lobby's request (POST /cut-to-cinema, at the end of
-// the fly-through) it cuts the program to the cinema scene (see cutToCinema). Nothing else in OBS is touched.
+// only while the phase is Film. The other things it does, both on the lobby's request during the fly-through: at the
+// start (POST /warm-cinema) it puts the auditorium source off-canvas into the lobby scene so OBS loads it (see
+// warmCinema; removed again after the cut), at the end (POST /cut-to-cinema) it cuts the program to the cinema scene
+// (see cutToCinema). Nothing else in OBS is touched.
 //
 // Page -> bridge (WebSocket on PORT, text frames of JSON):
 //   { film: true|false, w: <viewport px>, h: <viewport px>, quad: [[x,y] TL, TR, BR, BL] }   (viewport px)
 // Bridge -> page: { obs: true|false } whenever OBS becomes ready / goes away (the page keeps the screen green
 //   when false, so a missing bridge never leaves a black screen with no film).
+//   { glow: [r, g, b] } about twice a second while the film is up: its average colour, for the screen glow (queue 58).
 // The OBS password is read from obs-websocket's own config on this PC; it never goes to the page.
 // Usage: node obs-bridge.js   (env: OBS_BRIDGE_PORT=18790, OBS_WS=ws://127.0.0.1:4455, OBS_PASSWORD to override)
 
@@ -17,6 +20,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
+const zlib = require('node:zlib');
 
 const PORT = Number(process.env.OBS_BRIDGE_PORT || 18790);
 const OBS_URL = process.env.OBS_WS || 'ws://127.0.0.1:4455';
@@ -146,11 +150,51 @@ async function cutToCinema(dry) {
   await request('SetCurrentProgramScene', { sceneName: SCENE });
   setTimeout(async () => {
     try { await request('SetCurrentSceneTransition', { transitionName }); } catch (e) { log(`restore after the cut failed: ${e.message}`); }
+    unwarm('after the cut');
   }, 1500);
   return plan;
 }
+
+// Queue 55: OBS only loads a browser source once its scene is shown, so the evening's first fly-through cut landed on
+// an auditorium still loading (8 Nov: it connected 15 s after the cut). At the flight's start the lobby asks for this:
+// the auditorium source goes into the program (lobby) scene, outside the canvas, which counts as shown, so it loads
+// during the ~50 s flight. The item is removed after the cut (or after 2 min): no lasting scene change, no extra GPU.
+let warm = null;
+let warmTimer = 0;
+async function warmCinema() {
+  if (warm) return { already: true };
+  const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
+  const aud = items.find((i) => i.inputKind === 'browser_source');
+  if (!aud) return { skipped: `no browser source in "${SCENE}"` };
+  const prog = await request('GetCurrentProgramScene');
+  const scene = prog.currentProgramSceneName || prog.sceneName;
+  if (!scene || scene === SCENE) return { skipped: 'the cinema scene is already on' };
+  const active = await request('GetSourceActive', { sourceName: aud.sourceName }).catch(() => ({}));
+  if (active.videoActive) return { skipped: 'the auditorium is already shown' };
+  const { baseWidth = 1920 } = await request('GetVideoSettings');
+  // added hidden, moved off the canvas, then shown: it never flashes over the lobby
+  const { sceneItemId } = await request('CreateSceneItem', { sceneName: scene, sourceName: aud.sourceName, sceneItemEnabled: false });
+  warm = { scene, sceneItemId, source: aud.sourceName };
+  try {
+    await request('SetSceneItemTransform', { sceneName: scene, sceneItemId, sceneItemTransform: { positionX: baseWidth + 400, positionY: 0 } });
+    await request('SetSceneItemEnabled', { sceneName: scene, sceneItemId, sceneItemEnabled: true });
+  } catch (e) { await unwarm('setup failed'); throw e; }
+  clearTimeout(warmTimer);
+  warmTimer = setTimeout(() => unwarm('no cut within 2 min'), 120000);
+  return { warmed: aud.sourceName, scene };
+}
+async function unwarm(why) {
+  if (!warm) return;
+  const w = warm;
+  warm = null;
+  clearTimeout(warmTimer);
+  try {
+    await request('RemoveSceneItem', { sceneName: w.scene, sceneItemId: w.sceneItemId });
+    log(`warm-up: "${w.source}" taken out of "${w.scene}" (${why})`);
+  } catch (e) { log(`warm-up: removing "${w.source}" from "${w.scene}" failed (${e.message}): it sits off-canvas there, remove it by hand`); }
+}
 const LOCAL_PAGE = /^http:\/\/(127\.0\.0\.1|localhost):187\d\d$/;   // the standby screens (18770 live, 18771 test)
-function cutRoute(req, res) {
+function cutRoute(req, res, what = 'cut') {
   const from = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   const origin = req.headers.origin || '';
   const reply = (code, obj) => {
@@ -165,6 +209,16 @@ function cutRoute(req, res) {
     let b = {};
     try { b = body ? JSON.parse(body) : {}; } catch { /* empty */ }
     if (!obs.ready) return reply(503, { error: 'OBS not ready' });
+    if (what === 'warm') {
+      try {
+        const r = await warmCinema();
+        log(`warm-up (lobby fly-through starts): ${JSON.stringify(r)}`);
+        return reply(200, r);
+      } catch (e) {
+        log(`warm-up failed: ${e.message}`);
+        return reply(500, { error: e.message });
+      }
+    }
     try {
       const r = await cutToCinema(!!b.dry);
       log(r.dry ? `cut to cinema (dry): ${JSON.stringify(r)}` : `cut to "${SCENE}" (lobby fly-through)`);
@@ -178,6 +232,7 @@ function cutRoute(req, res) {
 
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/cut-to-cinema') { cutRoute(req, res); return; }
+  if (req.method === 'POST' && req.url === '/warm-cinema') { cutRoute(req, res, 'warm'); return; }
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(`obs-bridge: OBS ${obs.ready ? 'ready' : 'not ready'}, ${pages.size} page(s), film ${want.film ? 'on' : 'off'}\n`);
 });
@@ -285,6 +340,65 @@ async function pump() {
   }
   if (obs.ready) setImmediate(pump);
 }
+
+// ---------- film colour for the screen glow (queue 58) ----------
+// While the film is up, a tiny screenshot of the film source (96x54) about every 500 ms; its average colour goes to the
+// auditorium pages, which tint the glow round the screen with it. The source is corner-pinned, so most of the frame is
+// transparent: the average is weighted by alpha. Pages that don't know {glow} ignore it.
+const GLOW_MS = 500;
+let glowSent = '';
+function pngPixels(buf) {
+  // 8-bit RGB or RGBA PNG (what OBS writes) -> { w, h, bpp, px } with the row filters undone
+  if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('not a PNG');
+  let at = 8, w = 0, h = 0, type = 0;
+  const idat = [];
+  while (at + 12 <= buf.length) {
+    const len = buf.readUInt32BE(at), kind = buf.toString('latin1', at + 4, at + 8), body = buf.subarray(at + 8, at + 8 + len);
+    if (kind === 'IHDR') {
+      w = body.readUInt32BE(0); h = body.readUInt32BE(4); type = body[9];
+      if (body[8] !== 8 || (type !== 2 && type !== 6) || body[12]) throw new Error(`PNG type ${type}/${body[8]} not handled`);
+    } else if (kind === 'IDAT') idat.push(body);
+    else if (kind === 'IEND') break;
+    at += 12 + len;
+  }
+  const bpp = type === 6 ? 4 : 3, stride = w * bpp, raw = zlib.inflateSync(Buffer.concat(idat)), px = Buffer.alloc(stride * h);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (stride + 1)], src = y * (stride + 1) + 1, row = y * stride;
+    for (let x = 0; x < stride; x++) {
+      const a = x >= bpp ? px[row + x - bpp] : 0, b = y ? px[row - stride + x] : 0, c = x >= bpp && y ? px[row - stride + x - bpp] : 0;
+      let v = raw[src + x];
+      if (f === 1) v += a;
+      else if (f === 2) v += b;
+      else if (f === 3) v += (a + b) >> 1;
+      else if (f === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c; }
+      px[row + x] = v & 255;
+    }
+  }
+  return { w, h, bpp, px };
+}
+function averageColour({ w, h, bpp, px }) {
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < w * h * bpp; i += bpp) {
+    const a = bpp === 4 ? px[i + 3] / 255 : 1;
+    r += px[i] * a; g += px[i + 1] * a; b += px[i + 2] * a; n += a;
+  }
+  return n < 4 ? null : [r, g, b].map((c) => Math.round(c / n));   // under ~4 px of film in the frame: no reading
+}
+async function sampleGlow() {
+  if (!obs.ready || !sent.film || !pages.size) return;
+  const { imageData } = await request('GetSourceScreenshot', { sourceName: FILM, imageFormat: 'png', imageWidth: 96, imageHeight: 54 });
+  const rgb = averageColour(pngPixels(Buffer.from(String(imageData).replace(/^data:[^,]*,/, ''), 'base64')));
+  if (!rgb) return;
+  const key = rgb.join(',');
+  if (key === glowSent) return;
+  glowSent = key;
+  for (const c of pages) wsSend(c, { glow: rgb });
+}
+let glowFails = 0;
+(function glowLoop() {
+  sampleGlow().then(() => { glowFails = 0; }, (e) => { if (++glowFails === 1 || glowFails % 120 === 0) log(`film colour: ${e.message}`); })
+    .finally(() => setTimeout(glowLoop, glowFails > 3 ? 5000 : GLOW_MS));
+})();
 
 server.listen(PORT, '0.0.0.0', () => log(`obs-bridge on :${PORT} (pages on this PC only), OBS at ${OBS_URL}`));
 obsConnect();

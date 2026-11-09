@@ -265,7 +265,7 @@ async function controlRoute(req, res, pathname) {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive' });
     res.write('retry: 3000\n\n');
     const who = params.has('who') ? params.get('who').replace(/[^A-Za-z0-9_]/g, '').slice(0, 25) || null : undefined;
-    const off = room.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: params.get('obs') === '1', who });
+    const off = room.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: params.get('obs') === '1', who, caps: String(params.get('caps') || '').split(',').filter((c) => /^[a-z]{1,12}$/.test(c)).slice(0, 8) });
     const ping = setInterval(() => res.write(': ping\n\n'), 20000);
     req.on('close', () => { clearInterval(ping); off(); });
     return true;

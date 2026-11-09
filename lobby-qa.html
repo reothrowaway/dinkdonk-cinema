@@ -71,6 +71,22 @@
   .sheet { position: absolute; left: 0; top: 0; pointer-events: none; background-repeat: no-repeat; }
   .fxsheet { mix-blend-mode: plus-lighter; }
   .proploop { position: absolute; pointer-events: none; mix-blend-mode: plus-lighter; background-repeat: no-repeat; }
+  /* premiere-night sky (L3) and wet-street light (L4), queue 61: over the background, under #world's walkers and props */
+  .fxl { width: 1920px; height: 1080px; z-index: 3; overflow: hidden; }
+  .fxl > div { position: absolute; pointer-events: none; }
+  #skyfx, #wetfx { mix-blend-mode: screen; }
+  .sbeam { transform-origin: 50% 100%; will-change: transform;
+    background: linear-gradient(0deg, rgba(234,243,255,.5), rgba(234,243,255,.16) 55%, rgba(234,243,255,0));
+    clip-path: polygon(44% 100%, 56% 100%, 100% 0, 0 0);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 32%, #000 68%, transparent); mask-image: linear-gradient(90deg, transparent, #000 32%, #000 68%, transparent); }
+  .sbA { animation: sweepA 23s ease-in-out infinite alternate; }
+  .sbB { animation: sweepB 29s ease-in-out -9s infinite alternate; }
+  @keyframes sweepA { from { transform: rotate(-50deg); } to { transform: rotate(-31deg); } }
+  @keyframes sweepB { from { transform: rotate(27deg); } to { transform: rotate(46deg); } }
+  .skyred { animation: skyred 2.4s steps(1) infinite; }
+  @keyframes skyred { 0% { opacity: 1; } 30% { opacity: .15; } }
+  .wstreak { animation: wetsh 5s ease-in-out infinite alternate; }
+  @keyframes wetsh { from { opacity: .7; } to { opacity: 1; } }
   .veh { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
   .vehlight { z-index: 4; mix-blend-mode: plus-lighter; }
   .vehrain { mix-blend-mode: plus-lighter; }   /* rendered roof rain, tyre spray and wake (additive loops) */
@@ -84,7 +100,9 @@
     background: radial-gradient(circle at 30% 50%, #fff6c8 0 3px, transparent 4px), radial-gradient(circle at 70% 40%, #ffe28a 0 3px, transparent 4px), #ffd75a; }
 
   #stage { overflow: hidden; }
-  #cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  /* will-change: the director's moves and zooms are a compositor transform of one raster (kept at the zoomed scale)
+     instead of re-rastering the whole lobby every frame (perf 8 Nov: 60 fps with 33-50 ms hitches -> ~118 fps uncapped) */
+  #cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; will-change: transform; }
   #hang, #fx, #bubbles { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
   #rain { z-index: 70000; width: 1920px; height: 1080px; }
   #rain2 { z-index: 70002; width: 1920px; height: 1080px; display: none; mix-blend-mode: plus-lighter; }
@@ -104,6 +122,8 @@
     border-top-color: rgba(200, 220, 255, .6); border-bottom: 0; }
   .bub .sb-emote { vertical-align: middle; margin: 0 2px; }
 
+  .heart { position: absolute; left: 0; top: 0; font-size: 22px; line-height: 1; pointer-events: none; will-change: transform, opacity;
+    filter: drop-shadow(0 0 4px rgba(255, 80, 160, .75)); }
   .fl { position: absolute; left: 0; top: 0; white-space: nowrap; font: 600 16px/1 Oswald, sans-serif; letter-spacing: .04em;
     color: #ffe08a; text-shadow: 0 0 6px rgba(255, 140, 200, .8), 0 1px 2px #000; }
   .ticket { position: absolute; left: -9px; top: -6px; width: 18px; height: 11px; background: #ffd75a; border-radius: 2px;
@@ -205,6 +225,9 @@
     <div id="world"></div>
     <img id="glow" class="layer" alt="">
     <video id="loop" class="layer" muted loop autoplay playsinline></video>
+    <div id="skyline" class="layer fxl"></div>
+    <div id="skyfx" class="layer fxl"></div>
+    <div id="wetfx" class="layer fxl"></div>
     <canvas id="mist" class="layer" width="960" height="540"></canvas>
     <canvas id="rain" class="layer" width="960" height="540"></canvas>
     <video id="rainfg" class="layer" muted loop autoplay playsinline></video>
@@ -214,6 +237,53 @@
   </div>
   <div id="bubbles"></div>
 </div>
+<script>
+// ---------- premiere-night sky (L3) and wet-street light (L4), queue 61 ----------
+// Picked by the owner from the 8 Nov improvement drafts (concepts/improve/drafts/L3.png, L4.png). Page layers over the
+// background and under everything in #world (walkers, cars, occluders), placed in world px from the wide shot.
+// No blur filters (they would re-rasterise on every zoom): soft shapes are gradients, motion is transform/opacity only.
+// ?sky=0 / ?wet=0 turn them off.
+(() => {
+  const q = new URLSearchParams(location.search);
+  const SLOPE = 27.9;   // the facade planes of the render
+  const div = (parent, css, cls) => { const d = document.createElement('div'); if (cls) d.className = cls; d.style.cssText = css; parent.append(d); return d; };
+  if (q.get('sky') !== '0') {
+    // far skyline across the black top-left corner: blocks with a few warm windows and one red aircraft light
+    let s = '';
+    for (let i = 0; i < 16; i++) {
+      const x = i * 42, hgt = 40 + ((i * 37) % 70);
+      s += `<rect x="${x}" y="-10" width="40" height="${hgt}" fill="#0c0c12"/>`;
+      for (let j = 0; j < 4; j++) if ((i + j * 3) % 4 === 0) s += `<rect x="${x + 8 + (j % 2) * 16}" y="${8 + j * 9}" width="5" height="4" fill="#f4c46a" opacity=".7"/>`;
+    }
+    document.getElementById('skyline').innerHTML = `<svg width="1920" height="1080" viewBox="0 0 1920 1080" style="position:absolute;left:0;top:0;opacity:.55">${s}</svg>`;
+    const fx = document.getElementById('skyfx');
+    div(fx, 'left:506px;top:18px;width:8px;height:8px;border-radius:50%;background:radial-gradient(closest-side,#ff6a5a,#ff2a2a 50%,rgba(255,40,40,0))', 'skyred');
+    // warm city haze along the top edge
+    div(fx, 'left:0;top:0;width:1920px;height:220px;background:linear-gradient(rgba(255,154,74,.22),rgba(255,154,74,0))');
+    // two searchlights on the cinema roof, sweeping slowly (they catch the rain)
+    for (const [x, y, len, cls] of [[940, 212, 360, 'sbA'], [1050, 252, 390, 'sbB']]) {
+      div(fx, `left:${x - 60}px;top:${y - len}px;width:120px;height:${len}px`, `sbeam ${cls}`);
+      div(fx, `left:${x - 18}px;top:${y - 9}px;width:36px;height:18px;border-radius:50%;background:radial-gradient(closest-side,#fff,rgba(234,243,255,.6) 45%,rgba(234,243,255,0))`);
+    }
+    // (the draft's extra lit windows were left out: drawn on top they didn't line up with the render's window grid)
+  }
+  if (q.get('wet') !== '0') {
+    const fx = document.getElementById('wetfx');
+    // the lobby's purple light pooling out from the glass front onto the wet sidewalk (local x runs along the glass,
+    // local y straight out towards the street)
+    div(fx, 'left:0;top:0;width:595px;height:200px;transform-origin:0 0;transform:matrix(1,.529,-1,.53,545,700);' +
+      'background:linear-gradient(rgba(208,76,255,.34),rgba(208,76,255,.12) 45%,rgba(208,76,255,0));' +
+      '-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)');
+    // long vertical reflections in the puddles under the street lamp, the video store, the pink neon and the corner shop
+    for (const [x, y, w, hgt, c, a, t] of [[566, 650, 28, 280, '255,217,160', .5, 4.3], [128, 500, 64, 170, '56,224,208', .42, 5.7],
+      [290, 420, 42, 140, '255,95,191', .48, 3.9], [1172, 970, 32, 120, '74,223,255', .42, 6.1]]) {
+      div(fx, `left:${x}px;top:${y}px;width:${w}px;height:${hgt}px;--a:${a};animation-duration:${t}s;` +
+        `background:radial-gradient(closest-side,rgba(${c},${a}),rgba(${c},${(a * 0.35).toFixed(2)}) 55%,rgba(${c},0))`, 'wstreak');
+    }
+  }
+})();
+</script>
+<script>window.DD_ROOM_CAPS = 'peek,gag,vote';   // room events this page plays (queue 56, 57, 50; shared/cinema.js)</script>
 <script>window.DD_ROOM_PAGE = 'lobby';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
@@ -749,8 +819,14 @@
     g.fillRect(0, 0, LED_S * 3, LED_S * 3);
     return c;
   };
-  const LED_AMBER = dotSprite('#fff4cf', 'rgba(255, 168, 40, 1)');
-  const LED_RED = dotSprite('#ffd9cc', 'rgba(255, 52, 30, 1)');
+  let LED_AMBER = dotSprite('#fff4cf', 'rgba(255, 168, 40, 1)');
+  let LED_RED = dotSprite('#ffd9cc', 'rgba(255, 52, 30, 1)');
+  // the same dots as ImageBitmaps: every lit dot is one drawImage, and with a canvas as the source each one made the
+  // GPU process snapshot that canvas (~4000 snapshots/s with the titles scrolling, perf 9 Nov). ?ledbmp=0 = old way
+  if (q.get('ledbmp') !== '0' && typeof createImageBitmap === 'function') {
+    createImageBitmap(LED_AMBER).then((b) => { LED_AMBER = b; for (const l of leds) l.key = ''; }).catch(() => {});
+    createImageBitmap(LED_RED).then((b) => { LED_RED = b; for (const l of leds) l.key = ''; }).catch(() => {});
+  }
   const leds = [];
   function makeLed(spec) {
     const [a0, a1] = spec.along;
@@ -1532,6 +1608,7 @@
     const old = walkers.get(key);
     if (old && !old.entering && !old.removing) {
       setEmote(old, wi.emote);
+      if (!inRoom()) voteArrival(old, wi);   // (in the room the server sends a follow for it)
       // the panel's "say" (it comes back from the room as a walk-in): at once, as the panel's say did
       if (wi.say) say(old, wi.tokens);
       else queueLine(old, wi.tokens);   // said at their next conversation
@@ -1745,7 +1822,9 @@
         }
         return { el, p, rr };
       });
-      Promise.all(v.parts.map(({ el }) => el.decode().catch(() => {}))).then(() => old.forEach((o) => { o.el.remove(); o.rr?.el.remove(); }));
+      // (hidden in OBS, decode() never settles: the old set went only when the lobby was shown again, and piled up
+      // meanwhile; nobody sees a blank frame there, so it goes at once; perf 9 Nov)
+      Promise.all(v.parts.map(({ el }) => (document.hidden ? null : el.decode().catch(() => {})))).then(() => old.forEach((o) => { o.el.remove(); o.rr?.el.remove(); }));
       v.partsKey = key;
       if (v.u != null && v.ax != null) place(v);
     }
@@ -3405,6 +3484,169 @@ void main() {
     );
   }
 
+  // ---------- director: interesting spots (queue 56) ----------
+  // Now and then, instead of the next arrival, the camera takes a look at something for at most 7 s, then back to the
+  // wide shot: the billboards, the big DINK DONK sign, the cashiers and the snack clerks, the usher, the screens'
+  // posters, the cat, the bus shelter ad. Shared room: the room says when and which ('peek' event, the same on every
+  // screen); a screen on its own rolls it itself when its director is due.
+  const PEEK_LEN = 7000;
+  const PEEK_P = 0.35;   // share of the director's turns that go to a spot instead of an arrival
+  const PEEK_W = { wcat: 2, eatfresh: 2, sign: 1, cashiers: 2, snack: 2, usher: 1, poster1: 1, poster2: 1, poster3: 1, cat: 2, shelter: 1 };
+  const boxOf = (pts) => { const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+  // name -> [x0, y0, x1, y1] on the 1920x1080 stage (or null: not in this art)
+  function peekBox(name) {
+    const m = art || {};
+    const ad = (n) => { const a = (m.ad_surfaces || []).find((s) => s.name === n); return a?.quad_px ? boxOf(a.quad_px) : null; };
+    const staff = m.staff_positions || {};
+    const around = (uvs, hgt) => (uvs?.length ? boxOf(uvs.flatMap(([u, v]) => [P(u, v, -6), P(u, v, hgt)])) : null);
+    switch (name) {
+      case 'wcat': case 'eatfresh': case 'shelter': return ad(name);
+      case 'sign': return [1350, 10, 1890, 330];   // the roof sign over the entrance (baked into the art)
+      case 'cashiers': return around(staff.cashiers, 70);
+      case 'snack': return around(staff.snack_clerks, 70);
+      case 'usher': return staff.usher ? around([staff.usher], 70) : null;
+      case 'poster1': case 'poster2': case 'poster3': {
+        const f = (m.poster_frames || []).find((p) => p.screen === Number(name.slice(-1)));
+        const led = (m.led_signs || []).find((s) => s.door === Number(name.slice(-1)));
+        return f?.quad_px ? boxOf([...f.quad_px, ...(led?.quad_px || [])]) : null;
+      }
+      case 'cat': return cat && cat.el.style.display !== 'none' ? around([[cat.u, cat.v]], 30) : null;
+      default: return null;
+    }
+  }
+  function startPeek(name) {
+    if (director.follow || director.spot) return false;
+    const b = peekBox(name);
+    if (!b) return false;
+    const w = Math.max(60, b[2] - b[0]), hgt = Math.max(40, b[3] - b[1]);
+    const z = clamp(Math.min(1920 * 0.62 / w, 1080 * 0.62 / hgt), 1.5, 3);
+    director.spot = { x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2, z, peek: name, until: performance.now() + PEEK_LEN };
+    return true;
+  }
+  function stepPeek() {
+    const s = director.spot;
+    if (s?.peek) {
+      if (performance.now() > s.until) director.spot = null;
+      else if (s.peek === 'cat') { const b = peekBox('cat'); if (b) { s.x = (b[0] + b[2]) / 2; s.y = (b[1] + b[3]) / 2; } }
+      return;
+    }
+    // a screen without the shared room: one roll per director turn
+    const now = performance.now();
+    if (inRoom() || !director.on || director.follow || s || now < director.next || director.peekFor === director.next) return;
+    director.peekFor = director.next;
+    if (Math.random() > PEEK_P) return;
+    const names = Object.keys(PEEK_W).filter((n) => peekBox(n));
+    let r = Math.random() * names.reduce((t, n) => t + PEEK_W[n], 0);
+    const name = names.find((n) => (r -= PEEK_W[n]) <= 0) || names[0];
+    if (name && startPeek(name)) director.next = now + PEEK_LEN + director.every * 1000 * rand(0.4, 0.7);
+  }
+  setInterval(stepPeek, 200);
+
+  // ---------- stall gag (queue 57) ----------
+  // Two chatters hanging out in the lobby walk into the restroom together and squeeze into the same stall; hearts float
+  // up out of it, then they come out one after the other. The director follows the first one for the whole bit
+  // (at most 30 s). Shared room: the room picks the two ('gag' event, the same on every screen); a screen on its own
+  // rolls it itself every 10-20 min.
+  const GAG_LEN = 30000;
+  let gag = null;
+  let gagNext = performance.now() + rand(300, 1200) * 1000;
+  function gagFree(w) {
+    return !!w && !w.gone && !w.removing && !w.entering && !w.ride && !w.inQueue && !w.snack && !w.staff && !w.jan
+      && !w.doorBound && !w.hurry && !w.stall && wcBusy !== w && wcWait !== w && arcadeBusy !== w && benchBusy !== w
+      && !gateLine.includes(w) && !windows.some((x) => x.cur === w) && w.alpha > 0.9 && w.v < 8.9;
+  }
+  function startGag(a, b) {
+    const R = RESTROOM;
+    if (gag || !R || a === b || !gagFree(a) || !gagFree(b)) return false;
+    R.stalls.forEach((s) => { if (s.busy?.gone) s.busy = null; });
+    const stall = R.stalls.find((s) => !s.busy);
+    if (!stall) return false;
+    const now = performance.now();
+    const g = gag = { a, b, stall, inside: 0, t0: now, heartsFrom: 0, out: false };
+    stall.busy = a;
+    setWC(restroomFull());
+    const go = (pts) => pts.map((to) => ({ to }));
+    const plan = (w, first) => {
+      // whatever they were doing comes after (out of a talk group: they leave it)
+      let rest = w.plan;
+      if (w.group) {
+        w.group.members = w.group.members.filter((m) => m !== w);
+        w.group = null;
+        w.arrived = false;
+        rest = w.afterHang || [];
+        w.afterHang = null;
+      }
+      w.stall = stall;
+      w.plan = [
+        ...(first ? [] : [{ wait: 0.7 }]),
+        ...go([R.outside]), ...(first ? [{ call: () => playDoor('wc') }] : []), ...go([R.door, R.inside]),
+        ...go([...stall.route, stall.spot]),
+        { call: () => { playDoor(stall.key); w.alphaT = 0; dropBubble(w); } }, { alpha: 0 },
+        { call: () => { g.inside++; } },
+        // the hearts (stepGag), then out: the first one, a moment later the second
+        { until: () => g.out || performance.now() - g.t0 > GAG_LEN - 6000 },
+        { wait: first ? 0.01 : 1.2 },
+        { call: () => { playDoor(stall.key); w.alphaT = 1; } }, { alpha: 1 },
+        { call: () => floatAt(w, first ? '😳' : '😌', '#ffb3d9') },
+        ...go([...[...stall.route].reverse()]),
+        { to: R.inside }, ...(first ? [] : [{ call: () => playDoor('wc') }]),
+        ...go([R.door, R.outside]),
+        { call: () => { if (w.stall === stall) w.stall = null; if (!first || g.b.gone) endGag(g); } },
+        ...rest,
+      ];
+    };
+    plan(a, true);
+    plan(b, false);
+    if (!director.spot) { startFollow(a); director.follow.endAt = now + GAG_LEN; }
+    director.next = now + GAG_LEN + director.every * 1000 * 0.5;
+    return true;
+  }
+  function endGag(g = gag) {
+    if (!g || gag !== g) return;
+    if (g.stall.busy === g.a || g.stall.busy === g.b) g.stall.busy = null;
+    gag = null;
+    setWC(restroomFull());
+  }
+  const HEARTS = ['❤️', '💕', '💖', '💗', '💘'];
+  function heartPuff(stall) {
+    const [x, y] = P(stall.spot[0] - 0.15, stall.spot[1], 86);
+    const el = h('div', 'heart', HEARTS[Math.floor(Math.random() * HEARTS.length)]);
+    fx.append(el);
+    const dx = rand(-24, 24), rise = rand(60, 100), s = rand(0.8, 1.3);
+    el.animate([
+      { transform: `translate(${x + dx * 0.2}px, ${y}px) translate(-50%, -50%) scale(${(s * 0.4).toFixed(2)})`, opacity: 0 },
+      { transform: `translate(${x + dx * 0.6}px, ${y - rise * 0.3}px) translate(-50%, -50%) scale(${s.toFixed(2)})`, opacity: 1, offset: 0.25 },
+      { transform: `translate(${x + dx}px, ${y - rise}px) translate(-50%, -50%) scale(${(s * 0.9).toFixed(2)})`, opacity: 0 },
+    ], { duration: rand(1600, 2300), easing: 'ease-out' }).onfinish = () => el.remove();
+  }
+  function pickGagPair() {
+    const free = [...walkers.values()].filter(gagFree);
+    if (free.length < 2) return null;
+    const a = free.splice(Math.floor(Math.random() * free.length), 1)[0];
+    return [a, free[Math.floor(Math.random() * free.length)]];
+  }
+  function stepGag() {
+    const now = performance.now();
+    const g = gag;
+    if (!g) {
+      // a screen without the shared room rolls its own (rare: every 10-20 min, with enough people about)
+      if (!inRoom() && RESTROOM && director.on && !director.follow && !director.spot && now > gagNext) {
+        gagNext = now + rand(600, 1200) * 1000;
+        const pair = [...walkers.values()].filter(gagFree).length >= 6 && pickGagPair();
+        if (pair) startGag(...pair);
+      }
+      return;
+    }
+    if (now - g.t0 > GAG_LEN + 30000 || g.a.gone) { endGag(g); return; }   // (safety: someone left mid-way)
+    const bothIn = g.inside >= 2 || (g.inside >= 1 && (g.b.gone || g.b.removing));
+    if (bothIn && !g.out) {
+      g.heartsFrom ||= now;
+      if (now - g.heartsFrom > 9000) g.out = true;
+      else if (Math.random() < 0.7) heartPuff(g.stall);
+    }
+  }
+  setInterval(stepGag, 250);
+
   // ---------- camera + zoom director ----------
   // Wide shot most of the time. Every ~2-3 min (director=<seconds>) the camera takes the next arrival and
   // follows them from the bus / taxi / sidewalk through tickets, popcorn and the gate to their door, holds a
@@ -3442,6 +3684,14 @@ void main() {
     if (inRoom()) { if (wi?.follow) startFollow(w); return; }
     if (w.hurry) return;
     if (director.wantNext || (director.on && performance.now() >= director.next)) startFollow(w);
+    else voteArrival(w, wi);
+  }
+  // queue 50 (no shared room): a message with "vote" in it jumps the queue once 40% of the gap since the last follow
+  // has passed (shared/room.js voteFollow does the same for every screen)
+  function voteArrival(w, wi) {
+    if (!director.on || director.follow || director.spot || w.hurry || !/vote/i.test(wi?.text || '')) return;
+    if (performance.now() < director.next - director.every * 1000 * 0.6) return;
+    startFollow(w);
   }
   function followSomeone(nick) {
     const key = nick?.toLowerCase();
@@ -3566,6 +3816,8 @@ void main() {
       case 'wide': director.wantNext = false; director.spot = null; endFollow(); break;
       case 'pollscreen': setPollScreenOpen(!!c.on); break;   // the server remembers it too (/dd/draft.json)
       case 'pollzoom': zoomToPollScreen(); break;
+      case 'peek': if (!inRoom()) startPeek(String(c.spot || '')); break;   // (test hook; the room sends a 'peek' event)
+      case 'gag': if (!inRoom()) { const pair = pickGagPair(); if (pair) startGag(...pair); } break;   // (test hook; the room sends a 'gag' event)
       case 'fly': window.DD_FLY_PLAY?.({ cut: true }); break;   // fly-through to the auditorium, OBS cuts at the end
       case 'settings': applySettings(c.values); break;   // the panel's scene settings (on connect and on every change)
       case 'director': director.on = !!c.on; if (director.on) director.next = Math.min(director.next, now + 20000); break;
@@ -3693,6 +3945,8 @@ void main() {
     switch (ev.t) {
       case 'snapshot': applySnapshot(ev); break;
       case 'follow': if (!director.spot) followSomeone(key); break;   // the room's director waits while the camera is on the poll
+      case 'peek': startPeek(String(ev.spot || '')); break;   // the room's director: a look at something, max 7 s
+      case 'gag': if (ev.kind === 'stall') startGag(walkers.get(String(ev.a || '').toLowerCase()), walkers.get(String(ev.b || '').toLowerCase())); break;
       case 'clear': resetLobby(); break;
       // out of the room: fades out as with the panel's remove ('cap', 'panel'); 'left' (and the older 'home'/'kicked')
       // comes from a screen's own leftRoom(), and every screen walks them out on its own
@@ -3942,12 +4196,23 @@ void main() {
     if (Array.isArray(m.prop_loops)) {
       for (const p of m.prop_loops) {
         if (!p || typeof p.file !== 'string' || ![p.x, p.y, p.w, p.h, p.frames, p.columns].every(Number.isFinite)) continue;
-        const el = h('div', 'proploop');
+        const el = h(LOOPCV === 1 ? 'canvas' : 'div', 'proploop');
         if (p.blend === 'source-over') el.style.mixBlendMode = 'normal';   // straight-RGBA water on the glass (pass 8)
-        Object.assign(el.style, { left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`, zIndex: String(p.z_index ?? 3),
-          backgroundSize: `${p.columns * p.w}px ${Math.ceil(p.frames / p.columns) * p.h}px` });
+        Object.assign(el.style, { left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`, zIndex: String(p.z_index ?? 3) });
+        const rows = Math.ceil(p.frames / p.columns);
+        let sheet = null;
+        if (LOOPCV === 1) { el.width = 1; el.height = 1; }
+        else if (LOOPCV === 2) {
+          // the whole sheet on one canvas, drawn once, behind a frame-sized window; a step only moves it (compositor)
+          el.style.overflow = 'hidden';
+          sheet = document.createElement('canvas');
+          sheet.width = 1; sheet.height = 1;
+          Object.assign(sheet.style, { position: 'absolute', left: '0', top: '0', width: `${p.columns * p.w}px`, height: `${rows * p.h}px`,
+            transformOrigin: '0 0', willChange: 'transform' });
+          el.append(sheet);
+        } else el.style.backgroundSize = `${p.columns * p.w}px ${rows * p.h}px`;
         world.append(el);
-        propLoops.push({ el, p, frame: -1 });
+        propLoops.push({ el, p, frame: -1, g: LOOPCV === 1 ? el.getContext('2d') : LOOPCV === 2 ? sheet.getContext('2d') : null, sheet, bmp: null });
       }
     }
     // marquee boxes and poster frames as rendered (pass 6 moved them apart); the DOM text/posters follow
@@ -4018,6 +4283,8 @@ void main() {
   }
   let loopSwap = null;   // set in setupArt: switches the light loop between 1080p and 4K with the base art
   const propLoops = [];
+  // see loopSheet(): 0 = background-position on a div (old), 1 = one frame drawn per step, 2 = whole sheet drawn once
+  const LOOPCV = typeof createImageBitmap !== 'function' ? 0 : q.has('loopcv') ? clamp(Math.round(Number(q.get('loopcv')) || 0), 0, 2) : 2;
   const arcadeKind = (name) => (/arcade/i.test(name || '') ? (/play/i.test(name) ? 'play' : /hiscore|high/i.test(name) ? 'hiscore' : 'attract') : null);
   function stepPropLoops(t) {
     // the cabinet's screen: attract mode, a game while someone actually plays, the hi-score screen after a
@@ -4041,9 +4308,62 @@ void main() {
       }
       const f = Math.floor((t / 1000) * (l.p.fps || 24)) % l.p.frames;
       if (f === l.frame) continue;
+      if (l.sheet) {
+        if (!l.bmp) continue;
+        l.frame = f;
+        l.sheet.style.transform = `translate(${-(f % l.p.columns) * l.p.w}px, ${-Math.floor(f / l.p.columns) * l.p.h}px)`;
+        continue;
+      }
+      if (l.g) {
+        if (!l.bmp) continue;
+        l.frame = f;
+        const W = l.el.width, H = l.el.height;
+        l.g.clearRect(0, 0, W, H);
+        l.g.drawImage(l.bmp, (f % l.p.columns) * W, Math.floor(f / l.p.columns) * H, W, H, 0, 0, W, H);
+        continue;
+      }
       l.frame = f;
       l.el.style.backgroundPosition = `${-(f % l.p.columns) * l.p.w}px ${-Math.floor(f / l.p.columns) * l.p.h}px`;
     }
+  }
+  // ?loopcv=0: the old way, each loop a div whose background-position steps through the sheet. Every step repainted
+  // that patch of the lobby's one big layer, and with ~220 MB of sheets (more than Chrome's decoded-image cache keeps)
+  // the sheets were decoded again and again: up to ~350 png decodes/s, ~0.8 cores and over half the GPU time in the
+  // wide shot (perf 9 Nov). Now each loop is its own small canvas at the sheet's own resolution, the sheet is decoded
+  // once into an ImageBitmap, and a step is one drawImage of one frame: no repaint of the lobby, no re-decode.
+  const sheetBmps = new Map();   // src -> Promise<ImageBitmap> (loops sharing a sheet share one bitmap)
+  function loopSheet(l, src, fallback, want = src) {
+    if (!sheetBmps.has(src)) {
+      // from the file's bytes, not from an <img>: a bitmap made from an <img> stays lazily decoded and went back
+      // through the same image cache on every draw
+      // ... and even one from the bytes was decoded again on every draw, so it is copied once into an offscreen canvas:
+      // what comes out of that is pixels already, not an image to decode
+      sheetBmps.set(src, fetch(src).then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then((b) => createImageBitmap(b))
+        .then((b) => {
+          if (typeof OffscreenCanvas !== 'function') return b;
+          const oc = new OffscreenCanvas(b.width, b.height);
+          oc.getContext('2d').drawImage(b, 0, 0);
+          b.close();
+          return oc.transferToImageBitmap();
+        }));
+    }
+    sheetBmps.get(src).then((b) => {
+      if (l.src !== want) return;
+      if (l.sheet) {
+        l.sheet.width = b.width; l.sheet.height = b.height;
+        l.g.drawImage(b, 0, 0);
+        l.bmp = b;
+        l.frame = -1;
+        return;
+      }
+      const k = b.width / (l.p.columns * l.p.w);
+      l.el.width = Math.max(1, Math.round(l.p.w * k));
+      l.el.height = Math.max(1, Math.round(l.p.h * k));
+      l.bmp = b;
+      l.frame = -1;
+    }, () => {
+      if (fallback && l.src === want) loopSheet(l, fallback, null, want);   // a missing @2x sheet: the 1x one
+    });
   }
   function applyArtRes() {
     const two = art.scale2x && dpr() > 1.3;
@@ -4052,7 +4372,10 @@ void main() {
     const wet2x = q.get('wet2x') === '1';
     for (const l of propLoops) {
       const src = ART + (two && l.p.file_2x && (wet2x || !/(^|\/)wet_/.test(l.p.file)) ? l.p.file_2x : l.p.file);
-      if (l.src !== src) { l.src = src; l.el.style.backgroundImage = `url("${src}")`; }
+      if (l.src === src) continue;
+      l.src = src;
+      if (l.g) loopSheet(l, src, src !== ART + l.p.file ? ART + l.p.file : null);
+      else l.el.style.backgroundImage = `url("${src}")`;
     }
     for (const [im, file] of artImgs) {
       const src = ART + (two ? file.replace(/\.png$/, '@2x.png') : file);
@@ -4110,6 +4433,20 @@ void main() {
       .pscr-meta { margin-left: auto; font: 500 26px/1 Oswald, sans-serif; color: #c9b8ff; white-space: nowrap; }
       .pscr-title { font: 400 50px/1.05 'Bebas Neue', sans-serif; letter-spacing: .02em; margin: 10px 0 14px;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      /* queue 51: the open poll's countdown, big, next to the title (orange in the last minute, red in the last 10 s) */
+      .pscr-row { display: flex; align-items: center; gap: 22px; margin: 10px 0 14px; }
+      .pscr-row .pscr-title { flex: 1; min-width: 0; margin: 0; }
+      .pscr-clock { display: flex; flex-direction: column; align-items: center; padding: 6px 16px 4px; border-radius: 8px;
+        background: rgba(125,255,154,.12); box-shadow: inset 0 0 0 3px #7dff9a, 0 0 18px rgba(125,255,154,.35); color: #7dff9a; }
+      .pscr-clock b { font: 400 66px/.95 'Bebas Neue', sans-serif; letter-spacing: .04em; text-shadow: 0 0 12px currentColor; }
+      .pscr-clock small { font: 500 17px/1.1 Oswald, sans-serif; letter-spacing: .12em; color: #d8ffe0; }
+      .pscr-clock.soon { color: #ffb23f; background: rgba(255,178,63,.14); box-shadow: inset 0 0 0 3px #ffb23f, 0 0 18px rgba(255,178,63,.4); }
+      .pscr-clock.soon small { color: #ffe6bf; }
+      .pscr-clock.last { color: #ff4d5e; background: rgba(255,77,94,.16); box-shadow: inset 0 0 0 3px #ff4d5e, 0 0 22px rgba(255,77,94,.55);
+        animation: pscr-tick 1s steps(1) infinite; }
+      .pscr-clock.last small { color: #ffd0d5; }
+      .pscr-clock.done b { font-size: 40px; }
+      @keyframes pscr-tick { 0% { transform: scale(1.06); } 50% { transform: none; } }
       .pscr-grid { display: grid; gap: var(--gap); justify-content: center; align-content: center; height: var(--ah); }
       .pscr-card { position: relative; display: flex; flex-direction: column; min-width: 0; }
       .pscr-post { width: 100%; aspect-ratio: 2 / 3; border-radius: 4px; background: #2d2346 center / cover no-repeat;
@@ -4327,13 +4664,30 @@ void main() {
     const r = d.results;
     const n = d.options.length;
     if (d.state === 'open') {
-      const left = r?.endsAt ? Math.max(0, Math.round((r.endsAt - Date.now()) / 1000)) : null;
-      return [left != null ? `ends in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '', r?.voters != null ? `${r.voters} voted` : '']
-        .filter(Boolean).join(' · ') || `${n} movies`;
+      // (the time left is the big clock next to the title: pollClock)
+      return r?.voters != null ? `${r.voters} voted · ${n} movies` : `${n} movies`;
     }
     if (d.state === 'closed') return r?.voters != null ? `${r.voters} voters` : '';
     return `${n} movie${n === 1 ? '' : 's'} so far`;
   }
+  // the open poll's countdown (queue 51): time left until dinkdonk.mov closes it; ticks every second on its own
+  function pollClock(d) {
+    const end = d?.state === 'open' && d.results?.endsAt;
+    if (!end) return null;
+    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), sec = left % 60;
+    const text = !left ? 'CLOSING…' : h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+    return { text, label: left ? 'LEFT TO VOTE' : 'VOTING ENDS', cls: !left ? 'last done' : left <= 10 ? 'last' : left <= 60 ? 'soon' : '' };
+  }
+  function tickPollClock() {
+    const el = pollScreen.img?.querySelector('.pscr-clock');
+    const c = pollClock(pollScreen.draft);
+    if (!el || !c) return;
+    el.className = `pscr-clock ${c.cls}`;
+    el.querySelector('b').textContent = c.text;
+    el.querySelector('small').textContent = c.label;
+  }
+  setInterval(tickPollClock, 1000);
   function renderPollScreen() {
     const d = pollScreen.draft;
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -4363,7 +4717,7 @@ void main() {
     let body;
     // poster grid sized to fit every movie; past ~10 the posters get too small: a numbered list
     const AW = PS.W - 20 - 68;
-    const AH = PS.H - 34 - 42 - 52 - 74;
+    const AH = PS.H - 34 - 42 - 52 - 74 - (pollClock(d) ? 40 : 0);   // (the countdown makes the title row taller)
     const gap = 16;
     let best = null;
     for (let cols = 1; cols <= Math.max(1, n); cols++) {
@@ -4393,7 +4747,11 @@ void main() {
     }
     pollScreen.seen = new Set(opts.map((o) => titleKey(o.title)));
     pollScreen.img.innerHTML = `<div class="pscr-top">${logo}<div class="pscr-kick ${cls}">${kick}</div><div class="pscr-meta">${esc(meta)}</div></div>` +
-      `<div class="pscr-title">${esc(d.title || 'DinkDonk poll')}</div>${body}`;
+      (() => {
+        const c = pollClock(d);
+        const title = `<div class="pscr-title">${esc(d.title || 'DinkDonk poll')}</div>`;
+        return c ? `<div class="pscr-row">${title}<div class="pscr-clock ${c.cls}"><b>${c.text}</b><small>${c.label}</small></div></div>` : title;
+      })() + body;
   }
   async function pollPollScreen() {
     try {

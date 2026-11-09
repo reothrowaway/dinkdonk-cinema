@@ -174,7 +174,9 @@
     for (const fn of roomEvFns) { try { fn(ev); } catch (error) { console.error('[cinema] room handler', error); } }
   }
   function roomConnect() {
-    const p = new URLSearchParams({ page: ROOM_PAGE, id: room.id, obs: window.obsstudio ? '1' : '0', who: TAG || '' });
+    // caps: what this page can play of the room's newer events (window.DD_ROOM_CAPS, e.g. 'peek,gag,vote'); the room only
+    // sends those when a screen of the page says it can, so an older page never loses director turns to them
+    const p = new URLSearchParams({ page: ROOM_PAGE, id: room.id, obs: window.obsstudio ? '1' : '0', who: TAG || '', caps: window.DD_ROOM_CAPS || '' });
     const es = new EventSource(`/ctl/room?${p}`);
     let fellBack = false;
     let fallback = setTimeout(() => { if (!room.live) { localWalkIns = fellBack = true; console.warn('[cinema] room unreachable: walk-ins decided here'); } }, 10000);

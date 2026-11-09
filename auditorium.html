@@ -28,7 +28,9 @@
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   #stage { background: #0b0a12; font-family: Oswald, 'Arial Narrow', Arial, sans-serif; color: #fff; }
   #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 0; }
-  #cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  /* will-change: the camera's moves and zooms are a compositor transform of one raster (kept at the zoomed scale)
+     instead of re-rastering the whole room every frame (perf 8 Nov) */
+  #cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; will-change: transform; }
   #names { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 1; pointer-events: none; }
   #bg, #bg-dim { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
   .slice, .sheet { position: absolute; pointer-events: none; }
@@ -38,15 +40,23 @@
      pass whenever its tiles re-rasterised (QA 04 Nov: 66 -> 170 fps uncapped with ~60 chatters). The filter (and its
      6 s fade from/to none) only applies where it does something: art without dim twins, emotes while dark. */
   #stage:not(.has-dim-art) #bg, #stage:not(.has-dim-art) .slice, #stage:not(.has-dim-art) .sheet { transition: filter 6s ease-in-out; }
-  .w .em { transition: filter 6s ease-in-out; }
-  .lights-down:not(.has-dim-art) #bg, .lights-down:not(.has-dim-art) .slice, .lights-down:not(.has-dim-art) .sheet { filter: brightness(.45); }
+  /* (its own class, lights-flat = lights down without dim twins: in a .lights-down rule these selectors made every
+     lights toggle restyle all ~4600 slice images, ~20 ms in one frame; perf 8 Nov) */
+  .lights-flat #bg, .lights-flat .slice, .lights-flat .sheet { filter: brightness(.45); }
   /* One fade value for every dim twin: a piece shown mid-fade (a chatter walks behind it) picks up the room's current
-     level instead of starting at its end value, which left dark or bright blocks over the seats (owner 05 Nov). */
-  @property --dim { syntax: '<number>'; inherits: true; initial-value: 0; }
-  #stage { --dim: 0; transition: --dim 6s ease-in-out; }
-  #stage.lights-down.dim-ready { --dim: 1; }
-  .dim-art { opacity: var(--dim); pointer-events: none; }
-  .dim-done #bg, .dim-done img.slice:not(.dim-art) { visibility: hidden; }
+     level instead of starting at its end value, which left dark or bright blocks over the seats (owner 05 Nov).
+     The value is driven from script (stepDim) and written only to the dim pieces on screen: as an inherited CSS
+     custom property with a 6 s transition it restyled all ~9000 elements every frame of the fade
+     (perf 8 Nov: 430 ms/s style, 21-33 fps, hitches up to 0.7 s). */
+  .dim-art { opacity: 0; pointer-events: none; }
+  /* the full-frame dim picture on its own GPU layer: its fade is a compositor opacity change, not a repaint of the
+     whole room each frame */
+  #bg-dim { will-change: opacity; }
+  /* The lit art stays drawn under the dim art when it is fully up (it used to be hidden at dim-done): hidden, Chrome
+     dropped its decoded images and every lights-up decoded them again in its first frames (perf 8 Nov: 509 -> 117 ms
+     of decoding; no cost in the dark at rest). */
+  /* emotes and items at rest; the 6 s dimming between is stepped from script (stepDim): a 6 s CSS filter transition on
+     every chatter repainted each one every frame of the fade (perf 8 Nov: ~94 -> ~136 fps uncapped without it) */
   .lights-down .w .em { filter: brightness(.5); }
 
   /* A flat projection, clipped before its affine mapping into the matte screen. */
@@ -113,8 +123,39 @@
   .w .bod { position: absolute; left: 0; top: 0; width: 0; height: 0; }
   .w .em { position: absolute; bottom: 0; }
   /* popcorn / soda (the lobby's rendered item sprites) and the phone some seated chatters check */
-  .w .item { position: absolute; pointer-events: none; transition: filter 6s ease-in-out; }
+  .w .item { position: absolute; pointer-events: none; }
   .lights-down .w .item { filter: brightness(.5); }
+  /* screen glow (queue 58): the film's light around the screen (bloom) and spilling onto the floor, seats and people */
+  #glowbloom { position: absolute; left: 0; top: 0; width: 960px; height: 540px; transform-origin: 0 0; pointer-events: none;
+    z-index: 69990; mix-blend-mode: screen; opacity: 0; transition: opacity 1.5s; }
+  #glowspill { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 69980;
+    mix-blend-mode: screen; opacity: 0; transition: opacity 1.5s; }
+  /* aisle lights (queue 61, A2): step-nosing strips, row-end lamps, the stage cove strip and exit-sign halos.
+     Depth-sorted like the walkers; they come up as the house lights go down */
+  .alamp { position: absolute; pointer-events: none; opacity: 0; }   /* the 6 s fade: stepDim */
+  .lights-down .alamp { opacity: 1; }
+  .alamp.nose { height: 2px; border-radius: 1px; background: #ffc061; transform-origin: 0 50%;
+    box-shadow: 0 0 3px 1px rgba(255, 170, 70, .7), 0 0 9px 3px rgba(255, 150, 50, .22); }
+  .alamp.dot { width: 4px; height: 3px; margin: -1.5px 0 0 -2px; border-radius: 2px; background: #ffd08a;
+    box-shadow: 0 0 3px 1px rgba(255, 175, 80, .9), 0 0 10px 4px rgba(255, 150, 50, .3); }
+  .alamp.cove { height: 3px; border-radius: 2px; background: #9ad8ff; transform-origin: 0 50%;
+    box-shadow: 0 0 4px 1px rgba(110, 200, 255, .9), 0 0 16px 5px rgba(90, 180, 255, .35); }
+  .alamp.halo { border-radius: 50%; mix-blend-mode: screen; }
+  /* projector beam (queue 61, A3): a soft beam from a port in the back wall to the screen, with drifting dust;
+     on while the film plays with the lights down, brightness and tint follow the film like the screen glow */
+  #pbeam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 69970;
+    mix-blend-mode: screen; opacity: 0; transition: opacity 1.5s; overflow: visible; }
+  #pdust { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 69971;
+    mix-blend-mode: screen; opacity: 0; transition: opacity 1.5s; }
+  /* the drift is a Web Animation per mote (placeBeam): a CSS keyframe with var() values ran on the main thread, 48
+     style recalcs a frame, even with the dust off (perf 9 Nov); it pauses while the dust is off (stepGlow) */
+  #pdust i { position: absolute; border-radius: 50%; background: #fff6e2; opacity: .15; }
+  /* litter (queue 60): pieces on the floor, depth-sorted with the art like the walkers */
+  /* the 1.5 s CSS filter transition of up to 140 pieces repainted every one of them every frame at the start of each
+     lights change; now stepDim steps the filter with the room's fade (perf 9 Nov). Tried and dropped: baking the two
+     looks into the SVGs (swapping 140 SVG images per fade cost more than the filter). */
+  .litter { position: absolute; pointer-events: none; filter: brightness(.9) saturate(.9); transition: opacity 2s; }
+  .lights-down .litter { filter: brightness(.42) saturate(.8); }
   .w .phone { position: absolute; width: 5px; height: 8px; border-radius: 1px; background: #0d0f14; display: none;
     border: 1px solid #0d0f14; box-sizing: content-box; }
   .w .phone::after { content: ''; position: absolute; inset: 0; border-radius: 1px; background: #bfe0ff;
@@ -201,6 +242,17 @@
   <div id="world">
     <img id="bg" alt="">
     <svg id="screenq" viewBox="0 0 1920 1080"><polygon id="screenpoly"/></svg>
+    <svg id="glowspill" viewBox="0 0 1920 1080"><defs><radialGradient id="spillg"><stop offset="0" stop-color="#fff" stop-opacity=".9"/>
+      <stop offset=".45" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+      <ellipse id="spill" fill="url(#spillg)"/></svg>
+    <div id="glowbloom"></div>
+    <svg id="pbeam" viewBox="0 0 1920 1080"><defs><linearGradient id="pbg" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".65"/><stop offset=".3" stop-color="#fff" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".08"/></linearGradient>
+      <radialGradient id="pport"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".35" stop-color="#fff" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+      <g id="pbeams"></g><circle id="pportc" r="16" fill="url(#pport)"/></svg>
+    <div id="pdust"></div>
     <div id="preshow">
       <div class="ps-slide active"><div class="ps-small" id="ps-kicker">DINK DONK cinema</div>
         <div class="ps-feature"><img id="ps-poster" alt="" hidden><h2 id="ps-title">Next movie coming up</h2></div>
@@ -221,6 +273,7 @@
   </div>
   <div id="bubbles"></div>
 </div>
+<script>window.DD_ROOM_CAPS = 'vote';   // room events this page plays (queue 50; shared/cinema.js)</script>
 <script>window.DD_ROOM_PAGE = 'auditorium';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
@@ -261,7 +314,18 @@
   const show = { phase: phases.includes(q.get('phase')) ? q.get('phase') : 'seating', auto: true,
     download: { available: false }, completedAt: 0, name: '', slide: 0, audience: '',
     shot: 'push',     // how the film is framed: push (Film), movie (Movie, no zoom) or outro (Film outro)
-    lightsOn: false };
+    lightsOn: false,
+    screen: 'auto',   // the panel's screen picker: auto (slides, then the film in the Film phase), upnext / loading /
+                      // audience (that slide held), film (the film whatever the phase)
+    litter: true,     // the panel's Litter toggle
+    fullAt: 0 };      // Date.now() when the house first reached 60% (the litter clock); 0 = not yet / swept
+  const SLIDES = ['upnext', 'loading', 'audience'];
+  const filmOnScreen = () => show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film');
+  // litter (queue 60, see stepLitter)
+  const LITTER = { DELAY: 10 * 60000, GROW: 25 * 60000, MAX: 140, FULL: 0.6 };
+  const LITTER_PREVIEW = q.has('littermin') ? Math.max(0, Number(q.get('littermin')) || 0) * 60000 : null;
+  let litterSpots = null, litterList = null, litterSeed = 0, litterShown = 0;
+  const litterEls = [];
   let alwaysGreen = q.get('screen') === 'green';   // (panel setting "Screen always green", live)
   // Once the dim art has fully faded in, the lit art under it stops being drawn, so only one set is decoded.
   let dimDoneTimer = 0, lightsAt = -1e9;
@@ -272,12 +336,14 @@
     if (!st.contains('lights-down')) { st.remove('dim-done'); return; }
     if (st.contains('dim-ready')) dimDoneTimer = setTimeout(() => { if (st.contains('lights-down')) st.add('dim-done'); }, 6500);
   }
+  function syncFlat() { const st = $('stage').classList; st.toggle('lights-flat', st.contains('lights-down') && !st.contains('has-dim-art')); }
   function applyPhase() {
     // lightsOn: the house lights come up while the film keeps playing (credits); the next phase brings them back
     const down = (show.phase === 'dim' || show.phase === 'film') && !show.lightsOn;
     const dimmed = down !== $('stage').classList.contains('lights-down');
     if (dimmed) {
       $('stage').classList.toggle('lights-down', down);
+      syncFlat();
       lightsAt = performance.now();
       scheduleDimDone();
     }
@@ -288,7 +354,8 @@
       pushWanted = wantPush;
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
-    const green = alwaysGreen || show.phase === 'film';
+    const green = alwaysGreen || filmOnScreen();
+    holdSlide();
     $('screenq').style.display = screenPoly && green ? 'block' : 'none';
     $('preshow').style.display = screenPoly && !green ? 'block' : 'none';
     $('stage').dataset.phase = show.phase;
@@ -556,7 +623,19 @@
     document.querySelectorAll('.ps-slide').forEach((el) => { el.style.transition = SEQ_FADE ? 'opacity .4s' : ''; });
   }
   if (SEQ_FADE) setSeqFade(true);
+  // the panel's screen picker holds one slide (no rotation); auto rotates them
+  function showSlide(i) {
+    const slides = document.querySelectorAll('.ps-slide');
+    if (i === show.slide) return;
+    slides[show.slide].classList.remove('active');
+    show.slide = i;
+    if (slides[i].contains($('ps-meme'))) nextMeme();
+    const next = slides[i];
+    if (SEQ_FADE) setTimeout(() => { if (show.slide === i) next.classList.add('active'); }, 400); else next.classList.add('active');
+  }
+  function holdSlide() { const i = SLIDES.indexOf(show.screen); if (i >= 0) showSlide(i); }
   setInterval(() => {
+    if (show.screen !== 'auto') return;
     const slides = document.querySelectorAll('.ps-slide');
     slides[show.slide].classList.remove('active');
     show.slide = (show.slide + 1) % slides.length;
@@ -592,6 +671,9 @@
   let doorFile = '';
   let dimDoorFile = '';
   let artRequest = 0;
+  // (decode() does not settle while OBS keeps the source hidden, so the dim set loads only after a cut. Tried 9 Nov:
+  // loading it while hidden made the cut freeze longer, 433 -> 600-650 ms, as the first frame then decodes both
+  // sets. Kept as is; obs-bridge's warm-up is what removes the cut freeze.)
   async function preloadArt(file, file_2x, two) {
     const im = new Image();
     im.src = ART + (two && file_2x ? file_2x : file);
@@ -674,6 +756,7 @@
     ws.onmessage = (e) => {
       let m;
       try { m = JSON.parse(e.data); } catch { return; }
+      if (Array.isArray(m.glow)) { filmColour(m.glow); return; }   // queue 58: the film's average colour
       if (typeof m.obs !== 'boolean') return;
       bridge.linked = m.obs;
       bridge.key = '';
@@ -689,7 +772,7 @@
     const z = +cam.z.toFixed(4), tx = +(960 - cam.x * cam.z).toFixed(2), ty = +(540 - cam.y * cam.z).toFixed(2);
     const ox = (innerWidth - 1920 * scale) / 2, oy = (innerHeight - 1080 * scale) / 2;
     const quad = screenPoly.map(([x, y]) => [+((x * z + tx) * scale + ox).toFixed(1), +((y * z + ty) * scale + oy).toFixed(1)]);
-    const film = show.phase === 'film';
+    const film = filmOnScreen();
     const key = `${film} ${innerWidth}x${innerHeight} ${quad.join(' ')}`;
     if (key === bridge.key) return;
     bridge.key = key;
@@ -697,7 +780,7 @@
   }
   function screenFill() {
     if (!screenPoly) return;
-    $('screenpoly').setAttribute('fill', bridge.linked && show.phase === 'film' ? '#000' : Cinema.green === 'off' ? '#00ff00' : Cinema.green);
+    $('screenpoly').setAttribute('fill', bridge.linked && filmOnScreen() ? '#000' : Cinema.green === 'off' ? '#00ff00' : Cinema.green);
   }
 
   // Draft 10+: pre-rendered depth slices do the occlusion. Walkers and slices share one camera-depth order:
@@ -721,7 +804,7 @@
     let dim = null;
     if (layers?.dim?.door_file) {
       dim = h('div', 'sheet dim-art');
-      Object.assign(dim.style, { width: el.style.width, height: el.style.height,
+      Object.assign(dim.style, { opacity: dimFade.text, width: el.style.width, height: el.style.height,
         backgroundImage: dimDoorFile ? `url("${dimDoorFile}")` : '', backgroundSize: el.style.backgroundSize });
       el.append(dim);
     }
@@ -749,6 +832,65 @@
       }
     }
   }
+  // The house-lights fade (was CSS: an inherited custom property, then 6 s transitions on every chatter's filter and
+  // every aisle lamp; perf 8 Nov). Ease-in-out over 6 s from the current level, so a reversal mid-fade continues
+  // from where it is.
+  // - #bg-dim (its own GPU layer) gets every frame's value: a compositor change, no repaint.
+  // - Everything painted with the room (the dim pieces in front of chatters, the door sheet, the chatters' emote and
+  //   item brightness, the aisle lamps) changes together on one clock, ~8 times a second: one repaint of the room per
+  //   update instead of several per frame (a full house repainted most of the seating every frame: ~35-40 fps fades).
+  //   At rest the CSS rules hold (.lights-down ...); the inline values are only there while a fade runs.
+  const DIM_STEP_MS = 125;
+  // With the lights up the dim twins of the displayed pieces stay drawn at 0.5% (invisible): Chrome only keeps images
+  // it draws decoded on the GPU, and a lights-down otherwise decoded ~800 of them in its first frames (40-80 ms
+  // raster stalls with a full house; perf 8 Nov)
+  const DIM_WARM = 0.005;
+  const dimFade = { level: 0, from: 0, to: 0, at: 0, bgText: '0', text: String(DIM_WARM) };   // dim art (needs dim-ready)
+  const emoFade = { level: 0, from: 0, to: 0, at: 0 };                           // chatters + lamps (lights-down only)
+  const dimClock = { at: -1e9, fading: false, emoF: '', lampO: '' };
+  const fadeTo = (fd, to, now) => {
+    if (to !== fd.to) { fd.from = fd.level; fd.to = to; fd.at = now; }
+    const k = clamp((now - fd.at) / 6000, 0, 1);
+    fd.level = fd.from + (fd.to - fd.from) * (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+    return k < 1;
+  };
+  function stepDim(now) {
+    const st = $('stage').classList;
+    const down = st.contains('lights-down');
+    const artFading = fadeTo(dimFade, down && st.contains('dim-ready') ? 1 : 0, now);
+    const emoFading = fadeTo(emoFade, down ? 1 : 0, now);
+    // (resting the dim background at DIM_WARM like the pieces was tried for the first lights-down: no change, 3-6 late
+    // frames in 8 s at 60 either way; perf 9 Nov)
+    const bgText = dimFade.level.toFixed(3);
+    if (bgText !== dimFade.bgText) { dimFade.bgText = bgText; const bgDim = $('bg-dim'); if (bgDim) bgDim.style.opacity = bgText; }
+    const fading = artFading || emoFading;
+    // an update: on the clock while fading, and once more when a fade ends (the exact end values / CSS take over)
+    if (fading ? now - dimClock.at < DIM_STEP_MS : !dimClock.fading) return;
+    dimClock.at = now;
+    dimClock.fading = fading;
+    const text = String(Math.max(DIM_WARM, +dimFade.level.toFixed(3)));
+    if (text !== dimFade.text) {
+      dimFade.text = text;
+      if (doorShot?.dim) doorShot.dim.style.opacity = text;
+      for (const p of pieces) if (p.dimOn) p.dim.style.opacity = text;
+    }
+    const emoF = emoFading ? `brightness(${(1 - 0.5 * emoFade.level).toFixed(3)})` : '';
+    if (emoF !== dimClock.emoF) {
+      dimClock.emoF = emoF;
+      for (const w of walkers.values()) {
+        if (w.dimF === emoF) continue;
+        w.dimF = emoF;
+        if (w.em) w.em.style.filter = emoF;
+        if (w.item) w.item.style.filter = emoF;
+      }
+    }
+    const lampO = emoFading ? emoFade.level.toFixed(3) : '';
+    if (lampO !== dimClock.lampO) { dimClock.lampO = lampO; for (const el of document.querySelectorAll('.alamp')) el.style.opacity = lampO; }
+    // litter: its CSS filter between the lit and dark looks, stepped with the room (the CSS rules hold at rest)
+    const lk = emoFade.level, mix = (a, b) => (a + (b - a) * lk).toFixed(3);
+    const litF = emoFading ? `brightness(${mix(LIT_LOOK[0], DARK_LOOK[0])}) saturate(${mix(LIT_LOOK[1], DARK_LOOK[1])})` : '';
+    for (const im of litterEls) if (im.dimF !== litF) { im.dimF = litF; im.style.filter = litF; }
+  }
   function cullPieces() {
     if (!pieces.length) return;
     const stamp = ++cullStamp;
@@ -763,13 +905,18 @@
     for (const w of walkers.values()) if (w.box) cover(...w.box);
     if (doorShot) cover(door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index);
     const st = $('stage').classList;
-    // dim twins stay up through the 6 s lights-up fade too, so the pieces fade with the room instead of popping lit
-    const dimOn = st.contains('dim-ready') && (st.contains('lights-down') || performance.now() - lightsAt < 6500);
+    // dim twins are up with their pieces at all times (lit: DIM_WARM), so they fade with the room and never pop
+    const dimOn = st.contains('dim-ready');   // up whenever its piece is (at DIM_WARM with the lights up, see stepDim)
+    // ...except during house out with the lights up and no fade: a full house walking out turns pieces on and off all
+    // the time, and drawing every passing piece's twin made the frames uneven (OBS @30, 9 Nov: 30-118 late frames per
+    // 20 s with twins, 0-3 without; live 8-25). No lights-down follows a house out, so nothing needs them warm then.
+    // (Also tried: warm twins only for pieces up 2 s - worse.)
+    const twins = dimOn && !(houseOut && dimFade.level === 0 && dimFade.to === 0);
     for (const p of pieces) {
       const on = p.stamp === stamp;
       if (on !== p.on) { p.on = on; p.im.style.display = on ? '' : 'none'; }
-      const d = on && dimOn;
-      if (p.dim && d !== p.dimOn) { p.dimOn = d; p.dim.style.display = d ? '' : 'none'; }
+      const d = on && twins;
+      if (p.dim && d !== p.dimOn) { p.dimOn = d; if (d) p.dim.style.opacity = dimFade.text; p.dim.style.display = d ? '' : 'none'; }
     }
   }
 
@@ -973,7 +1120,7 @@
     const front = (s) => s.row === rows[0];
     const yee = YEE_EMOTES.has(m.emote);
     let free = seats.filter((s) => !s.taken && front(s) === yee);
-    if (!free.length) free = seats.filter((s) => !s.taken);
+    if (!free.length && yee) free = seats.filter((s) => !s.taken);   // front row ONLY for Yee (owner 8 Nov)
     if (!free.length) return null;
     const text = (m.text || '').toLowerCase();
     for (const w of walkers.values()) {
@@ -1728,10 +1875,10 @@
     const dt2 = clamp(natural + w.offY, 8, 1072 - bh);
     // the tail flips side once the box has passed the speaker's middle on its glide
     b.classList.toggle('below', dt2 > (head + y) / 2);
-    b.style.transform = `translate(${dl.toFixed(1)}px, ${dt2.toFixed(1)}px)`;
+    style(b, 'transform', `translate(${dl.toFixed(1)}px, ${dt2.toFixed(1)}px)`);  // QA perf: cached
     w.bubAge = (w.bubAge || 0) + dt;
-    b.style.opacity = String(Math.min(1, w.bubAge / 0.25, Math.max(0, w.bubT) / 0.4).toFixed(3));
-    b.style.setProperty('--tail', `${clamp(x - (dl + bw / 2), -bw / 2 + 12, bw / 2 - 12).toFixed(0)}px`);
+    style(b, 'opacity', String(Math.min(1, w.bubAge / 0.25, Math.max(0, w.bubT) / 0.4).toFixed(3)));
+    { const tl = `${clamp(x - (dl + bw / 2), -bw / 2 + 12, bw / 2 - 12).toFixed(0)}px`; if (w.bubTail !== tl || w.bubTailEl !== b) { w.bubTail = tl; w.bubTailEl = b; b.style.setProperty('--tail', tl); } }  // QA perf: write only on change
   }
 
   // ---------- frame ----------
@@ -1766,7 +1913,9 @@
       }
     }
     if (L && arrivals.length && now >= nextArrival && !houseOut) {
-      if (spawn(arrivals[0])) { arrivals.shift(); nextArrival = now + rand(900, 1600); }
+      // oldest first, but a non-Yee who can't get in (only front seats left) doesn't block a Yee behind them
+      const i = arrivals.findIndex((m) => spawn(m));
+      if (i >= 0) { arrivals.splice(i, 1); nextArrival = now + rand(900, 1600); }
     }
     stepDoor(dt);
     stepJannies(now);
@@ -1782,6 +1931,7 @@
     }
     showNames();
     updateBeam(now);
+    stepDim(now);
     cullPieces();
     stepCamera(dt);
     autoPhase(now);
@@ -1952,7 +2102,7 @@
       // it is hidden but its clock runs (the camera can hold on the screen for a whole film): off-view bubbles were
       // clamped into the screen's corner and piled up there (QA 04 Nov)
       const [vx, vy] = toScreen(x, y - lift);
-      w.bub.style.visibility = w.seen && vx > 10 && vx < 1910 && vy > 10 && vy < 1075 ? '' : 'hidden';
+      style(w.bub, 'visibility', w.seen && vx > 10 && vx < 1910 && vy > 10 && vy < 1075 ? '' : 'hidden');  // QA perf: cached write
       if (w.seen) w.bubT -= dt;
       if (w.bubT <= 0) dropBubble(w); else { w.bx = x; w.by = y; }   // standing height: hops and the seat bounce no longer bob the bubble
     }
@@ -2129,13 +2279,18 @@
         // Film again after Movie / Film outro: push in now (the lights are already down, so no 10 s wait)
         const again = c.value === 'film' && show.phase === 'film' && (show.shot !== 'push' || show.lightsOn);
         if (c.value === show.phase) show.lightsOn = false;   // the phase's own button dims the house lights again
+        if (c.value === 'film') show.screen = 'auto';   // Film puts the film on the screen
         setPhase(c.value, true);
         if (again) { director.screenAt = now; director.outro = false; endFollow(); pushWanted = true; }
         show.shot = 'push';
         break;
       }
       // Movie: the film starts on the screen with no push in (the wide shot stays; follows still work)
-      case 'movie': setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
+      case 'movie': show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
+      // the panel's screen picker (the room sends the same as a 'show' event)
+      case 'screen': if (['auto', ...SLIDES, 'film'].includes(c.value)) { show.screen = c.value; applyPhase(); } break;
+      // Litter off sweeps it up; on again: the clock restarts at the next 60% full house (the room decides it)
+      case 'litter': show.litter = !!c.on; if (!inRoom()) show.fullAt = 0; stepLitter(); break;
       // Film outro: the push in reversed - the film keeps playing while the camera eases back out to the wide shot,
       // which then holds for one director interval before the automatic follows resume
       case 'outro':
@@ -2181,6 +2336,7 @@
   }
   function resetHall() {
     houseOut = false;
+    show.fullAt = 0;   // a reset also sweeps the litter (the room does the same)
     director.wantNext = false;
     endFollow();
     arrivals.length = 0;
@@ -2221,6 +2377,14 @@
     walkers.set(w.key, w);
     return true;
   }
+  // the room's screen picker and litter clock (fullAt is server time: shift it by the server's clock offset)
+  function roomShow(s, serverNow) {
+    if (['auto', ...SLIDES, 'film'].includes(s.screen)) show.screen = s.screen;
+    if (typeof s.litter === 'boolean') show.litter = s.litter;
+    const off = Number.isFinite(serverNow) ? Date.now() - serverNow : 0;
+    show.fullAt = Number.isFinite(s.fullAt) && s.fullAt > 0 ? s.fullAt + off : 0;
+    stepLitter();
+  }
   let pendingSnapshot = null;
   function applySnapshot(ev) {
     if (!L || !seats.length) { pendingSnapshot = ev; return; }
@@ -2230,6 +2394,7 @@
       if (s.phase !== show.phase) setPhase(s.phase);
       Object.assign(show, { shot: s.shot, lightsOn: !!s.lightsOn, auto: !!s.auto });
       if (houseOut !== !!s.houseOut) { houseOut = !!s.houseOut; nextLeaver = 0; }
+      roomShow(s, ev.now);
       applyPhase();
     }
     if (ev.director) {
@@ -2255,6 +2420,7 @@
     const key = String(ev.nick || '').toLowerCase();
     switch (ev.t) {
       case 'snapshot': applySnapshot(ev); break;
+      case 'show': if (ev.show) { roomShow(ev.show, ev.now); applyPhase(); } break;
       case 'seat': { const a = arrivals.find((x) => x.nick.toLowerCase() === key); if (a) a.seat = ev.seat; break; }
       case 'follow': followSomeone(key); break;
       case 'clear': resetHall(); break;
@@ -2282,7 +2448,8 @@
       // obs: this screen is the OBS source (the panel shows it before a bigger preview tab)
       const body = { id: pageId, page: 'auditorium', ts: Date.now(), size: [innerWidth, innerHeight], obs: !!window.obsstudio,
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
-        preshow: { phase: show.phase, shot: show.shot, lightsOn: show.lightsOn, houseOut, auto: show.auto, download: show.download, alwaysGreen },
+        preshow: { phase: show.phase, shot: show.shot, lightsOn: show.lightsOn, houseOut, auto: show.auto, download: show.download, alwaysGreen,
+          screen: show.screen, litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
         house: { capacity: seats.length, occupied: guests(), waiting: arrivals.length, queueLimit: MAX_QUEUE },
         director: { on: director.on, every: director.every, zoom: director.zoom, wantNext: director.wantNext,
           following: f?.w.nick || null, nextIn: Math.max(0, Math.round((director.next - performance.now()) / 1000)) },
@@ -2296,6 +2463,325 @@
     postState();
     setInterval(postState, 1500);
   }
+
+
+  // ---------- screen glow (queue 58) ----------
+  // While the film is on the screen with the lights down, the screen glows: a soft bloom round its edges and its light
+  // spilling down onto the floor in front, the front rows and the people in them (screen blend, so it only lightens).
+  // The colour follows the film: inside OBS the bridge samples the film's average colour about twice a second and sends
+  // {glow: [r, g, b]} (look OK'd by the owner 8 Nov). Without readings (outside OBS, or none for 3 s) a cool screen
+  // white. Tests: ?glow=<hex> holds a colour, ?glow=cycle runs through film-like colours.
+  const GLOW_Q = q.get('glow');
+  const GLOW_IDLE = [150, 170, 210];
+  const glow = { cur: [0, 0, 0], want: GLOW_IDLE, film: null, filmAt: 0, key: '' };
+  const hexRgb = (hx) => { const m = /^#?([0-9a-f]{6})$/i.exec(hx || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
+  if (hexRgb(GLOW_Q)) glow.want = hexRgb(GLOW_Q);
+  function filmColour(rgb) {
+    if (rgb.length !== 3 || !rgb.every((c) => Number.isFinite(c) && c >= 0 && c <= 255)) return;
+    // a film's average sits low and greyish: lift it so the glow reads as light, keeping its hue and how bright it is
+    const mx = Math.max(...rgb, 1), lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+    const level = Math.min(255, 70 + 300 * lum);   // dark scenes still glow faintly, bright ones fully
+    glow.film = rgb.map((c) => Math.round((c / mx) ** 1.4 * level));   // ^1.4: a little more saturation than the average
+    glow.filmAt = performance.now();
+  }
+  const GLOW_CYCLE = [[90, 140, 255], [255, 170, 80], [240, 240, 255], [80, 220, 140], [255, 80, 70], [160, 120, 255]];
+  function placeSpill() {
+    // an ellipse on the floor in front of the screen, stretched towards the camera (screen x = u - v, y = u + v)
+    const [x0, y0] = P(9.4, 2.4, 24), [x1, y1] = P(9.4, 7.5, 70);
+    const e = $('spill');
+    const ang = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;
+    e.setAttribute('cx', ((x0 + x1) / 2).toFixed(1));
+    e.setAttribute('cy', ((y0 + y1) / 2).toFixed(1));
+    e.setAttribute('rx', (Math.hypot(x1 - x0, y1 - y0) * 0.95).toFixed(1));
+    e.setAttribute('ry', (430 * K).toFixed(1));
+    e.setAttribute('transform', `rotate(${ang.toFixed(1)} ${((x0 + x1) / 2).toFixed(1)} ${((y0 + y1) / 2).toFixed(1)})`);
+  }
+  function stepGlow() {
+    const now = performance.now();
+    const on = filmOnScreen() && $('stage').classList.contains('lights-down') && !!screenPoly;
+    if (GLOW_Q === 'cycle') glow.want = GLOW_CYCLE[Math.floor(now / 2500) % GLOW_CYCLE.length];
+    else if (!hexRgb(GLOW_Q)) glow.want = glow.film && now - glow.filmAt < 3000 ? glow.film : GLOW_IDLE;
+    const k = 0.18;   // ~0.6 s to follow a cut: smooth, never flickering with every frame
+    glow.cur = glow.cur.map((c, i) => c + (glow.want[i] - c) * k);
+    const [r, g, b] = glow.cur.map((c) => Math.round(c));
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    const key = `${on} ${r},${g},${b}`;
+    if (key === glow.key) return;
+    glow.key = key;
+    $('glowbloom').style.opacity = on ? '1' : '0';
+    $('glowspill').style.opacity = on ? (0.22 + lum * 0.28).toFixed(3) : '0';
+    $('glowbloom').style.boxShadow = `0 0 ${(90 * K).toFixed(0)}px ${(28 * K).toFixed(0)}px rgba(${r},${g},${b},${(0.32 + lum * 0.3).toFixed(2)}), ` +
+      `0 0 ${(260 * K).toFixed(0)}px ${(60 * K).toFixed(0)}px rgba(${r},${g},${b},${(0.12 + lum * 0.14).toFixed(2)})`;
+    for (const st of $('spillg').children) st.setAttribute('stop-color', `rgb(${r},${g},${b})`);
+    // projector beam (A3): mostly white light tinted by the film, brighter with brighter scenes
+    if (BEAM_ON && $('pbeam')) {
+      const tint = [r, g, b].map((c) => Math.round(c * 0.45 + 255 * 0.55)).join(',');
+      for (const st of $('pbg').children) st.setAttribute('stop-color', `rgb(${tint})`);
+      for (const st of $('pport').children) st.setAttribute('stop-color', `rgb(${tint})`);
+      $('pbeam').style.opacity = on ? (0.45 + lum * 0.55).toFixed(3) : '0';
+      $('pdust').style.opacity = on ? (0.5 + lum * 0.5).toFixed(3) : '0';
+      if (on !== dustOn) { dustOn = on; for (const a of dustAnims) on ? a.play() : a.pause(); }
+    }
+  }
+  let dustOn = false;
+  const dustAnims = [];
+  setInterval(stepGlow, 120);
+
+  // ---------- aisle lights (queue 61, A2) ----------
+  // Picked by the owner from the 8 Nov improvement drafts. Amber strips on the nosing of every stair tread, a small lamp
+  // at each raised row's aisle end, a cool cove strip along the stage edge and halos round the two EXIT signs. All from
+  // the layout JSON (stairs, rows, aisles), depth-sorted with the walkers, fading in with lights down. ?aisle=0: off.
+  const AISLE_ON = q.get('aisle') !== '0';
+  function aisleStrip(cls, u0, u1, v, z, extra) {
+    // a strip lying along u on the floor or a tread: screen direction of +u is (60K, 30K) per tile
+    const [x0, y0] = P(u0, v, z), [x1, y1] = P(u1, v, z);
+    const el = h('div', `alamp ${cls}`);
+    Object.assign(el.style, { left: `${x0.toFixed(1)}px`, top: `${y0.toFixed(1)}px`, width: `${Math.hypot(x1 - x0, y1 - y0).toFixed(1)}px`,
+      transform: `rotate(${(Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI).toFixed(2)}deg)`, zIndex: String(layers ? depthZ(u0, v, z) : Math.round((u0 + v) * 100) + 5) }, extra || {});
+    world.append(el);
+  }
+  function placeAisleLights() {
+    if (!AISLE_ON || !L) return;
+    for (const [ua, ub] of L.stairs?.u_ranges || []) for (const [v0, , z] of treads) aisleStrip('nose', ua + 0.1, ub - 0.1, v0, z);
+    const A = L.aisles || {};
+    for (const r of L.rows || []) {
+      if (r.section === 'flat front') continue;
+      const b = r.seat_u_by_block || {}, ends = [];
+      if (A.left_u) { ends.push(A.left_u[1] - 0.05); if (b.left?.length) ends.push(A.left_u[0] + 0.05); }
+      if (A.right_u) { ends.push(A.right_u[0] + 0.05); if (b.right?.length) ends.push(A.right_u[1] - 0.05); }
+      for (const u of ends) {
+        const v = r.v - 0.15, z = r.floor_zpx_world + 12, [x, y] = P(u, v, z);
+        const el = h('div', 'alamp dot');
+        Object.assign(el.style, { left: `${x.toFixed(1)}px`, top: `${y.toFixed(1)}px`, zIndex: String(layers ? depthZ(u, v, z) : Math.round((u + v) * 100) + 5) });
+        world.append(el);
+      }
+    }
+    // the stage edge (the render's own little stage lights sit at about v 0.3, floor height 24)
+    const su = L.screen?.u || [4.9, 13.9];
+    aisleStrip('cove', su[0] - 0.6, su[1] + 0.6, 0.3, 26);
+    // EXIT halos at the two signs of draft 13 (world px)
+    for (const [x, y, c] of [[826, 286, '255, 60, 50'], [646, 513, '60, 255, 120']]) {
+      const el = h('div', 'alamp halo');
+      Object.assign(el.style, { left: `${x - 34}px`, top: `${y - 22}px`, width: '68px', height: '44px', zIndex: '69960',
+        background: `radial-gradient(closest-side, rgba(${c}, .45), rgba(${c}, .12) 60%, rgba(${c}, 0))` });
+      world.append(el);
+    }
+  }
+
+  // ---------- projector beam (queue 61, A3) ----------
+  // A soft beam from a port high in the back wall (the cut-away wall nearest the camera) to the four screen corners.
+  // No blur filter (it would re-rasterise on every zoom): three nested hulls, each a little narrower and brighter, give the
+  // soft edge. Dust drifts inside it. Colour and brightness follow the screen glow (stepGlow). ?beam=0: off.
+  const BEAM_ON = q.get('beam') !== '0';
+  function placeBeam() {
+    if (!BEAM_ON || !L || !screenPoly) { $('pbeam').remove(); $('pdust').remove(); return; }
+    const room = L.room || { u: [0, 17.5], v: [0, 14.9] };
+    const su = L.screen?.u || [4.9, 13.9];
+    // the booth sits above the back wall, a little left of the screen's axis (where the owner's picked draft had it)
+    const apex = P((su[0] + su[1]) / 2 - 2.3, room.v[1], 580);
+    const [TL, TR, BR, BL] = screenPoly;
+    const mid = [(TL[0] + BR[0]) / 2, (TL[1] + BR[1]) / 2];
+    const g = $('pbg');
+    g.setAttribute('x1', apex[0].toFixed(1)); g.setAttribute('y1', apex[1].toFixed(1));
+    g.setAttribute('x2', mid[0].toFixed(1)); g.setAttribute('y2', mid[1].toFixed(1));
+    const toward = (p, t) => [p[0] + (mid[0] - p[0]) * t, p[1] + (mid[1] - p[1]) * t];
+    const hull = (t) => [apex, toward(TL, t), toward(TR, t), toward(BR, t), toward(BL, t)].map((p) => p.map((n) => n.toFixed(1)).join(',')).join(' ');
+    $('pbeams').innerHTML = [[0, 0.5], [0.1, 0.6], [0.24, 0.75]].map(([t, o]) => `<polygon points="${hull(t)}" fill="url(#pbg)" opacity="${o}"/>`).join('');
+    $('pportc').setAttribute('cx', apex[0].toFixed(1)); $('pportc').setAttribute('cy', apex[1].toFixed(1));
+    // dust: points inside the beam, between a tenth of the way out and the screen
+    const dust = $('pdust');
+    dust.style.clipPath = `polygon(${[apex, TL, TR, BR, BL].map((p) => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(', ')})`;
+    let seed = 0x5eed;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
+    for (let i = 0; i < 48; i++) {
+      const a = rnd(), b2 = rnd(), t = 0.12 + 0.86 * rnd();
+      const top = [TL[0] + (TR[0] - TL[0]) * a, TL[1] + (TR[1] - TL[1]) * a], bot = [BL[0] + (BR[0] - BL[0]) * a, BL[1] + (BR[1] - BL[1]) * a];
+      const s = [top[0] + (bot[0] - top[0]) * b2, top[1] + (bot[1] - top[1]) * b2];
+      const x = apex[0] + (s[0] - apex[0]) * t, y = apex[1] + (s[1] - apex[1]) * t, sz = 1.2 + rnd() * 1.8;
+      const el = document.createElement('i');
+      Object.assign(el.style, { left: `${x.toFixed(1)}px`, top: `${y.toFixed(1)}px`, width: `${sz.toFixed(1)}px`, height: `${sz.toFixed(1)}px` });
+      // (same draws from rnd() in the same order as the old CSS version, so every mote keeps its path)
+      const d = 7 + rnd() * 9, o = 0.45 + rnd() * 0.5, dx = (rnd() - 0.5) * 40, dy = (rnd() - 0.6) * 30, delay = -rnd() * 10;
+      dust.append(el);
+      const anim = el.animate([{ transform: 'translate(0px, 0px)', opacity: 0.15 }, { opacity: +o.toFixed(2), offset: 0.5 },
+        { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`, opacity: 0.2 }],
+      { duration: Math.round(d * 10) * 100, delay: Math.round(delay * 10) * 100, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+      if (!dustOn) anim.pause();
+      dustAnims.push(anim);
+    }
+  }
+
+  // ---------- litter (queue 60) ----------
+  // About 10 min after the house is first 60% seated, popcorn, boxes, cups, wrappers and napkins start to pile up on
+  // the floor (legroom, cross-aisle, the front, the stairs), a few at a time over the next 25 min. The room decides
+  // the moment (show.fullAt) and every screen grows the same pieces from it; the panel's Litter toggle sweeps it up.
+  // ?littermin=<minutes>: QA preview, as if the house had been 60% full that long.
+  // (LITTER, LITTER_PREVIEW and the litter state are declared with the show state: the screen report reads them)
+  const svgUrl = (vb, body) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}">${body}</svg>`);
+  const LIT_LOOK = [0.9, 0.9], DARK_LOOK = [0.42, 0.8];   // the litter filter, lit and dark (CSS .litter)
+  const litterArt = new Map();
+  // one small SVG per kind and variant, lying on the floor; w x h in world px at K = 1
+  function litterImage(kind, variant) {
+    const id = kind + variant;
+    if (litterArt.has(id)) return litterArt.get(id);
+    const r = seeded(0x51A7 + variant * 977 + kind.length * 131);
+    const sh = (cx, cy, rx, ry, o = 0.35) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#000" opacity="${o}"/>`;
+    const kernel = (x, y, k = 1) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${Math.round(r() * 360)}) scale(${k.toFixed(2)})">` +
+      '<circle cx="-1.1" cy="0" r="1.5" fill="#f3ead0" stroke="#7d6a45" stroke-width=".35"/>' +
+      '<circle cx="1" cy="-.5" r="1.35" fill="#f8f1dc" stroke="#7d6a45" stroke-width=".35"/>' +
+      '<circle cx=".2" cy="1" r="1.2" fill="#efe2bd" stroke="#7d6a45" stroke-width=".35"/>' +
+      '<circle cx=".3" cy=".1" r=".55" fill="#e2b545"/></g>';
+    let out;
+    if (kind === 'kernels') {
+      let g = sh(24, 12, 20, 6, 0.22);
+      const n = 6 + Math.floor(r() * 5);
+      for (let i = 0; i < n; i++) { const a = r() * 6.28, d = Math.sqrt(r()); g += kernel(24 + Math.cos(a) * d * 17, 11 + Math.sin(a) * d * 5.5, 0.85 + r() * 0.35); }
+      out = { url: svgUrl('0 0 48 22', g), w: 15, h: 7 };
+    } else if (kind === 'box') {
+      // a tipped-over popcorn box, red and white stripes, spilling kernels out of its open end
+      let g = sh(22, 17, 19, 5) + '<defs><clipPath id="b"><polygon points="5,9 26,4 30,15 9,21"/></clipPath></defs>' +
+        '<polygon points="5,9 26,4 30,15 9,21" fill="#f2efe6"/>' +
+        '<g clip-path="url(#b)" fill="#c8242c">' + [0, 1, 2, 3, 4].map((i) => `<polygon points="${3 + i * 6},0 ${6 + i * 6},0 ${10 + i * 6},24 ${7 + i * 6},24"/>`).join('') + '</g>' +
+        '<polygon points="5,9 26,4 30,15 9,21" fill="none" stroke="#4a1a1a" stroke-width=".6"/>' +
+        '<ellipse cx="28" cy="9.5" rx="2.6" ry="6" transform="rotate(-14 28 9.5)" fill="#3a2a22" stroke="#4a1a1a" stroke-width=".5"/>';
+      for (let i = 0; i < 5; i++) g += kernel(31 + r() * 9, 8 + r() * 11, 0.9);
+      out = { url: svgUrl('0 0 44 24', g), w: 12, h: 6.5 };
+    } else if (kind === 'cup') {
+      // a soda cup on its side: white with a coloured band, the lid, a straw, a small spill
+      const band = ['#c8242c', '#1f5fbf', '#e0a020'][variant % 3];
+      const g = '<ellipse cx="27" cy="15" rx="10" ry="3" fill="#5a3a20" opacity=".45"/>' + sh(19, 14.5, 15, 3.5) +
+        '<polygon points="5,8 27,5 27,15 5,13" fill="#f4f2ec" stroke="#555" stroke-width=".5"/>' +
+        `<polygon points="12,7 20,6 20,14.2 12,13.6" fill="${band}"/>` +
+        '<ellipse cx="5" cy="10.5" rx="1.6" ry="2.6" fill="#d8d4c8" stroke="#555" stroke-width=".5"/>' +
+        '<ellipse cx="27" cy="10" rx="2.4" ry="5.2" fill="#e8e6e0" stroke="#555" stroke-width=".5"/>' +
+        `<line x1="28" y1="9.5" x2="36" y2="6" stroke="${band}" stroke-width="1.1" stroke-linecap="round"/>`;
+      out = { url: svgUrl('0 0 40 20', g), w: 10, h: 5 };
+    } else if (kind === 'wrapper') {
+      const c = ['#7a3fd0', '#2fae5a', '#e8672a', '#e2c13a'][variant % 4];
+      const g = sh(10, 8, 8, 2.5, 0.3) + `<polygon points="2,6 6,3 10,5 15,2 18,6 15,9 10,8 5,10" fill="${c}" stroke="#222" stroke-width=".5"/>` +
+        '<polyline points="5,6 9,5.5 13,4.5" fill="none" stroke="#fff" stroke-width=".7" opacity=".7"/>';
+      out = { url: svgUrl('0 0 20 12', g), w: 5, h: 3 };
+    } else {
+      // a crumpled napkin
+      const g = sh(9, 8, 7, 2.5, 0.3) + '<path d="M3,7 Q4,3 8,3.5 Q12,2 14,5 Q16,8 12,9.5 Q8,10.5 5,9.5 Q2,9 3,7Z" fill="#eeeae2" stroke="#8a857a" stroke-width=".5"/>' +
+        '<path d="M6,6 Q8,5 9,7 M10,4.5 Q11,6 13,6" fill="none" stroke="#b5afa2" stroke-width=".5"/>';
+      out = { url: svgUrl('0 0 18 12', g), w: 5, h: 3.2 };
+    }
+    litterArt.set(id, out);
+    rasterLitter(out);
+    return out;
+  }
+  // Each design is drawn once into a bitmap (4x its stage size: sharp at a 3x zoom on 1440p): Chrome redraws an
+  // SVG <img> from its vector shapes on every repaint of its tiles, and 140 of them made the lights changes of a full
+  // house ~10 fps slower at 60 (perf 9 Nov). Pieces placed before the bitmap is ready switch to it when it is.
+  // One design at a time, on a CPU canvas, encoded with toBlob: a GPU canvas's toDataURL waits for a readback from the
+  // busy GPU process, and on a fresh load with litter down all ~20 designs did it at once (hitches of 390-490 ms,
+  // perf 9 Nov).
+  const rasterQ = [];
+  let rasterBusy = false;
+  function rasterLitter(art) { rasterQ.push(art); if (!rasterBusy) rasterNext(); }
+  function rasterNext() {
+    const art = rasterQ.shift();
+    if (!art) { rasterBusy = false; return; }
+    rasterBusy = true;
+    const next = () => setTimeout(rasterNext, 40);
+    const im = new Image();
+    im.onerror = next;
+    im.onload = () => {
+      const vb = (decodeURIComponent(art.url).match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/) || []).slice(1).map(Number);
+      const c = document.createElement('canvas');
+      const k = 4 * K * 2.6;
+      c.width = Math.ceil(art.w * k); c.height = Math.ceil(art.h * k);
+      // the <img> box shows the SVG with preserveAspectRatio meet: the same fit here
+      const fit = vb.length === 2 ? Math.min(c.width / vb[0], c.height / vb[1]) : 0;
+      const dw = fit ? vb[0] * fit : c.width, dh = fit ? vb[1] * fit : c.height;
+      c.getContext('2d', { willReadFrequently: true }).drawImage(im, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
+      try {
+        c.toBlob((b) => {
+          if (b) {
+            art.bmp = URL.createObjectURL(b);
+            for (const el of litterEls) if (el.litArt === art) el.src = art.bmp;
+          }
+          next();
+        }, 'image/png');
+      } catch { next(); }
+    };
+    im.src = art.url;
+  }
+  // weighted floor areas, each a function rnd -> [u, v, zpx_world]
+  function litterSpotList() {
+    const out = [];
+    for (const r of L.rows) {
+      for (const us of Object.values(r.seat_u_by_block)) {
+        if (!us.length) continue;
+        const a = us[0] - 0.3, b = us[us.length - 1] + 0.3;
+        // the legroom in front of the row (towards the screen), on the row's own tier
+        out.push([us.length, (rnd) => [a + rnd() * (b - a), r.v - 0.32 - rnd() * 0.2, r.floor_zpx_world]]);
+      }
+    }
+    out.push([16, (rnd) => [4.3 + rnd() * 10, 3.35 + rnd() * 1.6, 24]]);    // the cross-aisle
+    out.push([10, (rnd) => [0.9 + rnd() * 15.8, 0.9 + rnd() * 1.4, 24]]);   // the front, below the screen
+    const tr = L.stairs.treads_v0_v1_zpx_world;
+    for (const [a, b] of L.stairs.u_ranges) {
+      out.push([7, (rnd) => { const t = tr[Math.floor(rnd() * tr.length)]; return [a + 0.12 + rnd() * (b - a - 0.24), t[0] + 0.06 + rnd() * Math.max(0, t[1] - t[0] - 0.12), t[2]]; }]);
+    }
+    return out;
+  }
+  function litterPieces(seed) {
+    const rnd = seeded(seed);
+    const spots = litterSpots ||= litterSpotList();
+    const total = spots.reduce((t, x) => t + x[0], 0);
+    const kinds = [['kernels', 0.44], ['box', 0.12], ['cup', 0.15], ['wrapper', 0.18], ['napkin', 0.11]];
+    const out = [];
+    for (let i = 0; i < LITTER.MAX; i++) {
+      let pickS = rnd() * total, spot = spots[spots.length - 1];
+      for (const x of spots) { if ((pickS -= x[0]) <= 0) { spot = x; break; } }
+      const [u, v, z] = spot[1](rnd);
+      let pickK = rnd(), kind = 'napkin';
+      for (const [k, w] of kinds) { if ((pickK -= w) <= 0) { kind = k; break; } }
+      out.push({ u, v, z, kind, variant: Math.floor(rnd() * 4), flip: rnd() < 0.5 });
+    }
+    return out;
+  }
+  // ms since the house was 60% full (null: no litter clock)
+  function litterAge() {
+    if (!show.litter) return null;
+    if (LITTER_PREVIEW != null) return LITTER_PREVIEW;
+    return show.fullAt ? Date.now() - show.fullAt : null;
+  }
+  // seconds until the first piece (0 = it has started), or null: for the panel
+  function litterIn() { const a = litterAge(); return a == null ? null : Math.max(0, Math.round((LITTER.DELAY - a) / 1000)); }
+  function stepLitter() {
+    if (!L || !seats.length) return;
+    // without a shared room this screen keeps its own clock
+    if (!inRoom() && show.litter && !show.fullAt && guests() / seats.length >= LITTER.FULL) show.fullAt = Date.now();
+    const age = litterAge();
+    const want = age == null ? 0 : Math.ceil(LITTER.MAX * Math.min(1, Math.max(0, (age - LITTER.DELAY) / LITTER.GROW)));
+    const seed = LITTER_PREVIEW != null ? 0x11773 : Math.round(show.fullAt / 1000) >>> 0;
+    if (!want || !litterList || seed !== litterSeed) {
+      for (const el of litterEls.splice(0)) el.remove();
+      litterList = want ? litterPieces(seed) : null;
+      litterSeed = seed;
+    }
+    for (let i = litterEls.length; i < want; i++) {
+      const p = litterList[i];
+      const art = litterImage(p.kind, p.variant);
+      const [x, y] = P(p.u, p.v, p.z);
+      const w = art.w * K * 2.6, hgt = art.h * K * 2.6;   // cartoon scale: readable next to the big emote heads
+      const im = h('img', 'litter');
+      im.alt = '';
+      im.litArt = art;
+      im.src = art.bmp || art.url;
+      Object.assign(im.style, { left: `${(x - w / 2).toFixed(1)}px`, top: `${(y - hgt * 0.62).toFixed(1)}px`, width: `${w.toFixed(1)}px`,
+        height: `${hgt.toFixed(1)}px`, zIndex: String(layers ? depthZ(p.u, p.v, p.z) : Math.round((p.u + p.v) * 100) + 5),
+        transform: p.flip ? 'scaleX(-1)' : '', opacity: '0' });
+      world.append(im);
+      requestAnimationFrame(() => { im.style.opacity = '1'; });
+      litterEls.push(im);
+    }
+    litterShown = litterEls.length;
+  }
+  setInterval(stepLitter, 1000);
 
   // ---------- start ----------
   Cinema.onWalkIn(onMessage);
@@ -2321,6 +2807,7 @@
       if (L.page_layers && Array.isArray(L.page_layers.slices)) {
         layers = L.page_layers;
         $('stage').classList.toggle('has-dim-art', !!layers.dim);
+        syncFlat();
         const dimSlices = new Map((layers.dim?.slices || []).map((s) => [s.name, s]));
         if (Number.isFinite(layers.key_z_divisor)) KZ = layers.key_z_divisor;
         const okRect = (p) => p && typeof p.file === 'string' && [p.x, p.y, p.w, p.h].every(Number.isFinite);
@@ -2372,6 +2859,10 @@
       bridgeConnect();
       // Columns are TL->TR / 960 and TL->BL / 540: all four corners match the layout exactly.
       $('preshow').style.transform = `matrix(${(c.TR[0] - c.TL[0]) / 960}, ${(c.TR[1] - c.TL[1]) / 960}, ${(c.BL[0] - c.TL[0]) / 540}, ${(c.BL[1] - c.TL[1]) / 540}, ${c.TL[0]}, ${c.TL[1]})`;
+      $('glowbloom').style.transform = $('preshow').style.transform;
+      placeSpill();
+      placeAisleLights();
+      placeBeam();
     }
     applyPhase();
     artImgs.push({ im: $('bg'), file: layers?.image || `cinema_draft_${DRAFT}.png`, file_2x: layers?.image_2x });

@@ -30,10 +30,12 @@
   const nativeFetch = window.fetch.bind(window);
   // the fly-through's cut (shared/transition.js asks the local obs-bridge on :18790): here it goes to this server, which
   // passes it to the room's control panel (it holds the streamer's OBS link) - see /ctl/cut-to-cinema in server.js
-  const isCut = (u) => { try { const x = new URL(u, location.href); return x.port === '18790' && x.pathname === '/cut-to-cinema'; } catch { return false; } };
+  // (and its start: /warm-cinema, the auditorium loaded off-screen during the flight - queue 55)
+  const bridgeCall = (u) => { try { const x = new URL(u, location.href); return x.port === '18790' && ['/cut-to-cinema', '/warm-cinema'].includes(x.pathname) ? x.pathname : null; } catch { return null; } };
   window.fetch = (input, init) => {
-    if ((typeof input === 'string' || input instanceof URL) && isCut(String(input))) {
-      return nativeFetch(keyed('/ctl/cut-to-cinema'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: init?.signal });
+    const call = (typeof input === 'string' || input instanceof URL) && bridgeCall(String(input));
+    if (call) {
+      return nativeFetch(keyed(`/ctl${call}`), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: init?.signal });
     }
     return nativeFetch(typeof input === 'string' || input instanceof URL ? keyed(String(input)) : input, init);
   };
@@ -204,10 +206,69 @@
         await request('SetCurrentSceneTransition', { transitionName }).catch(() => {});
       }
       log(`cut to "${SCENE}" (lobby fly-through)`);
+      await unwarm('after the cut');
     }
+    // The fly-through's start (as obs-bridge.js warmCinema, queue 55): the auditorium source goes off-canvas into the
+    // program (lobby) scene so OBS loads it during the flight; taken out again after the cut (or after 2 min).
+    let warmed = null;
+    let warmTimer = 0;
+    async function warm() {
+      if (warmed) return;
+      const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
+      const aud = items.find((i) => i.inputKind === 'browser_source');
+      if (!aud) return;
+      const prog = await request('GetCurrentProgramScene');
+      const scene = prog.currentProgramSceneName || prog.sceneName;
+      if (!scene || scene === SCENE) return;
+      const active = await request('GetSourceActive', { sourceName: aud.sourceName }).catch(() => ({}));
+      if (active.videoActive) return;
+      const { baseWidth = 1920 } = await request('GetVideoSettings');
+      const { sceneItemId } = await request('CreateSceneItem', { sceneName: scene, sourceName: aud.sourceName, sceneItemEnabled: false });
+      warmed = { scene, sceneItemId, source: aud.sourceName };
+      try {
+        await request('SetSceneItemTransform', { sceneName: scene, sceneItemId, sceneItemTransform: { positionX: baseWidth + 400, positionY: 0 } });
+        await request('SetSceneItemEnabled', { sceneName: scene, sceneItemId, sceneItemEnabled: true });
+      } catch (e) { await unwarm('setup failed'); throw e; }
+      clearTimeout(warmTimer);
+      warmTimer = setTimeout(() => unwarm('no cut within 2 min'), 120000);
+      log(`warm-up: "${aud.sourceName}" loads off-canvas in "${scene}"`);
+    }
+    async function unwarm(why) {
+      if (!warmed) return;
+      const w = warmed;
+      warmed = null;
+      clearTimeout(warmTimer);
+      await request('RemoveSceneItem', { sceneName: w.scene, sceneItemId: w.sceneItemId })
+        .then(() => log(`warm-up: "${w.source}" taken out of "${w.scene}" (${why})`))
+        .catch((e) => log(`warm-up: removing "${w.source}" failed (${e.message})`));
+    }
+    // Queue 58 (as obs-bridge.js sampleGlow): while the film is up, a 96x54 screenshot of the film source about every
+    // 500 ms; its alpha-weighted average colour goes to the page as {glow: [r, g, b]} for the screen glow.
+    let glowSent = '', glowFails = 0;
+    async function sampleGlow() {
+      if (!obs.ready || !sent.film) return;
+      const { imageData } = await request('GetSourceScreenshot', { sourceName: FILM, imageFormat: 'png', imageWidth: 96, imageHeight: 54 });
+      const bmp = await createImageBitmap(await (await nativeFetch(imageData)).blob());
+      const cv = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height });
+      const cx = cv.getContext('2d');
+      cx.drawImage(bmp, 0, 0);
+      const px = cx.getImageData(0, 0, bmp.width, bmp.height).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < px.length; i += 4) { const a = px[i + 3] / 255; r += px[i] * a; g += px[i + 1] * a; b += px[i + 2] * a; n += a; }
+      if (n < 4) return;
+      const rgb = [r, g, b].map((c) => Math.round(c / n));
+      if (rgb.join(',') === glowSent) return;
+      glowSent = rgb.join(',');
+      deliver({ glow: rgb });
+    }
+    (function glowLoop() {
+      if (obs.closed) return;
+      sampleGlow().then(() => { glowFails = 0; }, (e) => { if (++glowFails === 1) log(`film colour: ${e.message}`); })
+        .finally(() => setTimeout(glowLoop, glowFails > 3 ? 5000 : 500));
+    })();
     addEventListener('pagehide', close);
     obsConnect();
-    return { onPage, close, cut, isReady: () => obs.ready };
+    return { onPage, close, cut, warm, isReady: () => obs.ready };
   }
 
   // What auditorium.html gets back from `new WebSocket('ws://<host>:18790')`: a socket-shaped object that answers like
@@ -223,7 +284,8 @@
       if (h.get('relay') === '1') { log('linking the film through the control panel'); this._relay(); } else this._direct();
       setTimeout(() => { this.readyState = 1; this._emit('open'); this._emit('message', JSON.stringify(this._last)); }, 0);
     }
-    _deliver(obj) { this._last = obj; if (this.readyState === 1) this._emit('message', JSON.stringify(obj)); }
+    // only {obs} is replayed on open; {glow} readings just pass through
+    _deliver(obj) { if ('obs' in obj) this._last = obj; if (this.readyState === 1) this._emit('message', JSON.stringify(obj)); }
     _direct() {
       const bridge = makeBridge({ port: Number(h.get('obsport')) || 4455, password: h.get('obs') || '', deliver: (o) => this._deliver(o),
         onUnreachable: () => { log('switching to relay through the control panel'); this._relay(); } });
@@ -234,7 +296,13 @@
       const open = () => {
         ws = new NativeWS(`${wsBase}/__bridge?k=${encodeURIComponent(KEY)}&role=page`);
         ws.onopen = () => { if (queued) ws.send(queued); queued = null; };
-        ws.onmessage = (e) => { try { const m = JSON.parse(e.data); if (typeof m.obs === 'boolean') this._deliver({ obs: m.obs }); } catch { /* ignore */ } };
+        ws.onmessage = (e) => {
+          try {
+            const m = JSON.parse(e.data);
+            if (typeof m.obs === 'boolean') this._deliver({ obs: m.obs });
+            else if (Array.isArray(m.glow) && m.glow.length === 3) this._deliver({ glow: m.glow.map(Number) });
+          } catch { /* ignore */ }
+        };
         ws.onclose = () => { this._deliver({ obs: false }); setTimeout(open, 3000); };
       };
       open();
@@ -283,7 +351,10 @@
       show();
       if (!saved) return;
       let ws = null;
-      const bridge = makeBridge({ port: saved.port, password: saved.pw || '', deliver: (o) => { state.obs = o.obs; show(); if (ws?.readyState === 1) ws.send(JSON.stringify(o)); } });
+      const bridge = makeBridge({ port: saved.port, password: saved.pw || '', deliver: (o) => {
+        if ('obs' in o) { state.obs = o.obs; show(); }
+        if (ws?.readyState === 1) ws.send(JSON.stringify(o));   // {obs} or a {glow} reading, both relayed to the auditorium
+      } });
       const open = () => {
         ws = new NativeWS(`${wsBase}/__bridge?k=${encodeURIComponent(KEY)}&role=obs`);
         ws.onopen = () => { state.relay = true; show(); ws.send(JSON.stringify({ obs: bridge.isReady() })); };
@@ -292,6 +363,7 @@
           try { m = JSON.parse(e.data); } catch { return; }
           if (typeof m.pages === 'number') { state.pages = m.pages; show(); return; }
           if (m.cut === true) { bridge.cut().catch((err) => log(`cut failed: ${err.message}`)); return; }   // fly-through end
+          if (m.warm === true) { bridge.warm().catch((err) => log(`warm-up failed: ${err.message}`)); return; }   // fly-through start
           bridge.onPage(e.data);
         };
         ws.onclose = () => { state.relay = false; state.pages = 0; show(); setTimeout(open, 3000); };

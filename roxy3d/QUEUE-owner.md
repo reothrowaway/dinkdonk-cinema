@@ -236,10 +236,13 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
 49. Poll zoom follows the panel's Zoom amount: done in lobby-qa.html (fit zoom x amount / 1.85, capped at 4x, slider
     re-aims live; PROGRESS 8 Nov). Waiting for the owner's OK to make it live in lobby.html. Note: at the default the
     poll already fills the view at ~4x, so the slider only zooms the poll out.
+     -> 8 Nov first pass: still QA only, goes live with the rest on the owner OK.
 50. Director: prefer chatters whose message contains "vote" when picking who to follow (the room's server director in
     shared/room.js for local + hosted, and the page fallback director in lobby.html). Idea only, not started.
+     -> 8 Nov: built in QA (room voteFollow + lobby-qa fallback). Awaiting OK to go live.
 51. Poll screen: show the poll's countdown (time left until it closes) on the lobby's roll-up poll screen. Idea only,
     not started.
+     -> 8 Nov: built in QA (big countdown next to the poll title). Awaiting OK to go live.
 52. Auditorium: every Yee emote always gets a front-row seat. Double-check it when this item comes up: the rule
     exists today (shared/room.js YEE_EMOTES, "the front (wheelchair) row is theirs", mirrored from auditorium.html),
     but check the emote list covers all Yee emotes in DGG's current emote list, and what happens when the front row
@@ -248,12 +251,15 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     seat when the rest is full ("if (!free.length) free = all..."), so non-Yee chatters can end up in the front row.
     Fix: non-Yee never get a front-row seat (they wait outside when the other rows are full); same rule in
     auditorium.html's own (fallback) seating.
+     -> 8 Nov: fixed in shared/room.js (live at the next server start) + auditorium-qa.html. Yee list complete.
 53. Control panel: one button right at the top that empties both the lobby and the auditorium (zero people) in one
     go. Today they are separate (Clear lobby / Reset auditorium, each only when that scene is picked). Needs a
     confirm step (it can't be undone) and the same for the hosted panel (per room). Not started.
+     -> 8 Nov: built in control-qa.html (top button, confirm). Awaiting OK to go live.
 54. Control panel: pick what the auditorium's cinema screen shows right now (e.g. the pre-show slides like "Next movie
     coming up" / "In the audience" / "The feature will begin shortly", or the film), instead of it only following
     the phase automatically. Local and hosted panel. Not started; first list what the screen can show today.
+     -> 8 Nov: built in QA (Auto / 3 slides / The film). Awaiting OK to go live.
 55. Fly-through first cut of the evening: OBS doesn't load the auditorium browser source until its scene is first
     shown (8 Nov bridge log: the auditorium connected 15 s after the 08:15:43 cut), so the first cut lands on a
     loading auditorium. Plan (option 1, recommended): when Fly starts, obs-bridge.js places the auditorium source in
@@ -261,25 +267,47 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     that item after the cut - no permanent scene change, no extra GPU the rest of the night. (Option 2: keep it
     off-canvas in the lobby scene permanently.) Hosted edition: same via the panel's OBS link. Test with a fresh OBS
     start. Not started.
+     -> 8 Nov: built (obs-bridge /warm-cinema + hosted shim), fake-OBS tested. Needs a real OBS test from a fresh start.
 56. Lobby director: besides chatters, now and then focus on interesting spots - the billboards, the staff emotes
     selling tickets and snacks (cashiers, clerks), and other things worth a look - for a short set time, max ~7 s,
     then back to wide / the next pick. Local and hosted (the room's server director picks; the page frames it, like
     "Zoom to the poll"). First list candidate spots with the owner. Not started.
+     -> 8 Nov: built in QA with 11 candidate spots (billboards, sign, cashiers, snack, usher, posters, cat, shelter). Owner to confirm the list.
 57. Lobby gag: every once in a while two chatters go into the restroom together, both into the same stall, and
     heart emojis float up out of it; the director follows them for the whole bit, max 30 s total, then back to
     normal. Rare (not every visit), same on every screen (the room decides who and when), local and hosted.
     Not started.
+     -> 8 Nov: built in QA (room-picked, hearts, director max 30 s). Awaiting OK to go live.
 58. Auditorium during the film: the cinema screen should glow and light the room - a soft bloom around the screen,
     and the film's light spilling onto the floor, the front rows/seats, the walls and the seated chatters, following
     the film's brightness/colour (owner screenshot 8 Nov: the film sits flat in a dark room). The film is the VLC
     capture pinned in OBS (corner pin), so the glow likely needs to come from the film itself (OBS-side filter, or a
     sampled average colour sent to the page). Look options + a draft first. Not started.
+     -> 8 Nov: draft (bloom + floor spill, fixed colour) in auditorium-qa; qa-queue-0811/58-glow-draft.jpg. Owner to pick the look, then film-colour sampling.
+     -> 8 Nov: owner OK'd the look ("Looks right"). Film-colour sampling built (obs-bridge + hosted shim/server), fake-OBS tested. Awaiting OK to go live; needs a real-OBS look during a film.
 59. BLESSTINY, WAOW and NOBULLY are directional emotes but face the wrong way: shared/emote-facing.json has all
     three as "front"
     (treated as non-directional, never flipped). Fix = set each to "left" or "right" to match which way its art faces
     (check the image), so walkers turn it like the other directional emotes. Small, shared by lobby + auditorium +
     hosted. Not started.
+     -> 8 Nov: done (all three "left"), shared file, live.
 60. Auditorium litter over time: about 10 min after the theater is 60% full, popcorn and other litter (cups, boxes,
     wrappers) gradually appear on the floor and steps; a control-panel toggle turns it on/off (and clears it). Note:
     the draft 13 render already has a few baked popcorn groups (qa11/cinema_layout_13.json "litter"); this adds
     page-drawn litter on top. Same on every screen (room state), local + hosted. Not started.
+     -> 8 Nov: built in QA (room clock + panel toggle + drawn litter). Awaiting OK to go live.
+61. Owner 8 Nov picked from the improvement drafts (concepts/improve/, PNGs in drafts/): lobby L1 street marquee
+    over the doors (art: blockout first), L3 premiere-night sky (searchlights, skyline, haze), L4 wet-street light
+    (lobby spill + puddle streaks); auditorium A1 film lights the room (= item 58), A2 aisle/step/cove/exit lights,
+    A3 projector beam. Not picked: L2, L5, A4, A5. Build page layers in the -qa copies first.
+    -> 8 Nov: L3, L4, A2, A3 built in QA (lobby-qa.html, auditorium-qa.html). A1 was already live (item 58). L1 waits
+    for a blockout. -> 8 Nov ~19:45: L3, L4, A2, A3 live (owner "Go live"); hosted deployed ~20:00 (owner OK). Zip not rebuilt. L1 later (owner).
+    -> 9 Nov: owner wants L1 rendered in Blender at full quality as its own layer (not a pack re-render). Blockout
+    done (Brief 79, marquee/blockout.png); waiting for layout OK.
+
+-> 8 Nov 2026: items 49-60 promoted to the live pages (owner "Go live"). Server + bridge parts take effect at the next
+   start-all.bat; hosted edition and zip not rebuilt yet.
+62. Owner 8 Nov: every chatter who falls asleep (dozes off in the auditorium) turns into the BEARSLEEP emote (DGG
+    emote "BEARSLEEP", exists in the emote list); back to their own emote when they wake up (they chat again or the
+    lights come up). Hook: auditorium.html setDoze (w.dozing, ~line 1321). Same on every screen (room state), local +
+    hosted. Not started (owner: "in the future").

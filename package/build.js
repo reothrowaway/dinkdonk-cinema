@@ -52,7 +52,9 @@ if (fs.existsSync(OUT)) {
 fs.mkdirSync(SCREENS, { recursive: true });
 
 // ---------- 1. pages, server, bridge ----------
-for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-server.js', 'dinkdonk.js', 'obs-bridge.js', 'lan-proxy.js']) {
+// (poll-draft.js: the server requires it since 7 Nov; the userscript is what the server hands out for the poll builder)
+for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-server.js', 'dinkdonk.js', 'poll-draft.js', 'obs-bridge.js', 'lan-proxy.js',
+  'userscripts/dinkdonk-poll-draft.user.js']) {
   copy(path.join(STANDBY, f), path.join(SCREENS, f));
 }
 copyTree(path.join(STANDBY, 'shared'), path.join(SCREENS, 'shared'));
@@ -82,6 +84,12 @@ copyTree(RELAY, path.join(OUT, 'chat-relay'), (a, e) => /tests?\.c?js$/i.test(e.
 const live = JSON.parse(fs.readFileSync(OBS_SCENES, 'utf8'));
 const byName = Object.fromEntries(live.sources.map((s) => [s.name, s]));
 const SCENES = ['DinkDonk Cinema', 'Lobby + Poll setup', 'Lobby (src)', 'Film screen (src)'];
+// OBS adds " 2" to a duplicated or re-made scene (8 Nov 2026 the live one became "Lobby + Poll setup 2", lobby only):
+// take the live one under whatever number, and ship it under the plain name (owner's choice, 8 Nov)
+if (!byName[SCENES[1]]) {
+  const alt = live.sources.find((s) => s.id === 'scene' && /^Lobby \+ Poll setup \d+$/.test(s.name));
+  if (alt) { byName[SCENES[1]] = { ...alt, name: SCENES[1] }; log(`OBS scene "${alt.name}" ships as "${SCENES[1]}"`); }
+}
 const DROP = new Set(['Poll setup label']);   // a scratch text label ("testing")
 for (const n of SCENES) if (!byName[n]) fail(`scene "${n}" missing from ${OBS_SCENES}`);
 const W0 = live.resolution?.x || 2560;

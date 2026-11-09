@@ -17,6 +17,12 @@
 //   {t:'follow', page, nick}                  director: follow this chatter now (the panel's "follow someone")
 //   {t:'lead', page, id}                      which screen leads page-local randomness (the usher's kicks)
 //   {t:'clear', page}                         panel: Clear lobby / Reset auditorium
+//   {t:'peek', page, spot}                    lobby director: look at a spot for at most 7 s (queue 56: wcat, eatfresh,
+//                                             sign, cashiers, snack, usher, poster1-3, cat, shelter)
+//   {t:'gag', page, kind:'stall', a, b, seed} lobby: two chatters squeeze into one restroom stall (queue 57; the
+//                                             director follows a for at most 30 s)
+//   {t:'show', page, show, now}               auditorium: the panel's screen picker / litter toggle, or the house
+//                                             reached 60% (show.fullAt starts the litter clock; now = server clock)
 // Older screens keep using /ctl/events only; nothing here changes what they get.
 
 const fs = require('node:fs');
@@ -24,6 +30,8 @@ const path = require('node:path');
 
 const LOBBY = { CAP: 40, HARD_CAP: 55, CROWD: 14 };              // lobby.html CAP, HARD_CAP, CROWD
 const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.html MAX_QUEUE, QUEUE_QUIET_MS
+const LITTER_FULL = 0.6;                                           // auditorium litter: its clock starts at 60% seated
+const SCREENS = ['auto', 'upnext', 'loading', 'audience', 'film'];  // what the cinema screen shows (panel picker)
 const AVATAR_BLOCK = new Set(['JARVIS']);                          // shared/cinema.js AVATAR_BLOCK
 // auditorium.html YEE_EMOTES: the front ("wheelchair") row is theirs
 const YEE_EMOTES = new Set(['YEE', 'diNoThanks', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE',
@@ -91,7 +99,8 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     pages: {
       lobby: { roster: [], director: freshDirector() },
       auditorium: { roster: [], director: freshDirector(),
-        show: { phase: 'seating', shot: 'push', lightsOn: false, houseOut: false, auto: true } },
+        show: { phase: 'seating', shot: 'push', lightsOn: false, houseOut: false, auto: true,
+          screen: 'auto', litter: true, fullAt: 0 } },
     },
   };
   // chat memory (not saved): last emotes and room per nick, like shared/cinema.js
@@ -154,7 +163,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     const d = P.director;
     return { t: 'snapshot', page, now: Date.now(), roster: P.roster.map(publicEntry),
       director: { on: d.on, every: d.every, zoom: d.zoom, wantNext: d.wantNext },
-      show: page === 'auditorium' ? { ...P.show } : undefined,
+      show: page === 'auditorium' ? { ...P.show } : undefined,   // (fullAt in server time: see now)
       settings: { tag: state.settings.tag || null }, lead: lead[page] };
   }
 
@@ -168,13 +177,13 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   }
 
   /** a room-mode screen connects: send(line) gets each event as one JSON string */
-  function subscribe(page, id, send, { obs = false, who = undefined } = {}) {
+  function subscribe(page, id, send, { obs = false, who = undefined, caps = [] } = {}) {
     if (!PAGES.includes(page)) throw new Error('unknown page');
     // who walks in comes from the screens' URLs until the panel sets it; the OBS screen's URL wins
     if (who !== undefined && !state.settings.fromPanel && (obs || !subs.lobby.size && !subs.auditorium.size)) {
       if (state.settings.tag !== who) { state.settings.tag = who; changed(); log(`room: who walks in: ${who ? `tags ${who}` : 'everyone'}`); }
     }
-    subs[page].set(id, { send, obs, since: Date.now() });
+    subs[page].set(id, { send, obs, since: Date.now(), caps: new Set(caps) });
     send(JSON.stringify(snapshot(page)));
     electLead(page);   // after the snapshot: a new leader hears about it in a 'lead' event
     return () => { subs[page].delete(id); electLead(page); };
@@ -223,6 +232,60 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     return true;
   }
 
+  // queue 50: a message with "vote" in it (the poll) jumps the director's queue: followed once 40% of the usual gap
+  // since the last follow has passed (instead of waiting for the next arrival when the gap is up)
+  const VOTE_RE = /vote/i;
+  function voteFollow(page, text) {
+    const d = state.pages[page].director;
+    if (!d.on || !can(page, 'vote') || !VOTE_RE.test(String(text || ''))) return false;
+    const show = state.pages.auditorium.show;
+    if (page === 'auditorium' && show.phase === 'film' && show.shot === 'push') return false;
+    const gap = d.every * 1000;
+    if (Date.now() < d.nextAt - gap * 0.6) return false;
+    d.nextAt = Date.now() + gap * rand(0.85, 1.2);
+    return true;
+  }
+
+  // newer events go out only when a screen of the page can play them (its DD_ROOM_CAPS): peek, gag (lobby), vote
+  const can = (page, cap) => [...subs[page].values()].some((x) => x.caps?.has(cap));
+
+  // queue 56: about a third of the lobby director's turns look at something instead of the next arrival (max 7 s)
+  const PEEK = { P: 0.35, LEN: 7000, W: { wcat: 2, eatfresh: 2, sign: 1, cashiers: 2, snack: 2, usher: 1, poster1: 1, poster2: 1, poster3: 1, cat: 2, shelter: 1 } };
+  let peekFor = 0;
+  function peek(force = null) {
+    const d = state.pages.lobby.director;
+    if (!force && (!d.on || !can('lobby', 'peek') || Date.now() < d.nextAt || peekFor === d.nextAt)) return false;
+    peekFor = d.nextAt;
+    if (!force && Math.random() > PEEK.P) return false;
+    const names = Object.keys(PEEK.W);
+    let r = Math.random() * names.reduce((t, n) => t + PEEK.W[n], 0);
+    const spot = PEEK.W[force] ? force : names.find((n) => (r -= PEEK.W[n]) <= 0) || names[0];
+    d.nextAt = Date.now() + PEEK.LEN + d.every * 1000 * rand(0.4, 0.7);
+    emit('lobby', { t: 'peek', spot });
+    changed();
+    return true;
+  }
+
+  // queue 57: now and then (every 10-20 min) two chatters hanging out in the lobby go into the same restroom stall;
+  // the room picks who and when, so every screen plays the same bit. The director holds off for its length (30 s).
+  const GAG = { MIN: 10 * 60000, MAX: 20 * 60000, LEN: 30000, FREE: new Set(['lobby', 'corridor', 'chatting']) };
+  let gagAt = Date.now() + rand(GAG.MIN * 0.5, GAG.MAX);
+  function stallGag(force = false) {
+    const L = state.pages.lobby;
+    const d = L.director;
+    if (!force && (!d.on || !can('lobby', 'gag') || Date.now() < gagAt || Date.now() < d.nextAt - d.every * 1000 * 0.6)) return false;
+    const free = L.roster.filter((e) => GAG.FREE.has(e.place));
+    if (free.length < (force ? 2 : 6)) { if (!force) gagAt = Date.now() + 60000; return false; }
+    const a = free.splice(Math.floor(Math.random() * free.length), 1)[0];
+    const b = free[Math.floor(Math.random() * free.length)];
+    gagAt = Date.now() + rand(GAG.MIN, GAG.MAX);
+    d.nextAt = Date.now() + GAG.LEN + d.every * 1000 * rand(0.5, 0.8);
+    emit('lobby', { t: 'gag', kind: 'stall', a: a.nick, b: b.nick, seed: (Math.random() * 2 ** 32) >>> 0 });
+    log(`room: stall gag: ${a.nick} + ${b.nick}`);
+    changed();
+    return true;
+  }
+
   // ---------- auditorium seats ----------
   function seatOf(id) { return getSeats()?.find((s) => s.id === id) || null; }
   function chooseSeat(e, text) {
@@ -231,8 +294,9 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     const roster = state.pages.auditorium.roster;
     const taken = new Set(roster.map((x) => x.seat).filter(Boolean));
     const yee = YEE_EMOTES.has(e.emote);
+    // the front row is ONLY for Yee (owner 8 Nov): Yee overflow into the other rows, nobody else ever sits in front
     let free = all.filter((s) => !taken.has(s.id) && (s.ri === 0) === yee);
-    if (!free.length) free = all.filter((s) => !taken.has(s.id));
+    if (!free.length && yee) free = all.filter((s) => !taken.has(s.id));
     if (!free.length) return null;
     const low = String(text || '').toLowerCase();
     for (const o of roster) {
@@ -262,7 +326,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     for (const e of A.roster) {
       if (e.seat) continue;
       const seat = chooseSeat(e, e.d?.data);
-      if (!seat) break;
+      if (!seat) continue;   // a non-Yee can't take a front seat, but a Yee further back in the queue still can
       e.seat = seat;
       emit('auditorium', { t: 'seat', nick: e.nick, seat });
       changed();
@@ -303,6 +367,8 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         e.last = now;
         if (page === 'lobby' && own.length) { e.emote = own[0]; e.alt = [...new Set([...own.slice(1), ...e.alt])].slice(0, 4); }
         emit(page, { t: 'walk', e, again: true, follow: false, say });
+        // a seated / present chatter who talks about the vote: the director goes to them (every screen)
+        if ((page === 'lobby' || e.seat) && voteFollow(page, text)) emit(page, { t: 'follow', nick: e.nick });
         changed();
         continue;
       }
@@ -325,7 +391,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         entry.seat = P.show.houseOut ? null : chooseSeat(entry, text);
       }
       P.roster.push(entry);
-      emit(page, { t: 'walk', e: entry, again: false, follow: wantFollow(page), say });
+      emit(page, { t: 'walk', e: entry, again: false, follow: wantFollow(page) || voteFollow(page, text), say });
       changed();
       if (page === 'lobby' && P.roster.length > LOBBY.HARD_CAP) {
         // the page fades out its oldest walker over the hard cap; the room does the same, for every screen
@@ -387,9 +453,11 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       // a lobby screen saw them leave on their own (in through a door, home, on the bus, run over): the room forgets
       // them so a reload doesn't bring them back; the other screens let their own walker finish the exit
       case 'left': removeEntry(page, key, 'left'); break;
+      case 'gag': if (page === 'lobby') stallGag(true); break;
+      case 'peek': if (page === 'lobby') peek(typeof c.spot === 'string' ? c.spot : 'any'); break;   // (test hook too)   // (no panel button: a test hook, /ctl/cmd {cmd: 'gag'})
       case 'reset':
         P.roster = [];
-        if (page === 'auditorium') P.show.houseOut = false;
+        if (page === 'auditorium') { P.show.houseOut = false; P.show.fullAt = 0; emitShow(); }   // a reset also sweeps the litter
         d.wantNext = false;
         emit(page, { t: 'clear' });
         log(`room: ${page} cleared from the panel`);
@@ -421,10 +489,15 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         if (c.value === s.phase) s.lightsOn = false;
         s.phase = c.value; s.shot = 'push'; s.auto = false;
         if (c.value === 'seating' && s.houseOut) { s.houseOut = false; seatQueue(); }   // as the page's setPhase
+        if (c.value === 'film' && s.screen !== 'auto') { s.screen = 'auto'; emitShow(); }   // Film puts the film on
         break;
-      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; break;
+      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; if (s.screen !== 'auto') { s.screen = 'auto'; emitShow(); } break;
       case 'outro': if (s.phase === 'film') s.shot = 'outro'; break;
       case 'phaseAuto': s.auto = !!c.on; break;
+      // the panel's cinema screen picker: auto follows the phase (slides, then the film), or one slide / the film held
+      case 'screen': if (SCREENS.includes(c.value)) { s.screen = c.value; emitShow(); } break;
+      // litter toggle: off sweeps it all up; back on, the 10 min clock starts again from the next 60% full house
+      case 'litter': s.litter = !!c.on; s.fullAt = 0; checkFull(); emitShow(); break;
       case 'lights': s.lightsOn = !!c.on && s.phase === 'film'; break;
       case 'houseOut':
         s.houseOut = !!c.on;
@@ -461,9 +534,24 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     }
   }
 
+  function emitShow() { emit('auditorium', { t: 'show', show: { ...state.pages.auditorium.show }, now: Date.now() }); }
+  // the litter clock: the first moment the house is 60% seated (kept until a reset or the litter toggle)
+  function checkFull() {
+    const A = state.pages.auditorium;
+    const all = getSeats();
+    if (!A.show.litter || A.show.fullAt || !all?.length) return;
+    if (A.roster.filter((e) => e.seat).length / all.length < LITTER_FULL) return;
+    A.show.fullAt = Date.now();
+    log('room: auditorium 60% full, litter starts in 10 min');
+    emitShow();
+    changed();
+  }
+
   // once a second: queued chatters quiet for 10 min leave the queue, as in the page
   const timer = setInterval(() => {
     const A = state.pages.auditorium;
+    checkFull();
+    if (subs.lobby.size && !stallGag()) peek();   // (only while a lobby screen is watching: nobody would see it otherwise)
     for (const e of [...A.roster]) if (!e.seat && Date.now() - e.last > AUD.QUEUE_QUIET_MS) removeEntry('auditorium', e.key, 'quiet');
   }, 1000);
   timer.unref?.();

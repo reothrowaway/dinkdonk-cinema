@@ -49,6 +49,7 @@
 </head>
 <body>
 <h1>Cinema control</h1>
+<div class="row"><button id="emptyall" class="danger" title="Everyone leaves the lobby and the auditorium at once, on every screen (chat fills them again)">Empty lobby + auditorium</button></div>
 <div class="row"><label>Scene <select id="page"><option value="lobby">Lobby (lobby.html)</option><option value="auditorium">Auditorium (auditorium.html)</option></select></label></div>
 <div class="sub" id="screens">looking for open screens…</div>
 
@@ -74,7 +75,15 @@
     <button data-phase="up">Lights up</button>
     <button id="phaseauto">Auto: on</button>
   </div>
+  <div class="row">
+    <label>Cinema screen shows <select id="screenpick" title="Auto: the pre-show slides take turns, the film comes on with Film / Movie">
+      <option value="auto">Auto (slides, then the film)</option><option value="upnext">Slide: Up next</option>
+      <option value="loading">Slide: The feature will begin shortly</option><option value="audience">Slide: In the audience</option>
+      <option value="film">The film</option></select></label>
+    <button id="litter" title="About 10 min after the hall is 60% full, popcorn, cups and wrappers pile up on the floor. Off sweeps it all up">Litter: on</button>
+  </div>
   <div class="state" id="phasestate"></div>
+  <div class="state" id="litterstate"></div>
   <div class="state" id="downloadstate"></div>
 </div>
 
@@ -98,6 +107,8 @@
     <button id="auto">Automatic director</button>
     <button id="pollzoom" title="Lobby: the camera moves in on the poll screen; Wide shot comes back">Zoom to the poll</button>
     <button id="fly" title="Lobby: the camera flies through the street into the auditorium (about 50 s), then OBS cuts to the cinema scene (needs obs-bridge.js)">Fly to the auditorium</button>
+    <button id="cutwarm" title="Lobby: a plain cut to the cinema scene without the fly-through. OBS first runs the auditorium off-canvas for 5 s (obs-bridge.js warm-up), so the cut does not freeze (~0.45 s otherwise, from a hidden source)">Cut to cinema</button>
+    <button id="cutlobby" hidden title="Auditorium: a plain cut back to the lobby scene. OBS first runs the lobby off-canvas for 5 s (warm-up in obs-bridge-qa.js), so the cut does not freeze (~0.3 s otherwise, from a hidden source)">Cut to lobby</button>
   </div>
   <div class="row">
     <label>Every <input id="every" type="number" min="30" max="1800" step="10" style="width:90px"> s</label>
@@ -161,6 +172,8 @@
   $('lightson').onclick = () => send({ cmd: 'lights', on: !preshow?.lightsOn });
   $('houseout').onclick = () => send({ cmd: 'houseOut', on: !preshow?.houseOut });
   $('reset').onclick = () => send({ cmd: 'reset' });
+  $('screenpick').onchange = (e) => send({ cmd: 'screen', value: e.target.value });
+  $('litter').onclick = () => send({ cmd: 'litter', on: !(preshow?.litter ?? true) });
   // the lobby's roll-up poll screen (lobby.html "POLL SCREEN"; the server remembers up/down for every screen)
   $('pollopen').onclick = () => send({ cmd: 'pollscreen', on: true, page: 'lobby' }).then(refreshPoll);
   // this room's own poll script (hosted: the room key goes along, and only this room's poll is changed by it)
@@ -168,6 +181,47 @@
   $('pollclose').onclick = () => send({ cmd: 'pollscreen', on: false, page: 'lobby' }).then(refreshPoll);
   $('pollzoom').onclick = () => send({ cmd: 'pollzoom', page: 'lobby' });
   $('fly').onclick = () => send({ cmd: 'fly', page: 'lobby' });
+  // Cut to cinema (perf 9 Nov): a hidden OBS browser source is paused and drops its rendered picture, so a plain cut
+  // to it froze ~0.45 s with a full house; shown off-canvas for a few seconds first (the bridge's warm-up, as the
+  // fly-through does) the cut is clean (~50 ms). Both requests go to obs-bridge.js on this PC.
+  $('cutwarm').onclick = async () => {
+    // (feedback on the button itself: the screens line is rewritten by the status refresh every few seconds)
+    const btn = $('cutwarm'), say = (t) => { btn.textContent = t.replace(/^Cut to cinema: /, ''); };
+    const bridge = (what) => fetch(`http://127.0.0.1:18790/${what}`, { method: 'POST', body: '{}', signal: AbortSignal.timeout(5000) })
+      .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status); return j; });
+    btn.disabled = true;
+    try {
+      say('Cut to cinema: warming the auditorium (5 s)…');
+      await bridge('warm-cinema');
+      await new Promise((r) => setTimeout(r, 5000));
+      await bridge('cut-to-cinema');
+      say('Cut to cinema: done.');
+    } catch (e) {
+      say(`Cut to cinema failed: ${e.message} (is obs-bridge.js running and OBS connected?)`);
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = 'Cut to cinema'; }, 6000);
+    }
+  };
+  // Cut to lobby (perf 9 Nov): the same warm-up the other way, for the end of the film (needs obs-bridge-qa.js)
+  $('cutlobby').onclick = async () => {
+    const btn = $('cutlobby'), say = (t) => { btn.textContent = t; };
+    const bridge = (what) => fetch(`http://127.0.0.1:18790/${what}`, { method: 'POST', body: '{}', signal: AbortSignal.timeout(5000) })
+      .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status); return j; });
+    btn.disabled = true;
+    try {
+      say('warming the lobby (5 s)…');
+      await bridge('warm-lobby');
+      await new Promise((r) => setTimeout(r, 5000));
+      await bridge('cut-to-lobby');
+      say('done.');
+    } catch (e) {
+      say(`Cut to lobby failed: ${e.message} (is obs-bridge-qa.js running and OBS connected?)`);
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = 'Cut to lobby'; }, 6000);
+    }
+  };
   async function refreshPoll() {
     let j;
     try { j = await (await fetch('/dd/draft.json', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('pollstate').textContent = 'No poll data (an older standby-server.js?).'; return; }
@@ -179,6 +233,11 @@
     $('pollstate').innerHTML = `Screen <b>${open ? 'down' : 'rolled up'}</b> · ${what.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`)}`;
   }
   // shared room (web/PLAN-shared-rooms.md): the server keeps one lobby and one auditorium for every screen
+  // one go for both scenes (queue 53); it can't be undone, so it asks first
+  $('emptyall').onclick = () => {
+    if (!confirm('Empty BOTH the lobby and the auditorium on every screen? Everyone in them is gone (chat fills them again).')) return;
+    Promise.all([send({ cmd: 'reset', page: 'lobby' }), send({ cmd: 'reset', page: 'auditorium' })]).then(refresh);
+  };
   $('clearlobby').onclick = () => { if (confirm('Clear the lobby on every screen?')) send({ cmd: 'reset', page: 'lobby' }); };
   $('who').onchange = () => { $('whonick').hidden = $('who').value !== 'tag'; };
   $('whoset').onclick = () => fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -303,6 +362,9 @@
     $('pollcard').hidden = page !== 'lobby';
     $('pollzoom').hidden = page !== 'lobby';   // (the poll screen is in the lobby only)
     $('fly').hidden = page !== 'lobby';        // (the fly-through starts in the lobby)
+    $('cutwarm').hidden = page !== 'lobby';
+    // (needs obs-bridge-qa.js's /warm-lobby; the live bridge does not have it yet: shown only with ?lobbycut=1)
+    $('cutlobby').hidden = page !== 'auditorium' || new URLSearchParams(location.search).get('lobbycut') !== '1';
     const blocked = page === 'auditorium' && controlVersion < 2;
     for (const el of document.querySelectorAll('button, input')) el.disabled = blocked;
     $('screens').textContent = screens.length ? `${screens.length} screen${screens.length > 1 ? 's' : ''} open (${screens.map((s) => s.size.join('×')).join(', ')}) - commands go to all of them`
@@ -332,6 +394,16 @@
     $('phaseauto').textContent = `Auto: ${preshow?.auto ? 'on' : 'off'}`;
     for (const b of document.querySelectorAll('[data-phase]')) b.classList.toggle('on', b.dataset.phase === preshow?.phase && (b.dataset.phase !== 'film' || shot === 'push'));
     $('movie').classList.toggle('on', shot === 'movie');
+    if (document.activeElement !== $('screenpick')) $('screenpick').value = preshow?.screen || 'auto';
+    const litterOn = preshow?.litter ?? true;
+    $('litter').textContent = `Litter: ${litterOn ? 'on' : 'off'}`;
+    $('litter').classList.toggle('on', litterOn);
+    const li = preshow?.litterIn;
+    $('litterstate').textContent = !preshow || !('litter' in preshow) ? ''
+      : !litterOn ? 'Litter off: the floor stays clean.'
+      : li == null ? 'Litter starts 10 min after the hall is 60% full (not reached yet).'
+      : li > 0 ? `Hall was 60% full: litter starts in ${Math.ceil(li / 60)} min.`
+      : `Litter: ${preshow.litterPieces || 0} pieces on the floor (it keeps piling up for 25 min).`;
     $('outro').classList.toggle('on', shot === 'outro');
     const d = preshow?.download;
     let download = 'Download unavailable — the feature will begin shortly.';

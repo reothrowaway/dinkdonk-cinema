@@ -249,6 +249,12 @@ bridgeWss.on('connection', (ws, req, key, role) => {
     ws.on('message', (data) => {
       let m;
       try { m = JSON.parse(data.toString()); } catch { return; }
+      // queue 58: the film's average colour, for the screen glow (numbers only, passed on to the pages)
+      if (Array.isArray(m.glow) && m.glow.length === 3 && m.glow.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
+        const text = JSON.stringify({ glow: m.glow });
+        for (const p of b.pages) sendIfOpen(p, text);
+        return;
+      }
       if (typeof m.obs !== 'boolean') return;
       b.ready = m.obs;
       for (const p of b.pages) sendIfOpen(p, JSON.stringify({ obs: b.ready }));
@@ -308,7 +314,7 @@ async function controlRoute(req, res, pathname, key) {
     res.writeHead(200, SSE_HEADERS);
     res.write('retry: 3000\n\n');
     const who = url.searchParams.has('who') ? url.searchParams.get('who').replace(/[^A-Za-z0-9_]/g, '').slice(0, 25) || null : undefined;
-    const off = r.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: url.searchParams.get('obs') === '1', who });
+    const off = r.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: url.searchParams.get('obs') === '1', who, caps: String(url.searchParams.get('caps') || '').split(',').filter((c) => /^[a-z]{1,12}$/.test(c)).slice(0, 8) });
     room.roomSubs = (room.roomSubs || 0) + 1;
     const ping = setInterval(() => res.write(': ping\n\n'), 20000);
     req.on('close', () => { clearInterval(ping); off(); room.roomSubs -= 1; });
@@ -321,10 +327,11 @@ async function controlRoute(req, res, pathname, key) {
   }
   // the fly-through's end: the lobby (inside OBS) asks for the cut to the cinema scene; this room's control panel, which
   // holds the streamer's OBS link (relay host, web/shim.js), does it. 409 when no panel is connected to OBS.
-  if (pathname === '/ctl/cut-to-cinema' && req.method === 'POST') {
+  // (and at its start, /ctl/warm-cinema: the panel loads the auditorium off-canvas in OBS during the flight, queue 55)
+  if ((pathname === '/ctl/cut-to-cinema' || pathname === '/ctl/warm-cinema') && req.method === 'POST') {
     const b = roomBridge(key);
     if (!b.host || b.host.readyState !== 1) return json(res, 409, { error: 'no control panel connected to OBS' });
-    sendIfOpen(b.host, '{"cut":true}');
+    sendIfOpen(b.host, pathname === '/ctl/cut-to-cinema' ? '{"cut":true}' : '{"warm":true}');
     return json(res, 200, { relayed: true });
   }
   if (pathname === '/ctl/settings' && req.method === 'GET') { const s = roomSettings(key); return json(res, 200, { schema: s.schema, values: s.all() }); }

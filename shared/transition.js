@@ -614,6 +614,7 @@
   // ---------- cut mode (control panel 'fly'): auditorium wide, picture aligned to the cinema scene, OBS cut ----------
   let cutMode = false, cutSent = false, wideSent = false, cutOk = null;
   const BRIDGE = 'http://127.0.0.1:18790/cut-to-cinema';
+  const WARM = 'http://127.0.0.1:18790/warm-cinema';   // queue 55: OBS loads the auditorium during the flight
   const inObs = () => !!window.obsstudio || q.get('flycut') === '1';
   function auditoriumWide() {
     fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -653,7 +654,12 @@
     if (playing) return;
     clearTimeout(repeatTimer);
     cutMode = !!opts.cut; cutSent = false; wideSent = false; cutOk = null;
-    if (cutMode) auditoriumWide();
+    if (cutMode) {
+      auditoriumWide();
+      // OBS only loads the auditorium once it has been shown: have the bridge load it off-screen now (OBS copy only)
+      if (inObs() && q.get('flycutdry') !== '1') fetch(WARM, { method: 'POST', body: '{}', signal: AbortSignal.timeout(4000) })
+        .then((r) => r.text()).then((t) => console.log('[fly] bridge warm-up:', t)).catch((err) => console.warn('[fly] warm-up failed:', err.message || err));
+    }
     try {
       if (!meta) {
         [meta, layout] = await Promise.all([

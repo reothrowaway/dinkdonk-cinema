@@ -28,7 +28,7 @@ FIRST TIME IN OBS
    Scene Collection. Your own collections are not touched.
 4. You get these scenes:
      DinkDonk Cinema       the auditorium, with the film pinned onto the cinema screen
-     Lobby + Poll setup    the lobby, with dinkdonk.mov beside it for building the poll
+     Lobby + Poll setup    the lobby (the main screen while people arrive and vote)
      Lobby (src), Film screen (src)   building blocks, used by the two above
    Add your own scenes (camera, the movie itself, ...) to this collection, or copy these into yours.
 5. Open the film in VLC. If the cinema screen stays black: right-click "Film screen (src)" > Game Capture >
