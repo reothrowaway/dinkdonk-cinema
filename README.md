@@ -27,7 +27,7 @@ URL options are listed in the comment block at the top of each page and in `READ
 | `package/` | builds the shareable zip package; `package/art.js` lists the art the pages load |
 | `web/` | hosted edition (work in progress) |
 | `roxy3d/` | the Blender art: briefs (`BRIEF-*.md`), notes (`NOTES-*.md`), render scripts, source `.blend` files |
-| `roxy3d/out10/`, `roxy3d/out10mist/` | the live lobby art pack |
+| `roxy3d/out10/`, `roxy3d/out10mist/`, `roxy3d/out10m/` | the live lobby art pack (`out10m` = the street marquee's layers) |
 | `roxy3d/qa11/` | auditorium art: only the files `auditorium.html` loads are tracked |
 | `roxy3d/cloud/` | the RunPod render helper (`cloud-render.sh`) and the Brief 57 production bundle |
 | `intro-dinkdonk/` | the DINK DONK intro snipe |

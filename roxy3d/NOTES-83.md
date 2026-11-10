@@ -1,0 +1,804 @@
+# Brief 83: approved marquee production layers
+
+9 Nov 2026. **Staging pack complete: `out10m/`. Live integration is pending.**
+
+![The single 1280 x 720 check image](qa10/marquee-layer-check.png)
+
+713 pack files, **15,927,224 bytes (15.19 MiB)**. 292 static depth layers and 60 chase sheets per resolution. Every image has a 1x and native @2x partner. The complete byte count and SHA-256 inventory is in `out10m/checksums.json`; its own self-hash is excluded, as in the existing pack convention.
+
+## Rendered appearance and settings
+
+The approved `marquee/marquee_draft27.blend` supplies the unchanged camera, geometry, paint, wet roof reflections, cream panels, retaining tracks, 60 bulbs, and three 45 W soffit lights. Letterboards are deliberately blank for page text. No original scene file was saved.
+
+Local NVIDIA GeForce RTX 3050 6 GB, Blender 5.2.3 / Cycles OptiX, native **3840 x 2160**, **256 max / 64 min samples**, adaptive threshold **0.01**, seed **1701**, OptiX denoise, Blackman-Harris **2.5**, no motion blur, inherited AgX Medium High Contrast at exposure **+0.25**, and the original glare chain. Each 1x display input is a scene-linear **2 x 2 area reduction** of its native 2x capture before the glare/display transform. Alpha and position reduction are coverage-aware.
+
+Body, full-scene steady illumination, emitter-off receivers, and canopy-absent receivers were captured on the full native grid. Four pure bulb-group radiance bases and direct phases 0 and 12 use the same grid with a camera border at logical **[520, 500, 880, 580]**. Cropping changes no projection or pixel density. The group captures disable other source radiance while retaining all geometry and BSDFs, so their contributions include actual socket, roof, glass, and pavement reflections without subtracting bright-scene noise.
+
+The optical kernels use native sigma **3.30 px**, radius **9.30 px**, peak **0.85**, and linear RGB **(1, 0.32, 0.055)**. All 60 centers retain their original chase groups. 56 centers are unobstructed; four corner bulbs are partly hidden by the approved trim. Their kernel energy uses measured visible fractions (approximately 0.30 or 0.33), preventing halos through the trim. The original glare/display chain processes the kernels together with the rendered radiance.
+
+## Drawing the fragment
+
+Load `out10m/marquee.json`, resolving its paths relative to `roxy3d/out10m/`, and merge `render_layers` and `prop_loops` into the existing scene stack by `z_index`. This fragment supplies additional marquee layers; the current lobby pack remains the background and surrounding scenery.
+
+| Layer | Blend | Depth and use |
+|---|---|---|
+| Body | Straight RGBA, source-over | 2613..3188. World-position AOV slices, 0.25-tile depth bands. |
+| Shadow / negative correction | Straight RGBA black, source-over | 1689..3889. Required by measured canopy blocking; draw before matching light. |
+| Receiver light / optical fringe | RGB on black, plus-lighter | 1690..3890. Receivers use their own ground depth; tight optical fringes use bulb depth. |
+| Chase | RGB on black, plus-lighter | Immediately above the matching static depth slices; each entry names its parents. |
+
+Depth is the lobby convention **1000 + round((u + v) * 100)**, evaluated at each 0.25-tile band center. The body AOV explicitly excludes non-marquee surfaces and normalizes filtered position by actual canopy coverage. This fixes the inherited helper's mixed-background positions at antialiased edges. Disjoint ownership reconstructs every parent exactly at both scales. Receiver overlays that coincide with a coarser existing foreground slice are placed just above that receiver parent, with the parent names recorded as `existing_receiver_parents`; this preserves the existing glass/foreground stack.
+
+The static body uses the 0.35 bulb base. A small per-channel temporal floor handles AgX channel desaturation so all chase increments remain nonnegative. Receiver modulation of at most **2/255** across the cycle is held at its mean; visible modulation remains in receiver sheets. The body, darkening, and positive residual are solved after the display transform to match actual browser source-over and plus-lighter operations. Parent PNGs are reconstruction references; draw the slices.
+
+**Timing:** 48 cells, 8 columns x 6 rows, 24 fps, 2 seconds. Use `floor(masterElapsedSeconds * 24) % 48`, phase offset zero, from the existing sign's six-second master clock; the new chase repeats three times per master loop. The group waveform is `0.35 + 0.65 * (0.5 + 0.5*cos(2*pi*(t/2 - group/4)))`. The existing sign and wet-scene state are held at master phase zero in the light-basis captures.
+
+The local receiver correction is bounded to logical **[520, 550, 1400, 1080]** (left, top, right, bottom), with a 24-pixel fade in the low-energy outer margin. The actual body coverage is never faded. Full-frame paired differences outside the larger chase capture have mean **0.194/255** and p99 **2/255**; a nine-pixel spatial average has p99 **0.877/255**, maximum **3.52/255**. These distant sampling differences and weak indirect tails are excluded from the local overlay. `marquee/runtime83/static-analysis.json` retains the measured scope.
+
+## Page responsibilities
+
+- `letterboard_quads` are the actual inset lit faces, ordered TL, TR, BR, BL in logical stage pixels. `envelope_quads` retain the larger approved blockout faces including trim. Warp and clip text to the inset faces, and use body-slice ownership if the text participates in walker occlusion.
+- `canopy_footprint` is u **7.2..11.8**, v **9.0..10.2**; soffit **2.0548497 m**, roof **3.0548497 m**. Keep the walk routes beneath it, and avoid placing name tags or bubbles over its projected silhouette.
+- The current rain/catch/height/rim maps predate the canopy. Page integration must add its roof/footprint to rain occlusion and impact placement, keeping foreground rain in front and avoiding sidewalk impacts beneath the new roof. This brief supplies no replacement rain or mist maps.
+- Pause the chase at a cell for reduced motion. Keep all @2x placement values in logical 1x units.
+
+Runtime PNG decoded RGBA ceilings, excluding unused parent references: **159.62 MiB at 1x**, **638.48 MiB at 2x**. These are image-inventory sizes, not measured browser or GPU consumption.
+
+## Validation and evidence
+
+- Exported PNGs were read back. Every body, shadow, and light parent reconstructs byte-exactly from disjoint slices at both resolutions.
+- All 48 exported frames at both resolutions were recomposited in z order with browser blend modes. Maximum error against the packaged target is at most 2/255.
+- Direct captures at phases 0 and 12 independently check the linear bases plus glare. Worst canopy mean error is **0.346/255**, p99 **6.000/255**. The acceptance gates are mean <= 2/255 and p99 <= 12/255 for both canopy and receiver regions; exact errors are retained in validation.json.
+- Every cyclic transition was measured over the active animated pixels. Both 47-to-0 joins pass, and the repeated 143-to-0 master join is the same transition. Phase 48 and phase 0 have identical float32 group levels. Top/side capture-border deltas never exceed **1/255** at either resolution.
+- The single check image is the existing `out10/full.png` plus the new depth slices, darkening, additive light, and chase phase 0, reduced to 1280 x 720. It was opened and visually inspected.
+- All **815** inventoried original input files retain their SHA-256 values, including `out10/`, `out10mist/`, the approved blend/builder, and geometry/text-quad inputs. `qa11/`, pages, server, OBS, Git history, and cloud resources were not changed.
+- This is offline art validation. Browser/real-chat/OBS acceptance remains a page-integration task.
+
+## Timings
+
+| Accepted native pass | Seconds |
+|---|---:|
+| `body_base` | 33.25 |
+| `canopy_absent` | 541.34 |
+| `direct_phase00` | 185.61 |
+| `direct_phase12` | 185.00 |
+| `group_0` | 43.90 |
+| `group_1` | 42.01 |
+| `group_2` | 41.10 |
+| `group_3` | 39.88 |
+| `receiver_off` | 557.65 |
+| `scene_base` | 590.02 |
+
+Accepted native capture/export total: **2259.76 s (37.66 min)**. The superseded first body-depth pass used **29.97 s**, making all completed native captures **2289.72 s (38.16 min)**. The initial renderer stopped at the verified baseline boundary before switching to cropped chase work.
+Static display preparation: **31.34 s**. Final 48-phase display preparation: **332.55 s**. Packaging and numeric verification: **163.51 s**. Elapsed from the first renderer load through final validation: **53.78 min**; this includes authoring, inspection, and the inter-pass switch, and excludes initial brief reading.
+
+## Reproduction and files
+
+Run sequentially from `roxy3d/`, one Blender process at a time:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File marquee/run_blender.ps1 -Script render_layers83.py -Log render83-resume.log
+powershell -NoProfile -ExecutionPolicy Bypass -File marquee/run_blender.ps1 -Script display_layers83.py -Log display83.log
+& ../tools/blender-5.2.3-windows-x64/5.2/python/bin/python.exe -B marquee/package_layers83.py
+& ../tools/blender-5.2.3-windows-x64/5.2/python/bin/python.exe -B marquee/package_layers83.py --build
+```
+
+The scripts and internal EXR/NPY receipts stay under `marquee/`. `runtime83/package-policy.json` records the crop and steady-receiver threshold. No alternate presentation image or clip is delivered. `PROGRESS.md` is unchanged because the brief's explicit write allowlist excludes it; this note is the change log.
+
+| Pack file | Bytes |
+|---|---:|
+| `body.png` | 77,794 |
+| `body@2x.png` | 269,579 |
+| `light.png` | 378,063 |
+| `light@2x.png` | 1,439,504 |
+| `marquee.json` | 210,491 |
+| `prop_loops/marquee_chase_body_2638.png` | 317 |
+| `prop_loops/marquee_chase_body_2638@2x.png` | 1,582 |
+| `prop_loops/marquee_chase_body_2663.png` | 1,886 |
+| `prop_loops/marquee_chase_body_2663@2x.png` | 19,312 |
+| `prop_loops/marquee_chase_body_2688.png` | 10,888 |
+| `prop_loops/marquee_chase_body_2688@2x.png` | 42,589 |
+| `prop_loops/marquee_chase_body_2713.png` | 13,280 |
+| `prop_loops/marquee_chase_body_2713@2x.png` | 59,512 |
+| `prop_loops/marquee_chase_body_2738.png` | 68,384 |
+| `prop_loops/marquee_chase_body_2738@2x.png` | 231,348 |
+| `prop_loops/marquee_chase_body_2763.png` | 73,012 |
+| `prop_loops/marquee_chase_body_2763@2x.png` | 258,068 |
+| `prop_loops/marquee_chase_body_2788.png` | 71,658 |
+| `prop_loops/marquee_chase_body_2788@2x.png` | 246,078 |
+| `prop_loops/marquee_chase_body_2813.png` | 71,677 |
+| `prop_loops/marquee_chase_body_2813@2x.png` | 243,093 |
+| `prop_loops/marquee_chase_body_2838.png` | 72,654 |
+| `prop_loops/marquee_chase_body_2838@2x.png` | 251,644 |
+| `prop_loops/marquee_chase_body_2863.png` | 72,215 |
+| `prop_loops/marquee_chase_body_2863@2x.png` | 249,451 |
+| `prop_loops/marquee_chase_body_2888.png` | 71,815 |
+| `prop_loops/marquee_chase_body_2888@2x.png` | 244,919 |
+| `prop_loops/marquee_chase_body_2913.png` | 74,584 |
+| `prop_loops/marquee_chase_body_2913@2x.png` | 250,948 |
+| `prop_loops/marquee_chase_body_2938.png` | 71,549 |
+| `prop_loops/marquee_chase_body_2938@2x.png` | 250,143 |
+| `prop_loops/marquee_chase_body_2963.png` | 71,510 |
+| `prop_loops/marquee_chase_body_2963@2x.png` | 246,570 |
+| `prop_loops/marquee_chase_body_2988.png` | 74,072 |
+| `prop_loops/marquee_chase_body_2988@2x.png` | 251,478 |
+| `prop_loops/marquee_chase_body_3013.png` | 72,724 |
+| `prop_loops/marquee_chase_body_3013@2x.png` | 249,309 |
+| `prop_loops/marquee_chase_body_3038.png` | 75,874 |
+| `prop_loops/marquee_chase_body_3038@2x.png` | 255,285 |
+| `prop_loops/marquee_chase_body_3063.png` | 78,936 |
+| `prop_loops/marquee_chase_body_3063@2x.png` | 276,143 |
+| `prop_loops/marquee_chase_body_3088.png` | 137,770 |
+| `prop_loops/marquee_chase_body_3088@2x.png` | 451,764 |
+| `prop_loops/marquee_chase_body_3113.png` | 120,997 |
+| `prop_loops/marquee_chase_body_3113@2x.png` | 407,796 |
+| `prop_loops/marquee_chase_body_3138.png` | 122,338 |
+| `prop_loops/marquee_chase_body_3138@2x.png` | 394,756 |
+| `prop_loops/marquee_chase_body_3163.png` | 101,668 |
+| `prop_loops/marquee_chase_body_3163@2x.png` | 337,700 |
+| `prop_loops/marquee_chase_body_3188.png` | 60,736 |
+| `prop_loops/marquee_chase_body_3188@2x.png` | 198,930 |
+| `prop_loops/marquee_chase_receiver_2426.png` | 111 |
+| `prop_loops/marquee_chase_receiver_2426@2x.png` | 330 |
+| `prop_loops/marquee_chase_receiver_2438.png` | 511 |
+| `prop_loops/marquee_chase_receiver_2438@2x.png` | 2,329 |
+| `prop_loops/marquee_chase_receiver_2488.png` | 379 |
+| `prop_loops/marquee_chase_receiver_2488@2x.png` | 1,558 |
+| `prop_loops/marquee_chase_receiver_2513.png` | 1,027 |
+| `prop_loops/marquee_chase_receiver_2513@2x.png` | 5,922 |
+| `prop_loops/marquee_chase_receiver_2516.png` | 7,745 |
+| `prop_loops/marquee_chase_receiver_2516@2x.png` | 34,940 |
+| `prop_loops/marquee_chase_receiver_2538.png` | 5,482 |
+| `prop_loops/marquee_chase_receiver_2538@2x.png` | 21,323 |
+| `prop_loops/marquee_chase_receiver_2563.png` | 3,621 |
+| `prop_loops/marquee_chase_receiver_2563@2x.png` | 14,318 |
+| `prop_loops/marquee_chase_receiver_2585.png` | 1,664 |
+| `prop_loops/marquee_chase_receiver_2585@2x.png` | 7,241 |
+| `prop_loops/marquee_chase_receiver_2588.png` | 3,302 |
+| `prop_loops/marquee_chase_receiver_2588@2x.png` | 13,075 |
+| `prop_loops/marquee_chase_receiver_2606.png` | 6,772 |
+| `prop_loops/marquee_chase_receiver_2606@2x.png` | 28,890 |
+| `prop_loops/marquee_chase_receiver_2613.png` | 4,577 |
+| `prop_loops/marquee_chase_receiver_2613@2x.png` | 19,281 |
+| `prop_loops/marquee_chase_receiver_2638.png` | 7,008 |
+| `prop_loops/marquee_chase_receiver_2638@2x.png` | 25,754 |
+| `prop_loops/marquee_chase_receiver_2663.png` | 6,119 |
+| `prop_loops/marquee_chase_receiver_2663@2x.png` | 26,345 |
+| `prop_loops/marquee_chase_receiver_2688.png` | 144 |
+| `prop_loops/marquee_chase_receiver_2688@2x.png` | 609 |
+| `prop_loops/marquee_chase_receiver_2696.png` | 4,488 |
+| `prop_loops/marquee_chase_receiver_2696@2x.png` | 19,728 |
+| `prop_loops/marquee_chase_receiver_2713.png` | 275 |
+| `prop_loops/marquee_chase_receiver_2713@2x.png` | 1,037 |
+| `prop_loops/marquee_chase_receiver_2742.png` | 1,631 |
+| `prop_loops/marquee_chase_receiver_2742@2x.png` | 6,687 |
+| `prop_loops/marquee_chase_receiver_2913.png` | 2,369 |
+| `prop_loops/marquee_chase_receiver_2913@2x.png` | 10,741 |
+| `prop_loops/marquee_chase_receiver_3001.png` | 2,354 |
+| `prop_loops/marquee_chase_receiver_3001@2x.png` | 11,018 |
+| `prop_loops/marquee_chase_receiver_3013.png` | 931 |
+| `prop_loops/marquee_chase_receiver_3013@2x.png` | 2,336 |
+| `prop_loops/marquee_chase_receiver_3038.png` | 871 |
+| `prop_loops/marquee_chase_receiver_3038@2x.png` | 3,937 |
+| `prop_loops/marquee_chase_receiver_3081.png` | 2,069 |
+| `prop_loops/marquee_chase_receiver_3081@2x.png` | 7,755 |
+| `prop_loops/marquee_chase_receiver_3088.png` | 15,591 |
+| `prop_loops/marquee_chase_receiver_3088@2x.png` | 54,529 |
+| `prop_loops/marquee_chase_receiver_3113.png` | 11,726 |
+| `prop_loops/marquee_chase_receiver_3113@2x.png` | 41,910 |
+| `prop_loops/marquee_chase_receiver_3138.png` | 647 |
+| `prop_loops/marquee_chase_receiver_3138@2x.png` | 1,581 |
+| `prop_loops/marquee_chase_receiver_3161.png` | 109 |
+| `prop_loops/marquee_chase_receiver_3161@2x.png` | 226 |
+| `prop_loops/marquee_chase_receiver_3163.png` | 319 |
+| `prop_loops/marquee_chase_receiver_3163@2x.png` | 762 |
+| `prop_loops/marquee_chase_receiver_3213.png` | 124 |
+| `prop_loops/marquee_chase_receiver_3213@2x.png` | 371 |
+| `prop_loops/marquee_chase_receiver_3238.png` | 1,139 |
+| `prop_loops/marquee_chase_receiver_3238@2x.png` | 2,899 |
+| `prop_loops/marquee_chase_receiver_3263.png` | 3,259 |
+| `prop_loops/marquee_chase_receiver_3263@2x.png` | 12,969 |
+| `prop_loops/marquee_chase_receiver_3288.png` | 11,210 |
+| `prop_loops/marquee_chase_receiver_3288@2x.png` | 36,896 |
+| `prop_loops/marquee_chase_receiver_3313.png` | 16,158 |
+| `prop_loops/marquee_chase_receiver_3313@2x.png` | 61,398 |
+| `prop_loops/marquee_chase_receiver_3338.png` | 34,933 |
+| `prop_loops/marquee_chase_receiver_3338@2x.png` | 107,450 |
+| `prop_loops/marquee_chase_receiver_3363.png` | 27,036 |
+| `prop_loops/marquee_chase_receiver_3363@2x.png` | 96,187 |
+| `prop_loops/marquee_chase_receiver_3388.png` | 35,462 |
+| `prop_loops/marquee_chase_receiver_3388@2x.png` | 116,718 |
+| `prop_loops/marquee_chase_receiver_3413.png` | 26,417 |
+| `prop_loops/marquee_chase_receiver_3413@2x.png` | 96,821 |
+| `prop_loops/marquee_chase_receiver_3438.png` | 6,922 |
+| `prop_loops/marquee_chase_receiver_3438@2x.png` | 22,824 |
+| `shadow.png` | 165,080 |
+| `shadow@2x.png` | 656,652 |
+| `slices/marquee_body_2613.png` | 130 |
+| `slices/marquee_body_2613@2x.png` | 235 |
+| `slices/marquee_body_2638.png` | 927 |
+| `slices/marquee_body_2638@2x.png` | 2,492 |
+| `slices/marquee_body_2663.png` | 1,473 |
+| `slices/marquee_body_2663@2x.png` | 4,492 |
+| `slices/marquee_body_2688.png` | 1,942 |
+| `slices/marquee_body_2688@2x.png` | 5,901 |
+| `slices/marquee_body_2713.png` | 2,362 |
+| `slices/marquee_body_2713@2x.png` | 7,248 |
+| `slices/marquee_body_2738.png` | 5,950 |
+| `slices/marquee_body_2738@2x.png` | 18,691 |
+| `slices/marquee_body_2763.png` | 5,150 |
+| `slices/marquee_body_2763@2x.png` | 16,357 |
+| `slices/marquee_body_2788.png` | 4,959 |
+| `slices/marquee_body_2788@2x.png` | 15,885 |
+| `slices/marquee_body_2813.png` | 5,102 |
+| `slices/marquee_body_2813@2x.png` | 15,781 |
+| `slices/marquee_body_2838.png` | 4,952 |
+| `slices/marquee_body_2838@2x.png` | 15,991 |
+| `slices/marquee_body_2863.png` | 4,861 |
+| `slices/marquee_body_2863@2x.png` | 15,507 |
+| `slices/marquee_body_2888.png` | 4,853 |
+| `slices/marquee_body_2888@2x.png` | 15,419 |
+| `slices/marquee_body_2913.png` | 5,012 |
+| `slices/marquee_body_2913@2x.png` | 15,817 |
+| `slices/marquee_body_2938.png` | 4,921 |
+| `slices/marquee_body_2938@2x.png` | 15,715 |
+| `slices/marquee_body_2963.png` | 4,952 |
+| `slices/marquee_body_2963@2x.png` | 15,707 |
+| `slices/marquee_body_2988.png` | 4,999 |
+| `slices/marquee_body_2988@2x.png` | 15,739 |
+| `slices/marquee_body_3013.png` | 4,946 |
+| `slices/marquee_body_3013@2x.png` | 15,604 |
+| `slices/marquee_body_3038.png` | 4,936 |
+| `slices/marquee_body_3038@2x.png` | 15,586 |
+| `slices/marquee_body_3063.png` | 4,979 |
+| `slices/marquee_body_3063@2x.png` | 16,051 |
+| `slices/marquee_body_3088.png` | 8,445 |
+| `slices/marquee_body_3088@2x.png` | 26,447 |
+| `slices/marquee_body_3113.png` | 6,369 |
+| `slices/marquee_body_3113@2x.png` | 20,368 |
+| `slices/marquee_body_3138.png` | 6,307 |
+| `slices/marquee_body_3138@2x.png` | 19,499 |
+| `slices/marquee_body_3163.png` | 5,445 |
+| `slices/marquee_body_3163@2x.png` | 17,094 |
+| `slices/marquee_body_3188.png` | 3,825 |
+| `slices/marquee_body_3188@2x.png` | 11,245 |
+| `slices/marquee_light_1688.png` | 161 |
+| `slices/marquee_light_1688@2x.png` | 404 |
+| `slices/marquee_light_1713.png` | 1,231 |
+| `slices/marquee_light_1713@2x.png` | 4,918 |
+| `slices/marquee_light_1730.png` | 178 |
+| `slices/marquee_light_1730@2x.png` | 309 |
+| `slices/marquee_light_1738.png` | 1,929 |
+| `slices/marquee_light_1738@2x.png` | 7,289 |
+| `slices/marquee_light_1748.png` | 325 |
+| `slices/marquee_light_1748@2x.png` | 1,032 |
+| `slices/marquee_light_1763.png` | 2,273 |
+| `slices/marquee_light_1763@2x.png` | 9,002 |
+| `slices/marquee_light_1788.png` | 2,152 |
+| `slices/marquee_light_1788@2x.png` | 8,196 |
+| `slices/marquee_light_1790.png` | 91 |
+| `slices/marquee_light_1790@2x.png` | 149 |
+| `slices/marquee_light_1809.png` | 579 |
+| `slices/marquee_light_1809@2x.png` | 1,881 |
+| `slices/marquee_light_1813.png` | 2,830 |
+| `slices/marquee_light_1813@2x.png` | 11,098 |
+| `slices/marquee_light_1829.png` | 85 |
+| `slices/marquee_light_1829@2x.png` | 101 |
+| `slices/marquee_light_1838.png` | 2,515 |
+| `slices/marquee_light_1838@2x.png` | 9,567 |
+| `slices/marquee_light_1856.png` | 504 |
+| `slices/marquee_light_1856@2x.png` | 1,623 |
+| `slices/marquee_light_1863.png` | 2,982 |
+| `slices/marquee_light_1863@2x.png` | 11,254 |
+| `slices/marquee_light_1882.png` | 445 |
+| `slices/marquee_light_1882@2x.png` | 1,439 |
+| `slices/marquee_light_1888.png` | 3,174 |
+| `slices/marquee_light_1888@2x.png` | 12,263 |
+| `slices/marquee_light_1904.png` | 578 |
+| `slices/marquee_light_1904@2x.png` | 1,918 |
+| `slices/marquee_light_1913.png` | 2,821 |
+| `slices/marquee_light_1913@2x.png` | 10,600 |
+| `slices/marquee_light_1938.png` | 2,933 |
+| `slices/marquee_light_1938@2x.png` | 11,379 |
+| `slices/marquee_light_1954.png` | 2,156 |
+| `slices/marquee_light_1954@2x.png` | 8,081 |
+| `slices/marquee_light_1963.png` | 4,658 |
+| `slices/marquee_light_1963@2x.png` | 18,202 |
+| `slices/marquee_light_1974.png` | 1,048 |
+| `slices/marquee_light_1974@2x.png` | 4,092 |
+| `slices/marquee_light_1975.png` | 183 |
+| `slices/marquee_light_1975@2x.png` | 455 |
+| `slices/marquee_light_1988.png` | 3,885 |
+| `slices/marquee_light_1988@2x.png` | 15,548 |
+| `slices/marquee_light_2000.png` | 2,136 |
+| `slices/marquee_light_2000@2x.png` | 8,542 |
+| `slices/marquee_light_2013.png` | 4,083 |
+| `slices/marquee_light_2013@2x.png` | 15,487 |
+| `slices/marquee_light_2038.png` | 2,870 |
+| `slices/marquee_light_2038@2x.png` | 10,351 |
+| `slices/marquee_light_2040.png` | 2,129 |
+| `slices/marquee_light_2040@2x.png` | 7,957 |
+| `slices/marquee_light_2042.png` | 2,302 |
+| `slices/marquee_light_2042@2x.png` | 8,794 |
+| `slices/marquee_light_2063.png` | 4,185 |
+| `slices/marquee_light_2063@2x.png` | 15,901 |
+| `slices/marquee_light_2066.png` | 652 |
+| `slices/marquee_light_2066@2x.png` | 2,279 |
+| `slices/marquee_light_2067.png` | 527 |
+| `slices/marquee_light_2067@2x.png` | 1,729 |
+| `slices/marquee_light_2088.png` | 3,538 |
+| `slices/marquee_light_2088@2x.png` | 13,194 |
+| `slices/marquee_light_2096.png` | 2,117 |
+| `slices/marquee_light_2096@2x.png` | 8,412 |
+| `slices/marquee_light_2113.png` | 4,113 |
+| `slices/marquee_light_2113@2x.png` | 15,192 |
+| `slices/marquee_light_2125.png` | 1,658 |
+| `slices/marquee_light_2125@2x.png` | 6,001 |
+| `slices/marquee_light_2138.png` | 3,282 |
+| `slices/marquee_light_2138@2x.png` | 12,002 |
+| `slices/marquee_light_2142.png` | 2,411 |
+| `slices/marquee_light_2142@2x.png` | 9,292 |
+| `slices/marquee_light_2163.png` | 4,188 |
+| `slices/marquee_light_2163@2x.png` | 15,241 |
+| `slices/marquee_light_2188.png` | 3,563 |
+| `slices/marquee_light_2188@2x.png` | 12,994 |
+| `slices/marquee_light_2191.png` | 1,969 |
+| `slices/marquee_light_2191@2x.png` | 7,875 |
+| `slices/marquee_light_2210.png` | 188 |
+| `slices/marquee_light_2210@2x.png` | 463 |
+| `slices/marquee_light_2213.png` | 5,253 |
+| `slices/marquee_light_2213@2x.png` | 19,796 |
+| `slices/marquee_light_2228.png` | 111 |
+| `slices/marquee_light_2228@2x.png` | 181 |
+| `slices/marquee_light_2238.png` | 2,316 |
+| `slices/marquee_light_2238@2x.png` | 8,075 |
+| `slices/marquee_light_2242.png` | 2,029 |
+| `slices/marquee_light_2242@2x.png` | 7,701 |
+| `slices/marquee_light_2246.png` | 6,409 |
+| `slices/marquee_light_2246@2x.png` | 24,507 |
+| `slices/marquee_light_2263.png` | 7,113 |
+| `slices/marquee_light_2263@2x.png` | 27,572 |
+| `slices/marquee_light_2287.png` | 1,508 |
+| `slices/marquee_light_2287@2x.png` | 5,744 |
+| `slices/marquee_light_2288.png` | 5,793 |
+| `slices/marquee_light_2288@2x.png` | 21,566 |
+| `slices/marquee_light_2313.png` | 4,052 |
+| `slices/marquee_light_2313@2x.png` | 14,699 |
+| `slices/marquee_light_2336.png` | 5,361 |
+| `slices/marquee_light_2336@2x.png` | 20,469 |
+| `slices/marquee_light_2338.png` | 5,444 |
+| `slices/marquee_light_2338@2x.png` | 20,006 |
+| `slices/marquee_light_2342.png` | 2,241 |
+| `slices/marquee_light_2342@2x.png` | 8,478 |
+| `slices/marquee_light_2363.png` | 6,953 |
+| `slices/marquee_light_2363@2x.png` | 26,338 |
+| `slices/marquee_light_2382.png` | 1,658 |
+| `slices/marquee_light_2382@2x.png` | 6,227 |
+| `slices/marquee_light_2388.png` | 5,832 |
+| `slices/marquee_light_2388@2x.png` | 22,275 |
+| `slices/marquee_light_2413.png` | 4,813 |
+| `slices/marquee_light_2413@2x.png` | 17,498 |
+| `slices/marquee_light_2426.png` | 6,059 |
+| `slices/marquee_light_2426@2x.png` | 23,312 |
+| `slices/marquee_light_2438.png` | 7,048 |
+| `slices/marquee_light_2438@2x.png` | 22,494 |
+| `slices/marquee_light_2442.png` | 2,464 |
+| `slices/marquee_light_2442@2x.png` | 9,273 |
+| `slices/marquee_light_2463.png` | 6,629 |
+| `slices/marquee_light_2463@2x.png` | 24,916 |
+| `slices/marquee_light_2478.png` | 862 |
+| `slices/marquee_light_2478@2x.png` | 3,034 |
+| `slices/marquee_light_2488.png` | 4,351 |
+| `slices/marquee_light_2488@2x.png` | 16,694 |
+| `slices/marquee_light_2513.png` | 4,200 |
+| `slices/marquee_light_2513@2x.png` | 15,205 |
+| `slices/marquee_light_2516.png` | 4,541 |
+| `slices/marquee_light_2516@2x.png` | 16,088 |
+| `slices/marquee_light_2538.png` | 5,291 |
+| `slices/marquee_light_2538@2x.png` | 19,074 |
+| `slices/marquee_light_2542.png` | 2,343 |
+| `slices/marquee_light_2542@2x.png` | 8,495 |
+| `slices/marquee_light_2545.png` | 2,093 |
+| `slices/marquee_light_2545@2x.png` | 7,057 |
+| `slices/marquee_light_2563.png` | 7,943 |
+| `slices/marquee_light_2563@2x.png` | 27,828 |
+| `slices/marquee_light_2585.png` | 233 |
+| `slices/marquee_light_2585@2x.png` | 557 |
+| `slices/marquee_light_2588.png` | 6,529 |
+| `slices/marquee_light_2588@2x.png` | 23,065 |
+| `slices/marquee_light_2606.png` | 3,538 |
+| `slices/marquee_light_2606@2x.png` | 12,282 |
+| `slices/marquee_light_2613.png` | 9,459 |
+| `slices/marquee_light_2613@2x.png` | 30,313 |
+| `slices/marquee_light_2638.png` | 9,735 |
+| `slices/marquee_light_2638@2x.png` | 28,958 |
+| `slices/marquee_light_2663.png` | 8,171 |
+| `slices/marquee_light_2663@2x.png` | 25,622 |
+| `slices/marquee_light_2688.png` | 7,652 |
+| `slices/marquee_light_2688@2x.png` | 23,431 |
+| `slices/marquee_light_2696.png` | 5,569 |
+| `slices/marquee_light_2696@2x.png` | 17,996 |
+| `slices/marquee_light_2713.png` | 8,772 |
+| `slices/marquee_light_2713@2x.png` | 26,289 |
+| `slices/marquee_light_2738.png` | 8,596 |
+| `slices/marquee_light_2738@2x.png` | 25,925 |
+| `slices/marquee_light_2742.png` | 2,074 |
+| `slices/marquee_light_2742@2x.png` | 6,666 |
+| `slices/marquee_light_2745.png` | 1,822 |
+| `slices/marquee_light_2745@2x.png` | 6,144 |
+| `slices/marquee_light_2763.png` | 9,774 |
+| `slices/marquee_light_2763@2x.png` | 30,945 |
+| `slices/marquee_light_2776.png` | 1,118 |
+| `slices/marquee_light_2776@2x.png` | 3,400 |
+| `slices/marquee_light_2788.png` | 9,145 |
+| `slices/marquee_light_2788@2x.png` | 28,090 |
+| `slices/marquee_light_2813.png` | 9,025 |
+| `slices/marquee_light_2813@2x.png` | 27,767 |
+| `slices/marquee_light_2838.png` | 9,096 |
+| `slices/marquee_light_2838@2x.png` | 27,996 |
+| `slices/marquee_light_2846.png` | 1,266 |
+| `slices/marquee_light_2846@2x.png` | 3,958 |
+| `slices/marquee_light_2863.png` | 9,864 |
+| `slices/marquee_light_2863@2x.png` | 31,095 |
+| `slices/marquee_light_2888.png` | 9,572 |
+| `slices/marquee_light_2888@2x.png` | 29,695 |
+| `slices/marquee_light_2913.png` | 9,743 |
+| `slices/marquee_light_2913@2x.png` | 30,598 |
+| `slices/marquee_light_2938.png` | 8,606 |
+| `slices/marquee_light_2938@2x.png` | 26,313 |
+| `slices/marquee_light_2962.png` | 340 |
+| `slices/marquee_light_2962@2x.png` | 1,170 |
+| `slices/marquee_light_2963.png` | 8,814 |
+| `slices/marquee_light_2963@2x.png` | 28,121 |
+| `slices/marquee_light_2988.png` | 8,882 |
+| `slices/marquee_light_2988@2x.png` | 28,058 |
+| `slices/marquee_light_3001.png` | 8,851 |
+| `slices/marquee_light_3001@2x.png` | 29,221 |
+| `slices/marquee_light_3013.png` | 12,552 |
+| `slices/marquee_light_3013@2x.png` | 37,788 |
+| `slices/marquee_light_3028.png` | 1,572 |
+| `slices/marquee_light_3028@2x.png` | 5,126 |
+| `slices/marquee_light_3038.png` | 12,997 |
+| `slices/marquee_light_3038@2x.png` | 42,511 |
+| `slices/marquee_light_3063.png` | 12,367 |
+| `slices/marquee_light_3063@2x.png` | 39,300 |
+| `slices/marquee_light_3081.png` | 7,946 |
+| `slices/marquee_light_3081@2x.png` | 25,551 |
+| `slices/marquee_light_3088.png` | 15,338 |
+| `slices/marquee_light_3088@2x.png` | 48,693 |
+| `slices/marquee_light_3113.png` | 12,047 |
+| `slices/marquee_light_3113@2x.png` | 38,922 |
+| `slices/marquee_light_3138.png` | 10,504 |
+| `slices/marquee_light_3138@2x.png` | 34,168 |
+| `slices/marquee_light_3161.png` | 5,468 |
+| `slices/marquee_light_3161@2x.png` | 17,685 |
+| `slices/marquee_light_3163.png` | 11,790 |
+| `slices/marquee_light_3163@2x.png` | 37,723 |
+| `slices/marquee_light_3188.png` | 10,416 |
+| `slices/marquee_light_3188@2x.png` | 33,859 |
+| `slices/marquee_light_3213.png` | 9,191 |
+| `slices/marquee_light_3213@2x.png` | 30,997 |
+| `slices/marquee_light_3238.png` | 8,271 |
+| `slices/marquee_light_3238@2x.png` | 27,871 |
+| `slices/marquee_light_3263.png` | 7,871 |
+| `slices/marquee_light_3263@2x.png` | 28,030 |
+| `slices/marquee_light_3288.png` | 8,087 |
+| `slices/marquee_light_3288@2x.png` | 27,659 |
+| `slices/marquee_light_3313.png` | 7,287 |
+| `slices/marquee_light_3313@2x.png` | 26,574 |
+| `slices/marquee_light_3338.png` | 8,320 |
+| `slices/marquee_light_3338@2x.png` | 27,982 |
+| `slices/marquee_light_3363.png` | 7,839 |
+| `slices/marquee_light_3363@2x.png` | 28,293 |
+| `slices/marquee_light_3388.png` | 8,224 |
+| `slices/marquee_light_3388@2x.png` | 28,059 |
+| `slices/marquee_light_3413.png` | 8,345 |
+| `slices/marquee_light_3413@2x.png` | 29,039 |
+| `slices/marquee_light_3438.png` | 3,952 |
+| `slices/marquee_light_3438@2x.png` | 13,546 |
+| `slices/marquee_light_3463.png` | 1,755 |
+| `slices/marquee_light_3463@2x.png` | 5,922 |
+| `slices/marquee_light_3488.png` | 1,568 |
+| `slices/marquee_light_3488@2x.png` | 5,283 |
+| `slices/marquee_light_3513.png` | 1,327 |
+| `slices/marquee_light_3513@2x.png` | 5,056 |
+| `slices/marquee_light_3538.png` | 1,150 |
+| `slices/marquee_light_3538@2x.png` | 3,998 |
+| `slices/marquee_light_3563.png` | 998 |
+| `slices/marquee_light_3563@2x.png` | 3,450 |
+| `slices/marquee_light_3588.png` | 916 |
+| `slices/marquee_light_3588@2x.png` | 2,969 |
+| `slices/marquee_light_3613.png` | 672 |
+| `slices/marquee_light_3613@2x.png` | 1,942 |
+| `slices/marquee_light_3638.png` | 383 |
+| `slices/marquee_light_3638@2x.png` | 996 |
+| `slices/marquee_light_3663.png` | 164 |
+| `slices/marquee_light_3663@2x.png` | 461 |
+| `slices/marquee_light_3688.png` | 250 |
+| `slices/marquee_light_3688@2x.png` | 587 |
+| `slices/marquee_light_3713.png` | 287 |
+| `slices/marquee_light_3713@2x.png` | 646 |
+| `slices/marquee_light_3738.png` | 295 |
+| `slices/marquee_light_3738@2x.png` | 693 |
+| `slices/marquee_light_3763.png` | 347 |
+| `slices/marquee_light_3763@2x.png` | 1,021 |
+| `slices/marquee_light_3788.png` | 437 |
+| `slices/marquee_light_3788@2x.png` | 1,225 |
+| `slices/marquee_light_3813.png` | 383 |
+| `slices/marquee_light_3813@2x.png` | 924 |
+| `slices/marquee_light_3838.png` | 285 |
+| `slices/marquee_light_3838@2x.png` | 702 |
+| `slices/marquee_light_3863.png` | 236 |
+| `slices/marquee_light_3863@2x.png` | 547 |
+| `slices/marquee_light_3888.png` | 185 |
+| `slices/marquee_light_3888@2x.png` | 380 |
+| `slices/marquee_shadow_1688.png` | 157 |
+| `slices/marquee_shadow_1688@2x.png` | 397 |
+| `slices/marquee_shadow_1713.png` | 884 |
+| `slices/marquee_shadow_1713@2x.png` | 3,272 |
+| `slices/marquee_shadow_1730.png` | 121 |
+| `slices/marquee_shadow_1730@2x.png` | 212 |
+| `slices/marquee_shadow_1738.png` | 1,424 |
+| `slices/marquee_shadow_1738@2x.png` | 4,990 |
+| `slices/marquee_shadow_1748.png` | 304 |
+| `slices/marquee_shadow_1748@2x.png` | 895 |
+| `slices/marquee_shadow_1763.png` | 1,730 |
+| `slices/marquee_shadow_1763@2x.png` | 6,469 |
+| `slices/marquee_shadow_1788.png` | 1,484 |
+| `slices/marquee_shadow_1788@2x.png` | 5,474 |
+| `slices/marquee_shadow_1790.png` | 85 |
+| `slices/marquee_shadow_1790@2x.png` | 135 |
+| `slices/marquee_shadow_1809.png` | 554 |
+| `slices/marquee_shadow_1809@2x.png` | 1,691 |
+| `slices/marquee_shadow_1813.png` | 2,163 |
+| `slices/marquee_shadow_1813@2x.png` | 7,889 |
+| `slices/marquee_shadow_1838.png` | 1,939 |
+| `slices/marquee_shadow_1838@2x.png` | 6,865 |
+| `slices/marquee_shadow_1856.png` | 410 |
+| `slices/marquee_shadow_1856@2x.png` | 1,203 |
+| `slices/marquee_shadow_1863.png` | 2,067 |
+| `slices/marquee_shadow_1863@2x.png` | 7,296 |
+| `slices/marquee_shadow_1882.png` | 377 |
+| `slices/marquee_shadow_1882@2x.png` | 1,106 |
+| `slices/marquee_shadow_1888.png` | 2,302 |
+| `slices/marquee_shadow_1888@2x.png` | 8,282 |
+| `slices/marquee_shadow_1904.png` | 536 |
+| `slices/marquee_shadow_1904@2x.png` | 1,590 |
+| `slices/marquee_shadow_1913.png` | 2,141 |
+| `slices/marquee_shadow_1913@2x.png` | 7,570 |
+| `slices/marquee_shadow_1938.png` | 2,028 |
+| `slices/marquee_shadow_1938@2x.png` | 7,712 |
+| `slices/marquee_shadow_1954.png` | 1,463 |
+| `slices/marquee_shadow_1954@2x.png` | 5,120 |
+| `slices/marquee_shadow_1963.png` | 3,382 |
+| `slices/marquee_shadow_1963@2x.png` | 12,567 |
+| `slices/marquee_shadow_1974.png` | 810 |
+| `slices/marquee_shadow_1974@2x.png` | 2,893 |
+| `slices/marquee_shadow_1975.png` | 173 |
+| `slices/marquee_shadow_1975@2x.png` | 372 |
+| `slices/marquee_shadow_1988.png` | 2,926 |
+| `slices/marquee_shadow_1988@2x.png` | 11,033 |
+| `slices/marquee_shadow_2000.png` | 1,391 |
+| `slices/marquee_shadow_2000@2x.png` | 5,182 |
+| `slices/marquee_shadow_2013.png` | 2,844 |
+| `slices/marquee_shadow_2013@2x.png` | 10,683 |
+| `slices/marquee_shadow_2038.png` | 2,131 |
+| `slices/marquee_shadow_2038@2x.png` | 7,155 |
+| `slices/marquee_shadow_2040.png` | 1,334 |
+| `slices/marquee_shadow_2040@2x.png` | 4,581 |
+| `slices/marquee_shadow_2042.png` | 1,809 |
+| `slices/marquee_shadow_2042@2x.png` | 6,190 |
+| `slices/marquee_shadow_2063.png` | 3,058 |
+| `slices/marquee_shadow_2063@2x.png` | 10,871 |
+| `slices/marquee_shadow_2066.png` | 454 |
+| `slices/marquee_shadow_2066@2x.png` | 1,488 |
+| `slices/marquee_shadow_2067.png` | 380 |
+| `slices/marquee_shadow_2067@2x.png` | 1,077 |
+| `slices/marquee_shadow_2088.png` | 2,667 |
+| `slices/marquee_shadow_2088@2x.png` | 9,534 |
+| `slices/marquee_shadow_2096.png` | 1,359 |
+| `slices/marquee_shadow_2096@2x.png` | 4,873 |
+| `slices/marquee_shadow_2113.png` | 3,116 |
+| `slices/marquee_shadow_2113@2x.png` | 11,189 |
+| `slices/marquee_shadow_2125.png` | 1,035 |
+| `slices/marquee_shadow_2125@2x.png` | 3,402 |
+| `slices/marquee_shadow_2138.png` | 2,405 |
+| `slices/marquee_shadow_2138@2x.png` | 8,468 |
+| `slices/marquee_shadow_2142.png` | 1,814 |
+| `slices/marquee_shadow_2142@2x.png` | 6,251 |
+| `slices/marquee_shadow_2163.png` | 3,348 |
+| `slices/marquee_shadow_2163@2x.png` | 11,567 |
+| `slices/marquee_shadow_2188.png` | 2,812 |
+| `slices/marquee_shadow_2188@2x.png` | 9,844 |
+| `slices/marquee_shadow_2191.png` | 1,249 |
+| `slices/marquee_shadow_2191@2x.png` | 4,680 |
+| `slices/marquee_shadow_2210.png` | 151 |
+| `slices/marquee_shadow_2210@2x.png` | 331 |
+| `slices/marquee_shadow_2213.png` | 3,831 |
+| `slices/marquee_shadow_2213@2x.png` | 14,044 |
+| `slices/marquee_shadow_2228.png` | 93 |
+| `slices/marquee_shadow_2228@2x.png` | 134 |
+| `slices/marquee_shadow_2238.png` | 1,798 |
+| `slices/marquee_shadow_2238@2x.png` | 6,114 |
+| `slices/marquee_shadow_2242.png` | 1,670 |
+| `slices/marquee_shadow_2242@2x.png` | 5,558 |
+| `slices/marquee_shadow_2246.png` | 4,152 |
+| `slices/marquee_shadow_2246@2x.png` | 15,611 |
+| `slices/marquee_shadow_2263.png` | 5,069 |
+| `slices/marquee_shadow_2263@2x.png` | 19,391 |
+| `slices/marquee_shadow_2287.png` | 956 |
+| `slices/marquee_shadow_2287@2x.png` | 3,293 |
+| `slices/marquee_shadow_2288.png` | 4,162 |
+| `slices/marquee_shadow_2288@2x.png` | 15,285 |
+| `slices/marquee_shadow_2313.png` | 3,024 |
+| `slices/marquee_shadow_2313@2x.png` | 10,731 |
+| `slices/marquee_shadow_2336.png` | 3,501 |
+| `slices/marquee_shadow_2336@2x.png` | 13,155 |
+| `slices/marquee_shadow_2338.png` | 3,994 |
+| `slices/marquee_shadow_2338@2x.png` | 14,344 |
+| `slices/marquee_shadow_2342.png` | 1,798 |
+| `slices/marquee_shadow_2342@2x.png` | 5,924 |
+| `slices/marquee_shadow_2363.png` | 5,333 |
+| `slices/marquee_shadow_2363@2x.png` | 19,281 |
+| `slices/marquee_shadow_2382.png` | 1,069 |
+| `slices/marquee_shadow_2382@2x.png` | 3,702 |
+| `slices/marquee_shadow_2388.png` | 4,489 |
+| `slices/marquee_shadow_2388@2x.png` | 16,481 |
+| `slices/marquee_shadow_2413.png` | 3,647 |
+| `slices/marquee_shadow_2413@2x.png` | 12,837 |
+| `slices/marquee_shadow_2426.png` | 4,676 |
+| `slices/marquee_shadow_2426@2x.png` | 17,022 |
+| `slices/marquee_shadow_2438.png` | 5,062 |
+| `slices/marquee_shadow_2438@2x.png` | 16,971 |
+| `slices/marquee_shadow_2442.png` | 1,996 |
+| `slices/marquee_shadow_2442@2x.png` | 7,046 |
+| `slices/marquee_shadow_2463.png` | 5,464 |
+| `slices/marquee_shadow_2463@2x.png` | 19,068 |
+| `slices/marquee_shadow_2478.png` | 583 |
+| `slices/marquee_shadow_2478@2x.png` | 1,912 |
+| `slices/marquee_shadow_2488.png` | 3,558 |
+| `slices/marquee_shadow_2488@2x.png` | 12,916 |
+| `slices/marquee_shadow_2513.png` | 3,481 |
+| `slices/marquee_shadow_2513@2x.png` | 11,738 |
+| `slices/marquee_shadow_2516.png` | 3,769 |
+| `slices/marquee_shadow_2516@2x.png` | 12,816 |
+| `slices/marquee_shadow_2538.png` | 4,559 |
+| `slices/marquee_shadow_2538@2x.png` | 15,571 |
+| `slices/marquee_shadow_2542.png` | 1,867 |
+| `slices/marquee_shadow_2542@2x.png` | 6,440 |
+| `slices/marquee_shadow_2545.png` | 604 |
+| `slices/marquee_shadow_2545@2x.png` | 2,261 |
+| `slices/marquee_shadow_2563.png` | 5,894 |
+| `slices/marquee_shadow_2563@2x.png` | 21,092 |
+| `slices/marquee_shadow_2585.png` | 226 |
+| `slices/marquee_shadow_2585@2x.png` | 572 |
+| `slices/marquee_shadow_2588.png` | 4,649 |
+| `slices/marquee_shadow_2588@2x.png` | 16,079 |
+| `slices/marquee_shadow_2606.png` | 1,930 |
+| `slices/marquee_shadow_2606@2x.png` | 6,514 |
+| `slices/marquee_shadow_2613.png` | 4,872 |
+| `slices/marquee_shadow_2613@2x.png` | 16,422 |
+| `slices/marquee_shadow_2638.png` | 3,912 |
+| `slices/marquee_shadow_2638@2x.png` | 12,590 |
+| `slices/marquee_shadow_2663.png` | 3,798 |
+| `slices/marquee_shadow_2663@2x.png` | 12,088 |
+| `slices/marquee_shadow_2688.png` | 3,522 |
+| `slices/marquee_shadow_2688@2x.png` | 11,176 |
+| `slices/marquee_shadow_2696.png` | 85 |
+| `slices/marquee_shadow_2696@2x.png` | 116 |
+| `slices/marquee_shadow_2713.png` | 3,164 |
+| `slices/marquee_shadow_2713@2x.png` | 10,188 |
+| `slices/marquee_shadow_2738.png` | 3,246 |
+| `slices/marquee_shadow_2738@2x.png` | 9,835 |
+| `slices/marquee_shadow_2742.png` | 138 |
+| `slices/marquee_shadow_2742@2x.png` | 311 |
+| `slices/marquee_shadow_2745.png` | 1,576 |
+| `slices/marquee_shadow_2745@2x.png` | 4,664 |
+| `slices/marquee_shadow_2763.png` | 4,122 |
+| `slices/marquee_shadow_2763@2x.png` | 13,983 |
+| `slices/marquee_shadow_2776.png` | 1,238 |
+| `slices/marquee_shadow_2776@2x.png` | 3,515 |
+| `slices/marquee_shadow_2788.png` | 3,709 |
+| `slices/marquee_shadow_2788@2x.png` | 11,658 |
+| `slices/marquee_shadow_2813.png` | 3,315 |
+| `slices/marquee_shadow_2813@2x.png` | 10,293 |
+| `slices/marquee_shadow_2838.png` | 3,340 |
+| `slices/marquee_shadow_2838@2x.png` | 10,655 |
+| `slices/marquee_shadow_2846.png` | 1,509 |
+| `slices/marquee_shadow_2846@2x.png` | 4,396 |
+| `slices/marquee_shadow_2863.png` | 4,451 |
+| `slices/marquee_shadow_2863@2x.png` | 14,258 |
+| `slices/marquee_shadow_2888.png` | 3,834 |
+| `slices/marquee_shadow_2888@2x.png` | 12,457 |
+| `slices/marquee_shadow_2913.png` | 2,998 |
+| `slices/marquee_shadow_2913@2x.png` | 9,824 |
+| `slices/marquee_shadow_2938.png` | 2,836 |
+| `slices/marquee_shadow_2938@2x.png` | 9,112 |
+| `slices/marquee_shadow_2963.png` | 2,874 |
+| `slices/marquee_shadow_2963@2x.png` | 9,812 |
+| `slices/marquee_shadow_2988.png` | 3,581 |
+| `slices/marquee_shadow_2988@2x.png` | 11,740 |
+| `slices/marquee_shadow_3001.png` | 2,582 |
+| `slices/marquee_shadow_3001@2x.png` | 8,036 |
+| `slices/marquee_shadow_3013.png` | 3,861 |
+| `slices/marquee_shadow_3013@2x.png` | 12,176 |
+| `slices/marquee_shadow_3028.png` | 1,565 |
+| `slices/marquee_shadow_3028@2x.png` | 4,544 |
+| `slices/marquee_shadow_3038.png` | 5,773 |
+| `slices/marquee_shadow_3038@2x.png` | 19,863 |
+| `slices/marquee_shadow_3063.png` | 6,393 |
+| `slices/marquee_shadow_3063@2x.png` | 21,168 |
+| `slices/marquee_shadow_3081.png` | 4,130 |
+| `slices/marquee_shadow_3081@2x.png` | 13,047 |
+| `slices/marquee_shadow_3088.png` | 7,894 |
+| `slices/marquee_shadow_3088@2x.png` | 25,943 |
+| `slices/marquee_shadow_3113.png` | 4,363 |
+| `slices/marquee_shadow_3113@2x.png` | 15,654 |
+| `slices/marquee_shadow_3138.png` | 3,158 |
+| `slices/marquee_shadow_3138@2x.png` | 10,365 |
+| `slices/marquee_shadow_3161.png` | 4,032 |
+| `slices/marquee_shadow_3161@2x.png` | 12,425 |
+| `slices/marquee_shadow_3163.png` | 5,098 |
+| `slices/marquee_shadow_3163@2x.png` | 16,713 |
+| `slices/marquee_shadow_3188.png` | 4,294 |
+| `slices/marquee_shadow_3188@2x.png` | 14,755 |
+| `slices/marquee_shadow_3213.png` | 3,188 |
+| `slices/marquee_shadow_3213@2x.png` | 11,576 |
+| `slices/marquee_shadow_3238.png` | 2,715 |
+| `slices/marquee_shadow_3238@2x.png` | 9,836 |
+| `slices/marquee_shadow_3263.png` | 2,846 |
+| `slices/marquee_shadow_3263@2x.png` | 9,940 |
+| `slices/marquee_shadow_3288.png` | 2,896 |
+| `slices/marquee_shadow_3288@2x.png` | 10,402 |
+| `slices/marquee_shadow_3313.png` | 3,296 |
+| `slices/marquee_shadow_3313@2x.png` | 11,530 |
+| `slices/marquee_shadow_3338.png` | 3,661 |
+| `slices/marquee_shadow_3338@2x.png` | 12,413 |
+| `slices/marquee_shadow_3363.png` | 3,553 |
+| `slices/marquee_shadow_3363@2x.png` | 12,183 |
+| `slices/marquee_shadow_3388.png` | 3,192 |
+| `slices/marquee_shadow_3388@2x.png` | 10,962 |
+| `slices/marquee_shadow_3413.png` | 3,288 |
+| `slices/marquee_shadow_3413@2x.png` | 10,860 |
+| `slices/marquee_shadow_3438.png` | 1,746 |
+| `slices/marquee_shadow_3438@2x.png` | 6,020 |
+| `slices/marquee_shadow_3463.png` | 1,025 |
+| `slices/marquee_shadow_3463@2x.png` | 3,636 |
+| `slices/marquee_shadow_3488.png` | 941 |
+| `slices/marquee_shadow_3488@2x.png` | 3,072 |
+| `slices/marquee_shadow_3513.png` | 984 |
+| `slices/marquee_shadow_3513@2x.png` | 3,694 |
+| `slices/marquee_shadow_3538.png` | 785 |
+| `slices/marquee_shadow_3538@2x.png` | 2,633 |
+| `slices/marquee_shadow_3563.png` | 727 |
+| `slices/marquee_shadow_3563@2x.png` | 2,503 |
+| `slices/marquee_shadow_3588.png` | 662 |
+| `slices/marquee_shadow_3588@2x.png` | 2,083 |
+| `slices/marquee_shadow_3613.png` | 536 |
+| `slices/marquee_shadow_3613@2x.png` | 1,552 |
+| `slices/marquee_shadow_3638.png` | 326 |
+| `slices/marquee_shadow_3638@2x.png` | 891 |
+| `slices/marquee_shadow_3663.png` | 129 |
+| `slices/marquee_shadow_3663@2x.png` | 290 |
+| `slices/marquee_shadow_3688.png` | 212 |
+| `slices/marquee_shadow_3688@2x.png` | 402 |
+| `slices/marquee_shadow_3713.png` | 163 |
+| `slices/marquee_shadow_3713@2x.png` | 260 |
+| `slices/marquee_shadow_3738.png` | 207 |
+| `slices/marquee_shadow_3738@2x.png` | 443 |
+| `slices/marquee_shadow_3763.png` | 247 |
+| `slices/marquee_shadow_3763@2x.png` | 609 |
+| `slices/marquee_shadow_3788.png` | 324 |
+| `slices/marquee_shadow_3788@2x.png` | 859 |
+| `slices/marquee_shadow_3813.png` | 254 |
+| `slices/marquee_shadow_3813@2x.png` | 637 |
+| `slices/marquee_shadow_3838.png` | 199 |
+| `slices/marquee_shadow_3838@2x.png` | 509 |
+| `slices/marquee_shadow_3863.png` | 160 |
+| `slices/marquee_shadow_3863@2x.png` | 383 |
+| `slices/marquee_shadow_3888.png` | 108 |
+| `slices/marquee_shadow_3888@2x.png` | 249 |
+| `validation.json` | 29,948 |
+| `checksums.json` | 115,855 |
+
+STATUS: COMPLETE - VERIFIED LOCAL MARQUEE LAYER PACK, ONE CHECK IMAGE, AND NOTES DELIVERED; LIVE INTEGRATION PENDING; STOP.

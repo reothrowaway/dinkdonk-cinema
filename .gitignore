@@ -22,6 +22,7 @@ __pycache__/
 /roxy3d/*/
 !/roxy3d/out10/
 !/roxy3d/out10mist/
+!/roxy3d/out10m/
 !/roxy3d/memes/
 !/roxy3d/tools/
 !/roxy3d/ref/

@@ -10,7 +10,7 @@ runs) a DinkDonk movie night. People in Destiny.gg (DGG) chat become small walke
 
 | Scene | File | Art |
 |---|---|---|
-| Lobby (main screen): a pre-rendered isometric late-90s cinema on a rainy night | `lobby.html` | `roxy3d/out10/`, `roxy3d/out10mist/` |
+| Lobby (main screen): a pre-rendered isometric late-90s cinema on a rainy night | `lobby.html` | `roxy3d/out10/`, `roxy3d/out10mist/`, `roxy3d/out10m/` (street marquee) |
 | Auditorium: seats, lights down and up, the film pinned onto the big screen | `auditorium.html` | `roxy3d/qa11/` (draft 13) |
 
 `roxy.html` and `roxy-qa.html` are **redirect stubs** left over from the old name. Never edit them, and never put

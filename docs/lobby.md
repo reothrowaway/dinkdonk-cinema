@@ -22,7 +22,8 @@ Behind the usher, a corridor leads to the screen doors. With the current art (la
 screens 1-3 and the left wing is the restroom. DGG chatters walk in as small figures wearing their emote. They
 buy a ticket, sometimes get popcorn, talk in speech bubbles, and go through their screen's door.
 
-The art is a Blender render (`roxy3d/out10/`, plus rain/mist passes in `roxy3d/out10mist/`). Everything that
+The art is a Blender render (`roxy3d/out10/`, plus rain/mist passes in `roxy3d/out10mist/` and the street marquee's
+layers in `roxy3d/out10m/`; `?marquee=0` leaves the marquee out). Everything that
 moves or changes (people, vehicles, signs, rain extras, camera) is a live DOM/canvas/WebGL layer on top.
 
 ### DOM (`lobby.html:160-176`)

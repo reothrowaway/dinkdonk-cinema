@@ -1757,3 +1757,33 @@ Same setup (60 synced, portable OBS, REC on, real chat, blender 0, QA page only;
   file byte for byte.
 - Lobby unchanged in all three (the L1 marquee is not in yet; the design-drafts session held its `lobby.html` edit
   until these builds were done).
+
+### 10 Nov 2026 - L1 street marquee live in lobby.html (Claude, on the owner's "go ahead")
+
+- `lobby.html` now has the marquee code from `lobby-qa.html` (queue 61, Brief 83 pack in `roxy3d/out10m/`): the
+  patch between the pre-marquee QA copy and today's QA copy, applied as is. Live and QA differ only in the title
+  and `shared/transition.js` vs `transition-qa.js`, as before. Backup of the live file from before:
+  `backups/2026-11-10-marquee-live/lobby.html`. `?marquee=0` leaves the marquee out; a missing `out10m/` also
+  leaves the lobby as before.
+- Checked with real chat on a test server (18771, stopped afterwards; nothing was listening on 18770 at the time):
+  292 marquee images loaded, none broken, 134 prop loops, board text "NOW SHOWING · RESIDENT EVIL / SCREEN 1 · ★ 3.8",
+  no console errors. Screenshot: `concepts/improve/qa/marquee-lobby-live.jpg`.
+- Not done (owner's call): commit/push, hosted web edition and zip (`package/art.js` does not list `out10m/` yet).
+  The live OBS source needs a refresh to load it.
+- Still open: rain splashes land under the canopy roof; no OBS perf check of the extra 292 layers and 60 loops (owner:
+  "no need to test"); the control-panel option for the marquee text is queue 66, not started.
+
+### 10 Nov 2026 - marquee pushed, hosted web edition deployed, zip rebuilt (Claude, on the owner's "Yes, all three")
+
+- `package/art.js` now takes `roxy3d/out10m/` whole (713 files, 17 MB), `.gitignore` tracks it, and AGENTS.md,
+  README.md, docs/lobby.md and docs/art-pipeline.md name it. This replaces "Not done" in the entry above.
+- Hosted web edition: `web/build.js` (793 MB), checked locally on 18772 with a test room and real chat (292 marquee
+  images, none broken, board text from the film data, no page errors), then `web/deploy/deploy.sh`. Service active,
+  `healthz` ok; `lobby.html` and `roxy3d/out10m/marquee.json` on the server have the same SHA-256 as the live files,
+  713 files in `out10m/`. The version before is in `/opt/dinkdonk-cinema/previous`.
+- Zip: `package/build.js` -> `dist/DinkDonk-Cinema.zip` (789 MB, 713 `out10m/` entries). Packaged server started on
+  18773: lobby, auditorium, control, `marquee.json`, a slice and a chase sheet all answer 200; its `lobby.html` is
+  the live file byte for byte.
+- Repo: this commit on `main` (lobby.html, lobby-qa.html, out10m, art list, docs, Briefs/Notes 79-83, this log).
+  Left out on purpose: `QUEUE-owner.md` (holds the new-ideas session's items 63-65, not this session's to publish)
+  and the local draft folders.

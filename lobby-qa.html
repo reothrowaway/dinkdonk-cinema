@@ -70,6 +70,12 @@
     background: radial-gradient(closest-side, rgba(120, 170, 255, .8), rgba(80, 120, 255, 0)); }
   .sheet { position: absolute; left: 0; top: 0; pointer-events: none; background-repeat: no-repeat; }
   .fxsheet { mix-blend-mode: plus-lighter; }
+  .mqtext { position: absolute; left: 0; top: 0; width: 640px; height: 116px; transform-origin: 0 0; pointer-events: none;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; color: #17120e;
+    font-family: 'Oswald', 'Bebas Neue', 'Arial Narrow', Impact, sans-serif; font-weight: 600; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; line-height: 1; opacity: .92; }
+  .mqtext .mq1 { font-size: 44px; letter-spacing: 4px; }
+  .mqtext .mq2 { font-size: 30px; letter-spacing: 5px; color: #3a2a20; }
   .proploop { position: absolute; pointer-events: none; mix-blend-mode: plus-lighter; background-repeat: no-repeat; }
   /* premiere-night sky (L3) and wet-street light (L4), queue 61: over the background, under #world's walkers and props */
   .fxl { width: 1920px; height: 1080px; z-index: 3; overflow: hidden; }
@@ -311,6 +317,9 @@
   // out8b = out8 polished: denser rain, wetter glass, broken reflections, textured alley, no carpet outlines, dry fallback still
   // out10 = final render of approved draft 13 (layout 3, cloud run 03 Nov 2026); ?artdir=out8b for the previous pack
   const ART = `roxy3d/${(q.get('artdir') || 'out10').replace(/[^a-z0-9_-]/gi, '')}/`;
+  // L1 street marquee layer pack (roxy3d/out10m, mergeMarquee in the art section); ?marquee=0 leaves it out
+  const MARQ_ON = q.get('marquee') !== '0';
+  const MARQ = { quad: null, bands: [], key: '' };
 
   // ---------- iso projection: u runs down-right, v runs down-left, z is up (px) ----------
   const OX = 900;
@@ -933,6 +942,12 @@
   function applyRooms(list) {
     const film = upcomingFilm();
     if (film) list = [film, ...list.slice(1)];
+    {
+      const r = list[0];
+      const t = (r?.title || '').toUpperCase();
+      setMarqueeText(t ? `${r.next ? 'NEXT UP' : 'NOW SHOWING'} · ${t}` : 'DINK DONK CINEMAS',
+        t ? (r.next ? "SCREEN 1 · CHAT'S PICK" : r.rating != null ? `SCREEN 1 · ★ ${Number(r.rating).toFixed(1)}` : 'SCREEN 1') : 'MOVIE NIGHT');
+    }
     if (nextBoard) {
       nextBoard.hidden = !film;
       if (film) nextBoard.querySelector('.nb-t').textContent = film.title;
@@ -4063,13 +4078,75 @@ void main() {
   // ---------- art: pre-rendered layers from roxy3d/out (Blender), flat canvas art as fallback ----------
   let art = null;
   const artImgs = [];
+  // L1 street marquee (owner 8-9 Nov 2026, Brief 83): its own rendered layer pack in roxy3d/out10m/ over the live
+  // pack. Body + black shadow slices (source-over) and receiver light slices (plus-lighter) join the occluder stack
+  // at their own depth, the 48-cell bulb chase joins the prop loops. The boards are rendered blank; the page writes
+  // tonight's film on the street face (MARQ.text). ?marquee=0 leaves it out.
+  async function mergeMarquee(m) {
+    if (!MARQ_ON) return;
+    try {
+      const res = await fetch('roxy3d/out10m/marquee.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      const f = res.ok ? await res.json() : null;
+      if (!f || !Array.isArray(f.render_layers)) return;
+      const rel = (p) => (typeof p === 'string' ? `../out10m/${p}` : p);
+      for (const r of f.render_layers) m.occluders.push({ ...r, file: rel(r.file), file_2x: rel(r.file_2x) });
+      if (Array.isArray(f.prop_loops)) (m.prop_loops ||= []).push(...f.prop_loops.map((p) => ({ ...p, file: rel(p.file), file_2x: rel(p.file_2x) })));
+      MARQ.quad = f.letterboard_quads?.street?.quad_px || null;
+      MARQ.foot = f.canopy_footprint || null;
+      const b = f.parents?.body;   // speech bubbles keep off the board (soft: only if there's room elsewhere)
+      if (b && [b.x, b.y, b.w, b.h].every(Number.isFinite)) softRects.push([b.x, b.y, b.x + b.w, b.y + b.h]);
+    } catch { /* no marquee: the lobby as before */ }
+  }
+  // The street letterboard text, split into the same 0.25-tile depth bands as the body slices so a walker in front
+  // of one end of the board covers it there and not at the other end. The face is a parallelogram (TL TR BR BL).
+  function buildMarqueeText() {
+    const Q = MARQ.quad;
+    if (!Q || MARQ.bands.length) return;
+    const [TL, TR, , BL] = Q;
+    const W = 640, H = 116;   // element size; scaled onto the face
+    const V = MARQ.foot ? MARQ.foot.v_max : 10.2;
+    const U0 = MARQ.foot ? MARQ.foot.u_min : 7.2, U1 = MARQ.foot ? MARQ.foot.u_max : 11.8;
+    const mtx = `matrix(${(TR[0] - TL[0]) / W}, ${(TR[1] - TL[1]) / W}, ${(BL[0] - TL[0]) / H}, ${(BL[1] - TL[1]) / H}, ${TL[0]}, ${TL[1]})`;
+    // band edges in u along the face (u + v crosses multiples of 0.25)
+    const edges = [U0];
+    for (let k = Math.ceil((U0 + V) / 0.25 + 1e-6); k * 0.25 - V < U1; k++) edges.push(k * 0.25 - V);
+    edges.push(U1);
+    for (let i = 0; i < edges.length - 1; i++) {
+      const a = (edges[i] - U0) / (U1 - U0), b = (edges[i + 1] - U0) / (U1 - U0);
+      const band = Math.floor(((edges[i] + edges[i + 1]) / 2 + V) / 0.25);
+      const el = h('div', 'mqtext');
+      Object.assign(el.style, { transform: mtx, zIndex: String(1000 + Math.round((band + 0.5) * 25) + 1),
+        clipPath: `inset(0 ${((1 - b) * W).toFixed(2)}px 0 ${(a * W).toFixed(2)}px)` });
+      el.append(h('div', 'mq1', ''), h('div', 'mq2', ''));
+      world.append(el);
+      MARQ.bands.push(el);
+    }
+    document.fonts?.ready.then(() => { MARQ.key = ''; applyRooms(rooms); });   // re-fit once the board font is in
+  }
+  function setMarqueeText(l1, l2) {
+    const key = `${l1}|${l2}`;
+    if (!MARQ.bands.length || key === MARQ.key) return;
+    MARQ.key = key;
+    for (const el of MARQ.bands) { el.children[0].textContent = l1; el.children[1].textContent = l2; }
+    // long titles shrink to fit the board instead of being cut off (measured once on the first band)
+    const b0 = MARQ.bands[0];
+    for (const [i, base, min] of [[0, 44, 22], [1, 30, 18]]) {
+      const c = b0.children[i];
+      let fs = base;
+      c.style.fontSize = `${fs}px`;
+      while (fs > min && c.scrollWidth > 600) { fs -= 2; c.style.fontSize = `${fs}px`; }
+      for (const el of MARQ.bands) el.children[i].style.fontSize = `${fs}px`;
+    }
+  }
   async function loadArt() {
     if (q.get('art') === 'flat') return null;
     try {
       // never hang the screen on the art: 5 s and we start with the flat fallback
       const res = await fetch(`${ART}manifest.json`, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
       const m = res.ok ? await res.json() : null;
-      return m && (m.bg || m.base) && Array.isArray(m.occluders) ? m : null;
+      if (!(m && (m.bg || m.base) && Array.isArray(m.occluders))) return null;
+      await mergeMarquee(m);
+      return m;
     } catch { return null; }
   }
   // A pre-rendered video loop: first frame within 6 s or it's dropped; a stall while visible is nudged to
@@ -4172,6 +4249,7 @@ void main() {
         im.alt = '';
         im.decoding = 'async';
         Object.assign(im.style, { left: `${s.x}px`, top: `${s.y}px`, width: `${s.w}px`, height: `${s.h}px`, zIndex: String(s.z_index ?? o.z_index) });
+        if (s.blend === 'plus-lighter') im.style.mixBlendMode = 'plus-lighter';   // marquee receiver light (out10m)
         // the restroom's side wall and the ticket wall are two walls almost on top of each other: this slice of the
         // restroom one carries a black strip (its shaded face) that lands on the ticket wall as a black bar beside
         // the box office; only its lit top cap is kept
@@ -4180,6 +4258,8 @@ void main() {
         artImgs.push([im, s.file]);
       }
     }
+    buildMarqueeText();
+    if (rooms.length || ddData) applyRooms(rooms);
     flatSigns.forEach((el) => { el.style.display = 'none'; });
     if (Array.isArray(m.marquees)) softRects.push([812, 328, 988, 370]);   // older art: the screen-facing gate sign
     // pass 9+: titles on LED dot-matrix signs above the doors instead of the floating title boxes
