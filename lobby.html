@@ -319,7 +319,15 @@
   const ART = `roxy3d/${(q.get('artdir') || 'out10').replace(/[^a-z0-9_-]/gi, '')}/`;
   // L1 street marquee layer pack (roxy3d/out10m, mergeMarquee in the art section); ?marquee=0 leaves it out
   const MARQ_ON = q.get('marquee') !== '0';
-  const MARQ = { quad: null, bands: [], key: '' };
+  // auto = what the board writes by itself (screen 1's film); custom = the panel's / URL's own lines
+  // (?marquee1= / ?marquee2=, "Marquee line 1/2" in the panel; empty = automatic, "-" = a blank line)
+  const mqClean = (s) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+  const MARQ = { quad: null, bands: [], key: '', foot: null, under: [], dry: null, auto: ['DINK DONK CINEMAS', 'MOVIE NIGHT'],
+    custom: [mqClean(q.get('marquee1')), mqClean(q.get('marquee2'))] };
+  let marqDone;
+  const marqReady = new Promise((ok) => { marqDone = ok; });   // the marquee pack is in (or there is none): startRain2 waits for it
+  // on the sidewalk under the marquee's roof: no rain lands there
+  const underMarquee = (u, v) => !!MARQ.foot && u > MARQ.foot.u_min && u < MARQ.foot.u_max && v > MARQ.foot.v_min && v < MARQ.foot.v_max;
 
   // ---------- iso projection: u runs down-right, v runs down-left, z is up (px) ----------
   const OX = 900;
@@ -945,8 +953,9 @@
     {
       const r = list[0];
       const t = (r?.title || '').toUpperCase();
-      setMarqueeText(t ? `${r.next ? 'NEXT UP' : 'NOW SHOWING'} · ${t}` : 'DINK DONK CINEMAS',
-        t ? (r.next ? "SCREEN 1 · CHAT'S PICK" : r.rating != null ? `SCREEN 1 · ★ ${Number(r.rating).toFixed(1)}` : 'SCREEN 1') : 'MOVIE NIGHT');
+      MARQ.auto = [t ? `${r.next ? 'NEXT UP' : 'NOW SHOWING'} · ${t}` : 'DINK DONK CINEMAS',
+        t ? (r.next ? "SCREEN 1 · CHAT'S PICK" : r.rating != null ? `SCREEN 1 · ★ ${Number(r.rating).toFixed(1)}` : 'SCREEN 1') : 'MOVIE NIGHT'];
+      showMarquee();
     }
     if (nextBoard) {
       nextBoard.hidden = !film;
@@ -2516,7 +2525,7 @@
       tilt = c < 0.5 ? 0 : Math.sin((c - 0.5) * 4 * Math.PI) * 3.5;
       // landing on wet pavement: splash ring
       if (w.lastC != null && w.lastC < 0.5 && c >= 0.5) {
-        if (w.v > 9.15) { if (Math.random() < 0.6) splash(w.u, w.v); } else if (w.wetSteps > 0) { w.wetSteps--; wetPrint(w.u, w.v); }
+        if (w.v > 9.15) { if (!underMarquee(w.u, w.v) && Math.random() < 0.6) splash(w.u, w.v); } else if (w.wetSteps > 0) { w.wetSteps--; wetPrint(w.u, w.v); }
       }
       w.lastC = c;
     } else if (!w.staff) {
@@ -3041,13 +3050,30 @@ void main() {
     if (rain2Started) return;
     rain2Started = true;
     const load = (f) => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = MIST_DIR + f; });
-    Promise.all(['light.png', 'catch.png', 'height.png'].map(load)).then(([light, ctch, hgt]) => {
+    Promise.all([...['light.png', 'catch.png', 'height.png'].map(load), marqReady]).then(([light, ctch0, hgt]) => {
       // red = the extra rain may fall here, green = the baked foreground rain (rain_fg) shows here
       const m = document.createElement('canvas');
       m.width = 1920;
       m.height = 1080;
       const x = m.getContext('2d', { willReadFrequently: true });
       const poly = (pts) => { x.beginPath(); pts.forEach(([bx, by], i) => (i ? x.lineTo(bx, by) : x.moveTo(bx, by))); x.closePath(); };
+      // The street marquee (out10m) is newer than the catch pass: splash crowns leave the sidewalk under its roof
+      // and land on the roof instead. (Streaks stay: on screen they are the rain falling in front of the canopy.)
+      let ctch = ctch0;
+      if (MARQ.foot) {
+        const F = MARQ.foot;
+        const zr = (F.roof_m || 3.05) * 151 / (F.soffit_m || 2.05);   // roof height in px (the 2.05 m header is 151 px)
+        const cc = document.createElement('canvas');
+        cc.width = 1920;
+        cc.height = 1080;
+        const cg = cc.getContext('2d');
+        cg.drawImage(ctch0, 0, 0);
+        const quad = (z) => [P(F.u_min, F.v_min, z), P(F.u_max, F.v_min, z), P(F.u_max, F.v_max, z), P(F.u_min, F.v_max, z)];
+        const fillQ = (pts, style) => { cg.beginPath(); pts.forEach(([bx, by], i) => (i ? cg.lineTo(bx, by) : cg.moveTo(bx, by))); cg.closePath(); cg.fillStyle = style; cg.fill(); };
+        fillQ(quad(0), '#000');
+        fillQ(quad(zr), '#8c8c8c');
+        ctch = cc;
+      }
       x.fillStyle = '#fff';
       x.fillRect(0, 0, 1920, 1080);
       x.fillStyle = '#0f0';   // under the roof line: no extra rain (the baked rain has its own holdouts)
@@ -3809,6 +3835,8 @@ void main() {
     weather: { get: () => WEATHER_SPEED, set: (v) => { WEATHER_SPEED = clamp(Number(v) || 1, 0.1, 100); } },
     mist: { get: () => MIST, set: (v) => setMist(v) },
     mistgain: { get: () => MIST_GAIN, set: (v) => setMist(undefined, v) },
+    marquee1: { get: () => MARQ.custom[0], set: (v) => { MARQ.custom[0] = mqClean(v); showMarquee(); } },
+    marquee2: { get: () => MARQ.custom[1], set: (v) => { MARQ.custom[1] = mqClean(v); showMarquee(); } },
   };
   const urlSettings = Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
@@ -4089,7 +4117,27 @@ void main() {
       const f = res.ok ? await res.json() : null;
       if (!f || !Array.isArray(f.render_layers)) return;
       const rel = (p) => (typeof p === 'string' ? `../out10m/${p}` : p);
-      for (const r of f.render_layers) m.occluders.push({ ...r, file: rel(r.file), file_2x: rel(r.file_2x) });
+      // Lighter layer set (out10m/merged.json, marquee/merge_layers.mjs, 10 Nov 2026): the same shadow and light, but
+      // what lies on the ground and the background art is one shadow image and one light image under all walkers
+      // (MARQ.under, placed in setupArt); only what lies on a sprite keeps its depth, cut small. The 135 blended light
+      // slices held frames in OBS. ?mqmerge=0 = the original slices.
+      let merged = null;
+      if (q.get('mqmerge') !== '0') {
+        try {
+          const r2 = await fetch('roxy3d/out10m/merged.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+          const j = r2.ok ? await r2.json() : null;
+          if (j && Array.isArray(j.layers) && j.layers.length) merged = j.layers;
+        } catch { /* the slices */ }
+      }
+      for (const r of f.render_layers) {
+        if (merged && (r.parent === 'marquee_shadow' || r.parent === 'marquee_light')) continue;
+        m.occluders.push({ ...r, file: rel(r.file), file_2x: rel(r.file_2x) });
+      }
+      for (const l of merged || []) {
+        if (!l || typeof l.file !== 'string' || ![l.x, l.y, l.w, l.h].every(Number.isFinite)) continue;
+        if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
+        else m.occluders.push({ ...l, file: rel(l.file), file_2x: rel(l.file_2x) });
+      }
       if (Array.isArray(f.prop_loops)) (m.prop_loops ||= []).push(...f.prop_loops.map((p) => ({ ...p, file: rel(p.file), file_2x: rel(p.file_2x) })));
       MARQ.quad = f.letterboard_quads?.street?.quad_px || null;
       MARQ.foot = f.canopy_footprint || null;
@@ -4121,7 +4169,38 @@ void main() {
       world.append(el);
       MARQ.bands.push(el);
     }
-    document.fonts?.ready.then(() => { MARQ.key = ''; applyRooms(rooms); });   // re-fit once the board font is in
+    document.fonts?.ready.then(() => { MARQ.key = ''; showMarquee(); });   // re-fit once the board font is in
+  }
+  // The baked light loop is older than the marquee and still shows rain rings on the sidewalk its roof now covers.
+  // A feathered still of the loop's own base (the art without the loop's rain and flicker) sits right over the loop
+  // there, under everything else; the marquee's shadow and light slices are drawn above it as before. Shown only
+  // while the loop plays (setupArt).
+  function buildMarqueeDry(file) {
+    const F = MARQ.foot;
+    if (!F || MARQ.dry || typeof file !== 'string') return MARQ.dry || null;
+    const pts = [P(F.u_min, F.v_min), P(F.u_max, F.v_min), P(F.u_max, F.v_max), P(F.u_min, F.v_max)];
+    const pad = 16;
+    const x0 = Math.floor(Math.min(...pts.map((p) => p[0]))) - pad, y0 = Math.floor(Math.min(...pts.map((p) => p[1]))) - pad;
+    const bw = Math.ceil(Math.max(...pts.map((p) => p[0]))) + pad - x0, bh = Math.ceil(Math.max(...pts.map((p) => p[1]))) + pad - y0;
+    const box = h('div', 'layer');
+    Object.assign(box.style, { left: `${x0}px`, top: `${y0}px`, width: `${bw}px`, height: `${bh}px`, overflow: 'hidden', zIndex: '2', display: 'none' });
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${bw}' height='${bh}'><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='5'/></filter>`
+      + `<polygon points='${pts.map(([px, py]) => `${(px - x0).toFixed(1)},${(py - y0).toFixed(1)}`).join(' ')}' fill='#fff' filter='url(#b)'/></svg>`;
+    box.style.maskImage = box.style.webkitMaskImage = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    const im = h('img');
+    im.alt = '';
+    im.decoding = 'async';
+    Object.assign(im.style, { position: 'absolute', left: `${-x0}px`, top: `${-y0}px`, width: '1920px', height: '1080px' });
+    box.append(im);
+    $('loop').after(box);
+    artImgs.push([im, file]);
+    MARQ.dry = box;
+    return box;
+  }
+  // the board's two lines: the panel's own text where set ("-" = blank), else the automatic film text
+  function showMarquee() {
+    const line = (i) => (MARQ.custom[i] === '-' ? '' : MARQ.custom[i] || MARQ.auto[i]);
+    setMarqueeText(line(0), line(1));
   }
   function setMarqueeText(l1, l2) {
     const key = `${l1}|${l2}`;
@@ -4139,6 +4218,9 @@ void main() {
     }
   }
   async function loadArt() {
+    try { return await loadArtPack(); } finally { marqDone(); }
+  }
+  async function loadArtPack() {
     if (q.get('art') === 'flat') return null;
     try {
       // never hang the screen on the art: 5 s and we start with the flat fallback
@@ -4223,8 +4305,10 @@ void main() {
         loop.src = ART + (want ? m.light_loop_2x : m.light_loop);
         loop.play().catch(() => {});
       };
-      playLoop(loop, two ? m.light_loop_2x : m.light_loop, () => { baseOk = true; sync(); }, () => {
+      const dry = q.get('mqdry') !== '0' ? buildMarqueeDry(m.base || m.bg) : null;   // no rain rings under the marquee's roof
+      playLoop(loop, two ? m.light_loop_2x : m.light_loop, () => { baseOk = true; if (dry) dry.style.display = 'block'; sync(); }, () => {
         baseOk = false;
+        if (dry) dry.style.display = 'none';   // the lit still has no baked rain to cover
         killFg?.();
         sync();
         if (lit && artImgs[0][1] !== lit) { artImgs[0][1] = lit; $('bgimg').dataset.src = ''; applyArtRes(); }
@@ -4258,7 +4342,21 @@ void main() {
         artImgs.push([im, s.file]);
       }
     }
+    // the marquee's ground shadow, then its ground light (merged.json "under" layers): over the background, the light
+    // loop, the street light effects and the headlights, under every walker and prop
+    let underAt = $('wetfx');
+    for (const l of MARQ.under) {
+      const im = h('img', 'layer');
+      im.alt = '';
+      im.decoding = 'async';
+      Object.assign(im.style, { left: `${l.x}px`, top: `${l.y}px`, width: `${l.w}px`, height: `${l.h}px`, zIndex: '5' });
+      if (l.blend === 'plus-lighter') im.style.mixBlendMode = 'plus-lighter';
+      underAt.after(im);
+      underAt = im;
+      artImgs.push([im, l.file]);
+    }
     buildMarqueeText();
+    showMarquee();
     if (rooms.length || ddData) applyRooms(rooms);
     flatSigns.forEach((el) => { el.style.display = 'none'; });
     if (Array.isArray(m.marquees)) softRects.push([812, 328, 988, 370]);   // older art: the screen-facing gate sign

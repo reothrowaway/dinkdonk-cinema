@@ -17,12 +17,17 @@ const path = require('node:path');
 const num = (key, label, min, max, step, def, group, hint = '') => ({ key, label, kind: 'num', min, max, step, def, group, hint });
 const pick = (key, label, options, def, group, hint = '') => ({ key, label, kind: 'select', options, def, group, hint });
 const bool = (key, label, def, group, hint = '') => ({ key, label, kind: 'bool', def, group, hint });
+// free text, at most `max` characters; an empty field clears the setting
+const text = (key, label, max, group, hint = '') => ({ key, label, kind: 'text', max, def: '', group, hint });
 
 const BUBSTYLE = pick('bubstyle', 'Bubble look', [[0, 'Old dialog box'], [1, 'Marquee'], [2, 'Ticket stub'], [3, 'Neon'], [4, 'Comic'], [5, 'RPG window']], 3, 'Look');
 const JANIDLE = num('janidle', 'Janny clocks off after', 20, 3600, 10, 600, 'People', 's without a message');
 
 const SCHEMA = {
   lobby: [
+    // the street marquee's letterboard (lobby.html showMarquee): empty = the automatic film text, "-" = a blank line
+    text('marquee1', 'Marquee line 1', 40, 'Marquee', 'empty = tonight\'s film ("NOW SHOWING · title"); - = blank'),
+    text('marquee2', 'Marquee line 2', 40, 'Marquee', 'empty = screen and rating; - = blank'),
     BUBSTYLE,
     num('bubbles', 'Bubbles on screen at most', 2, 14, 1, 8, 'Look', 'the oldest fades for a new one'),
     bool('pollscreen', 'Poll screen on the back wall', true, 'Look', 'off hides it (the Poll screen card still rolls it up/down)'),
@@ -57,6 +62,13 @@ const SCHEMA = {
 function normalize(def, value) {
   if (def.kind === 'bool') return typeof value === 'boolean' ? value : value === 1 || value === '1' ? true : value === 0 || value === '0' ? false : undefined;
   if (def.kind === 'select') return def.options.map((o) => o[0]).find((o) => String(o) === String(value));
+  if (def.kind === 'text') {
+    if (typeof value !== 'string') return undefined;
+    // control characters become spaces, runs of spaces collapse, then the length limit
+    const clean = Array.from(value, (c) => (c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127 ? ' ' : c)).join('')
+      .split(' ').filter(Boolean).join(' ').slice(0, def.max);
+    return clean || undefined;
+  }
   const n = Number(value);
   if (value === '' || value === null || !Number.isFinite(n)) return undefined;
   const stepped = Number((Math.round(n / def.step) * def.step).toFixed(4));   // on the slider's steps
@@ -100,7 +112,7 @@ function createSettings({ file = null, log = () => {} } = {}) {
       if (c.cmd !== 'setting') return false;
       const def = SCHEMA[page].find((d) => d.key === c.key);
       if (!def) return true;
-      if (c.value === null || c.value === undefined) delete values[page][def.key];
+      if (c.value === null || c.value === undefined || (def.kind === 'text' && normalize(def, c.value) === undefined)) delete values[page][def.key];
       else {
         const v = normalize(def, c.value);
         if (v === undefined) return true;

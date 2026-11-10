@@ -1787,3 +1787,96 @@ Same setup (60 synced, portable OBS, REC on, real chat, blender 0, QA page only;
 - Repo: this commit on `main` (lobby.html, lobby-qa.html, out10m, art list, docs, Briefs/Notes 79-83, this log).
   Left out on purpose: `QUEUE-owner.md` (holds the new-ideas session's items 63-65, not this session's to publish)
   and the local draft folders.
+
+### 10 Nov 2026 (09:35) - lobby with the L1 marquee measured in OBS: its light slices hold frames (Claude, perf)
+
+- Asked by the design-drafts session (owner: smoothness check of the marquee in OBS). Live `lobby.html` through the
+  test server in the portable OBS, real chat, 2560x1440, NVENC recording, `camtrace.mjs` steps of 7.5 s. No page
+  was changed. Raw numbers: `qa-night/tools/res/marquee_30_10nov.txt`, `marquee_60_10nov.txt`; rerun with
+  `bash runmarquee.sh 30 <tag> [offfirst]` (0 = synced 60).
+- At 30: `?marquee=0` 0 held frames in 16 steps (worst gap 36 ms). With the marquee, held frames (67-71 ms instead
+  of 33) in most steps on the wide shot, also 3 minutes after load (per round "back to wide" 6, 7, 22, 38; idle wide
+  2, 0, 8, 12); close-ups mostly clean. No gap over two frame times.
+- At 60: `?marquee=0` 0 held in 8 steps (worst 19 ms); with the marquee 24-100 held per step in the first four
+  steps, 13-66 of them over two frames (worst 52-54 ms), then 4 and 1.
+- Cause, A/B/C on one page load at 30 (2 rounds each): the 135 `plus-lighter` marquee images hidden = 1 held frame
+  in 8 steps; all 292 marquee images hidden = 0; all shown = 51 (GPU load 34-37% vs 17-19%). The body and shadow
+  slices, prop loops and text bands cost nothing measurable. Raster time and tile counts are not higher, the page's
+  own frame clock is on time: the cost is the blend passes when drawing. Not the picture cache (528 frames on show).
+- Open (design-drafts session's work): fewer blended light elements without changing the approved look.
+- Side effect, fixed: the live server on 18770 was down from 08:29 to 09:46 on 10 Nov. It stopped in the same minute
+  as a forced tree kill (`taskkill /T`) of the portable test OBS, most likely through a reused parent PID (not
+  proven). Restarted the way `start-all.bat` does; lobby, auditorium and control answer again. The test OBS is no
+  longer closed with `/T`.
+
+### 10 Nov 2026 - marquee: lighter layers, dry sidewalk, text from the panel (Claude; QA, lobby.html not changed yet)
+
+Owner: "do all those 3" (rain under the canopy, an OBS check of the marquee, queue 66 marquee text in the panel).
+
+- **OBS check** (perf session, entry "10 Nov 2026 (09:35)" above): the live lobby holds frames with the marquee and
+  none without; cause = the 135 plus-lighter light slices of `out10m` (9.49 M px of blended rects).
+- **Lighter layers** (`marquee/merge_layers.mjs` -> `out10m/merged/`, `out10m/merged.json`; the original pack files
+  are untouched): the shadow and light that lie on the ground or the background art (87% of the light) are one
+  source-over shadow image and one plus-lighter light image under all walkers (z-index 5, after `#wetfx`); what lies
+  on an occluder sprite, the marquee body or a door keeps its slice depth, cut per (slice, sprite) and cropped.
+  A walker's sprite only covers ground further back than his feet, so nothing changes on screen. Check on the
+  written files, 1x and 2x: put back together they equal the original slices pixel for pixel, except 158 noise
+  pieces (no pixel above 2/255) that are left out and listed in `merged.json`. Blended marquee images: 452 small
+  ones, 1.52 M px of rects (was 135, 9.49 M px). `lobby-qa.html` uses it by default; `?mqmerge=0` = the slices.
+  Not measured yet: handed to the perf session.
+- **Rain under the canopy** (`lobby-qa.html`): the extra rain's splash crowns leave the sidewalk under the roof and
+  land on the roof (catch map patched at load, `startRain2` waits for the marquee pack); a feathered still of the
+  loop's base covers the baked rain rings there while the loop plays (`buildMarqueeDry`, `?mqdry=0` drops it);
+  walkers' step splashes are skipped there. Falling streaks stay (on screen they are the rain in front of the canopy).
+- **Marquee text** (queue 66): `shared/settings.js` has a new `text` kind and the lobby settings `marquee1` /
+  `marquee2` (40 characters, empty = the automatic film text, `-` = a blank line; also `?marquee1=` / `?marquee2=`).
+  `control-qa.html` draws text settings; checked on 18771 with real chat: typing a line changes the board, the undo
+  button brings the film text back, no console errors. `control.html` is promoted (the 18770 server already runs
+  the new settings list; backup `backups/2026-11-10-marquee-rain-text/`). `lobby.html` still has neither the text
+  setting nor the rain fix: it waits for the perf result on the lighter layers.
+- Docs: `docs/lobby.md` (options `marquee`, `marquee1/2`, `mqdry`), `docs/server-and-shared.md` (text settings).
+  Screenshots: `concepts/improve/qa/marquee-text-from-panel.jpg`, `marquee-dry-under-canopy.jpg`.
+
+### 10 Nov 2026 (10:30) - merged marquee layers in lobby-qa.html measured: clean at 30, count of blended pieces costs at 60 (Claude, perf)
+
+- Candidate by the design-drafts session (`roxy3d/out10m/merged/`: one shadow and one `plus-lighter` light image under
+  the walkers, 451 small pinned light pieces). Same OBS setup as the 09:35 entry, 10-17 walkers. Raw numbers:
+  `qa-night/tools/res/mq2_30_10nov.txt`, `mq2_60_10nov.txt`; rerun with `runmq2.sh` in `qa-night/tools`.
+- At 30: merged 0 held frames in 8 steps (worst gap 38 ms); `&marquee=0` 0 in 12; `&mqmerge=0` (the original 135
+  slices) 4, 0, 12, 1 / 28, 0, 20, 1 (worst 71 ms). The merge fixes the held frames at the owner's setting.
+- At 60: `&marquee=0` 0 late frames in 8 steps (worst 19 ms); merged 10-47 frames one frame late per step, none two
+  frames late (worst 31-35 ms). On one page load: pinned light pieces hidden = 1, 0, 0, 0; the big light image
+  hidden = 55, 24, 22, 6; all shown = 31, 22, 96, 13. So the number of blended elements costs, not their pixels.
+- Speed only: the look of merged vs original was not compared here. No page was changed by this session.
+
+### 10 Nov 2026 (10:15) - lobby.html: lighter marquee layers, dry sidewalk and marquee text are live (Claude)
+
+- Perf result on the candidate (perf session, `qa-night/tools/res/mq2_30_10nov.txt`, `mq2_60_10nov.txt`): at 30 (the
+  owner's setting) the merged layers hold 0 frames in 8 steps (worst gap 38 ms), same as `?marquee=0`; the original
+  135 slices in the same run still held 4-28 per step. At 60 the merged layers still show 10-47 frames one frame
+  late per step (none two frames late; the original had 80-100 with 13-66 over two frames). A/B at 60: the one
+  full-size `under_light` image is free, the 451 small pinned light pieces are what is left. So the count of
+  blended elements costs, not their area.
+- Promoted on that result (owner: marquee stays on; he runs a steady 30): `lobby.html` = `lobby-qa.html` apart from
+  the title and `shared/transition.js`. Backup of the live file from before: `backups/2026-11-10-marquee-rain-text/`.
+  Checked through the live server (18770) with real chat: 2 under layers + 452 blended pieces loaded, none broken,
+  dry patch shown, board text from the film data, no console errors. Screenshot:
+  `concepts/improve/qa/marquee-lobby-live-2.jpg`. The live OBS source needs a refresh to load it.
+- Not done: repo push, hosted web edition, zip (they still have the 135-slice lobby from this morning).
+- Open: a clean 60 needs far fewer pinned light pieces (one per occluder, or fewer z-levels); the look check of
+  merged vs original was done by the file check and by eye only, not by a screen diff.
+
+### 10 Nov 2026 (11:00) - lighter marquee, dry sidewalk, marquee text: pushed, hosted deployed, zip rebuilt (Claude, on the owner's "Yes, all three")
+
+- Hosted web edition: `web/build.js` (796 MB), checked locally on 18772 with a test room and real chat (2 under
+  layers + 452 blended pieces, none broken, dry patch shown, a `marquee1` setting sent through `/ctl/cmd` changed
+  the board and clearing it brought the film text back, no page errors), then `web/deploy/deploy.sh`. Service
+  active, `healthz` ok; `lobby.html`, `out10m/merged.json` and `settings.js` on the server have the same SHA-256 as
+  the local files, 1,118 files in `out10m/merged/`. The version before is in `/opt/dinkdonk-cinema/previous`.
+- Zip: `package/build.js` -> `dist/DinkDonk-Cinema.zip` (793 MB). Its `lobby.html`, `control.html` and
+  `shared/settings.js` are the live files byte for byte; the packaged server on 18773 answers for the lobby, the
+  panel, `merged.json`, an under layer and `/ctl/settings` (with the marquee text settings).
+- Repo: this commit on `main` (lobby.html, lobby-qa.html, control.html, control-qa.html, shared/settings.js,
+  out10m/merged + merged.json, the four `roxy3d/marquee/*.mjs` build tools, docs, this log with the perf session's
+  entries). Left out on purpose again: `QUEUE-owner.md`.
+- Still open: a clean 60 (the 451 pinned light pieces); rain fix and text fields not looked at inside OBS.

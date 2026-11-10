@@ -168,7 +168,9 @@ every override to all screens of that page, after each change and right after a 
 so a reload keeps them. Pages apply `values` over their own URL values and report `settings` and `urlSettings` in
 their state. `GET /ctl/settings` → `{schema, values: {lobby, auditorium}}` for the panel. The lobby's `crowd` also
 reaches the shared room (`createRoom({crowd})`). Setup options that need a reload (`artdir`, `maxres`, `draft`,
-`layout`, `fit`, `ctl`, `room`, `bridge`, `relay`, …) stay URL-only.
+`layout`, `fit`, `ctl`, `room`, `bridge`, `relay`, …) stay URL-only. Setting kinds: `num`, `select`, `bool` and
+(10 Nov 2026) `text`: free text up to `max` characters, control characters removed; an empty field clears it. The
+lobby's `marquee1` / `marquee2` (the street marquee's two lines) are the first text settings.
 
 ## Control panel (`control.html`)
 

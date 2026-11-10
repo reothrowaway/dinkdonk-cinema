@@ -133,6 +133,9 @@ The header comment lists only some of these. This table is from the actual `q.ge
 |---|---|---|---|
 | `artdir=<name>` | `out10` | Art pack folder under `roxy3d/` (non `[a-z0-9_-]` stripped), e.g. `out8b` | `ART`, :202 |
 | `art=flat` | off | Skip the art; flat canvas blockout | `loadArt`, :3461 |
+| `marquee=0` | on | Leave out the street marquee (layer pack `roxy3d/out10m/`, 10 Nov 2026) | `MARQ_ON`, `mergeMarquee` |
+| `marquee1=<text>`, `marquee2=<text>` | empty | The marquee board's two lines (40 characters each). Empty = automatic (screen 1's film, `NOW SHOWING · title` / `SCREEN 1 · ★ rating`); `-` = a blank line. Also in the panel ("Marquee line 1/2") | `MARQ.custom`, `showMarquee` |
+| `mqdry=0` | on | Drop the dry patch under the marquee's roof (a still of the loop's base over the baked rain rings there). The extra rain's splash crowns leave that sidewalk and land on the roof either way | `buildMarqueeDry`, `startRain2` |
 | `layout=<n>` | manifest `layout`, else 1 | Force a queue/staff layout (1, 2, 3). Layout 3 setup (`setupLayout3`) still only runs when the manifest says `layout: 3` | :3718 |
 | `loop=0` | on | No light loop: a lit still (`lit_bg_dry` > `lit_bg` > `full`) + procedural rain | `setupArt` |
 | `loop2x=0` | on | Keep the 1080p light loop even over 4K art | `setupArt` |

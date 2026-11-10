@@ -43,6 +43,7 @@
   .sets .lab.set::before { content: '● '; color: var(--acc); }
   .sets .note { color: var(--dim); font-size: 13px; }
   .sets input[type=number] { width: 110px; }
+  .sets input[type=text] { width: 260px; max-width: 60vw; }
   .sets button.undo { padding: 2px 8px; font-size: 13px; margin-left: 6px; }
   kbd { background: #262a35; border: 1px solid #3a3f4d; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 13px; }
 </style>
@@ -287,6 +288,10 @@
         input = document.createElement('select');
         for (const [v, l] of def.options) input.append(new Option(l, String(v)));
         input.onchange = () => sendSetting(def.key, input.value);
+      } else if (def.kind === 'text') {
+        // free text (the lobby's marquee lines): Enter or leaving the field sends it; an empty field clears it
+        input = Object.assign(document.createElement('input'), { type: 'text', maxLength: def.max, placeholder: 'automatic', spellcheck: false });
+        input.onchange = () => sendSetting(def.key, input.value.trim() === '' ? null : input.value);
       } else {
         input = Object.assign(document.createElement('input'), { type: 'number', min: def.min, max: def.max, step: def.step });
         input.onchange = () => { if (input.value !== '') sendSetting(def.key, Number(input.value)); };
@@ -313,7 +318,7 @@
       r.undo.hidden = !set;
       if (r.def.kind === 'bool') { r.input.classList.toggle('on', !!now); r.input.textContent = now ? 'On' : 'Off'; }
       else if (!r.input._editing && document.activeElement !== r.input) r.input.value = String(now);
-      r.note.textContent = [r.def.hint, url !== undefined ? `link: ${optLabel(r.def, url)}` : '', !setScreen ? '(no screen open)' : ''].filter(Boolean).join(' · ');
+      r.note.textContent = [r.def.hint, url !== undefined && url !== '' ? `link: ${optLabel(r.def, url)}` : '', !setScreen ? '(no screen open)' : ''].filter(Boolean).join(' · ');
     }
   }
   async function refreshSettings() {
