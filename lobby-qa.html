@@ -1876,8 +1876,13 @@
     // (back from a sidewalk group they first line up with the entrance, so nobody walks through the glass)
     const walkIn = [{ to: [9.5 + pick.dx[0], lane] }, { call: hangOutside }, { to: [9.5 + pick.dx[1], 9.45] },
       { to: [9.5 + pick.dx[2], 8.6] }, { call: joinQueue }];
-    const ride = pickRide();
-    if (ride) {
+    // The golden WEOW (queue 72) always comes by bus, and the director always follows it in: it rides the bus that
+    // is on its way or still at the stop, or calls one (goldRide). While no bus can be had (one is just leaving, the
+    // lane is not clear) it waits out of sight at the stop. The follow starts with the ride, so the camera comes in
+    // with the bus, and it replaces whatever the director was looking at. ?goldbus=0: arrives like everyone else.
+    const goldBus = GOLD_BUS && w.gold && !!VEH;
+    const ride = goldBus ? goldRide() : pickRide();
+    const board = (ride) => {
       // arrives by bus / taxi: hidden until the vehicle has stopped, then steps out of its door
       // riders get off one at a time; the vehicle waits until all of them have stepped away from the door
       const { veh, door } = ride;
@@ -1898,6 +1903,15 @@
         { to: [door[0], lane] },
         { call: () => { veh.riders.delete(w); w.ride = null; } },
         ...walkIn];
+      if (goldBus && director.on) startFollow(w);
+    };
+    if (ride) board(ride);
+    else if (goldBus) {
+      [w.u, w.v] = STOPS.bus.door_ground;
+      w.alpha = 0;
+      w.alphaT = 0;
+      let r = null;
+      w.plan = [{ until: () => !!(r = goldRide()) || w.gone }, { call: () => { if (r) board(r); } }];
     } else {
       const side = pick.left ? 'l' : 'r';
       const now = performance.now();
@@ -2231,6 +2245,16 @@
       if (taxi) return { veh: taxi, door: STOPS.taxi.door_ground };
     }
     return null;
+  }
+
+  // the golden WEOW's bus (queue 72): the one on its way or still unloading, whatever its rider count, else a new one
+  const GOLD_BUS = q.get('goldbus') !== '0';
+  function goldRide() {
+    if (!VEH) return null;
+    let bus = activeBus();
+    if (bus && bus.state === 'stopped' && bus.t >= bus.dwell) return null;   // about to leave: wait for the next
+    if (!bus) bus = addVehicle('bus', '+u', { stopAt: STOPS.bus.vehicle_centre[0], dwell: 4.5, cruise: 3.2 });
+    return bus ? { veh: bus, door: STOPS.bus.door_ground } : null;
   }
 
   function stepTraffic(dt, nowMs) {

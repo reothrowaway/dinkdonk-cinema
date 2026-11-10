@@ -2409,3 +2409,29 @@ and the two QA copies as they were).
   `?leader=0`, `?leaderart=0`, `?posters=0`, `?slop=0`, `?gnome=0`, `?chatfx=0`, `?street2=0`, `?gaits=0`,
   `?lobbylife=0`; hall: `?rowlight=0`, `?react=0`, `?hall=0`, `?corridor=0`, `?gold=0`, `?draft=13`), so a later
   performance run can switch each one off.
+- 10 Nov ~21:05-21:25, after the go-live (queue 71, step 6):
+  - Docs: `docs/lobby.md` (15 new option rows for batches 2-8, the poster pack), `docs/auditorium.md` (draft 14 as
+    the default, `corridor`, `rowlight`, `react`, `hall`, `gold`, `goldtest`, a new "Entrance corridor" section),
+    `docs/art-pipeline.md` and `AGENTS.md` (`out10l`, draft 14).
+  - `package/art.js` and `.gitignore` take `roxy3d/out10l/`; the draft is read from `auditorium.html`, so draft 14's
+    files come by themselves (10,182 auditorium files, most of them the draft 13 pieces layout 14 still names).
+  - Builds: hosted (`dist/web`, 854 MB) and zip (`dist/DinkDonk-Cinema.zip`, 850 MB), no build patch failed. The
+    packaged server was smoke-tested on port 18773 (pages, `leader.json`, `cinema_layout_14.json` answer 200; lobby
+    and auditorium load with real chat, no page errors), then stopped by its exact PID; 18770 kept running.
+  - Commit 3ad1566 on main (323 files: pages, docs, briefs 84-94, notes 84-93, critiques, `out10l`, 261 new draft 14
+    files). `memes/LIFE-IDEAS.md` was left out of the commit on purpose (summaries of community drama about named
+    people; the repo is public): the owner decides. Push and hosted deploy started.
+- 10 Nov ~21:30: push of 3ad1566 landed (origin/main); hosted edition deployed (`web/deploy/deploy.sh`: service
+  active, health check ok) at https://2-29-56-208.sslip.io/. Not verified file by file against the local build.
+- 10 Nov ~21:50, golden WEOW in the lobby (queue 72): it always arrives by bus and the director always follows it
+  in. `spawn`: a golden arrival takes `goldRide()` instead of `pickRide()` (the bus on its way or still unloading,
+  whatever its rider count; else a new bus; null while a bus is just leaving or the lane is not clear, then it waits
+  out of sight at the stop and tries every frame). `startFollow(w)` when the ride is set (director on), so the
+  camera comes in with the bus and stays on the chatter as they step off; it replaces a running follow or peek, and
+  it is this screen's own follow in the shared room too. `?goldbus=0`: off. Someone who turns golden by changing
+  their emote while already inside gets no bus. In `lobby-qa.html` and `lobby.html` (backup
+  `backups/2026-11-10-life-goldbus/`). Checked with real chat and the test switches (`gold=1&goldtest=1`,
+  `room=0`, 110 s): the five golden arrivals after the watcher started were all first seen "on the bus" and
+  stepped off at the bus door; picture with the director on one stepping off:
+  `concepts/life/golden-weow-bus-follow.png`. Not checked: the wait when no bus can be had, the shared room, normal
+  odds. The hosted edition and the zip do NOT have this change yet (they were built before it).

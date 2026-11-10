@@ -432,3 +432,6 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     layer render on RunPod, max $2 ("Do 2"). Order: props layers -> props in the QA lobby -> golden WEOW in the
     auditorium -> corridor checks -> go live (batches 2-8, poster pack, draft 14, props; backups first) -> docs ->
     push, hosted deploy, zip. No OBS performance run in this session. DGGWare screens (L25) deferred.
+72. Owner 10 Nov (~21:40): "Golden weow will also be in the lobby right? It should always arrive by bus, and the
+    director should always follow this chatter when it arrives". (It has been in the lobby since batch 1.) Built
+    and live the same evening: `GOLD_BUS`, `goldRide`; `?goldbus=0` turns it off.
