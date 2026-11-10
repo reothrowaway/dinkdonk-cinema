@@ -124,7 +124,8 @@
   .w .em { position: absolute; bottom: 0; }
   /* popcorn / soda (the lobby's rendered item sprites) and the phone some seated chatters check */
   .w .item { position: absolute; pointer-events: none; }
-  .lights-down .w .item { filter: brightness(.5); }
+  /* (.dk: the item shows its dark picture while the room rests dark, see restPic) */
+  .lights-down .w .item:not(.dk) { filter: brightness(.5); }
   /* screen glow (queue 58): the film's light around the screen (bloom) and spilling onto the floor, seats and people */
   #glowbloom { position: absolute; left: 0; top: 0; width: 960px; height: 540px; transform-origin: 0 0; pointer-events: none;
     z-index: 69990; mix-blend-mode: screen; opacity: 0; transition: opacity 1.5s; }
@@ -154,8 +155,13 @@
   /* the 1.5 s CSS filter transition of up to 140 pieces repainted every one of them every frame at the start of each
      lights change; now stepDim steps the filter with the room's fade (perf 9 Nov). Tried and dropped: baking the two
      looks into the SVGs (swapping 140 SVG images per fade cost more than the filter). */
-  .litter { position: absolute; pointer-events: none; filter: brightness(.9) saturate(.9); transition: opacity 2s; }
-  .lights-down .litter { filter: brightness(.42) saturate(.8); }
+  /* Filters at rest (perf 10 Nov, see restPic): a piece on its bitmap (.baked) has the lit look in the picture and no
+     filter in the lit room; in the dark it shows its dark picture (.dk), also without a filter. The third rule is the
+     dark look relative to the lit picture (.42 / .9, .8 / .9), for a baked piece whose dark picture is not there. */
+  .litter { position: absolute; pointer-events: none; transition: opacity 2s; }
+  .litter:not(.baked) { filter: brightness(.9) saturate(.9); }
+  .lights-down .litter:not(.baked) { filter: brightness(.42) saturate(.8); }
+  .lights-down .litter.baked:not(.dk) { filter: brightness(.4667) saturate(.8889); }
   .w .phone { position: absolute; width: 5px; height: 8px; border-radius: 1px; background: #0d0f14; display: none;
     border: 1px solid #0d0f14; box-sizing: content-box; }
   .w .phone::after { content: ''; position: absolute; inset: 0; border-radius: 1px; background: #bfe0ff;
@@ -795,6 +801,7 @@
 
   function playDoor() {
     if (!door) return;
+    window.__doorLast = performance.now();   // test read-out: when the door was last used
     const hold = (door.open_hold_frames?.[0] ?? 6) / (door.fps || 18);
     if (doorShot) { if (doorShot.t > hold) doorShot.t = hold; return; }   // someone else is coming: keep it open
     const el = h('div', 'sheet');
@@ -821,8 +828,81 @@
   const pieces = [];
   const pieceGrid = new Map();
   let cullStamp = 0;
+  // Keeping the shown pieces' pictures in Chrome's picture cache (perf 10 Nov). Chrome drops a decoded and uploaded
+  // picture about 30 s after it was last drawn, and a shown piece is only drawn again when something in its place
+  // changes. After a quiet minute the first frame of a lights-down (the whole room is drawn again) then decoded
+  // and uploaded some 160 pieces and twins at once and held 2-3 frames (trace 10 Nov: 52 + 48 ms).
+  // So a shown piece whose place has not been drawn for WARM_AGE gets its twin's opacity moved by 0.0002 (nothing to
+  // see), which draws that place again and with it every piece that overlaps it: up to WARM_TICK such touches per
+  // quarter second (window.__warm counts them, for tests). (First try: img.decode() per piece. It kept the decodes but not the uploads; the frames stayed held.)
+  // ?keepwarm=0 (test only): off.
+  const KEEPWARM = new URLSearchParams(location.search).get('keepwarm') !== '0';
+  // test only: ?warmage=<ms>, ?warmtick=<n>, and ?warmself=1 (a touch counts for the touched piece alone, not for
+  // the pieces that overlap it)
+  const WARM_AGE = +new URLSearchParams(location.search).get('warmage') || 18000, WARM_TICK = +new URLSearchParams(location.search).get('warmtick') || 8;
+  const WARMSELF = new URLSearchParams(location.search).get('warmself') === '1';
+  const warm = window.__warm = { at: 0, i: 0, spread: false, touched: 0, stale: 0 };
+  function keepWarm() {
+    const now = performance.now();
+    if (dimClock.fading) { warm.spread = true; return; }   // a fade draws the whole room at every step
+    if (!KEEPWARM || now < warm.at) return;
+    warm.at = now + 250;
+    if (warm.spread) {
+      // the fade drew every piece at the same moment: spread their next turns over 6-18 s from now, or they would
+      // all be due together and the last ones would wait 30 s (seen 10 Nov: longest undrawn 31 s)
+      warm.spread = false;
+      let n = 0, k = 0;
+      for (const p of pieces) if (p.dimOn) n++;
+      for (const p of pieces) if (p.dimOn) p.drawn = now - (k++ / n) * WARM_AGE * 0.66;
+    }
+    const old = now - WARM_AGE;
+    for (let n = pieces.length, left = WARM_TICK; n > 0 && left > 0; n--) {
+      const p = pieces[warm.i = (warm.i + 1) % pieces.length];
+      if (!p.dimOn || p.drawn > old) continue;
+      if (now - p.drawn > warm.stale && p.drawn) warm.stale = now - p.drawn;   // the longest any piece went undrawn
+      left--;
+      p.nudge = !p.nudge;
+      const o = +dimClock.text[p.band];
+      p.dim.style.opacity = String(p.nudge ? (o > 0.5 ? o - 0.0002 : o + 0.0002) : o);
+      // everything shown that overlaps this piece is drawn with it
+      if (WARMSELF) p.drawn = now;
+      else for (let cy = Math.floor(p.y0 / CELL); cy <= Math.floor((p.y1 - 1) / CELL); cy++) {
+        for (let cx = Math.floor(p.x0 / CELL); cx <= Math.floor((p.x1 - 1) / CELL); cx++) {
+          for (const q of pieceGrid.get(cy * 1000 + cx)) if (q.x0 < p.x1 && q.x1 > p.x0 && q.y0 < p.y1 && q.y1 > p.y0) q.drawn = now;
+        }
+      }
+      warm.touched++;
+    }
+  }
+  // The way in, drawn ahead of the usher (perf 10 Nov). Whoever appears at the rear portal turns on some 80 pieces
+  // in one frame (everything in front of the door and of the tunnel's far end): pictures the room has not drawn for
+  // a while, so that frame decoded and uploaded 160 of them. The usher did that 4 s into every lights-down, in the
+  // middle of the fade (trace 10 Nov: 46-54 ms held). His time is known, so those pieces now come up a few at a
+  // time over the 2.5 s before him, on the frames the fade draws the room anyway (a piece coming up changes nothing
+  // on screen: the background holds the same pixels). ?entryramp=0 (test only): off.
+  const ENTRYRAMP = new URLSearchParams(location.search).get('entryramp') !== '0';
+  // The way in stays shown for as long as the room is dark (perf 10 Nov). A newcomer's door after a quiet spell in
+  // the dark turned the same pieces on in one frame (door swing after 41 s unused: 46 and 65 ms held in 2 of 3
+  // loads, 150-170 decodes). Shown pieces are kept warm by keepWarm. ?entrykeep=0 (test only): off.
+  const ENTRYKEEP = new URLSearchParams(location.search).get('entrykeep') !== '0';
+  const entry = { set: null, from: 0, until: 0, n: 0 };
+  function entryAhead(at) {   // someone will appear at the portal at <at> (performance.now() ms)
+    if (!ENTRYRAMP || !L || !layers || !pieces.length) return;
+    if (!entry.set) {
+      const p0 = L.walk_route.rear_portal_to_cross_aisle[0];
+      const [x, y] = P(...p0);
+      const boxes = [[x - 60, y - 110, x + 60, y + 8, depthZ(...p0)]];   // any emote standing there, with room to spare
+      if (door) boxes.push([door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index]);
+      entry.set = pieces.filter((p) => boxes.some(([x0, y0, x1, y1, z]) => p.z > z && p.x0 < x1 && p.x1 > x0 && p.y0 < y1 && p.y1 > y0));
+    }
+    entry.from = at - 3500; entry.until = at + 500; entry.n = 0;
+  }
+  window.__doorTest = () => playDoor();   // test only: the door swings with nobody behind it (what its pieces cost)
+  // test read-out: per piece [lit file, dim file, shown, twin shown, ms since drawn, part of the way in]
+  window.__pieceState = () => { const now = performance.now(), way = new Set(entry.set || []), f = (im) => (im ? decodeURI(new URL(im.currentSrc || im.src, location.href).pathname) : '');
+    return pieces.map((p) => [f(p.im), f(p.dim), +p.on, +p.dimOn, Math.round(now - p.drawn), +way.has(p)]); };
   function addPiece(p) {
-    p.on = false; p.dimOn = false; p.stamp = 0;
+    p.on = false; p.dimOn = false; p.stamp = 0; p.band = bandOf(p.z); p.drawn = 0;
     pieces.push(p);
     for (let cy = Math.floor(p.y0 / CELL); cy <= Math.floor((p.y1 - 1) / CELL); cy++) {
       for (let cx = Math.floor(p.x0 / CELL); cx <= Math.floor((p.x1 - 1) / CELL); cx++) {
@@ -841,14 +921,36 @@
   //   update instead of several per frame (a full house repainted most of the seating every frame: ~35-40 fps fades).
   //   At rest the CSS rules hold (.lights-down ...); the inline values are only there while a fade runs.
   const DIM_STEP_MS = 125;
-  const DIMAB = new URLSearchParams(location.search).get('dimab') || '';
   // With the lights up the dim twins of the displayed pieces stay drawn at 0.5% (invisible): Chrome only keeps images
   // it draws decoded on the GPU, and a lights-down otherwise decoded ~800 of them in its first frames (40-80 ms
   // raster stalls with a full house; perf 8 Nov)
   const DIM_WARM = 0.005;
   const dimFade = { level: 0, from: 0, to: 0, at: 0, bgText: '0', text: String(DIM_WARM) };   // dim art (needs dim-ready)
   const emoFade = { level: 0, from: 0, to: 0, at: 0 };                           // chatters + lamps (lights-down only)
-  const dimClock = { at: -1e9, fading: false, emoF: '', lampO: '' };
+  // Depth bands (perf 9 Nov): the room, front to back, in 8 strips of about equal content (the house sits at depth
+  // 2000-4000). A fade update goes strip by strip, one a frame at 60 fps (two at 30), instead of the whole room in
+  // one frame: every strip still gets ~8 updates a second, but no single frame has to redraw all of the seating (a
+  // 25-30 ms raster burst that held back the drawn frame 8 times a second, visible as judder when the camera moved
+  // during a fade). Neighbouring strips are at most one frame apart on the fade curve (under 0.6% of the fade).
+  // The strips take turns on one clock (tickBands, once a frame), and the dozers' breath steps on its strip's turn
+  // too, so a strip is redrawn once for both.
+  // Measured on a free GPU (9 Nov, fade_bands_free_9nov.txt): strip by strip gave MORE held frames (74 vs 42 over two
+  // fades each way), more raster and more tiles than the whole room at once every 125 ms, so the whole room at once is
+  // the default again; the strips stay as the breath's clock. window.__dimBands = 0 (test only): strip by strip.
+  const BANDS = 8, LAMP_BAND = 3, LITTER_BAND = 6;
+  const bandOf = (zi) => clamp(Math.floor((zi - 2000) / 250), 0, BANDS - 1);
+  const bandClock = { at: -1e9, next: 0, first: 0, n: 0, mask: 0 };   // this frame's strips: n from first (mask = bits)
+  function tickBands(now) {
+    const group = window.__dimBands === 0 ? 1 : BANDS, slot = DIM_STEP_MS / BANDS * group;
+    const due = Math.floor((now - bandClock.at) / slot) * group;
+    const n = Math.min(due, group === 1 ? 2 : group);
+    bandClock.n = 0; bandClock.mask = 0;
+    if (n < 1) return;
+    bandClock.at = due > 3 * group ? now : bandClock.at + (n / group) * slot;   // keeps its beat unless it fell behind
+    bandClock.first = bandClock.next; bandClock.n = n;
+    for (let i = 0; i < n; i++) { bandClock.mask |= 1 << bandClock.next; bandClock.next = (bandClock.next + 1) % BANDS; }
+  }
+  const dimClock = { left: 0, fading: false, text: Array(BANDS).fill(String(DIM_WARM)), lampO: '' };
   const fadeTo = (fd, to, now) => {
     if (to !== fd.to) { fd.from = fd.level; fd.to = to; fd.at = now; }
     const k = clamp((now - fd.at) / 6000, 0, 1);
@@ -860,38 +962,69 @@
     const down = st.contains('lights-down');
     const artFading = fadeTo(dimFade, down && st.contains('dim-ready') ? 1 : 0, now);
     const emoFading = fadeTo(emoFade, down ? 1 : 0, now);
-    // (resting the dim background at DIM_WARM like the pieces was tried for the first lights-down: no change, 3-6 late
-    // frames in 8 s at 60 either way; perf 9 Nov)
-    const bgText = dimFade.level.toFixed(3);
+    // (resting the dim background at DIM_WARM like the pieces: first tried by counting late frames, no change seen,
+    // 3-6 in 8 s at 60 either way; perf 9 Nov)
+    // Second look with traces (perf 9 Nov): at opacity 0 Chrome never decodes the dim background, so the first
+    // lights-down after a page load decoded it right at the fade's start (52-59 ms on a worker + 10 ms upload, seen on
+    // every first lights-down; res/bgwarm_firstdown_9nov.txt). Resting at DIM_WARM (invisible, like the pieces' twins)
+    // moves that to page load: no decode at the fade on 6 of 6 fresh loads. Held frames: within the run-to-run spread.
+    // window.__bgWarm = 0 (test only): rest at 0 as before.
+    const bgText = Math.max(window.__bgWarm === 0 ? 0 : DIM_WARM, dimFade.level).toFixed(3);
     if (bgText !== dimFade.bgText) { dimFade.bgText = bgText; const bgDim = $('bg-dim'); if (bgDim) bgDim.style.opacity = bgText; }
     const fading = artFading || emoFading;
-    // an update: on the clock while fading, and once more when a fade ends (the exact end values / CSS take over)
-    if (fading ? now - dimClock.at < DIM_STEP_MS : !dimClock.fading) return;
-    dimClock.at = now;
+    // band updates: on the clock while fading, and one more round when a fade ends (the exact end values / CSS take over)
+    // A fade's first frame takes the whole room at once: the lights-down class has just flipped, and a strip still
+    // waiting for its turn would show the CSS end values (dark chatters, lamps full on) for a few frames.
+    const start = fading && !dimClock.fading;
     dimClock.fading = fading;
+    if (fading) dimClock.left = BANDS;
+    if (!dimClock.left) return;
+    const n = start ? BANDS : Math.min(bandClock.n, dimClock.left);
+    if (n < 1) return;
+    if (!fading) dimClock.left -= n;
     const text = String(Math.max(DIM_WARM, +dimFade.level.toFixed(3)));
-    // (?dimab=noart / noemo: test only, perf 9 Nov - which half of a fade step costs the raster)
-    if (DIMAB === 'noart' && fading) { /* the twins jump at the end */ } else if (text !== dimFade.text) {
-      dimFade.text = text;
-      if (doorShot?.dim) doorShot.dim.style.opacity = text;
-      for (const p of pieces) if (p.dimOn) p.dim.style.opacity = text;
+    const emoF = emoFading ? `brightness(${(1 - 0.5 * emoFade.level).toFixed(3)})` : '';
+    // filters at rest (restPic): dark pictures from the update that ends a lights-down to the first one of the next fade
+    const dk = RESTBAKE && down && !emoFading;
+    if (dk !== darkRest) {
+      darkRest = dk;
+      if (!dk) for (const el of document.querySelectorAll('.item.dk, .litter.dk')) restPic(el);
     }
-    const emoF = DIMAB === 'noemo' && emoFading ? dimClock.emoF : emoFading ? `brightness(${(1 - 0.5 * emoFade.level).toFixed(3)})` : '';
-    if (emoF !== dimClock.emoF) {
-      dimClock.emoF = emoF;
+    for (let i = 0; i < n; i++) {
+      const b = (bandClock.first + i) % BANDS;
+      if (text !== dimClock.text[b]) {
+        dimClock.text[b] = text;
+        if (b === 0) { dimFade.text = text; if (doorShot?.dim) doorShot.dim.style.opacity = text; }
+        for (const p of pieces) if (p.dimOn && p.band === b) p.dim.style.opacity = text;
+      }
+      // (the last update after a fade takes every chatter still off the end value, whatever strip they have walked into)
+      const sweep = !fading && !dimClock.left && i === n - 1;
       for (const w of walkers.values()) {
-        if (w.dimF === emoF) continue;
+        if ((!sweep && (w.band || 0) !== b) || (w.dimF || '') === emoF) continue;
         w.dimF = emoF;
         if (w.em) w.em.style.filter = emoF;
-        if (w.item) w.item.style.filter = emoF;
+        if (w.item) { w.item.style.filter = emoF; restPic(w.item); }
+        if (w.cap) restPic(w.cap);
+      }
+      if (b === LAMP_BAND) {
+        const lampO = emoFading ? emoFade.level.toFixed(3) : '';
+        if (lampO !== dimClock.lampO) { dimClock.lampO = lampO; for (const el of document.querySelectorAll('.alamp')) el.style.opacity = lampO; }
+      }
+      if (b === LITTER_BAND) {
+        // litter: its CSS filter between the lit and dark looks, stepped with the room (the CSS rules hold at rest)
+        const lk = emoFade.level, mix = (a, b2) => (a + (b2 - a) * lk).toFixed(3);
+        const litF = emoFading ? `brightness(${mix(LIT_LOOK[0], DARK_LOOK[0])}) saturate(${mix(LIT_LOOK[1], DARK_LOOK[1])})` : '';
+        // (a piece on its baked bitmap has the lit look in the picture: its filter is the rest of the way to this look)
+        const rel = (i2) => ((LIT_LOOK[i2] + (DARK_LOOK[i2] - LIT_LOOK[i2]) * lk) / LIT_LOOK[i2]).toFixed(4);
+        const litR = emoFading ? `brightness(${rel(0)}) saturate(${rel(1)})` : '';
+        litterF.rel = litR;
+        for (const im of litterEls) {
+          const f = im.bk ? litR : litF;
+          if (im.dimF !== f) { im.dimF = f; im.style.filter = f; }
+          restPic(im);
+        }
       }
     }
-    const lampO = emoFading ? emoFade.level.toFixed(3) : '';
-    if (lampO !== dimClock.lampO) { dimClock.lampO = lampO; for (const el of document.querySelectorAll('.alamp')) el.style.opacity = lampO; }
-    // litter: its CSS filter between the lit and dark looks, stepped with the room (the CSS rules hold at rest)
-    const lk = emoFade.level, mix = (a, b) => (a + (b - a) * lk).toFixed(3);
-    const litF = emoFading ? `brightness(${mix(LIT_LOOK[0], DARK_LOOK[0])}) saturate(${mix(LIT_LOOK[1], DARK_LOOK[1])})` : '';
-    for (const im of litterEls) if (im.dimF !== litF) { im.dimF = litF; im.style.filter = litF; }
   }
   function cullPieces() {
     if (!pieces.length) return;
@@ -906,6 +1039,14 @@
     };
     for (const w of walkers.values()) if (w.box) cover(...w.box);
     if (doorShot) cover(door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index);
+    if (entry.until) {   // the way in, ahead of the usher (entryAhead)
+      const now = performance.now();
+      if (now > entry.until) entry.until = 0;
+      else {
+        if (bandClock.n) entry.n = Math.ceil(entry.set.length * clamp((now - entry.from) / 2500, 0, 1));
+        for (let i = 0; i < entry.n; i++) entry.set[i].stamp = stamp;
+      }
+    } else if (ENTRYKEEP && entry.set && dimFade.to === 1) for (const p of entry.set) p.stamp = stamp;
     const st = $('stage').classList;
     // dim twins are up with their pieces at all times (lit: DIM_WARM), so they fade with the room and never pop
     const dimOn = st.contains('dim-ready');   // up whenever its piece is (at DIM_WARM with the lights up, see stepDim)
@@ -916,10 +1057,11 @@
     const twins = dimOn && !(houseOut && dimFade.level === 0 && dimFade.to === 0);
     for (const p of pieces) {
       const on = p.stamp === stamp;
-      if (on !== p.on) { p.on = on; p.im.style.display = on ? '' : 'none'; }
+      if (on !== p.on) { p.on = on; p.im.style.display = on ? '' : 'none'; if (on) p.drawn = performance.now(); }
       const d = on && twins;
-      if (p.dim && d !== p.dimOn) { p.dimOn = d; if (d) p.dim.style.opacity = dimFade.text; p.dim.style.display = d ? '' : 'none'; }
+      if (p.dim && d !== p.dimOn) { p.dimOn = d; if (d) p.dim.style.opacity = dimClock.text[p.band]; p.dim.style.display = d ? '' : 'none'; }
     }
+    keepWarm();
   }
 
   // The closed door is also in the static depth slices; while the door moves, those pixels are cut out of
@@ -1042,10 +1184,68 @@
       if (w.item || w.cap) placeItem(w);
     }
   }).catch(() => {});
+  // Filters at rest (perf 10 Nov). A brightness() filter is an offscreen pass each time its element's tile is drawn
+  // again, and the room draws chatter tiles again all the time (animated emotes, breathing, walking). In the dark,
+  // the whole film, every emote, item and litter piece carried one (~390), and the lit room 140 (the litter): the
+  // dark room at rest cost about twice the GPU raster of the lit one (res/rest_base_10nov.txt). Now:
+  // - litter has its lit look baked into its bitmap (no filter in the lit room); a fade steps the filter that is
+  //   left between that picture and the dark look (brightness and saturate both multiply, so dark / lit is exact);
+  // - once a lights-down has ended, items and litter switch to pictures with the dark look baked in and drop the
+  //   filter; the first update of the next fade switches them back (lit picture + the fade's filter, same frame).
+  // One switch per fade end, never per fade step (per-step picture swaps cost more than the filters: dim frames,
+  // res/dimframes_ab_10nov.txt). All pictures stay loaded (picKeep), which makes a switch of src immediate.
+  // Emotes keep their filter (animated sprites). ?restbake=0 (test only): the filters as before.
+  const RESTBAKE = q.get('restbake') !== '0';
+  let darkRest = false;   // the room rests dark (stepDim, on the update that ends a lights-down)
+  const picKeep = new Map();   // url -> an Image holding it loaded
+  // src (a canvas or a loaded image) under a CSS filter, as a blob URL (null where it could not be made)
+  function bakeLook(src, filter) {
+    return new Promise((res) => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = src.naturalWidth || src.width; c.height = src.naturalHeight || src.height;
+        const g = c.getContext('2d', { willReadFrequently: true });   // CPU canvas: no readback from the busy GPU process
+        g.filter = filter;
+        g.drawImage(src, 0, 0);
+        c.toBlob((b) => {
+          if (!b) { res(null); return; }
+          const u = URL.createObjectURL(b), im = new Image();
+          im.onload = () => res(u);
+          im.onerror = () => res(null);
+          im.src = u;
+          picKeep.set(u, im);
+        }, 'image/png');
+      } catch { res(null); }
+    });
+  }
+  // an item or litter piece shows its dark picture while the room rests dark (if it has one), else its lit one
+  function restPic(el) {
+    const src = (darkRest && el.darkSrc) || el.litSrc;
+    if (!src || el.picSrc === src) return;
+    el.picSrc = src;
+    el.src = src;
+    el.classList.toggle('dk', src === el.darkSrc);
+  }
+  const itemDark = new Map();   // item picture -> its dark picture (null until made, or where that failed)
+  function itemDarkOf(src) {
+    if (itemDark.has(src)) return itemDark.get(src);
+    itemDark.set(src, null);
+    const im = new Image();
+    im.onload = () => bakeLook(im, 'brightness(0.5)').then((u) => {
+      if (!u) return;
+      itemDark.set(src, u);
+      for (const el of document.querySelectorAll('.w .item')) if (el.litSrc === src) { el.darkSrc = u; restPic(el); }
+    });
+    im.src = src;
+    picKeep.set(src, im);
+    return null;
+  }
   function setItemSrc(im) {
     const it = ITEMS?.[im.dataset.item];
     if (!it) return;
-    im.src = ITEM_ART + (dpr() > 1.3 && it.file_2x ? it.file_2x : it.file);
+    im.litSrc = ITEM_ART + (dpr() > 1.3 && it.file_2x ? it.file_2x : it.file);
+    im.darkSrc = RESTBAKE ? itemDarkOf(im.litSrc) : null;
+    restPic(im);
     im.style.width = `${it.w * K}px`;
     im.style.height = `${it.h * K}px`;
   }
@@ -1658,10 +1858,10 @@
   function stepUsher(now) {
     if (!L) return;
     if (dark()) {
-      if (!usher && !usherDue) usherDue = now + 4000;
+      if (!usher && !usherDue) { usherDue = now + 4000; entryAhead(usherDue); }
       if (!usher && now >= usherDue) { usherDue = 0; usher = addUsher(); }
     } else {
-      usherDue = 0;
+      usherDue = 0; entry.until = 0;
       if (usher) usher.leaving = true;   // finishes this round, then goes (usherNext)
     }
   }
@@ -1919,6 +2119,7 @@
       const i = arrivals.findIndex((m) => spawn(m));
       if (i >= 0) { arrivals.splice(i, 1); nextArrival = now + rand(900, 1600); }
     }
+    tickBands(now);
     stepDoor(dt);
     stepJannies(now);
     stepUsher(now);
@@ -2051,7 +2252,15 @@
     if (w.dozeK > 0.01) {
       tilt += 11 * w.dozeK;
       lift -= 3 * K * w.dozeK;
-      sq = 1 - 0.035 * w.dozeK * (0.5 + 0.5 * Math.sin(performance.now() / 700));
+      // The breath moves in 8 steps each way (a quarter of a pixel per step; under half a screen pixel zoomed in), and
+      // a dozer takes a step only on its depth band's turn (tickBands), together with that band's lights-fade update. As a smooth sine it changed every dozer's transform ~20
+      // times a second, which redrew the whole seating 20 times a second for as long as the house dozed: over half of
+      // the GPU process's main thread with a full house, the headroom a lights fade or a camera move then lacked
+      // (perf 9 Nov). window.__breathSteps = 0 (test only): the smooth sine, as before.
+      const bs = window.__breathSteps ?? 8;
+      const ph = 0.5 + 0.5 * Math.sin(performance.now() / 700);
+      if (bs && (w.breath === undefined || (bandClock.mask >> (w.band || 0)) & 1)) w.breath = Math.round(ph * bs) / bs;
+      sq = 1 - 0.035 * w.dozeK * (bs ? w.breath : ph);
     }
     const [u, v, z] = w.pos;
     // in the tunnel (under the left seat block, between the rear portal and the mouth) nobody is seen:
@@ -2095,6 +2304,7 @@
     style(w.sh, 'opacity', shS.toFixed(2));
     style(w.el, 'opacity', w.alpha.toFixed(3));
     const zi = layers ? depthZ(u, v, z) : Math.round((u + v) * 100) + 10;
+    w.band = bandOf(zi);
     style(w.el, 'zIndex', String(zi));
     // what this chatter covers in the world (emote, waddle, shadow) and its depth, for cullPieces
     w.box = [x - w.emW * grow / 2 - 10, y - lift - w.emH * grow - 10, x + w.emW * grow / 2 + 10, y + 8, zi];
@@ -2204,13 +2414,17 @@
     const fit = (c, half, size) => clamp(c, half, size - half);
     tx = fit(tx, 960 / tz, 1920);
     ty = fit(ty, 540 / tz, 1080);
-    [cam.z, cam.vz] = damp(cam.z, cam.vz, tz, slow ? 3.5 : 1.5, dt);
-    [cam.x, cam.vx] = damp(cam.x, cam.vx, tx, slow ? 3.5 : director.follow ? 0.75 : 1.4, dt);
-    [cam.y, cam.vy] = damp(cam.y, cam.vy, ty, slow ? 3.5 : director.follow ? 0.75 : 1.4, dt);
+    const zT = slow ? 3.5 : 1.5, pT = slow ? 3.5 : director.follow ? 0.75 : 1.4;
+    [cam.z, cam.vz] = damp(cam.z, cam.vz, tz, zT, dt);
+    [cam.x, cam.vx] = damp(cam.x, cam.vx, tx, pT, dt);
+    [cam.y, cam.vy] = damp(cam.y, cam.vy, ty, pT, dt);
     cam.x = fit(cam.x, 960 / cam.z, 1920);
     cam.y = fit(cam.y, 540 / cam.z, 1080);
     // a bad target must never freeze the camera for good (a NaN never leaves the springs; the lobby had one): wide shot
     if (![cam.x, cam.y, cam.z].every(Number.isFinite)) { Object.assign(cam, { x: 960, y: 540, z: 1, vx: 0, vy: 0, vz: 0 }); endFollow(); }
+    // (Tried and dropped, perf 9 Nov, camahead_ab_9nov.txt: also handing the compositor the spring's next 6 frames as
+    // an animation, so a frame that waits for a room update's raster still moves the camera. Twice the raster tasks,
+    // +300 ms style per 7.5 s, more late frames, and no fewer held frames.)
     const key = `translate(${(960 - cam.x * cam.z).toFixed(2)}px, ${(540 - cam.y * cam.z).toFixed(2)}px) scale(${cam.z.toFixed(4)})`;
     if (key !== cam.key) { cam.key = key; camEl.style.transform = key; }
     sendScreen();
@@ -2682,6 +2896,16 @@
   const rasterQ = [];
   let rasterBusy = false;
   function rasterLitter(art) { rasterQ.push(art); if (!rasterBusy) rasterNext(); }
+  const litterF = { rel: '' };   // the fade's filter for baked pieces right now ('' at rest), kept by stepDim
+  // a piece takes its pictures from its design: the SVG until the bitmap is there, then the bitmap (with RESTBAKE the
+  // lit look is in it, .baked, and there is a dark one for the dark room: restPic)
+  function litterPic(el) {
+    const art = el.litArt;
+    el.litSrc = art.bmp || art.url;
+    el.darkSrc = art.dark || null;
+    if (art.baked && !el.bk) { el.bk = true; el.classList.add('baked'); el.dimF = litterF.rel; el.style.filter = litterF.rel; }
+    restPic(el);
+  }
   function rasterNext() {
     const art = rasterQ.shift();
     if (!art) { rasterBusy = false; return; }
@@ -2698,11 +2922,22 @@
       const fit = vb.length === 2 ? Math.min(c.width / vb[0], c.height / vb[1]) : 0;
       const dw = fit ? vb[0] * fit : c.width, dh = fit ? vb[1] * fit : c.height;
       c.getContext('2d', { willReadFrequently: true }).drawImage(im, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
+      if (RESTBAKE) {
+        // the lit and the dark look baked into two pictures: no filter on the pieces at rest (see restPic)
+        Promise.all([LIT_LOOK, DARK_LOOK].map((lk) => bakeLook(c, `brightness(${lk[0]}) saturate(${lk[1]})`))).then(([lit, dark]) => {
+          if (lit && dark) {
+            art.bmp = lit; art.dark = dark; art.baked = true;
+            for (const el of litterEls) if (el.litArt === art) litterPic(el);
+          }
+          next();
+        }, next);
+        return;
+      }
       try {
         c.toBlob((b) => {
           if (b) {
             art.bmp = URL.createObjectURL(b);
-            for (const el of litterEls) if (el.litArt === art) el.src = art.bmp;
+            for (const el of litterEls) if (el.litArt === art) litterPic(el);
           }
           next();
         }, 'image/png');
@@ -2773,7 +3008,7 @@
       const im = h('img', 'litter');
       im.alt = '';
       im.litArt = art;
-      im.src = art.bmp || art.url;
+      litterPic(im);
       Object.assign(im.style, { left: `${(x - w / 2).toFixed(1)}px`, top: `${(y - hgt * 0.62).toFixed(1)}px`, width: `${w.toFixed(1)}px`,
         height: `${hgt.toFixed(1)}px`, zIndex: String(layers ? depthZ(p.u, p.v, p.z) : Math.round((p.u + p.v) * 100) + 5),
         transform: p.flip ? 'scaleX(-1)' : '', opacity: '0' });

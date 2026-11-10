@@ -1311,3 +1311,434 @@ the RTX 3050: 15-30 min at 4K.
   18791): warm puts "Browser" off-canvas into "DinkDonk Cinema" (source active), a second warm says already, the cut
   lands on "Lobby", the warm item is removed, a warm with the lobby on is skipped. First version picked the wrong
   source (any lobby URL) - fixed to search the Lobby scene. Not in the live bridge yet (owner's call).
+- 9 Nov: draft 25 done (`qa10/draft25-marquee.png`, 86 s on the RTX 3050, `marquee/marquee_draft.blend`, NOTES-80).
+  Read-only Codex critique in `critique-80.md`. Proposed for draft 26: stronger warm soffit pool on the wet sidewalk
+  and threshold, brighter bulbs with small halos, faint letter tracks/seams in the board, wet sheen on the roof.
+  Text style is page-side (the page draws it live). Waiting for owner.
+- 9 Nov ~19:30, owner OK ("all three"): pushed to GitHub (d0490d6: the 8-9 Nov perf pass + queue 49-60 files that were
+  live but uncommitted; then the panel/zip fixes below), hosted edition rebuilt + deployed (checked locally on 18772
+  first: lobby 74 loops drawn, auditorium filling, no console errors; on the server lobby/control carry the new code,
+  previous version kept in /opt/dinkdonk-cinema/previous), zip rebuilt (dist/DinkDonk-Cinema.zip, 775 MB; packaged
+  server smoke-tested on 18773). Fixes on the way: "Cut to cinema" hidden in hosted rooms (?k=: no local bridge there);
+  package/build.js takes the owner's renamed "Lobby" scene (ships as "Lobby + Poll setup"). Left out of the repo:
+  obs-bridge-qa.js, backups/, other sessions' untracked briefs/notes, cloud lock files.
+- 9 Nov: draft 26 done (`qa10/draft26-marquee.png`, 91 s, `marquee/marquee_draft26.blend`, NOTES-81). Critique
+  (`critique-81.md`): warm sidewalk pool landed; bulb halos and roof wetness only partly; board tracks not visible
+  at stream size. Waiting for owner (draft 27 with those three, or OK for the layer render).
+- 9 Nov: draft 27 done (`qa10/draft27-marquee.png`, 96 s, `marquee/marquee_draft27.blend`, NOTES-82). Critique
+  (`critique-82.md`): bulb halos landed; roof reflection visible but a bit too straight/clean; board tracks only on
+  the end face. Waiting for owner.
+
+## 9 Nov 2026: improvement drafts, round 2 (A6-A10, L6-L10)
+- Owner asked for graphical improvements to both scenes, then "Yes, all ten" for mockups like the L1-A5 round.
+  `concepts/improve2/index.html` (`?s=A6..L10` for one at 1920x1080), PNGs in `concepts/improve2/drafts/`.
+  Nothing live changed, no renders, no edits to the pages. Left out on purpose: L2, L5, A4, A5 (not picked on 8 Nov)
+  and the marquee (in progress).
+- Auditorium: A6 house lights that read as "lights up", A7 chatters lit by the screen row by row, A8 the hall sits
+  in a building (halo, plinth, entrance corridor with the waiting line, projector housing; art), A9 the pre-show
+  lights the room, A10 curtain reveal at "Film".
+  Lobby: L6 chatters take the scene's light (light pass under their feet), L7 wet reflections under chatters,
+  L8 headlights catch the rain, L9 neighborhood life (steam, windows, neon buzz), L10 lightning in deluge weather.
+- How: every base is a live screenshot with real chat (`shots/`, `shoot.mjs`: headless Edge, 1920x1080). A7, L6, L7
+  and L8 are the real page with a throw-away look hack (`hacks/*.js`) run only inside the headless tab, shot as a
+  before/after pair a moment apart; the rest is painted over the shot in SVG. The auditorium dark shots use
+  `room=0` (a local copy of the hall), so the shared room's phase was never touched.
+- Found on the way: in a shared room `director=0` does not keep the camera wide (the room's director still sends
+  follows), so the capture presses the page's own W key until the camera is back at 1x. The lobby already dims
+  street chatters a flat 16% (`.w.out .em`); L6 replaces that with light by position.
+- A8 changed from what was first suggested: a projection booth behind the back wall would cover the rear-left
+  seats, so the draft shows an entrance corridor and a small projector housing instead.
+- Not done: no perf test of A7/L6/L7 (one filter or copy per chatter). `concepts/improve2/` is untracked like
+  `concepts/improve/` (the shots show real chat lines). Waiting for the owner's picks.
+- 9 Nov, owner's picks from round 2 (recorded as queue item 63, nothing started on his word): liked L6, L7, L8, L9;
+  A7 okay; the A8 entrance corridor "if it looks right" (dim, purple like the cinema, dim lights, maybe posters).
+  Not picked: A6, A9, A10, L10, and the rest of A8.
+- 9 Nov, owner on draft 27: "It's good, go ahead." Brief 83 started (Codex, local RTX 3050, no cloud): full-quality
+  marquee layer set staged in `out10m/` (depth-sliced body, receiver light, optional shadow, 48-phase bulb chase,
+  `marquee.json` fragment with letterboard quads), check image `qa10/marquee-layer-check.png`. Next: wire it into
+  lobby-qa.html (page draws the live letterboard text), then owner review before live.
+- 9 Nov, owner: the scenes need "more life" (like L9); look for more, lobby outside and inside, the auditorium only
+  what a real cinema has, DGG memes at most one year old. Suggestions only, nothing built: `roxy3d/memes/LIFE-IDEAS.md`
+  (street L11-L19, inside L20-L29, auditorium A11-A18). Sources: DGG wiki API (81 pages created since 9 Nov 2025; the
+  emote catalog of 9 Nov 2026) and two weeks of r/Destiny titles (all midterms/drama, not used). Waiting for picks.
+- 9 Nov evening, auditorium perf (QA only, nothing live changed, weekly usage at 44% of the 45% cap):
+  - Layers: the room is about 150 compositor layers: 84 tiny animated ones (48 dust motes, 36 `zz`) plus about 50
+    "Overlap" layers forced by `#bg-dim { will-change: opacity }`. The Overlap layers HELP: with them merged into
+    one big layer the GPU thread is pegged (about 920 ms/s, 40 frames/s) against about 560 ms/s at 60. Leave them.
+  - Idle cost: the dozers' breath (`div.bod` transform, 20 writes a second on every dozing chatter, about 1,940
+    writes/s with 96 dozing) redraws the seating 20 times a second. Hiding the walkers drops idle raster from about
+    556 to 46 ms/s. Emote brightness filters are about 15% of it.
+  - Tried and taken back out: breath in 8 steps, staggered by depth band (`BANDS`, `bandOf`). One uncontrolled
+    comparison went both ways (idle lit better, idle dark worse), so `auditorium-qa.html` is back to the version
+    before it; the try is kept as `qa-night/auditorium-qa.breath-try-9nov.html` for a controlled A/B.
+  - Measurement noise: holding one pre-show slide (`{cmd:'screen', value:'upnext'}`) made three rounds agree within
+    about 10%; lc60 and fadetrace now hold a slide by default (`SLIDE=auto` rotates them again).
+  - Fade stutter at 60 fps, NOT settled: with one slide held the fades showed 0-5 late frames per 7 s step
+    (20:41-20:47, clean GPU). The run meant to confirm that the slide rotation is the cause (12-104 late per step,
+    20:49-20:53) ran while Brief 83's Cycles render held the GPU at 97-99%, so it proves nothing; both files from
+    that window are marked SKEWED. Short Cycles drafts at about 19:17, 19:50 and 20:11 may also have touched the
+    earlier lc60 runs. Rerun `SLIDE=auto BASE=1 node fadetrace.mjs <qa url> 2 60` against the held-slide runs on
+    a free GPU before drawing anything from it.
+  - New tools in `qa-night/tools/`: `layers.mjs` (layers by compositing reason, optional CSS to try),
+    `layerpaint.mjs` (repaints per layer), `mutcount.mjs` (DOM writes per second by kind), `pageval.mjs`.
+    `statecorr.mjs` also samples the active slide. `obslock.mjs` (loaded by every OBS driver) now warns when
+    blender.exe is running or the GPU is above 90%, so a skewed run says so in its own result file.
+  - Still in the QA copy: the test-only `DIMAB` param. Test server on 18771 and the portable OBS left running.
+- 9 Nov 20:58, perf goal stopped at its cap (weekly usage 45%). Test server on 18771 stopped; 18770 untouched. The
+  portable test OBS is still open (holding the old QA page). The fade rerun on a free GPU is not done: Brief 83's
+  render was still running. To rerun: `STANDBY_PORT=18771 node standby-server.js`, then in `qa-night/tools`
+  `SLIDE=auto BASE=1 node fadetrace.mjs "http://127.0.0.1:18771/auditorium-qa.html?everyone=1&bridge=0" 2 60` and the
+  same with `SLIDE=upnext`, back to back.
+- 9 Nov 21:25, auditorium perf, new goal from the owner (keep going until 60% weekly usage; 46% now). QA copy only,
+  nothing live changed. Backup before this stretch: `qa-night/auditorium-qa.before-bandfade-9nov.html`.
+  - New measure, `qa-night/tools/pres.mjs`: frames the compositor actually put out (`Display::DrawAndSwap` gaps,
+    dropped `PipelineReporter` frames) from the same trace. rAF "late frames" can miss a stall: a fade step's raster
+    burst holds back the drawn frame while rAF still fires on time. `fadetrace.mjs` prints it per step,
+    `abstate.mjs` per variant. `fadetrace.mjs` also takes `SLIDES=upnext,auto` (slide mode alternates per rep) and
+    `EVALS='a|b'` (a page expression alternates per rep); `abstate.mjs` takes `name=js:<expression>` variants.
+    `fadetrace.mjs <url> 0 75` just loads and warms the page.
+  - In `auditorium-qa.html` now, both with test switches so A and B run on one page load:
+    1. Lights fade by depth band (`BANDS`, `bandOf`, `dimClock.text[]`): one strip of the room per frame instead of
+       the whole room every 125 ms. `window.__dimBands = 1` = all at once as before. The `DIMAB` param is gone.
+    2. Dozers' breath in 8 steps, band by band (`window.__breathSteps = 0` = smooth as before).
+  - Counts taken while Cycles renders ran (timings void, counts fair): banded fade rasters about 20% more tiles per
+    fade (a tile can hold two strips); stepped breath halves idle tiles/s (1,141 to 573 with a few dozers).
+  - Test pages need dozers to be realistic: add `&doze=20` (chatters doze after 16-32 s without a message); a page
+    warmed for 60 s otherwise has none, and the breath is what redraws the room 20 times a second on stream.
+  - Still open: free-GPU runs of (a) `SLIDES=upnext,auto` held vs rotating slides, (b) banded vs grouped fade,
+    (c) stepped vs smooth breath; then OBS at 30. Under a saturated GPU the banded fade looked worse in one rep
+    (every frame carries raster), so it must prove itself on a free GPU, and also with OBS encoding.
+- 9 Nov, owner: read a full year of r/Destiny (top posts with top comments, and top controversial), drama welcome.
+  Done from the Arctic Shift archive (reddit.com blocked): 61,988 posts, 952 read closely with comments by six
+  readers, findings checked against the year's titles. Ideas L30-L49 and A19-A21 appended to
+  `roxy3d/memes/LIFE-IDEAS.md` with what was left out and why. Suggestions only, nothing built.
+- 9 Nov, owner's picks from the Reddit-year ideas, recorded as queue item 65 (nothing started): L30, L31, L32, L38, L39, L40, L44, L46, L47, plus two of his own: L50 golden WEOW with a glowing aura, L51 a "Dogtober 7th" documentary poster.
+- 9 Nov: Brief 83 done: `out10m/` (713 files, 15 MB; 24 body + 133 shadow + 135 light slices, 60 chase loops,
+  `marquee.json`), 38 min of local GPU, all checks in validation.json passed, out10/ untouched. Wired into
+  lobby-qa.html only (backup `backups/2026-11-09-marquee/lobby-qa.html`): `mergeMarquee` adds the slices to the
+  occluder stack (plus-lighter for light slices) and the chase to the prop loops; `?marquee=0` turns it off. The page
+  writes the street board text from screen 1's film (NOW SHOWING / NEXT UP · title, SCREEN 1 · rating / CHAT'S
+  PICK), in 19 depth-band copies so walkers in front cover it correctly, shrunk to fit long titles. The board is a
+  soft no-bubble area. Checked with real chat (everyone=1): 292 layers load, none broken, text fits, walkers pass
+  under it. Not done: rain impacts under the roof, perf check of the extra 292 imgs + 60 loops, live/hosted/zip.
+- 9 Nov ~22:10, perf (goal renewed: until 60% weekly), free-GPU results for the two QA changes (`auditorium-qa.html`,
+  nothing promoted):
+  - **Banded fade: disproved.** `qa-night/tools/res/fade_bands_free_9nov.txt` (136 chatters, synced 60, two fades
+    each way, alternating on one page load): held frames (gaps > 1 vsync between `Display::DrawAndSwap`) 74 strip by
+    strip vs 42 whole room at once; GPU raster per 7.5 s step 4.4-5.7 s vs 2.9-4.6 s; tiles 8.8-11.3k vs 5.8-8.4k.
+    "Still + lights down" was worse both times (22, 22 vs 4, 12). The whole room at once every 125 ms is the default
+    again (`tickBands`: `group = window.__dimBands === 0 ? 1 : BANDS`); `window.__dimBands = 0` = strip by strip, for
+    tests only. The fade's first frame still takes the whole room (no frame at the end values, `flashcheck.mjs`).
+  - **Stepped breath: confirmed.** `res/breath_ab_free_9nov.txt`, `res/breath_ab_dark_free_9nov.txt` (137 chatters,
+    `&doze=20`, 4 rounds x 5 s): GPU raster 372 -> 218-244 ms/s lit, 649 -> 384-440 ms/s dark (-35 to -41%), tiles/s
+    about half (1,205 -> 620 lit), page main thread 323 -> 300 ms/s. 60 drawn frames/s and no held frames at idle
+    either way, so this is headroom (stream encoder, fades), not a visible fix by itself. With the fade grouped again
+    the breath steps for the whole room on the 8 Hz clock. `window.__breathSteps = 0` = smooth as before.
+  - Baselines on a free GPU: idle lit, idle dark and a follow with the lights steady all show 0-1 held frames in
+    7.5 s at 60. What is left is the fade itself: 0-25 held frames per fade, very different from one fade to the next.
+  - Tools: `fadetrace.mjs` takes `REC=1` (the portable OBS records with NVENC while the steps run; the recording is
+    deleted) and `KEEP=n` (a step's trace with n or more held frames is kept as `res/trace_keep_<k>.json`);
+    `gapwhy.mjs <trace>` lists what was running on each thread while no frame came out. `flashcheck.mjs` checks the
+    first frames of a fade.
+  - Ideas written down, not built: "mirror world" (cross-fade one composited copy of the room in the target state,
+    no raster during a fade) and "compositor camera" (static-target camera moves as a Web Animations transform on
+    `#cam`, so the compositor keeps moving while a fade's raster is pending).
+  - The owner's PC: `python` now resolves to the installed Python 3.15 (the Windows Store stub sat first in PATH).
+- 9 Nov ~22:30, perf: QA copy vs LIVE page, same test, same minute, free GPU, the portable OBS recording with NVENC
+  (`REC=1`, stream-like load), 136-138 chatters, `&doze=20`. Held frames = gaps > 1 vsync between drawn frames,
+  per 7.5 s step (still+down / follow+up / follow+down / still+up), two reps:
+  - 60 fps: LIVE `auditorium.html` 15 / 22 / 9 / 6 and 13 / 1 / 2 / 4 (72 in 8 fades; GPU raster 4.9-5.5 s a step,
+    11-12.8k tiles). QA `auditorium-qa.html` 3 / 0 / 0 / 0 and 2 / 1 / 0 / 0 (6 in 8 fades; raster 3.0-4.1 s,
+    6.3-9.3k tiles). Without recording the QA copy had 2 held frames in 12 fades. Idle and follow-only: 0 on both.
+    (`res/fade_live_rec_9nov.txt`, `res/fade_grouped_rec_9nov.txt`, `res/fade_grouped_keep_9nov.txt`)
+  - 30 fps (the owner's OBS setting): 0 held frames on both; QA rasters about 25% less (2.7-3.3 s vs 3.7-4.2 s).
+    (`res/fade_qa_rec30_9nov.txt`, `res/fade_live_rec30_9nov.txt`)
+  - Why (`gapwhy.mjs` on a live trace): in every held frame the GPU process's main thread was inside a 12-14 ms
+    raster flush; the page's main thread was not the limit. On the live page the dozers' smooth breath redraws
+    seating strips in the frames between the fade's 8 updates a second, so raster lands in almost every frame; in
+    the QA copy the breath steps on the fade's clock, so both redraw in the same frame.
+  - Look: `flashcheck.mjs` clean both ways (a fade starts from the room's values, whole room every 125 ms);
+    mid-fade screenshots QA vs live match (`qa-night/tools/shots/midfade-sheet-9nov.jpg`).
+  - So the QA copy's change (breath in 8 steps on the fade clock, fade whole-room as before) is a promote candidate
+    for the "camera moves during light changes" stutter at 60. Not promoted: waits for the owner's OK.
+- 9 Nov, late evening, perf (auditorium QA copy unless said; all at 60 fps in the portable OBS, free GPU, mostly with
+  NVENC recording; nothing promoted):
+  - How a frame gets held: raster and the display compositor share the GPU process's main thread. A commit is shown
+    only when its tiles are rastered, and a long raster flush (`CommandBufferStub::OnAsyncFlush`) delays the draw.
+    `flushwhat.mjs <trace> [minGap]` splits each held frame into what that thread did and prints a 250 ms timeline.
+  - Tried and dropped: a camera run by the compositor / predicted ahead (`res/camahead_ab_9nov.txt`): no gain, since
+    the hold is the raster and not the page's main thread. The banded (strip by strip) fade is off again
+    (`window.__dimBands = 0` is the test switch); the whole-room fade every 125 ms stays.
+  - Live lobby under camera moves: fine, 2 held frames in 8 steps with recording (`res/lobby_cam_live_9nov.txt`,
+    `camtrace.mjs`). Pre-show slide rotation: no effect on held frames (`res/slides_ab_rec_9nov.txt`).
+  - First lights-down after a page load: Chrome never decodes the dim background while it rests at opacity 0, so it
+    decoded at the fade's start (52-59 ms on a worker + 10 ms upload, every first lights-down). The dim background
+    now rests at `DIM_WARM` (0.005, invisible) like the pieces' twins: no decode at the fade on 6 of 6 fresh loads.
+    Held frames on that fade: within the spread (warm 4, 5, 1, 1, 2, 3; cold 8, 0). `window.__bgWarm = 0` = old
+    behavior (test only). `fadetrace.mjs` got `bigdec` (decodes over 15 ms) and `DOWNONLY=<s>`.
+    (`res/bgwarm_ab_9nov.txt`, `res/bgwarm_firstdown_9nov.txt`)
+  - Layers (`layers.mjs`, `rasterwho.mjs`, new `layerchurn.mjs`): the room is 100-180 compositor layers, most of
+    them small "Overlap" layers (pieces, emotes) above `#bg-dim`'s own layer. They are needed: with `#bg-dim` not
+    its own layer the room becomes one big layer and every step holds ~200 frames (about 30 fps), raster 6.2-6.7 s
+    per 7.5 s against 2.5-3.8 s (`res/bgdim_layer_ab_9nov.txt`). So `#bg-dim { will-change: opacity }` stays.
+    Layer churn is small next to the fade's own raster (idle 2-4 layers a second; fade + follow ~20 new and ~120
+    resized a second).
+  - The longest hold of a lights-down sat at the same place in two kept traces (58 and 69 ms, about 4 s into the
+    fade) together with a burst of new layers. Looked for a cause there: no CSS transition or animation starts or
+    ends during a fade, no page change is timed there (per 125 ms step the fade writes ~500 twin opacities, 140
+    litter filters, 135 emote filters, 117 item filters, 57 lamp parts, the same all 6 s), and layer sets change by
+    5-15 layers all the time as chatters walk (pieces are shown where a chatter is behind them). A door opening
+    adds about 40 layers at once and drops them a second later. No single trigger found; not reproducible on
+    demand.
+  - Rainbow names (`.rbt`, a `background-position` animation that repaints every frame): the 4 rainbow names in the
+    pre-show credits roll repaint the whole 832x8146 credits layer each frame while they are in its drawn range,
+    even when that slide is hidden. Paused vs running on one page load (`res/rbt_ab_9nov.txt`): paint 230 vs 320 ms
+    per 7.5 s, ~10% fewer tiles, GPU raster and held frames the same. Too small to change an approved look for.
+    New tool `paintwho.mjs [urlPart] [seconds]` (GROUP=1): which layers repaint, how often, how much area.
+    Repainted area: idle lit 1.4 MP/s, lights-down 24 MP/s (pieces 17, emotes 2.6, lamps 2.6), idle dark 6 MP/s.
+
+### 10 Nov 2026 (night) - what the fade's brightness filters cost, and three replacements that did not work (Claude, perf goal)
+
+All at 60 synced in the portable OBS, REC on, real chat, blender 0, QA page only. `auditorium-qa.html` is back to
+the promote candidate from 9 Nov (stepped breath on the fade clock, warm dim background); nothing new went in.
+
+  - Cost of the filters: about 390 elements carry `filter: brightness()` during a fade (emotes, popcorn/soda,
+    litter). With all of them off (test style, wrong look) a fade costs 25% less GPU raster and holds 6 frames
+    instead of 24 in 12 steps (`res/nofilter_ab_9nov.txt`). Split (`res/filtersplit_ab_10nov.txt`): emotes about
+    14% of the raster, items + litter about 14%.
+  - New test switch `&littermin=40`: a full, deterministic litter set (140 pieces) so runs compare.
+  - Tried for items + litter, each with the same look as the goal, all dropped:
+    1. Lit + dark copy crossfaded by opacity: not the same look (see-through pixels: soft edges, litter shadows;
+       a snap when the fade ends). Copy: `qa-night/auditorium-qa.twins-try-10nov.html`.
+    2. All 65 fade levels in one sheet, shown through `object-view-box`: Chrome snaps the sheet to pixels, the art
+       shifts by part of a pixel from level to level. Copy: `qa-night/auditorium-qa.strips-try-10nov.html`.
+    3. Dim frames: every picture baked at 65 levels as its own PNG, `src` swapped per fade step. Look exact (still
+       bench in `striplook.mjs`: largest pixel difference 2-3 of 255 at every level). But slower than the filters
+       (`res/dimframes_ab_10nov.txt`, A B A B, 16 steps each): GPU raster 4684 vs 4186 ms per step (+12%), image
+       decodes 1919 vs 806, late frames 7.3 vs 1.6 per step, gaps over one vsync 128 vs 36 (worst with the camera
+       following: 51 vs 3 on lights-up). Every swap is a new image for the compositor (decode + upload), and its
+       image cache does not hold 65 x ~78 pictures, so it never warms up. Copy:
+       `qa-night/auditorium-qa.frames-try-10nov.html`. The same idea for emotes (background-image swap) was drafted
+       but not applied: same cost.
+  - Rule from this: a replacement for the filters must not create or swap pictures per fade step.
+  - `striplook.mjs` now has a still bench (fixed overlay, three sub-pixel offsets per picture, noise floor 0) for
+    exact look comparisons; the live room is too noisy for that (walkers move between shots).
+
+### 10 Nov 2026 (night, later) - the room at rest: baked rest pictures for litter and items (Claude, perf goal)
+
+All at 60 synced in the portable OBS, REC on, real chat, blender 0, QA page only (`auditorium-qa.html`; the live
+page is untouched). Backup of the 9 Nov promote candidate without this change:
+`qa-night/auditorium-qa.before-twins-10nov.html`.
+
+  - New in `fadetrace.mjs`: `REST=1` measures the room at rest instead of fades (7 s each: idle, camera follows in,
+    camera back to wide; lit room, then dark room). `REST=dark` does the dark room only (lights go down once before
+    the first rep), for runs with a test style per rep (`EVALS`).
+  - Rest baseline, 9 Nov candidate (`res/rest_base_10nov.txt`): no held frames at rest, but the dark room costs
+    about twice the GPU raster of the lit one (idle 1663 vs 725 ms per 7 s, follow in 2780 vs 1533, wide out 1372
+    vs 667). In the dark every emote, item and litter piece carries a `brightness()` filter (~390), in the lit room
+    the 140 litter pieces do; each filter is an offscreen pass whenever that tile is drawn again.
+  - Rest bake (in the QA page, on by default; `?restbake=0` = the filters as before, test only):
+    - litter has its lit look baked into its bitmap, so no filter in the lit room; during a fade a baked piece gets
+      the filter that is left between that picture and the dark look (dark / lit, exact because brightness and
+      saturate multiply);
+    - when a lights-down has ended, items and litter switch once to pictures with the dark look baked in (class
+      `.dk`) and drop the filter; the first update of the next fade switches them back to the lit picture plus the
+      fade's filter in the same frame;
+    - one switch per fade end, never per fade step (the rule from the dim-frames try); all pictures stay loaded
+      (`picKeep`), so a switch of `src` is immediate; emotes keep their filter (animated sprites).
+  - Look check: new tool `restlook.mjs <url> <outDir> [waitSecs]` (still bench as in `striplook.mjs`: every litter
+    design and item picture, three sub-pixel places, old CSS filter vs what the page shows now, at lit, mid fade
+    and dark). Largest pixel difference 3 of 255 or less in every state; the room counts show 0 filters on litter
+    and items at rest, lit and dark.
+  - Result at rest (`res/restbake_rest_ab_10nov.txt`, A B A B, 2 reps each). Totals are noisy because real chat
+    decides how many tiles are drawn again (2,500 to 6,600 per 7 s), so compare GPU raster per redrawn tile, rest
+    bake vs old filters: dark idle 0.47 vs 0.52 ms, dark follow in 0.55 vs 0.62, dark wide out 0.40 vs 0.51; lit
+    idle 0.32 vs 0.38, lit follow in 0.36 vs 0.46, lit wide out 0.29 vs 0.31. About 10-20% less GPU raster at rest.
+    Held frames: none either way (late 0-2 of 420).
+  - What is left in the dark room (`res/darkcost_10nov.txt`, `REST=dark`, one page load, a test style per rep): the
+    emote filters are about 10% of the dark rest raster and the aisle lamps (box-shadow glows) about 10%, both
+    inside the run-to-run noise. With both off the dark room costs the same per tile as the lit one (0.34 ms).
+    Not changed: a dark picture per emote was drafted (not applied) but would have to decode some sixty strips on
+    the first frame of lights-up, for a 10% gain at rest where no frames are held anyway.
+  - Rest bake on fades (`res/restbake_fade_ab_10nov.txt`, A B A B): no regression. GPU raster per tile 0.602 ms
+    (rest bake) vs 0.722 (old filters); gaps over 1 vsync 24 vs 43, over 2 vsyncs 7 vs 4, worst 66 vs 51 ms.
+    Still open: lights-up after a long dark rest (over 60 s), and the confirmation at 30 in OBS.
+
+### 10 Nov 2026 (night, last) - the first lights-down after a quiet spell: what holds its frames (Claude, perf goal)
+
+Same setup (60 synced, portable OBS, REC on, real chat, blender 0, QA page only).
+
+  - New tool `gapnames.mjs <trace> [minGapMs] [padMs]`: every trace slice (any thread) that overlaps a held frame,
+    with count and ms, plus a 0.5 s timeline of the slices matching `GREP` (decodes, uploads, shader work).
+    `fadetrace.mjs` got `KEEP=n` (keeps a step's trace with n or more held frames; `KEEP=0` keeps all) and
+    `DOWNONLY=<s>` (one lights-down per rep, then s seconds lit).
+  - Finding 1, the fade's first frame: the first lights-down after a page load (or a quiet spell) held 2-3 frames
+    right at the start (52 + 48 ms), the second one of the same load did not. In the trace 164 room pieces and
+    twins that were already shown get decoded again: Chrome drops a decoded picture about 30 s after its last
+    use, and a shown piece is only used when its tile is drawn again. The fade's first frame draws the whole room.
+  - Finding 2, 4 s into every lights-down: the usher. He appears at the rear portal 4 s after the lights go down,
+    inside the tunnel, and his box plus the door's turn on 82 pieces in one frame (shown pieces 484 -> 566), so
+    that frame decodes and uploads some 180 pictures in the middle of the fade (46-54 ms held, every time).
+  - Try 1, keep-warm (`?keepwarm=0` = off): every shown piece and twin is asked for with `img.decode()` once per
+    12 s. Decodes at the fade's start 164 -> 61 (54 -> 15 ms of worker time), but the held frames stay (52 and
+    48 ms): the second one is a 50 ms flush on the GPU process's main thread (raster of the whole room plus ~230
+    texture uploads), which `decode()` does not keep warm.
+  - Fix for finding 2, the entry ramp (in the QA page, on by default; `?entryramp=0` = off, test only): the pieces
+    in front of the door and of the tunnel's far end (`entryAhead`, a fixed set worked out once) come up a few at
+    a time from 0.5 to 3.0 s after the lights go down, on the frames the fade draws the room anyway, so the usher
+    finds them shown. A piece coming up changes nothing on screen (the background holds the same pixels).
+    Result on fresh page loads, first lights-down each (`res/entryramp_ab_10nov.txt`, A B A B A B, plus one run
+    before): with the ramp no held frame at 4.5 s in 4 of 4 loads (decodes there 26-52, spread over 1-3.5 s
+    instead); without it a 51-64 ms gap at 4.5 s in 3 of 3 (81-178 decodes, 189 uploads, 65 ms on the GPU
+    process's main thread). The gap at the fade's start (50-64 ms) is in all of them, ramp or not: finding 1.
+  - Where finding 1's time goes: one run had only 17 decodes at the start but 179 uploads and still a 53 ms gap,
+    all of it on the GPU process's main thread. So the cost is the 180-320 texture uploads of the first whole-room
+    frame, not the PNG decoding.
+  - Try 2 for finding 1, the touch keep-warm (in the QA page, on by default; `?keepwarm=0` = off, test only; it
+    replaces try 1): a shown piece whose place has not been drawn for 10 s gets its dark twin's opacity moved by
+    0.0002 (invisible), up to 6 pieces per 250 ms, only at rest. That draws its place again with every piece that
+    overlaps it, so both the decoded pictures and their textures stay in Chrome's caches. `window.__warm` counts
+    (touched, longest time a shown piece went undrawn: 13.5 s).
+    Result on fresh page loads, first lights-down each, at the final rate (`res/touchwarm2_ab_10nov.txt`,
+    A B A B A B A B): worst gap with keep-warm 26, 37, 41, 30 ms, never two held frames in a row; without it
+    63 + 44, 40 + 41, 35 and 18 ms. Decodes in the fade's first half second 13-65 vs 152-179. With the earlier
+    runs at the slower rate (`res/touchwarm_ab_10nov.txt`) a gap of 40 ms or more at the start in 3 of 8 loads
+    with keep-warm (single ones, 41-55 ms) vs 5 of 7 without (four of them double, up to 63 ms).
+    What is left in the remaining single gap is the page's own work for the first whole-room frame (main thread
+    24-30 ms over the gap: style for the lights-down class, lifecycle, paint; then ~46 raster tasks), not the
+    GPU process any more (3.6 ms there vs ~55 ms before).
+    Cost at rest (`res/touchwarm_rest_ab_10nov.txt`, `REST=1`, A B A B, 24 steps each, at the 10 s age): GPU
+    raster per 7 s step 1580 ms with keep-warm vs 1386 without (+14%, inside what chat alone moves it; idle lit
+    720 vs 682, idle dark 1618 vs 1756), tiles 3757 vs 3541. Held frames: late 0 either way; one 60 ms gap in
+    one "wide out (lit)" step with keep-warm, not seen again. To halve that cost the age went from 10 to 18 s
+    (`WARM_AGE = 18000`; Chrome drops a picture after about 30 s).
+    At the 18 s age (`res/touchwarm3_ab_10nov.txt`, 60 synced, A B A B A B): worst gap with keep-warm 32, 34 and
+    41 ms; without it 71 + 56, 68 + 48 and 58 ms; decodes at the start 53-68 vs 114-250.
+    At 30 in OBS (`res/touchwarm3_ab30_10nov.txt`, `FPS=30`, entry ramp and keep-warm together): with both, no
+    held frame in 3 of 3 loads (worst 35-37 ms = one frame); without keep-warm one load of three held two frames
+    (70 + 63 ms). Keep-warm stays.
+  - State of `auditorium-qa.html` after this night: 9 Nov candidate + rest bake + entry ramp + touch keep-warm
+    (`WARM_AGE = 18000`, `WARM_TICK = 6`). Backups in `qa-night/`: `auditorium-qa.before-twins-10nov.html` (9 Nov
+    candidate), `.before-keepwarm-10nov.html` (rest bake only), `.before-entryramp-10nov.html` (rest bake +
+    try 1). The live `auditorium.html` is unchanged. Not promoted: waits for the owner's OK.
+  - Still open: the same 82-piece burst when an ordinary newcomer opens the door after a quiet spell in the dark
+    (the ramp only runs ahead of the usher); lights-up after a dark rest of over a minute (rest bake and keep-warm
+    both untested there; needs a wait mode in `fadetrace.mjs`).
+
+### 10 Nov 2026 (early morning) - lights-up after a long dark rest, and the keep-warm's turn order (Claude, perf goal)
+
+Same setup (60 synced, portable OBS, REC on, real chat, blender 0, QA page only; the live page is untouched).
+
+  - New in `fadetrace.mjs`: `UPAFTER=<s>` does one lights-up per rep after s seconds in the dark (the case left
+    open above).
+  - Lights-up after 75 s in the dark, fresh page load each (`res/upafter_abc_10nov.txt`; A = QA page as is,
+    B = `restbake=0`, C = `keepwarm=0`): worst gaps A 43 and 53 + 47 ms, B 46 and 45 + 51, C 50 and 32. So one or
+    two held frames at the fade's first frame in most loads, in every variant, with 112-235 decodes there.
+    The rest bake is not the cause (same without it), and the keep-warm did not help in the dark.
+  - Why the keep-warm did not help there: a fade draws every piece at the same moment, so afterwards all ~500
+    shown pieces came due together 18 s later and went through at 6 per 250 ms; the last ones waited about 30 s
+    (`window.__warm.stale` 31.4 s), which is when Chrome drops a decoded picture.
+  - Change (QA page): when a fade has ended, the pieces' next turns are spread over 6-18 s from then, and the rate
+    is 8 per 250 ms (`WARM_TICK = 8`). Backup of the state before: `qa-night/auditorium-qa.before-warmspread-10nov.html`
+    (rest bake + entry ramp + keep-warm at `WARM_AGE = 18000`, `WARM_TICK = 6`).
+  - Result, first lights-down on fresh page loads (`res/warmspread_first_ab_10nov.txt`, A B A B A B, B =
+    `keepwarm=0`): with keep-warm worst gap 30, 20 and 29 ms, no held frame in 3 of 3 (decodes at the start
+    32-49); without it 72 + 49, 66 + 54 and 65 + 49 ms (192 decodes). Better than before the change (32, 34, 41).
+  - Result, lights-up after 75 s in the dark (`res/warmspread_up_ac_10nov.txt`, A C A C A C, C = `keepwarm=0`):
+    with keep-warm worst gap 33, 36 and 28 ms, no held frame in 3 of 3 (before the change: 43, 53 + 47, 31);
+    without it 33, 28 and 79 + 44 ms. Decodes at the start 73-132 vs 179-264. Longest time a shown piece went
+    undrawn: 18.3 s in every load (was 31.4 s).
+  - Second lights-down 25 s after the first on the same load (`res/warmspread_ab_10nov.txt`, two pairs, and
+    `res/warmspread_10nov.txt`): mixed, 18-68 ms with keep-warm vs 24-51 without; the 68 ms one had 287 decodes
+    and twice the chat traffic of the others (1179 PNG decodes in the step), so new arrivals rather than the
+    resting room. Not followed up.
+  - State of `auditorium-qa.html` now: 9 Nov candidate + rest bake + entry ramp + touch keep-warm with the spread
+    (`WARM_AGE = 18000`, `WARM_TICK = 8`). Not promoted: waits for the owner's OK. Not yet confirmed at 30 in OBS
+    with the spread (the 18 s keep-warm before it was).
+  - Still open: the door burst (about 82 pieces in one frame) when an ordinary newcomer comes in after a quiet
+    spell in the dark; the single 41-55 ms gap some loads still show at a fade's first frame from the page's own
+    style and paint work.
+  - At 30 in OBS with the spread (`res/warmspread_first_ab30_10nov.txt`, `res/warmspread_up_ac30_10nov.txt`,
+    `FPS=30`): first lights-down with keep-warm no held frame in 3 of 3 loads (worst 35-37 ms = one frame);
+    without it two of three loads held two frames (48 + 41, 59 + 52 ms). Lights-up after 75 s in the dark: no
+    held frame either way (2 loads each). So the QA page as it stands is confirmed at 60 and at 30.
+
+### 10 Nov 2026 (morning) - a newcomer's door after a quiet spell in the dark (Claude, perf goal)
+
+Same setup (60 synced, portable OBS, REC on, real chat, blender 0, QA page only; the live page is untouched).
+
+  - New in `fadetrace.mjs`: `DOORAFTER=<s>` does one door swing per rep after s seconds in the dark, through a
+    test-only hook in the QA page (`window.__doorTest()`: the door swings with nobody behind it; `window.__doorLast`
+    = when the door was last used). No fake chatters involved.
+  - Measured (`res/doorafter_10nov.txt`, three fresh loads, door unused for 41 s): worst gap 46, 38 and 65 ms, with
+    150-170 decodes in that frame and 55-74 ms on the GPU process's main thread. The door turns on the pieces in
+    front of it in one frame, and those were not shown, so not kept warm.
+  - Change (QA page, on by default; `?entrykeep=0` = off, test only): the way-in pieces (the entry ramp's set, about
+    82) stay shown for as long as the room is dark, so the keep-warm covers them. They drop when lights-up starts.
+    Backup of the state before: `qa-night/auditorium-qa.before-entrykeep-10nov.html` (and `.before-doortest-10nov.html`
+    without the test hook).
+  - Result (`res/entrykeep_door_ab_10nov.txt`, A B A B A B, B = `entrykeep=0`): with it worst gap 35, 25 and 18 ms,
+    no held frame in 3 of 3 (decodes in that frame 26-105); without it 40, 40 + 64 and 43 + 55 ms (168-190).
+  - Lights-up after 75 s in the dark with it (`res/entrykeep_up_ab_10nov.txt`, A C A C, C = `entrykeep=0`): 45 and
+    22 ms vs 33 and 32 ms. The 45 ms load had twice the chat traffic (863 PNG decodes in the step vs 283-370), so
+    not settled on two loads; more loads below.
+  - Three more lights-up pairs (`res/entrykeep_up_ab2_10nov.txt`): with it 19, 45 and 36 ms, without 40, 45 and
+    25 ms. Over all five pairs a single gap of 40 ms or more in 2 of 5 loads either way, never two frames in a
+    row: no regression, the change stays. That single gap is the one already listed as open (the page's own
+    style and paint work for the fade's first frame).
+  - State of `auditorium-qa.html` now: 9 Nov candidate + rest bake + entry ramp + touch keep-warm with the spread
+    (`WARM_AGE = 18000`, `WARM_TICK = 8`) + way in kept shown in the dark. Test-only parts: `?restbake=0`,
+    `?entryramp=0`, `?keepwarm=0`, `?entrykeep=0`, `window.__warm`, `window.__doorTest`, `window.__doorLast`.
+    Not promoted: waits for the owner's OK. The way-in change is not yet confirmed at 30 in OBS.
+  - Way-in change confirmed at 30 in OBS (`res/entrykeep_door_ab30_10nov.txt`, door swing after 41 s unused in
+    the dark, A B A B): with it worst gap 35 and 35 ms (one frame, no held frame in 2 of 2); without it 38 ms and
+    49 + 64 ms (two held frames in 1 of 2).
+
+### 10 Nov 2026 (morning, later) - what still decodes at a fade's first frame (Claude, perf goal)
+
+- Open item from above: on some loads the lights-up after 75 s in the dark still holds one or two frames at the
+  fade's first frame. The earlier reading ("the page's own style and paint work") was wrong: the held frames are
+  full of room-piece decodes.
+  - `res/upgap_names_10nov.txt` (4 loads, page as is): worst gaps 51 + 38, 36, 33 and 42 ms. Inside the held
+    frames: 113 and 50 `Decode Image` slices (about 25 ms, up to 9-11 ms each).
+  - New test read-out `window.__pieceState()` (per piece: lit file, dim file, shown, twin shown, ms since drawn,
+    part of the way in), `fadetrace.mjs` `SNAP=<file>` (writes it just before the lights-up in `UPAFTER` mode).
+    Matching the decoded sizes to the snapshot (`res/upwho_10nov.txt`, 3 loads; gaps 27, 50 + 42, 45 + 48 ms):
+    40, 54 and 76 room pieces decoded at 0.4-0.7 s, nearly all of them pieces that were shown and that the
+    keep-warm had marked as drawn 0.5-15 s earlier (median about 4 s). So "everything that overlaps the touched
+    piece is drawn with it" does not hold for every piece.
+  - Test variant where a touch counts for the touched piece alone (`?warmself=1&warmtick=12&warmage=12000`;
+    `res/warmself_up_ab_10nov.txt`, A B A B A B): page as is 51 + 49, 70 + 44 and 42 ms with 88, 105 and 65 pieces
+    decoded; variant 48 + 57 ms (101 pieces decoded although each had its own touch 8-11 s before), 33 ms (32)
+    and 29 ms (9). Better in 2 of 3 loads, not settled; it costs about ten times more touches at rest (about
+    4,900 vs 490 per load) and its raster cost at rest is not measured. Not made the default.
+  - Likely cause of the rest (not tested yet): Chrome's GPU picture cache holds at most 2,000 entries, one per
+    picture frame, least recently used out first (`cc/tiles/gpu_image_decode_cache.cc`,
+    `kNormalMaxItemsInCacheForGpu`). Count on the test page with the lights up and 135 chatters: 1,054 pictures
+    on show with 2,340 frames: room pieces 961 (about 1,170 in the dark), emotes 1,357 frames in 71 files (one
+    GIF alone has 760 frames, others 178, 128, 112), litter 19. That is over the limit, so animated emotes can
+    push still-needed room pieces out however often the pieces are touched.
+- Next steps (not started): confirm it with a run without the big animated emotes (or with emote animation
+  held); if confirmed, look for a way to keep the long GIFs out of that cache or to cap their frames in the
+  dark, without changing the approved looks.
+- `auditorium-qa.html` now also has, test only: `?warmage=<ms>`, `?warmtick=<n>`, `?warmself=1`,
+  `window.__pieceState`. Defaults unchanged. Backup before these: `qa-night/auditorium-qa.before-piecestate-10nov.html`.
+- Weekly usage reached 60%: the goal's stopping point. The QA auditorium waits for the owner's OK to promote.
+- Tools kept in `qa-night/tools/`: `decwho.mjs` (which room pieces a trace decoded, against a `SNAP` file),
+  `countpics.js` + `countframes.mjs` (pictures on show and their animation frames: `node pageval.mjs "$(cat countpics.js)" > pics.json`,
+  then `node countframes.mjs pics.json`).
+
+### 10 Nov 2026 (08:00) - QA auditorium promoted to live (Claude, on the owner's OK)
+
+- Owner: "Yes promote". `auditorium.html` is now the QA auditorium: stepped breath on the fade clock, warm dim
+  background, rest bake, entry ramp, touch keep-warm with the spread, way in kept shown in the dark.
+  - Backup of the live page before it (9 Nov 19:02 version): `qa-night/auditorium.live-before-promote-10nov.html`.
+  - Taken out for live: the read-outs `window.__warm`, `window.__doorLast`, `window.__doorTest`,
+    `window.__pieceState` and the tuning switches `?warmage`, `?warmtick`, `?warmself`. Kept as off-switches:
+    `?restbake=0`, `?entryramp=0`, `?keepwarm=0`, `?entrykeep=0` (and `window.__breathSteps`, `__bgWarm`,
+    `__dimBands`). `auditorium-qa.html` keeps all test parts.
+  - Checked before and after at 60 with NVENC recording, 135 chatters, one fade round each: stripped copy
+    (`res/promote_check_10nov.txt`) worst gap 33 ms; the new live file through the test server
+    (`res/promote_live_10nov.txt`) worst gaps 33, 41, 28 and 37 ms; no gap over two frames, no script errors.
+  - Not done (owner's call): repo push, hosted web edition, zip. The live OBS source needs a refresh to load it.
+  - Still open: the first-frame gap on some loads after a long dark spell (section above).
