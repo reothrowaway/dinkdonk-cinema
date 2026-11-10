@@ -1742,3 +1742,18 @@ Same setup (60 synced, portable OBS, REC on, real chat, blender 0, QA page only;
     (`res/promote_live_10nov.txt`) worst gaps 33, 41, 28 and 37 ms; no gap over two frames, no script errors.
   - Not done (owner's call): repo push, hosted web edition, zip. The live OBS source needs a refresh to load it.
   - Still open: the first-frame gap on some loads after a long dark spell (section above).
+
+### 10 Nov 2026 (08:30) - pushed, hosted web edition deployed, zip rebuilt (Claude, on the owner's "All three")
+
+- Repo: commit `153f3bd` "Auditorium perf pass (9-10 Nov 2026), now live" on `main` (auditorium.html,
+  auditorium-qa.html, this log). Left out on purpose: `lobby-qa.html` and `QUEUE-owner.md` (the design-drafts
+  session's work in progress).
+- Hosted web edition: `web/build.js`, then the build checked locally on 18772 with a test room and real chat (room
+  filled, lights down and up from the control page, no page errors), then `web/deploy/deploy.sh`. Service active,
+  `healthz` ok, 6 rooms loaded; `auditorium.html` and `lobby.html` on the server have the same SHA-256 as the local
+  build (the auditorium also the same as the live file). The version before is in `/opt/dinkdonk-cinema/previous`.
+- Zip: `package/build.js` -> `dist/DinkDonk-Cinema.zip` (775 MB). Packaged server started on 18773: auditorium,
+  lobby and control answer, the auditorium loads with real chat and no page errors; its `auditorium.html` is the live
+  file byte for byte.
+- Lobby unchanged in all three (the L1 marquee is not in yet; the design-drafts session held its `lobby.html` edit
+  until these builds were done).
