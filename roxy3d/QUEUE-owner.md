@@ -311,3 +311,124 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     emote "BEARSLEEP", exists in the emote list); back to their own emote when they wake up (they chat again or the
     lights come up). Hook: auditorium.html setDoze (w.dozing, ~line 1321). Same on every screen (room state), local +
     hosted. Not started (owner: "in the future").
+63. Owner 9 Nov, picks from the round-2 improvement drafts (concepts/improve2/, PNGs in drafts/). "Don't do anything
+    yet": recorded only, nothing started.
+    Liked: lobby L6 chatters take the scene's light, L7 wet reflections under chatters, L8 headlights catch the rain,
+    L9 neighborhood life (steam, windows, neon buzz).
+    Okay: auditorium A7 chatters lit by the screen, row by row.
+    Nice if it looks right: the entrance corridor from A8 ("the hole that leads into the cinema"). Owner's brief for
+    it: dim, less lit than the hall, the same purple look as the cinema, maybe posters on the walls and some really
+    dim lights. The A8 draft's corridor was too bright (pink neon line, bright posters). It is art: blockout first.
+    Not picked: A6 house lights, A9 pre-show lights the room, A10 curtain reveal, L10 lightning, and the rest of A8
+    (halo, plinth, projector housing) unless the owner says otherwise.
+    Answered 9 Nov: the corridor is only a way in. Chatters on their way to a seat walk through it; nobody waits
+    in it. People waiting for a seat (full house) stay out of it, in the lobby or wherever they wait today.
+64. Owner 9 Nov: the scenes need more life (he liked L9's windows and steam for that reason). Keep looking for it:
+    lobby outside and inside the cinema; the auditorium stays a real cinema (not much can be added); DGG memes from
+    the wiki, the subreddit and elsewhere, at most one year old. Suggestions are in roxy3d/memes/LIFE-IDEAS.md
+    (L11-L29, A11-A18). Nothing picked or started yet.
+    + 9 Nov, owner on item 64: "I really like all of this" (L11-L29, A11-A18), then asked for a full year of
+    r/Destiny, drama included ("don't try to avoid it"). Round 2 is in the same file: L30-L49, A19-A21. Still
+    nothing picked for building, and nothing started.
+65. Owner 9 Nov, picks from the Reddit-year ideas (roxy3d/memes/LIFE-IDEAS.md, round 2). Recorded only.
+    Liked: L30 bridge out, L31 snarkers across the street, L32 the canvasser, L38 Dear Leader portrait, L39 salute
+    the janny, L40 the gnome, L44 coming soon: the J6 video, L46 slop on the menu, L47 marquee one-liners.
+    Added by him:
+    - L50 Golden WEOW: once in a while a chatter who posts WEOW walks in as the golden WEOW, with a glowing aura,
+      clearly different from every other emote (in chat the gold roll is about 0.41%). Open: the odds in the lobby.
+    - L51 a poster for an upcoming documentary called "Dogtober 7th" (the community's name for the Hasan and Kaya
+      clip). He asked for it by name. Build note: no name and no likeness on the poster.
+    Not picked: L33-L37, L41-L43, L45, L48, L49, A19-A21.
+    + 9 Nov, owner on L50: odds 1 in 20 ("1 in 10 is fine. No, actually 1 in 20 is fine"). WEOW stays in the normal
+      default pool for chatters who posted no emote ("that's fine, you shouldn't change that"). Assumed: the gold roll
+      is for chatters who posted WEOW, as he first described it; default-pool WEOW walkers stay plain.
+    + 9 Nov, owner corrects the L50 assumption: any chatter wearing WEOW has the 1 in 20 gold roll, "it doesn't have
+      to be one that specifically typed it". So default-pool WEOW walkers roll too. The line above about posted-only
+      no longer holds.
+66. Owner 10 Nov: the lobby control panel should have an option to control the text on the street marquee (item 61,
+    L1). "Don't start yet." Recorded only. Today the board writes screen 1's film by itself (lobby-qa.html,
+    setMarqueeText in applyRooms). Open, ask before building: free text for both lines or presets, and whether the
+    automatic film text comes back when the field is cleared. Related: L47 marquee one-liners (item 65).
+    + 10 Nov, item 61 L1: the marquee is live in lobby.html (local only; push, hosted and zip wait for the owner).
+    + 10 Nov, item 66 done: "Marquee line 1/2" in the panel's Scene settings (lobby), 40 characters each, empty =
+      the automatic film text, "-" = a blank line. Live locally (lobby.html, control.html, shared/settings.js).
+67. Open, owner 10 Nov "Not now": the marquee at 60 fps. At 30 it is clean; at 60 the 451 small pinned light pieces
+    (out10m/merged/pin) still put 10-47 frames per camera move one frame late. Fix = far fewer blended pieces (one
+    per occluder, or fewer z-levels), then one more run by the perf session. Not started.
+    + 10 Nov, owner: "start enacting your changes". Batch 1 built in lobby-qa.html only (PROGRESS, 10 Nov "life ideas,
+      batch 1"): L50 golden WEOW, L47 marquee one-liners, L39 salute the janny (item 65) and L9 neighborhood life
+      (item 63). Screenshots in concepts/life/. Waiting for the owner's OK to make it live in lobby.html.
+    + 10 Nov ~11:20: batch 1 is live in lobby.html (owner: "Go live now"). Not pushed, not on the hosted edition,
+      not in the zip. No OBS smoothness run yet.
+    + 10 Nov, batch 2 built in the QA copies only (PROGRESS, "life ideas, batch 2"): L6 scene light on chatters and
+      L7 wet reflections in lobby-qa.html, A7 row light in auditorium-qa.html (item 63). Needs an OBS smoothness run
+      before going live. Screenshots in concepts/life/.
+    + 10 Nov, owner: no performance checks until the build is done ("we'll leave them for when you are actually
+      done"). Batch 3 built in lobby-qa.html only (PROGRESS, "life ideas, batch 3"): L8 headlights in the rain
+      (item 63), L31 snarkers, L30 bridge-out board, L32 the canvasser (item 65). Screenshots in concepts/life/.
+      Still to build from the picks: L38 Dear Leader portrait, L40 the gnome, L44 J6 video poster, L46 slop menu,
+      L51 Dogtober 7th poster, the entrance corridor (A8, art), golden WEOW in the auditorium, then L11-L29 and
+      A11-A18. Live so far: batch 1 only.
+    + 10 Nov, batch 4 built in lobby-qa.html only (PROGRESS, "life ideas, batch 4"): L38 Dear Leader portrait (owner:
+      "Destiny's WEOW face"), L44 J6 video poster, L51 Dogtober 7th poster, L46 slop menu, L40 the gnome. Left from
+      the picks: entrance corridor (art), golden WEOW in the auditorium, then L11-L29 and A11-A18.
+68. Owner 10 Nov, on L38 (after seeing the page-drawn portrait): "for the dear leader poster, it should be done really
+    nicely, like old soviet iconography, etc and on blender fully baked in." So: a properly designed propaganda-style
+    poster of Destiny (WEOW face), modelled and rendered in Blender as part of the lobby art (its own rendered layer
+    over out10, like the marquee pack out10m), not a page drawing. The page-drawn portrait in lobby-qa.html is a
+    placeholder until then and must not go live as the final. Art workflow applies: placement blockout, then one
+    styled draft, a second-opinion critique, full render only on the owner's word. Open: where it hangs and how big.
+    + 10 Nov, owner on item 68: the poster hangs by the box office. Brief 84 started (Codex): placement blockout,
+      leader/blockout.png. Codex weekly usage 55% before the start.
+    + 10 Nov ~13:10: blockout done (leader/blockout.png). The wall is only 1.2 m high: poster 0.66 x 0.99 m, 40 px
+      wide, standing almost on the floor; walkers in front cover its lower part. Waiting for the owner's layout OK.
+    + 10 Nov, owner: "Keep it on the wall" = layout OK for the Brief 84 blockout (0.66 x 0.99 m on the low wall).
+    + 10 Nov ~13:20: poster design shown (leader/poster-design-sheet.png). Waiting for the owner's OK, then the
+      styled Blender draft.
+    + 10 Nov ~13:25, owner: design OK ("Yes, render it"). Brief 85 started: styled draft qa10/draft28-leader.png.
+    + 10 Nov ~14:20: draft 28 done (qa10/draft28-leader.png). Waiting for the owner's OK; the layer render only on
+      his word. Open: Codex's credit balance dropped ~61 during the run although the weekly figure is 59%.
+    + 10 Nov ~14:30, owner: the poster says "DEAR LEADER", not "OUR". Artwork changed; draft 29 re-rendering locally.
+    + 10 Nov ~15:26: draft 29 (DEAR LEADER) done, qa10/draft29-leader.png. Waiting for the owner's OK for the layer render.
+    + 10 Nov ~15:35, owner: "Yes, render layer" (draft 29 approved). Critique done (critique-86.md); Brief 86 started:
+      layer pack out10l/. Then the page side: load it in lobby-qa.html in place of the placeholder.
+    + 10 Nov ~16:10: layer pack out10l rendered (6 images) and loaded in lobby-qa.html in place of the placeholder.
+      QA only. To do at promotion: out10l in package/art.js, docs, the room's peek list.
+    + 10 Nov ~16:40, item 64 (owner: "The liked lists"): batch 5 built in the QA copies only: A11-A13 the crowd reacts to
+      combos and applauds at lights-up, L16 roof bell, L17 sirens, L22 pet the cat. Left: L11-L15, L18-L21, L23-L29, A14-A18.
+    + 10 Nov ~17:15, item 64: batch 6 built in lobby-qa.html only: L11 puddle splash, L12 umbrellas in the wind, L13
+      missed the bus, L14 pigeons, L15 newspaper, L19 dog in the window. L18 (TV) not built: needs an art change.
+      Left: L20, L21, L23-L29, A14-A18.
+    + 10 Nov ~18:00, item 64: batch 7 built in lobby-qa.html only: L20 emote walks, L23 dancers (no jukebox), L27 golden
+      glorp (1 in 20 like WEOW), L21 Aristortle, L26 nothing burger, L28 quickdraw, L29 wet-floor sign.
+      Left: A14-A18 in the hall; L18, L24, L25 and the L23 jukebox need art.
+    + 10 Nov ~18:50, item 64: batch 8 built in auditorium-qa.html only: A14 snack run, A15 latecomers, A16 aisle vendor,
+      A17 clean-up crew (untested), A18 the conductor. The page-side part of the liked lists is done; what is left
+      needs art (L18, L23 jukebox, L24, L25, the A8 corridor) or is the golden WEOW in the auditorium.
+    + 10 Nov ~19:00, owner: "Art items first". Brief 87 started: corridor blockout (qa11/corridor/blockout.png).
+    + 10 Nov ~19:10: corridor blockout done (qa11/corridor/blockout.png): 2.2 m wide, 7.5 m in frame, far wall with 3
+      poster frames and 2 lights, near side open, runs out of the left edge. Waiting for the owner's layout OK.
+    + 10 Nov ~19:20, owner: corridor "Layout OK". Brief 88 started: styled draft qa11/cinema_draft_14_corridor.png.
+69. Owner 10 Nov: art jobs (briefs, drafts, renders, critiques) go to Claude Fable 5.2 at high effort from now on, not
+    to Codex. AGENTS.md updated. Brief 88 (already running in Codex) finishes as started.
+    + 10 Nov ~19:50: corridor draft 14 done (qa11/cinema_draft_14_corridor.png). Critique and Brief 89 (lobby props
+      blockout) are running as Fable 5.2 high agents.
+    + 10 Nov ~20:05, owner: "Keep draft 14" (corridor look approved as rendered; critique fixes not taken). Brief 90
+      started: full set as draft 14 (qa11/cinema_draft_14*.png, cinema_layout_14.json), Fable 5.2 high agent.
+    + 10 Nov ~21:20: corridor full set delivered (auditorium draft 14, Brief 90) and wired into auditorium-qa.html
+      (QA default draft=14; arrivals walk the corridor, the door opens when they reach it). QA only.
+    + 10 Nov ~21:20: lobby props blockout done (props/blockout.png, Brief 89): TV fits; claw machine only behind the
+      storefront glass, jukebox only small at the snack bar's east end. Waiting for the owner's layout OK.
+    + 10 Nov ~21:35, owner: props layout OK, "All three as shown". Brief 91 started: styled draft qa10/draft30-props.png.
+70. Owner 10 Nov, on the props blockout picture: "i really like the style on it" (the grey clay-model look of the
+    Workbench preview with dark outlines and flat colour accents). Noted only; he asked what it is, not for anything
+    to be built. Possible uses if he wants: a blueprint/model view of the lobby or auditorium as its own scene or card.
+    Later the same evening, offered a clean picture in that style: "yes, make one, does it have to be with no colors?"
+    Answer: no. Brief 92 makes two stills of the lobby in that look, one grey and one in the scene's own flat colours
+    (`style/lobby_model_grey.png`, `style/lobby_model_color.png`). Pictures only; what to use them for is his call.
+    Both shown 10 Nov; asked whether he wants the auditorium in the same look: "Not now". Do not start it unasked.
+71. Owner 10 Nov (~20:45): "Keep going until 72% usage, dggware is deferred for now, do 5 and then 6 but skip the
+    performance check. That will be handled by another session later." (Weekly usage at that moment: 62%.) Props
+    layer render on RunPod, max $2 ("Do 2"). Order: props layers -> props in the QA lobby -> golden WEOW in the
+    auditorium -> corridor checks -> go live (batches 2-8, poster pack, draft 14, props; backups first) -> docs ->
+    push, hosted deploy, zip. No OBS performance run in this session. DGGWare screens (L25) deferred.

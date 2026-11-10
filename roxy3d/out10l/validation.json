@@ -1,0 +1,452 @@
+{
+  "passed": false,
+  "render_and_packaging_passed": true,
+  "all_brief_requirements_passed": false,
+  "composite_check_passed": true,
+  "composite": [
+    {
+      "scale": 1,
+      "body": {
+        "mean": 0.005062407261935934,
+        "p99": 0.0,
+        "max": 1.0,
+        "values": 11457
+      },
+      "receivers": {
+        "mean": 0.005981934914401076,
+        "p99": 0.0,
+        "max": 2.0,
+        "values": 335343
+      },
+      "direct_capture_body": {
+        "mean": 1.0257484507288122,
+        "p99": 6.440000000000509,
+        "max": 16.0,
+        "values": 11457
+      },
+      "direct_capture_receivers": {
+        "mean": 0.19398347363743987,
+        "p99": 2.0,
+        "max": 11.0,
+        "values": 335343
+      },
+      "passed": true
+    },
+    {
+      "scale": 2,
+      "body": {
+        "mean": 0.004570180131977884,
+        "p99": 0.0,
+        "max": 1.0,
+        "values": 44856
+      },
+      "receivers": {
+        "mean": 0.005847979355515427,
+        "p99": 0.0,
+        "max": 2.0,
+        "values": 1342344
+      },
+      "direct_capture_body": {
+        "mean": 1.488585696450865,
+        "p99": 10.0,
+        "max": 39.0,
+        "values": 44856
+      },
+      "direct_capture_receivers": {
+        "mean": 0.22666321002663997,
+        "p99": 2.0,
+        "max": 36.0,
+        "values": 1342344
+      },
+      "passed": true
+    }
+  ],
+  "reconstruction": [
+    {
+      "parent": "leader_body",
+      "scale": 1,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_body_parent_1x.npy"
+    },
+    {
+      "parent": "leader_body",
+      "scale": 2,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_body_parent_2x.npy"
+    },
+    {
+      "parent": "leader_shadow_boxoffice_00",
+      "scale": 1,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_shadow_boxoffice_00_parent_1x.npy"
+    },
+    {
+      "parent": "leader_shadow_boxoffice_00",
+      "scale": 2,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_shadow_boxoffice_00_parent_2x.npy"
+    },
+    {
+      "parent": "leader_shadow_under",
+      "scale": 1,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_shadow_under_parent_1x.npy"
+    },
+    {
+      "parent": "leader_shadow_under",
+      "scale": 2,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_shadow_under_parent_2x.npy"
+    },
+    {
+      "parent": "leader_light_boxoffice_00",
+      "scale": 1,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_light_boxoffice_00_parent_1x.npy"
+    },
+    {
+      "parent": "leader_light_boxoffice_00",
+      "scale": 2,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_light_boxoffice_00_parent_2x.npy"
+    },
+    {
+      "parent": "leader_light_restroom_side_wall_00",
+      "scale": 1,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_light_restroom_side_wall_00_parent_1x.npy"
+    },
+    {
+      "parent": "leader_light_restroom_side_wall_00",
+      "scale": 2,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_light_restroom_side_wall_00_parent_2x.npy"
+    },
+    {
+      "parent": "leader_light_under",
+      "scale": 1,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_light_under_parent_1x.npy"
+    },
+    {
+      "parent": "leader_light_under",
+      "scale": 2,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "leader/layers86/display/leader_light_under_parent_2x.npy"
+    },
+    {
+      "parent": "body_with_contact_shadow",
+      "scale": 1,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "parents/body_with_contact_shadow.png"
+    },
+    {
+      "parent": "body_with_contact_shadow",
+      "scale": 2,
+      "slices": 1,
+      "exact": true,
+      "disjoint": true,
+      "reference": "parents/body_with_contact_shadow@2x.png"
+    },
+    {
+      "parent": "shadow",
+      "scale": 1,
+      "slices": 2,
+      "exact": true,
+      "disjoint": true,
+      "reference": "parents/shadow.png"
+    },
+    {
+      "parent": "shadow",
+      "scale": 2,
+      "slices": 2,
+      "exact": true,
+      "disjoint": true,
+      "reference": "parents/shadow@2x.png"
+    },
+    {
+      "parent": "light",
+      "scale": 1,
+      "slices": 3,
+      "exact": true,
+      "disjoint": true,
+      "reference": "parents/light.png"
+    },
+    {
+      "parent": "light",
+      "scale": 2,
+      "slices": 3,
+      "exact": true,
+      "disjoint": true,
+      "reference": "parents/light@2x.png"
+    }
+  ],
+  "walker_depth_check": {
+    "formula": "1000 + Math.round((u + v) * 100)",
+    "u_range": [
+      3.45,
+      4.15
+    ],
+    "v_range": [
+      3.2,
+      4.1
+    ],
+    "walker_z_min": 1665,
+    "walker_z_max": 1825,
+    "wall_slice": "restroom_side_wall_00",
+    "wall_slice_z": 1674,
+    "body_piece_z": [
+      1675
+    ],
+    "strict_all_walkers_above_body": false,
+    "passed": false,
+    "above_when": "u + v >= 6.755 (integer depth at least 1676)",
+    "equal_depth_interval": "6.745 <= u + v < 6.755; DOM insertion order decides ties",
+    "examples": [
+      {
+        "u": 3.45,
+        "v": 3.2,
+        "z": 1665,
+        "above": false
+      },
+      {
+        "u": 3.45,
+        "v": 3.3,
+        "z": 1675,
+        "above": false
+      },
+      {
+        "u": 3.45,
+        "v": 3.66,
+        "z": 1711,
+        "above": true
+      },
+      {
+        "u": 3.75,
+        "v": 3.7,
+        "z": 1745,
+        "above": true
+      },
+      {
+        "u": 4.15,
+        "v": 4.1,
+        "z": 1825,
+        "above": true
+      }
+    ],
+    "conflict": "Required wall z + 1 is 1675, but the supplied walker rectangle includes 1665..1675. No layer z can satisfy both blanket conditions. Geometry and page were not changed."
+  },
+  "image_elements": 6,
+  "goal_at_most_six": true,
+  "render_settings": {
+    "native_grid": [
+      3840,
+      2160
+    ],
+    "capture_rect_stage": [
+      740,
+      370,
+      340,
+      340
+    ],
+    "samples_max": 256,
+    "samples_min": 64,
+    "adaptive_threshold": 0.01,
+    "seed": 1701,
+    "denoiser": "OPTIX",
+    "device": [
+      "NVIDIA GeForce RTX 3050 6GB Laptop GPU"
+    ],
+    "filter": "BLACKMAN_HARRIS",
+    "filter_width": 2.5,
+    "view_transform": "AgX",
+    "look": "AgX - Medium High Contrast",
+    "exposure": 0.25,
+    "gamma": 1.0,
+    "camera_matrix": [
+      [
+        0.7071067690849304,
+        -0.3535533845424652,
+        0.6123724579811096,
+        24.561817169189453
+      ],
+      [
+        0.7071067690849304,
+        0.3535533547401428,
+        -0.6123724579811096,
+        -23.561817169189453
+      ],
+      [
+        0.0,
+        0.866025447845459,
+        0.4999999701976776,
+        17.06081771850586
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "orthographic_scale": 22.627416610717773,
+    "lamp_watts": 2.0,
+    "source_blend_sha256": "8c02b0b274a51ec7bf88b726c698cc6415b7a2b603153cf574a07d7b8dd826cf",
+    "body_members": [
+      "Leader frame bottom",
+      "Leader frame left",
+      "Leader frame right",
+      "Leader frame top",
+      "Leader picture light bar",
+      "Leader picture light bracket",
+      "Leader picture light lamp",
+      "Leader poster face - blank placement panel"
+    ],
+    "glare_nodes": [
+      {
+        "name": "Render Layers",
+        "type": "R_LAYERS"
+      },
+      {
+        "name": "Group Output",
+        "type": "GROUP_OUTPUT"
+      },
+      {
+        "name": "Glare",
+        "type": "GLARE"
+      },
+      {
+        "name": "Mix",
+        "type": "MIX"
+      },
+      {
+        "name": "Glare.001",
+        "type": "GLARE"
+      },
+      {
+        "name": "Mix.001",
+        "type": "MIX"
+      },
+      {
+        "name": "Glare.002",
+        "type": "GLARE"
+      },
+      {
+        "name": "Mix.002",
+        "type": "MIX"
+      }
+    ]
+  },
+  "dropped_noise": [
+    {
+      "kind": "light",
+      "receiver": "partition_left_00",
+      "max_1x": 1,
+      "max_2x": 1
+    },
+    {
+      "kind": "light",
+      "receiver": "partition_right_00",
+      "max_1x": 1,
+      "max_2x": 1
+    },
+    {
+      "kind": "light",
+      "receiver": "podium_00",
+      "max_1x": 2,
+      "max_2x": 2
+    },
+    {
+      "kind": "light",
+      "receiver": "restroom_side_wall_01",
+      "max_1x": 1,
+      "max_2x": 1
+    }
+  ],
+  "blocking_constraints": [
+    "The supplied full walker rectangle includes depths at or below required body z 1675."
+  ],
+  "difference_conditioning": {
+    "display_precision_bits": 16,
+    "geometry_coherent_threshold_code_values": 2,
+    "geometry_mean_radius_stage_px": 1,
+    "geometry_contact_support_stage_px": 12,
+    "lamp_mean_radius_stage_px": 2,
+    "lamp_filter": "coverage normalized within receiver ownership, no filtering across silhouettes or onto poster",
+    "display_space_encoding": "black shadow plus positive chromatic complement; body edge colors solved for straight-alpha blending",
+    "direct_capture_acceptance": "mean <= 2/255 and p99 <= 12/255, same gates as NOTES-83"
+  },
+  "capture_border_checks": {
+    "1": {
+      "lamp": {
+        "mean": 0.0027924196787148595,
+        "p99": 0.0,
+        "max": 1.0,
+        "values": 31872
+      },
+      "geometry": {
+        "mean": 0.012518825301204819,
+        "p99": 1.0,
+        "max": 1.0,
+        "values": 31872
+      }
+    },
+    "2": {
+      "lamp": {
+        "mean": 0.002706137048192771,
+        "p99": 0.0,
+        "max": 1.0,
+        "values": 127488
+      },
+      "geometry": {
+        "mean": 0.01645645080321285,
+        "p99": 1.0,
+        "max": 2.0,
+        "values": 127488
+      }
+    }
+  },
+  "pure_lamp_basis": "paired isolated source on/off, identical geometry/seed; added in scene-linear to full lamp-off before AgX/glare; checked against direct full lamp-on capture",
+  "preservation": {
+    "passed": true,
+    "input_files": 33716,
+    "source_and_live_hashes_unchanged": true,
+    "elapsed_seconds": 170.2888174999971
+  },
+  "check_image": {
+    "file": "qa10/leader-layer-check.png",
+    "size": [
+      1280,
+      720
+    ],
+    "sha256": "ca0d119dda8eec6e0eb75b9b911098b2d59dd1022f685bf8e1436b82168b4bc8"
+  },
+  "scope": "Offline art/layer checks. Browser, real-chat and OBS acceptance remain for page integration.",
+  "packaging_seconds": 7.950773299991852
+}

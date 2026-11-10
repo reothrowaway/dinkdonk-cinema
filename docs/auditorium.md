@@ -53,7 +53,13 @@ after.
 
 | Option | Default | Effect | Where |
 |---|---|---|---|
-| `draft=NN` | `13` | which `roxy3d/qa11/cinema_layout_NN.json` / `cinema_draft_NN.png` to load (two digits only) | `DRAFT`, line 203 |
+| `draft=NN` | `14` | which `roxy3d/qa11/cinema_layout_NN.json` / `cinema_draft_NN.png` to load (two digits only). 14 = 13 plus the entrance corridor (live 10 Nov 2026); `draft=13` is the hall without it | `DRAFT` |
+| `corridor=0` | on | Arrivals appear at the door as before, instead of walking down the entrance corridor (needs a draft whose layout has `page_layers.spawn.door_wait_point`) | `CORRIDOR`, `enterVia` |
+| `rowlight=0` | on | With the lights down every chatter is at 50%, instead of a seated chatter being lit by the screen (front row brightest) | `rowLight` |
+| `react=0` | on | No crowd reactions to chat combos (laughs, gasps, boos) and no applause when the lights come up (`window.__crowdReact` for tests) | `REACTS`, `crowdReact` |
+| `hall=0` | on | No hall life: the snack run, the vendor, the conductor on a combo, late-comers saying sorry, the clean-up crew (`window.__hall`) | `HALL_ON`, `stepHallLife` |
+| `gold=<0..1>` | 0.05 | Odds that a chatter wearing WEOW or glorp is the golden one (gold face, aura, gold name). The hall's own roll per visit, from the room's seed; `0` = off | `GOLD_P`, `gild` |
+| `goldtest=1` | off | Test only: one arrival in five is dressed in WEOW (use with `gold=1`) | `GOLD_TEST` |
 | `phase=seating\|dim\|film\|up` | `seating` | starting phase | `show`, line 211 |
 | `screen=green` | off | screen polygon always green (never the pre-show) | `alwaysGreen` |
 | `director=0` / `director=<s>` | on, 150 s | `0` turns the automatic director off; a number sets seconds between automatic follows (30-1800) | `DIRECTOR_ON`, `director.every` |
@@ -86,6 +92,21 @@ From the shared scripts (see [server-and-shared.md](server-and-shared.md)):
 | `cmds=off` | no effect: the auditorium registers no `!commands` |
 | `chat=`, `f=`, `chatbar=`, `chatcrop=`, `title=`, `sub=`, `until=` | no effect: no chat panel or headline here |
 | `demo=1` | fake chat. Exists, but the project rule is real chat only (`everyone=1`); don't use it for checks |
+
+## Entrance corridor (draft 14, 10 Nov 2026)
+
+Draft 14 is draft 13 with a dim purple corridor behind the entrance door (posters, sconces, a runner). Nothing of the
+hall changed; unchanged slices are still the draft 13 files, named from `cinema_layout_14.json`.
+- The layout's entrance route starts at the corridor's far end (`[1.45, 24, 0]`); `page_layers.spawn.door_wait_point`
+  (`[1.45, 15.12, 0]`) is the point outside the door. On load the page splits the corridor's points off the route
+  (`CORRIDOR`); the route itself stays as in draft 13.
+- Only arrivals walk the corridor (`enterVia`: chatters, jannies, the usher, hall staff). The door opens when an
+  arrival reaches the wait point (`w.doorAt`), and they wait there for `spawn.wait_seconds`. Everyone leaving goes
+  out at the door, as before. Nobody waits in the corridor: it is a way in, not a waiting room.
+- Beyond the door (v >= 14.95) a chatter is in plain sight (names, speech), not "in the tunnel". With the lights
+  down the corridor keeps its own light, and a chatter in it stays at full brightness (`w.inCorr` in `rowLight`).
+- Known: the fly-through video's last frames were rendered with the draft 13 hall, so the corridor appears at the
+  cut into the auditorium.
 
 ## Layout JSON contract (`cinema_layout_13.json`)
 

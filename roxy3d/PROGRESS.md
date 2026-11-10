@@ -1880,3 +1880,532 @@ Owner: "do all those 3" (rain under the canopy, an OBS check of the marquee, que
   out10m/merged + merged.json, the four `roxy3d/marquee/*.mjs` build tools, docs, this log with the perf session's
   entries). Left out on purpose again: `QUEUE-owner.md`.
 - Still open: a clean 60 (the 451 pinned light pieces); rain fix and text fields not looked at inside OBS.
+
+### 10 Nov 2026 - life ideas, batch 1 in lobby-qa.html: golden WEOW, marquee one-liners, janny salute, neighborhood life (Claude; QA only)
+
+Owner: "take a look at how the project looks now and after, if there's no conflicts, start enacting your changes."
+
+- **State check first.** Since the picks were recorded: the L1 marquee went live (pack `out10m`, merged light layers, dry
+  sidewalk under the canopy, board text from the panel) and the auditorium perf pass went live. `lobby.html` and
+  `lobby-qa.html` were identical apart from the title and the transition script; no other session was running. No
+  conflict with the picks; the marquee is what L47 needed. Work is in `lobby-qa.html` only (backup of it from before:
+  `backups/2026-11-10-life-batch1/lobby-qa.before.html`). `lobby.html`, `control.html` and `shared/*` are untouched.
+- **L50 golden WEOW** (queue 65): any chatter wearing WEOW walks in golden 1 time in 20 (`GOLD_P`), typed or from the
+  default pool. One roll per visit, drawn last from the room's seed in `newChatter` (`w.goldRoll`), so every screen
+  agrees and the earlier picks keep their values. The gold face is DGG's own: the WEOW sheet (278x28) holds the rare
+  variants after the plain face, gold at x 168, so `gild()` only moves the background position. Around it a pulsing
+  aura with four sparkles (`.aura`), a gold name, and a one-time "GOLDEN WEOW" float when they are first seen.
+  `?gold=<0..1>` changes the odds; `?goldtest=1` (test only) dresses one arrival in five in WEOW.
+- **L47 marquee one-liners** (queue 65): while line 2 is on automatic, the last 12 s of every minute it shows one of
+  five stock lines (IT'S OVER. / I CAN'T BELIEVE THIS HAPPENED??? / MANY SUCH CASES! / WAOW (BASED BASED BASED) /
+  WE ARE SO BACK) instead of the screen/rating row; line 1 keeps the film. Picked by the wall clock, so every screen
+  shows the same line. A line set in the panel wins. `?mqlines=0` turns them off.
+- **L39 salute the janny** (queue 65): when a mod's janny comes on duty, up to 8 chatters inside within 5.5 tiles turn
+  to them, hop and float "o7" (`saluteJanny`). Nobody's route changes.
+- **L9 neighborhood life** (queue 63): new layer `#lifefx` and one script block next to the sky/wet-street one.
+  Steam from two roof vents, the noodle shop and the two corner roofs (15 small puffs, transform/opacity only); six
+  apartment windows switch over minutes (three lit ones can go dark, three dark ones can light up; overlays measured
+  on `lit_bg_dry@2x`); the blue window flickers like a TV; the pink neon and the VIDEO RENTAL sign dip for an instant
+  every 53 s / 97 s. Windows and dips follow the wall clock. `?life=0` off; `?lifetest=1` shows every window overlay
+  and dips every 6 s (alignment check).
+- **Checked** on the live server's QA page with real chat (`lobby-qa.html?everyone=1`, headless Edge, 1920x1080 and
+  3840x2160): no page errors; the board showed "NOW SHOWING · RESIDENT EVIL / WAOW (BASED BASED BASED)" in the one-liner
+  window; window overlays sit on the render's windows in the test view; steam and dips present. Screenshots:
+  `concepts/life/batch1-wide.png`, `batch1-street-life.png`, `batch1-marquee-line.png`, `batch1-golden-weow.png`.
+- **Not real-chat for one shot:** no chatter wore WEOW during the check (over 4 minutes of waiting), so the golden
+  screenshot used `?gold=1&goldtest=1`. The salute has not been seen yet: no mod typed during the check.
+- **Not done:** no OBS smoothness run (perf session's test), nothing promoted, no panel switches, docs not updated
+  (they describe the live page; to do with the promotion). The auditorium has no golden WEOW yet.
+- **Next batches** (order proposed): 2 = L6 chatter light + L7 reflections + A7 row light (need the perf run);
+  3 = L8 headlights in the rain shader; 4 = street bits (L31 snarkers, L32 canvasser, L30 bridge out);
+  5 = lobby props that need art or a placement decision (L38 portrait, L40 gnome, L44 J6 poster, L46 slop menu,
+  L51 Dogtober poster, entrance corridor A8); then the "liked all" list L11-L29, A11-A18.
+- 10 Nov ~11:20, **promoted** on the owner's "Go live now": `lobby.html` = `lobby-qa.html` apart from the title and
+  `shared/transition.js` (backup of the live file from before: `backups/2026-11-10-life-batch1/lobby.before.html`;
+  it was unchanged since the QA copy was taken, and no other session was running). Checked through the live server
+  (18770) with real chat: title "Lobby", 22 walkers, the life layer with 6 window overlays, 15 puffs, the TV and 2
+  dips, no broken images, no page errors. `docs/lobby.md` has the new options (`mqlines`, `gold`, `goldtest`,
+  `life`, `lifetest`). The live OBS source needs a refresh to load it.
+- Still not done: an OBS smoothness run of the new layer (the owner chose to go live without it); the salute and a
+  real-chat golden WEOW have not been seen yet; repo push, hosted web edition and zip (owner's call).
+
+### 10 Nov 2026 - life ideas, batch 2 in the QA copies: scene light on chatters, wet reflections, row light (Claude; QA only)
+
+Owner: "Yes, batch 2". `lobby-qa.html` and `auditorium-qa.html` only; the live pages and `shared/*` are untouched.
+Backups of the two QA files from before: `backups/2026-11-10-life-batch2/`.
+
+- **L6 chatters take the scene's light** (queue 63, `lobby-qa.html`, block after `MIST_DIR`): on the street a chatter's
+  look comes from the render's light pass (`out10mist/light.png`, 480x270, blurred) under their feet: night blue in three
+  levels (`n1-n3`), sodium warm in three (`s1-s3`), purple in the lobby's spill in front of the glass (`p`), warm under
+  the marquee (`m`); inside only the corridor differs (`h`, cooler and dimmer). Each look is one SVG colour matrix
+  (per-channel gains, so the emote's own colours stay) set through `data-lt` on the walker, chosen four times a second
+  per chatter and written only on change. On the street it replaces the flat `brightness(.84) saturate(.9)` those
+  chatters already carried, so the number of filtered emotes outside is the same; the corridor adds a few. The lobby
+  floor keeps no filter. `?light=0`: the old flat dimming.
+- **L7 wet reflections** (queue 63, same block): a chatter on the wet street (not under the marquee's dry roof, not in a
+  vehicle) has a flipped copy of their emote under their feet (`.refl`: 44% opacity, fading out downwards, squashed to
+  82%). It follows the emote's facing and is rebuilt when the emote changes. The copy is not dimmed by L6: a dimmed
+  one vanished on the dark pavement. Emote only, no umbrella copy. `?refl=0`: none.
+- **A7 row light** (queue 63, `auditorium-qa.html`, `rowLight`): in the dark a seated chatter's brightness depends on
+  the row, 0.88 in the front row down to 0.38 in the last (it was 0.5 for everyone). The value sits in `--rb` on the
+  chatter; the dark-room CSS rule and the stepped fade both use it. Walkers in the aisles and carried items keep 0.5
+  (the items' dark pictures are baked at 0.5). Same one filter per emote as before. `?rowlight=0`: 0.5 for everyone.
+- **Checked** with real chat, headless Edge. Lobby QA (3840x2160): no page errors; looks seen on real chatters: `n1`,
+  `n2`, `p`, `m`; a chatter at the glass with the purple look and a reflection under him
+  (`concepts/life/batch2-street-chatter.png`). Auditorium QA (`room=0&phase=film`, 110 s): no page errors; six seated
+  chatters with six different row values, computed filters match (`concepts/life/batch2-auditorium-rows.png`).
+- **Thin evidence:** chat was quiet (9-16 chatters in the lobby, one or two on the street at a time; 6 seated in the
+  test hall), so the sodium looks (`s1-s3`) and the corridor look were not seen on a chatter, and the row light was not
+  seen on a full house. The reflection is faint on a dark emote.
+- **Not done:** no OBS smoothness run. These two are the per-chatter changes that need one before they go live: the
+  reflection adds one more emote copy per street chatter, and a hop repaints the walker's layer with it.
+
+### 10 Nov 2026 - life ideas, batch 3 in lobby-qa.html: headlights in the rain, snarkers, bridge-out board, canvasser (Claude; QA only)
+
+Owner: "no performance checks for now, we'll leave them for when you are actually done." So the batches keep going
+in the QA copies and one OBS run comes at the end. `lobby-qa.html` only; backup from before:
+`backups/2026-11-10-life-batch3/lobby-qa.before.html`.
+
+- **L8 headlights catch the rain** (queue 63): inside the extra-rain shader, not an overlay. `RAIN2_FS` has a new
+  uniform `uHL[4]` (lamp position in stage px, direction along the street, strength); `setHeadlights()` fills it every
+  frame from `traffic` (front bumper at lamp height, up to four vehicles on screen). In a cone ahead of each vehicle
+  (340 px, widening) the streaks turn bright and warm and a faint haze is added. `?beams=0`: none.
+- **L31 snarkers** (queue 65): two heads in the dark apartment window above the TV (`.snark`, in the life layer),
+  each with a binocular glint; they duck below the sill for 15 s of every 50 (wall clock). No names, no faces.
+  `?snark=0`: none.
+- **L30 bridge out** (queue 65): a roadworks message board on the far sidewalk (u 4.87, v 14.03; `.rwboard`, sorted in
+  depth with the traffic): amber dot text from the page's LED font, two blinking beacons, a glow on the pavement.
+  BRIDGE / OUT most of the time; once every 10 minutes (wall clock) BRIDGE / REBUILT in green for 55 s, then
+  BURNED / AGAIN with a flicker for 25 s. It stands beside the road, so traffic is not blocked. `?bridge=0`: none.
+- **L32 the canvasser** (queue 65): every 9 minutes (wall clock) Buddy (`dggL`) with a clipboard and an umbrella comes
+  down the street and knocks at the video store (nobody answers), the greengrocer and the noodle shop (the door
+  opens with a slice of light, `.doorlight`), then walks on past the cinema and off screen. A figure of this
+  screen, like the cat (`stepCanvasser`). `?canvass=0`: never; `?canvass=now` (test only): 6 s after load.
+- **Checked** on the QA page with real chat (headless Edge, 3840x2160), no page errors: the rain ahead of a passing
+  sedan is brighter in a cone (`concepts/life/batch3-headlights.png`); the canvasser at the greengrocer's lit door
+  and the two heads in the window (`batch3-canvasser-snarkers.png`, taken with `?canvass=now`); the board reading
+  BRIDGE OUT with its beacon (`batch3-bridge-out.png`).
+- **Not seen:** the board's REBUILT / BURNED AGAIN states (10-minute cycle) and the glint at the moment of the shot.
+  After the last screenshot the door light was softened and the heads made a shade lighter (CSS only, scripts parse;
+  not re-shot).
+- **Page-drawn, not rendered:** the board, the heads and the door light are drawn by the page on top of the Blender
+  art. They hold up at the wide shot; at a 2-4x zoom they are flatter than the art around them.
+
+### 10 Nov 2026 - life ideas, batch 4 in lobby-qa.html: Dear Leader portrait, two posters, slop menu, the gnome (Claude; QA only)
+
+`lobby-qa.html` only; backup from before: `backups/2026-11-10-life-batch4/lobby-qa.before.html`. All five are page
+drawings on the art's wall planes, measured on `full@2x`; one block "lobby props drawn by the page" before `lookAt`.
+
+- **L38 Dear Leader** (queue 65; owner 10 Nov: "Destiny's WEOW face"): a gold-framed portrait with the plain WEOW face,
+  a brass plate OUR DEAR LEADER and a picture light, on the wall right of the TICKETS sign (z just over
+  `occ_restroom_side_wall`'s slice, so chatters in front cover it). One chatter in four floats "o7" at the usher's
+  gate (`serveGate`). `?leader=0`: none.
+- **L44 The J6 Video** (queue 65): a COMING SOON poster on the corridor's left end wall, over the render's filler
+  poster "Night Ferry" (half behind the poll projector, so the text sits low). Its release date is a stack of
+  stickers; one more is pasted on every 3 minutes (2024, SPRING, SOON, 2026, SOON(tm), AFTER HL3), then it starts over.
+- **L51 Dogtober 7th** (queue 65; the owner asked for it by name): "A DOCUMENTARY · DOGTOBER 7TH · COMING SOON" over the
+  filler poster "The Blue Hour": a dog silhouette with a yellow collar box and a spark. No name, no face.
+  `?posters=0` drops both posters.
+- **L46 slop on the menu** (queue 65): the SODA and NACHOS boards behind the snack bar take turns, 20 s each:
+  POLITICS SLOP $2.75 / PROMO CODE DESTINY: 0% OFF and DRAMA SLOP $5.25 / DAY 1 HATERS EAT FREE. Drawn in pieces, one
+  per wall slice (`buildSlop`), so the clerks still sort in front. The POPCORN board is untouched. `?slop=0`: none.
+- **L40 the gnome** (queue 65): a small garden gnome on the lobby floor, one of seven spots picked by the wall clock.
+  He only moves while the camera is in a close-up, or after five minutes of the wide shot. `?gnome=0`: none.
+- **Checked** on the QA page with real chat (headless Edge, 3840x2160), no page errors. Screenshots in
+  `concepts/life/`: `batch4-portrait.png`, `batch4-posters.png`, `batch4-slop-menu.png`, `batch4-gnome.png`. For the
+  portrait, poster and gnome shots the speech bubbles were hidden in the test tab (they covered the wall).
+- **Not seen:** the menu's second lines, the later stickers, the gnome changing place.
+- **Known limits:** flat page drawings (no shading from the scene's lights); the gnome is a simple shape; walkers can
+  walk through the gnome; the J6 poster is half covered by the projector by design of that wall.
+- **Left from the picks:** the entrance corridor (A8, art: blockout first), golden WEOW in the auditorium, then the
+  liked lists L11-L29 and A11-A18.
+- 10 Nov, owner on L38: the Dear Leader poster is to be done properly, in the style of old Soviet iconography, in
+  Blender and baked into the art (queue item 68). The page-drawn portrait from batch 4 is a placeholder only.
+
+### 10 Nov 2026 - Dear Leader poster in Blender: placement blockout started (Brief 84)
+
+Owner: the Dear Leader poster should be "done really nicely, like old soviet iconography ... and on blender fully baked
+in", by the box office (queue item 68). Brief 84 (Codex) makes the placement blockout: `leader/blockout.png` (one
+1280x720 still with one inset), `leader/leader_geom.json`, NOTES-84. Codex weekly usage 55% at the start; GPU idle,
+no other session running. The page-drawn portrait in `lobby-qa.html` stays as a placeholder until the layer exists.
+- 10 Nov ~13:10: Brief 84 done (`leader/blockout.png`, `leader/leader_geom.json`, NOTES-84; Workbench, 2.3 s). The wall
+  by the box office is a cutaway only 1.20 m high, so the largest 2:3 poster under its cap is 0.66 x 0.99 m (face
+  39.6 stage px wide, corners 849,485 / 889,465 / 889,538 / 849,558), bottom edge 5.5 cm above the floor, picture light
+  2.75 cm under the cap. Nothing in the art covers it, but a walker standing in front hides about the lower 60%.
+  Codex weekly usage 59% after the run. Waiting for the owner's layout OK (or a taller mounting).
+- 10 Nov, owner: "Keep it on the wall": layout OK for the Brief 84 placement. Next: the poster artwork, then one styled draft.
+- 10 Nov ~13:20: poster artwork, first design (`leader/poster.html` -> `leader/poster.png`, 800x1200; sheet with stream
+  sizes: `leader/poster-design-sheet.png`). Red field with rays, gold halo, the WEOW face in five ink tones with a
+  keyline, dark tunic with a star, wheat ears, a top star, black banner OUR DEAR LEADER, footer GLORY TO THE STREAM ·
+  D.GG. The face comes from the 28 px emote (`ref/weow-emote/weow-sheet.png`, the largest there is; the wiki has no
+  bigger one), smoothed and posterized, so it is soft close up. Waiting for the owner's OK on the design before the
+  styled Blender draft (Brief 85, not written yet).
+- 10 Nov ~13:25, owner: "Yes, render it" = design OK. Brief 85 started (Codex): one styled final-quality draft
+  `qa10/draft28-leader.png` (1280x720 + one native 4x inset) on a copy of `marquee/marquee_draft27.blend`, with
+  `leader/poster.png` as the face. Codex weekly usage 59% at the start; GPU idle.
+- 10 Nov ~14:20: draft 28 done (`qa10/draft28-leader.png`, 1280x720 + one native 4x inset; `leader/leader_draft.blend`,
+  NOTES-85; 174 s on the RTX 3050). The approved artwork as a matte print in a thin black-brown frame with a brass
+  picture light (2 W warm area lamp), on a copy of `marquee/marquee_draft27.blend`; no clipped whites on the face.
+  Codex's estimate for the later layer render: 30-40 minutes locally. No second-opinion critique yet.
+  Codex usage after the run: weekly 59% (unchanged), but the credit balance the checker prints went from 3,221.6 to
+  3,160.1 during this run. The script's own comment says credits are only spent at 100% weekly; not explained yet,
+  told the owner. Waiting for the owner's OK on the draft.
+- 10 Nov ~14:30, owner on draft 28: it should say "DEAR LEADER", not "OUR". Artwork changed (`leader/poster.html` ->
+  `leader/poster.png`; the first version kept as `leader/poster-v1-our-dear-leader.png`); the placeholder's plate in
+  `lobby-qa.html` too. Draft 29 is a re-run of Codex's own builder with only the output names changed
+  (`leader/build_draft86.py` -> `qa10/draft29-leader.png`, `leader/leader_draft29.blend`), run locally in Blender
+  without a Codex job (no credits).
+- 10 Nov ~15:26: draft 29 done (`qa10/draft29-leader.png`, `leader/leader_draft29.blend`; 95 s of rendering, local
+  Blender, no Codex job). The render used the new artwork (its recorded hash equals `leader/poster.png`); the inset
+  reads DEAR / LEADER. Everything else as draft 28. Waiting for the owner's OK; no critique and no layer render yet.
+- 10 Nov ~15:35, owner on draft 29: "Yes, render layer". Read-only Codex critique of draft 29 in `critique-86.md`:
+  the poster reads as a print and sits on the wall; the picture light's wash is weak and even; the layer set must
+  carry the contact shadow, the fixture shadow and the wall spill. Taken: the shadows and spill are part of the pack;
+  the wash may be a touch stronger at the top, with the look still matching draft 29. Brief 86 started (Codex): staging
+  pack `out10l/` (body, light, shadow; at most 6 page elements, pinned above the wall's own slice), check image
+  `qa10/leader-layer-check.png`. Codex weekly usage 59% and credits 3,160 before the critique; GPU idle.
+
+### 10 Nov 2026 (~16:10) - Dear Leader poster: layer pack out10l rendered and loaded in lobby-qa.html (Claude; QA only)
+
+- **Pack** (Brief 86, Codex, local RTX 3050, NOTES-86): `roxy3d/out10l/`, 21 files, 171 KiB, six page images at 1x and
+  @2x: `leader_shadow_under` and `leader_light_under` (z 5, under all walkers), `leader_body` (poster, frame, picture
+  light and its contact shadow in one image) and `leader_light_restroom_side_wall_00` (z 1675 = the wall slice + 1),
+  and two small pieces on the box office (z 1954). Three of the six are `plus-lighter`. Check image
+  `qa10/leader-layer-check.png` matches draft 29. Render passes 98 s + 16 s for the lamp pair.
+- **Flagged by Codex, checked:** `validation.json` has `passed: false` for one reason only: my brief asked that every
+  walker 0.3-1.0 m in front of the wall sorts above the body, and a walker with u + v < 6.755 has a lower z than the
+  wall slice + 1. That is how the wall itself already sorts (its slice is z 1674), the poster lies inside the wall's
+  own sprite, and the route past it (gate -> GATE_OUT) keeps a walker's sprite right of the poster by then. Seen in
+  the page: a chatter at the usher's gate is drawn in front of the poster. Render, hashes and parent rebuild pass.
+- **Page** (`lobby-qa.html`, backup `backups/2026-11-10-life-leader/lobby-qa.before.html`): `mergeLeader()` loads
+  `out10l/leader.json` after the marquee pack; under layers join `MARQ.under`, pinned ones join the occluder stack; the
+  page-drawn placeholder portrait is removed when the pack loads (it stays as the fallback without the pack).
+  `?leaderart=0`: no pack. New director spot `leader` (this screen's own director only; the room's spot list in
+  `shared/room.js` is untouched).
+- **Checked** on the QA page with real chat (headless Edge, 3840x2160): 6 pack images, none broken, no placeholder,
+  no page errors, 60 walkers. Screenshot `concepts/life/leader-poster-in-qa-lobby.png` (speech bubbles hidden in the
+  test tab; they covered the wall in the first shot).
+- **Codex credits:** balance 3,051.9 after the run (3,160.1 before the critique and this brief); weekly figure still
+  59%. Three runs today moved it by about 170 in total. Not explained; the owner knows about the first drop.
+- Not done: performance run (at the end, owner's call), promotion, `package/art.js` and docs for `out10l`.
+
+### 10 Nov 2026 (~16:40) - life ideas, batch 5 in the QA copies: the crowd and the street react to chat combos (Claude; QA only)
+
+Owner: "The liked lists" (queue 64: L11-L29, A11-A18). First the chat-driven ones. `lobby-qa.html` and
+`auditorium-qa.html` only; backups from before in `backups/2026-11-10-life-batch5/`. A combo is `core.js`'s own event:
+several chatters posting the same single emote in a row.
+
+- **A11 / A12 / A13 the crowd reacts** (`auditorium-qa.html`, block after `dark`): on a combo of three (then every
+  fourth more) the seated audience answers. Laugh emotes (LUL, OMEGALUL, KEK, PepeLaugh, YeeLaugh, haHAA, GAGAGA...):
+  a ripple of bounces from the front row to the back, twice. CINEMA: hands in the air (floating marks, 30 px). Clap /
+  Klappa / IMPRESSED: applause. monkaS / nathanOOO / OOOO / SWEATSTINY / Concerned: the whole house jolts at once.
+  When the house lights come up (`applyPhase`), one round of applause after 1.8 s. Sleepers, staff and people leaving
+  sit it out; one reaction per 4 s at most, 14 marks at most. `?react=0`: none. `floatAt` got an optional size.
+- **L16 the roof bell** (`lobby-qa.html`, block after `Cinema.onCombo`): a DinkDonk combo rings the bell-ringer in
+  the neon sign: two rings spread from it and DINK / DONK float up, twice.
+- **L17 sirens**: a WEEWOO or ALARMA combo sends a sedan with a flashing red and blue light bar down the near lane at
+  speed (`callSiren`, `stepSirens`; at most one a minute; retries while the lane is busy).
+- **L22 pet the cat**: a combo of ASLAN, ComfyCat or MotherFuckinGame wakes the lobby cat (it sits up for 12 s),
+  hearts float up from it and up to four chatters within three tiles turn to it and hop. `?chatfx=0` turns off the
+  three lobby bits.
+- **Checked** with real chat on both QA pages (headless Edge), no page errors. The effects were started by hand in the
+  test tab through their test hooks (`window.__chatfx`, `window.__crowdReact`), not by a chat combo: the bell's rings
+  and "DONK" (`concepts/life/batch5-roof-bell.png`), the siren car (`batch5-siren.png`), hands in the air in a hall
+  with 15 seated (`batch5-cinema-hands.png`); `petCat()` returned true (cat present), not screenshotted.
+- **Not seen:** any of them fired by a real combo; laugh, clap and shock in the hall; the applause at lights-up.
+- **Left from the liked lists:** street L11-L15, L18, L19; inside L20, L21, L23-L29 (L27's gold glorp half); hall
+  A14-A18.
+
+### 10 Nov 2026 (~17:15) - life ideas, batch 6 in lobby-qa.html: more street life (Claude; QA only)
+
+Owner: "Yes, go on" (liked lists, queue 64). `lobby-qa.html` only; backup `backups/2026-11-10-life-batch6/`. One block
+"more street life" before `lookAt`, driven by `stepStreet2(dt)` in the frame loop. `?street2=0`: none of it.
+
+- **L11 puddle splash:** a car in the near lane passing u 6.2 at speed throws water at the curb 45% of the time
+  (ten drops in arcs, a ring on the sidewalk); up to three chatters standing at the curb hop and float "hey!!" / a
+  splash mark.
+- **L12 umbrellas in the wind:** while the weather is "curtains" (gusts) every umbrella leans 12 degrees; every
+  5-11 s one is blown inside out for 1.3 s with a puff mark.
+- **L15 newspaper:** in the same gusts a sheet tumbles down the sidewalk from left to right every 9-20 s.
+- **L13 missed the bus:** when the bus pulls out, 30% of the time someone (a default emote, no name) comes running
+  from the left, floats "WAIT!!", then "...", walks under the shelter and takes the next bus (the existing
+  `waitingBus` / `boardBus` path, so the bus waits for them). One at a time.
+- **L14 pigeons:** four on the top edges of the two rooftop billboards; they fly up and settle again when a bus stops.
+- **L19 the dog in the window:** a dark head with two ears at the sill of the blue (TV) window; it lifts while a bus
+  is in the street.
+- Not built: **L18 breaking-news TV**. The video store's window is under its awning in the art; there is no clean
+  place for a TV without an art change.
+- **Checked** on the QA page with real chat (headless Edge, 3840x2160), no page errors. Started by hand through
+  `window.__street2`: the late runner at the stop (`concepts/life/batch6-missed-bus.png`), the splash drops
+  (`batch6-splash.png`); the pigeons on the billboards (`batch6-pigeons.png`); the dog with its head up, forced in
+  the test tab (`batch6-dog.png`).
+- **Not seen:** the gust effects (the weather was not "curtains"), the pigeons flying, the runner boarding, a splash
+  from a real car, chatters reacting to it.
+- Small and simple shapes: the pigeons and the dog are a few pixels of page drawing; fine at the wide shot, plain
+  when zoomed in.
+- **Left from the liked lists:** inside L20, L21, L23-L29; hall A14-A18; L18 (needs art).
+
+### 10 Nov 2026 (~18:00) - life ideas, batch 7 in lobby-qa.html: lobby interior (Claude; QA only)
+
+Owner: "Yes, go on" (liked lists, queue 64). `lobby-qa.html` only; backup `backups/2026-11-10-life-batch7/`.
+
+- **L20 emote walks / L23 dancers** (`GAITS`, used by `setEmote`, `stepPlan`, `drawFigure`): DITCHSTINY runs (1.6x),
+  SLUGSTINY and PepoTurtle crawl (0.5x, no hops), THATNINJA sneaks (no hops), CHILLS shivers, and the dance emotes
+  (pepeJAM, JAMSTINY, YAM, RaveDoge, AlienPls, GatoPls, RainbowPls, PoroPls) bob on the spot most of the time.
+  `?gaits=0`: everyone walks alike. The jukebox of L23 is not built (art).
+- **L27 golden glorp:** the golden roll now also covers glorp, with the owner's WEOW odds (1 in 20; `GOLD_X` holds the
+  gold cell of each sheet). The WEOW cell offset was 2 px off (168) and is now exact (166).
+- **L21 Aristortle:** every 10 minutes (wall clock) a PepoTurtle named Aristortle crosses the lobby floor in front
+  of the snack bar, about 70 s (`sendTurtle`).
+- **L26 nothing burger:** every 4 minutes a snack clerk lifts a small serving cloche over an empty plate and
+  "nothing." floats up (`nothingBurger`).
+- **L28 quickdraw:** when a PARDNER chatter and a YEEHAW chatter are within four tiles inside the lobby they turn to
+  each other, "DRAW!", and one loses; at most once every 3 minutes. Nobody's route changes.
+- **L29 wet floor:** after five chatters have come in from the rain within 40 s, a yellow wet-floor sign stands on
+  the lobby floor for 90 s. (Counter wiping and restocking are not built.)
+  `?lobbylife=0` turns off the turtle, the cloche, the quickdraw and the sign.
+- **Found on the way:** from this camera the street marquee's roof hides the lobby floor between the box office and
+  the entrance. The turtle's route, the sign and three of the gnome's seven spots were under it; they are moved to
+  floor the camera sees. The slop menu's second line was too long for its board ("PROMO CODE DESTINY: 0% OFF" is now
+  "CODE DESTINY: 0% OFF").
+- **Checked** on the QA page with real chat (headless Edge, 3840x2160), no page errors. Started by hand through
+  `window.__lobbyLife`: the turtle on the floor with its name (`concepts/life/batch7-aristortle.png`), the lifted
+  cloche and "nothing." (`batch7-nothing-burger.png`).
+- **Not seen:** any special gait (no chatter wore one of those emotes), a golden glorp, a quickdraw, the wet-floor
+  sign at its final spot (moved once more after the last screenshot), the turtle and cloche on their own timers.
+- **Left from the liked lists:** L24 claw machine and L25 DGGWare screens (both need art), the L23 jukebox (art), L18
+  TV (art), and the hall's A14-A18.
+
+### 10 Nov 2026 (~18:50) - life ideas, batch 8 in auditorium-qa.html: hall life (Claude; QA only)
+
+Owner: "Yes, go on" (liked lists, queue 64: A14-A18). `auditorium-qa.html` only; backup
+`backups/2026-11-10-life-batch8/`. One block "hall life" before `stepHouseOut`, driven by `stepHallLife(now)` in `tick`.
+All of it is this screen's own (not shared through the room). `?hall=0`: none of it.
+
+- **A14 snack run:** in the dark, every 70-150 s (first after 40-90 s) one seated chatter (awake, not followed, not
+  texting) gets up, walks out as far as the tunnel, waits 5-10 s out of sight and comes back to the same seat; a
+  popcorn mark floats up when they sit. One at a time; the seat stays theirs (`snackRun`).
+- **A15 latecomers:** whoever is let in while the hall is dark ducks along (low hops, squashed) and floats
+  "sorry... sorry..." when they reach their row (`w.late`, in `spawn` and `step`).
+- **A16 aisle vendor:** during seating, with at least 8 seated, every 3-5 minutes a vendor (the snack clerk's emote)
+  comes in, walks the cross-aisle calling "popcorn! soda!", up to three chatters in the first two rows buy
+  ("+1" and a popcorn mark), "last call!", and out again (`sendVendor`).
+- **A17 clean-up crew:** once "Everyone leaves" has emptied the hall and litter lies about, two mop penguins come in
+  and sweep the rows of the main block, one the even rows and one the odd; a litter piece goes as a mop passes within
+  about a tile, the rest with the last pass (`startCleanup`; pieces are hidden, the litter clock is untouched).
+- **A18 the conductor:** 2.5 s after the phase turns to film, the conductor (the DinkDonk emote with the usher's cap)
+  comes in to the cross-aisle, floats "roll it!" and leaves. A DinkDonk combo during the film sends the conductor
+  hurrying across the cross-aisle with "DINK DONK!" (at most once a minute).
+- Staff figures (`crewWalker`) are walkers that never sit and are not counted as guests (`guests()` subtracts them).
+- **Checked** on the QA page with real chat (headless Edge, `room=0`), no page errors in three runs. Seen fire:
+  the vendor on the cross-aisle with "popcorn! soda!" and a "+1" (`concepts/life/batch8-vendor.png`, started by hand);
+  in a dark hall with 34-39 seated: "sorry... sorry..." from real late arrivals, "roll it!" from the conductor
+  (started by hand), and a snack run that ended with its popcorn mark and the chatter seated again (timer forced).
+- **Not tested:** the clean-up crew (needs an emptied hall with litter), the conductor's hurry on a combo, the
+  conductor at a real phase change, and all of it in a shared room.
+- The vendor and the conductor are ordinary emote figures; only the conductor's cap marks them as staff.
+- With this the page-side part of the liked lists is done. Still open: golden WEOW in the auditorium; the entrance
+  corridor (A8) and the props that need art (L18 TV, L23 jukebox, L24 claw machine, L25 DGGWare screens); the OBS
+  performance run of everything since batch 1; promotion, docs, package list, push/hosted/zip.
+
+### 10 Nov 2026 (~19:00) - auditorium entrance corridor: blockout started (Brief 87)
+
+Owner: "Art items first". First the entrance corridor (queue item 63, A8): dim, purple like the lobby, maybe posters,
+really dim lights; only a way in, nobody waits there. Brief 87 (Codex) makes the layout blockout from the draft 13
+scene: `qa11/corridor/blockout.png` (1920x1080), `corridor_geom.json`, NOTES-87. Codex weekly usage 59%, credits
+3,051.9 before the start; GPU idle, no other session running. After it: the lobby props that need art (L18 TV, L23
+jukebox, L24 claw machine, L25 DGGWare screens).
+- 10 Nov ~19:10: Brief 87 done (`qa11/corridor/blockout.png`, `corridor_geom.json`, NOTES-87; Workbench, 1.5 s). A
+  straight corridor on the walk route's line (u 1.45): clear floor 2.20 m wide, from the hall's rear wall (v 14.94) to
+  v 24.00 = 9.06 m, of which 7.49 m are in the frame; it runs out of the left edge (no far-end doorway, its frame
+  would cover walkers). Far wall 2.60 m high with three 0.70 x 1.00 m poster frames and two light boxes; near side
+  open; a runner down the middle. New route start `[1.45, 24, 0]` (off screen), extra points every 2 m. No collision
+  with the hall, the door is not covered, a walker is visible along the whole corridor (ray checks in the notes).
+  Codex usage after the run: weekly 59%, credits 3,051.9 (unchanged this time). Waiting for the owner's layout OK.
+- 10 Nov ~19:20, owner: "Layout OK" for the corridor blockout. Brief 88 started (Codex): one styled final-quality
+  draft `qa11/cinema_draft_14_corridor.png` (lit state): the lobby's plum walls and carpet, clearly darker than the
+  hall, two really dim sconces, three lobby film posters barely readable, no neon. Codex weekly usage 59% at start.
+- 10 Nov ~19:25, owner: from now on art jobs are given to Claude Fable 5.2 at high effort instead of Codex ("always
+  ask to fable 5.2 high"). `AGENTS.md` changed: rule 6's critique line and the section "Working with Codex for art",
+  now "Who renders the art". Brief 88 was already running in Codex when he said it; it is left to finish (stopping it
+  would throw away the render in progress). Every later brief, and the critique of draft 14, goes to a Fable 5.2
+  high-effort subagent. `docs/art-pipeline.md` and `docs/owner-workflow.md` still describe the Codex calls.
+- 10 Nov ~19:30, owner: "Let it finish" (Brief 88 in Codex). Meanwhile Brief 89 (lobby props blockout) is written but
+  not started: one Blender job at a time on the 6 GB GPU.
+- 10 Nov ~19:50: Brief 88 done, the last Codex job (`qa11/cinema_draft_14_corridor.png`, `qa11/corridor/corridor_draft.blend`,
+  NOTES-88). The lobby's plum wall with a dark wainscot and brass cap, the lobby's carpet with a darker runner, two
+  3 W sconces, three lobby posters behind dull glass, no neon. Rendered as a corridor-only layer over the live
+  `cinema_draft_13@2x.png`: 0 changed pixels outside the corridor. Codex's plan for the full set: lit + dim layers,
+  depth slices, and new entrance-door sheets for both states; 3-6 min of rendering plus about an hour of packaging.
+  Codex after the run: weekly 60%, credits "n/a".
+- 10 Nov ~19:55, first jobs under the new rule (Fable 5.2, high effort, as subagents): a read-only critique of
+  draft 14, and Brief 89 (lobby props placement blockout: claw machine, jukebox, TV -> `props/blockout.png`).
+- 10 Nov ~20:00: critique of draft 14 by a Fable 5.2 high agent (`critique-88.md`): the wall, posters and overall
+  dimness are right; the floor is as dark as the background (mean 10/255), so the open edge dissolves and dark emotes
+  will not read; the sconces have no light pool. Proposed for draft 15: floor and runner about 1.6x brighter, the
+  runner halfway toward the lobby's purple, each sconce about 3x. Waiting for the owner.
+- 10 Nov ~20:05, owner on the corridor: "Keep draft 14". He read the critique's three fixes and chose the draft as
+  rendered, so its look is approved unchanged (the critique's points are NOT taken). Brief 90 started (Fable 5.2
+  high agent): the full set as a new draft number 14 next to the live 13: lit and lights-down backgrounds with the
+  corridor composited in, depth slices if any are needed, entrance-door sheets for both states, and
+  `qa11/cinema_layout_14.json` with the extended walk route; plus a list of what the page has to change. No draft 13
+  file is touched; `auditorium.html` keeps loading 13. The agent waits for the props blockout's Blender to finish.
+
+### 10 Nov 2026 (~18:45) - entrance corridor: draft 14 full set in, wired into auditorium-qa.html; lobby props blockout in
+
+**Brief 90 (Fable 5.2 high agent, NOTES-90):** auditorium draft 14 = draft 13 + the approved corridor, 261 new files in
+`qa11/` (lit and dim backgrounds at 1x and 2x, `cinema_layout_14.json`, four new door sheets, 19 refreshed slices and
+44 band pieces per state). Lit background: 0 changed pixels against draft 13 outside the corridor and 0 against the
+approved draft inside it. Dim state: the corridor keeps its own light (the agent's variant B; mean change 0.54 of 255
+against the lit corridor). No new corridor slices are needed (near side open); 19 draft 13 slices got draft 14
+copies because the corridor now shows behind them. Door cutouts reused. 15 border renders, 59 s; packaging 19 min.
+Checked here: the files exist, no slice or piece path is missing, rows and screen equal layout 13, the route starts
+at `[1.45, 24, 0]`, both stills looked at. In the dim still the padded door and the hall's rear wall go dark while the
+corridor beside them stays lit.
+
+**Page (`auditorium-qa.html`, backup `backups/2026-11-10-life-corridor/`):**
+- The QA copy now defaults to `draft=14` (the live page still loads 13).
+- On load the corridor's points are split off the entrance route (`CORRIDOR`); the route itself stays as in draft 13,
+  from the point outside the door. So only arrivals walk the corridor (`enterVia`: chatters, jannies, the usher, the
+  hall-life staff); everyone leaving still goes out at the door, as before. `?corridor=0`: arrivals appear at the door.
+- The door now opens when an arrival reaches the point outside it (`w.doorAt`, in `step`), not when they spawn.
+- The "in the tunnel" test ends at v 14.95, so chatters in the corridor are in plain sight (names, speech).
+- The spawn-gap test looks at the corridor's far end.
+- Checked with real chat (headless Edge, `room=0`): background `cinema_draft_14.png`, no page errors, two chatters
+  walking in the corridor with their speech bubbles (`concepts/life/corridor-in-qa.png`).
+- **Not checked:** the door opening at the right moment and the wait there, a janny or the usher coming in, lights
+  down with people in the corridor (they get the dark-room 50% like everyone), the shared room, the fly-through's last
+  frame against draft 14 (it was rendered with the draft 13 hall), promotion (the `DRAFT` default, README recipe,
+  `package/art.js`).
+
+**Brief 89 (Fable 5.2 high agent, NOTES-89):** `props/blockout.png`, `props_geom.json`. The lobby's east half is full,
+so two of the three are compromises:
+- TV: on a shelf on the snack bar's back wall at its west end, screen 30 px wide, fully visible; not above head
+  height (the wall is 1.2 m), clear of heads by position. Screen quad (1010.9, 551.3) (1040.9, 566.3) (1040.9, 592.8)
+  (1010.9, 577.8).
+- Claw machine: inside against the storefront glass between the entrance and the arcade cabinet, so it is seen
+  through the tinted glass (about 45% of its brightness); it hides part of the talk spot (10.8, 7.2), the cat's spot
+  (10.5, 7.9) and the gnome's glass spot.
+- Jukebox: at the east end of the snack bar next to the palm, 0.5 m wide (30 px), 0.3 m off the wall; it covers the
+  end of the back bar (a stack of cups); its dancers' floor is the cat's and the gnome's patch there.
+Waiting for the owner's layout OK on the props.
+- 10 Nov ~18:50, owner on the props blockout: "All three as shown" (he was told the compromises). Brief 91 started
+  (Fable 5.2 high agent): one styled final-quality draft `qa10/draft30-props.png` with up to three native insets, on a
+  copy of `leader/leader_draft29.blend`: the WIN A BUDDY claw machine, the JAMS jukebox, the CRT with a sample
+  BREAKING NEWS picture. Positions and sizes fixed.
+- Same message: the owner likes the look of the blockout picture itself (`props/blockout.png`). It is Blender's
+  Workbench preview: flat lighting, each object in one plain colour, cavity shading on edges and creases, a dark
+  object outline, no shadows or highlights, glass drawn see-through, 2.6 s per frame. Noted as something he likes;
+  nothing started with it.
+- 10 Nov ~18:55, owner on the offer of a clean picture in that look: "yes, make one, does it have to be with no
+  colors?" It does not: the grey is only each object's plain display colour. Brief 92 started (Fable 5.2 high agent,
+  preview renderer only, waits for the props draft's Blender runs): two stills of the lobby from the production
+  camera without the prop boxes and labels, `style/lobby_model_grey.png` (the look he saw) and
+  `style/lobby_model_color.png` (every object in its own flat colour), each also at 2x. Nothing on the pages changes.
+- 10 Nov ~19:20, Brief 92 in (NOTES-92): `style/lobby_model_grey.png` and `style/lobby_model_color.png` (+ `@2x`),
+  `style/build_style.py`, `style/style_model.blend`. Workbench set-up as in the props blockout; about 3 s per frame.
+  Colour version: each object takes its material's main colour (emission colour for neon and lit windows, the largest
+  colour cluster for prints), lifted evenly because the night scene's colours are too dark to read flat; the rain
+  objects are hidden there and nine mostly transparent objects are drawn see-through. Differences from the brief: the
+  "Dear Leader" poster is one flat red (one colour per object), and the grey still's lines are finer than the 720p
+  blockout's (1 px lines at 1080p). Both 1x stills looked at here and shown to the owner. Not checked: the 2x stills
+  as a whole, `style_model.blend` in the Blender window. Nothing on the pages changed.
+- 10 Nov ~19:45, Brief 91 in (NOTES-91): `qa10/draft30-props.png`, one styled still with three native 3x insets;
+  `props/props_draft.blend` (collection `PROPS`, 87 objects). Claw machine "WIN A BUDDY" behind the storefront glass
+  (blue plush heap, pink header with amber bulbs, teal line), jukebox "JAMS" (pink and teal tubes, floor glow), beige
+  CRT on a shelf with a sample BREAKING NEWS picture on the screen quad. Positions and sizes as approved. Rendering
+  173 s on the RTX 3050. Looked at here and shown to the owner. Known: the lettering reads only in the insets (6 px
+  cap height at 1280); the jukebox's side is nearly black against the bar; the agent added one small shelf bracket
+  under the TV outside the approved box (`P91 tv shelf bracket`, owner's call). Second-opinion critique started
+  (Fable 5.2 high, `critique-91.md`). Not checked: the page, figures at the props, the pack's glass over the claw
+  machine. Layer render only on the owner's word.
+- 10 Nov ~19:50, second opinion on draft 30 in (`critique-91.md`, Fable 5.2 high, read-only). Verdict: one more cheap
+  draft, then the layer render; nothing floats, clips or is blown out; the TV can go as it is. Points: (1) the claw
+  machine's header bulbs match the street marquee's bulbs just above and drown the pink sign face (bulbs 7.0 -> ~3,
+  smaller; face 1.0 -> ~1.8); (2) the jukebox's side and top are black against the bar, so it reads as a panel on the
+  bar's end (dark cherry about 2.5x lighter, a thin metal edge along the arch); (3) its title window is a near-white
+  block at stream size (JAMS 3.2 -> ~1.8, glass 0.40 -> ~0.7); (4) the teal floor spot is a blue-grey smear, one pink
+  pool front-left is better; (5) delete the shelf bracket (not visible, outside the approved box); (6) optional: a
+  charcoal mask around the TV screen. Waiting for the owner: fix draft or layer render as it is.
+- 10 Nov ~19:55, owner on draft 30 and its critique: "Fix draft first". Brief 93 started (Fable 5.2 high agent):
+  draft 31 = draft 30 with critique points 1-5 (claw header a pink sign with small dim bulbs; jukebox body dark
+  cherry with a metal edge; amber title window; one pink floor pool; shelf bracket deleted). Point 6 (TV screen mask)
+  not taken, the TV stays as it is. Positions and sizes unchanged. `qa10/draft31-props.png`, same insets as draft 30.
+  GPU idle and no other session running before the start.
+- 10 Nov ~20:30, Brief 93 in (NOTES-93): `qa10/draft31-props.png`, `props/props_draft93.blend`. Claw header: bulbs
+  7.0 -> 3.0 and 15 -> 10 mm, face 1.0 -> 1.8 (bulb centres at stream size 207/178/155 -> 175/130/90; marquee bulbs
+  253/246/240). Jukebox: lacquer to (0.17, 0.05, 0.035), a 28 mm brass band along the front edge, title window amber
+  (near-white pixels 40 -> 0), one pink 42 W floor spot (one 37 x 27 px patch, no blue-grey pixels, spill +1 level),
+  teal spot dropped. Shelf bracket deleted. TV and all positions verified unchanged. Rendering 141 s.
+  Two departures from the brief's numbers, flagged: a faint flat cherry emission on the jukebox body (x 0.20; no
+  lobby lamp reaches its east side, `BODY_GLOW = 0` switches it off) and a deeper amber title window (JAMS x 0.90,
+  glass x 0.42) because the brief's values still measured near-white. Still short per the agent: lilac sheen on the
+  arch's crown, the brass band is a dark seam down the east edge, JAMS amber on amber in the inset, the key strip is
+  now the lightest line on the front. Looked at here, shown to the owner; second opinion started (`critique-93.md`).
+- 10 Nov ~20:35, second opinion on draft 31 in (`critique-93.md`): all five points fixed, nothing worse, "good enough
+  ... as it is", no further draft; three optional touches (shaded falloff on the jukebox side, dimmer claw lettering,
+  rougher brass) NOT taken, the approved look is draft 31 as rendered.
+- Owner on draft 31: go to the layer render, and "Render on runpod since we have credits there". Checked (read-only):
+  RunPod: enough credit for a small run, no pods. The job is small: NOTES-91 estimates about 23 cropped captures, 8-12 min of rendering
+  on the local RTX 3050; the rest of the hour is scripting, slicing and packaging, which happens on this PC either
+  way. A cloud run needs its own bundle, upload and pod boot, and no credit limit was named (rule 7). Asked the owner
+  where to run it. Meanwhile Brief 94 stage A started (Fable 5.2 high agent): the portable capture job in
+  `props/layer94/` and a low-sample local smoke, then stop; production captures wait for the owner's answer.
+  Staged pack will be `out10p/` (`props.json`, same layer format as `out10l/leader.json`, animated pieces separate:
+  four header chase groups, pink and teal jukebox tubes, TV glow).
+- 10 Nov ~20:40, owner on where to run the props layer captures: "Do 2" = RunPod, max $2.
+  Plan: after stage A (portable capture job + local smoke) the agent builds a small bundle for `cloud/cloud-render.sh`
+  (`run.sh full`, result as `out10.tar.gz` of the EXRs, as the helper expects); one pod, `MAX_HOURS=1`,
+  `KEEP_ON_FAIL=0`, a hard stop timer in the bundle, so the worst case stays under the limit; pod and volume deleted
+  afterwards and the credit read back. Slicing and packaging (stage B) run on this PC.
+- 10 Nov ~20:50: the clock times of the entries from "entrance corridor: draft 14 full set" down to here were
+  written from a wrong guess of the time (up to four hours late, two of them dated 11 Nov); corrected from the
+  files' own times. Nothing else in them changed.
+- 10 Nov ~20:45, owner: "Keep going until 72% usage, dggware is deferred for now, do 5 and then 6 but skip the
+  performance check. That will be handled by another session later." (queue 71; weekly usage 62% at that moment).
+  So: props layers, props in the QA lobby, golden WEOW in the hall, corridor checks, then go live and docs, push,
+  hosted deploy, zip. No OBS run here.
+- 10 Nov ~20:50, golden WEOW in the hall (`auditorium-qa.html`, backup `backups/2026-11-10-life-gold-aud/`): `GOLD_P` 1/20, `GOLD_X` (WEOW, glorp), `gild(w)`: DGG's gold cell of the emote sheet,
+  an aura with four sparkles behind the emote (dimmer with the lights down, no filter on the emote, so the dark-room
+  brightness rule still holds), a gold name, one "GOLDEN WEOW" float when first seen. The roll is drawn last from
+  the chatter's room seed in `makeWalker`, so earlier picks (snack, phone) stay and every screen agrees. It is the
+  hall's own roll: gold in the lobby does not carry over. `?gold=0..1`, `?goldtest=1` (test only). Checked with real
+  chat and the test hooks (`gold=1&goldtest=1`, headless Edge, `room=0`): 8 golden chatters seated with aura and
+  gold face, no page errors (`concepts/life/gold-aud-test.png`). Not checked: lights down, the float, normal odds.
+- 10 Nov ~20:55, corridor checks in `auditorium-qa.html` (real chat, headless Edge, a watcher that samples every
+  walker left of the door and every door play):
+  - Door timing: 48 door plays in 140 s (`room=0`), each with a chatter standing at the wait point (stage 310, 722);
+    each stops there 0.37-0.57 s (wait 0.28 s plus the sampling step), the others queue behind in the corridor. OK.
+  - Lights down (`phase=dim`): 40 door plays in 75 s, same timing. The corridor keeps its light in the dim art, but
+    chatters in it were dimmed to the dark room's 50%. Fixed: `rowLight` gives a chatter in the corridor (`w.inCorr`,
+    v >= 14.95) full brightness; they drop to 50% when they pass the door. Carried snacks stay on their dark picture
+    (baked at 50%), a small mismatch. Backup `backups/2026-11-10-life-corridor2/`; picture
+    `concepts/life/corridor-lights-down.png` (a janny and the usher with his torch at the door, so staff do come in
+    through the corridor).
+  - Shared room (default): the hall was already full (135 seated), nobody walked in during 70 s, so arrivals through
+    the corridor are NOT seen in the shared room yet; the page loads draft 14 there without errors.
+  - Fly-through: its last frames show the draft 13 hall without the corridor (`fly/transition/qa/f1420-auditorium.jpg`),
+    so at the cut into the auditorium the corridor strip (lower left, dim purple, about 340 x 200 px) appears at once.
+    Not fixed here: it needs either the fly-through's last second re-rendered or a small fade-in of the corridor in
+    `shared/transition.js` (another session's file). For the owner.
+
+### 10 Nov 2026 (~21:00) - GO LIVE: life batches 2-8, the "Dear Leader" poster pack, auditorium draft 14 with the corridor, golden WEOW in the hall
+
+Owner (queue 71): go live, then docs, push, hosted deploy and zip; no performance run in this session (another
+session does it later). Backups: `backups/2026-11-10-life-golive/` (`lobby.before.html`, `auditorium.before.html`,
+and the two QA copies as they were).
+- `lobby.html` = `lobby-qa.html` with the three identity lines kept (title "Lobby", `shared/transition.js` twice).
+  The committed QA and live lobby differed only by those lines, so nothing of another session was lost.
+- `auditorium.html`: this session's changes applied as a patch (`git diff HEAD -- auditorium-qa.html`, 27 hunks, clean),
+  NOT a copy, because the QA copy carries the perf session's test hooks (`warmage`, `warmtick`, `warmself`,
+  `__warm`, `__doorTest`, `__pieceState`) that the live page does not have. The live page now defaults to draft 14.
+- Checked with real chat (headless Edge, `room=0`): live lobby (title "Lobby", `transition.js`, the poster pack
+  loaded, slop menu, bridge board, posters; `concepts/life/golive-lobby.png`) and live auditorium (draft 14 lit and
+  dim backgrounds loaded; `concepts/life/golive-auditorium.png`), no page errors in either.
+- **Not done / not checked:** no OBS run and no frame-time comparison of anything since batch 1 (owner's call); the
+  lobby props (claw machine, jukebox, TV) are not in yet (layer render in progress); the fly-through's last frames
+  still show the hall without the corridor; shared-room arrivals through the corridor not seen.
+- Every feature keeps its off switch (`?light=0`, `?refl=0`, `?beams=0`, `?snark=0`, `?bridge=0`, `?canvass=0`,
+  `?leader=0`, `?leaderart=0`, `?posters=0`, `?slop=0`, `?gnome=0`, `?chatfx=0`, `?street2=0`, `?gaits=0`,
+  `?lobbylife=0`; hall: `?rowlight=0`, `?react=0`, `?hall=0`, `?corridor=0`, `?gold=0`, `?draft=13`), so a later
+  performance run can switch each one off.

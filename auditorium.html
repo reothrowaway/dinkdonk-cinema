@@ -57,7 +57,7 @@
      of decoding; no cost in the dark at rest). */
   /* emotes and items at rest; the 6 s dimming between is stepped from script (stepDim): a 6 s CSS filter transition on
      every chatter repainted each one every frame of the fade (perf 8 Nov: ~94 -> ~136 fps uncapped without it) */
-  .lights-down .w .em { filter: brightness(.5); }
+  .lights-down .w .em { filter: brightness(var(--rb, .5)); }   /* --rb: a seated chatter's row light (rowLight) */
 
   /* A flat projection, clipped before its affine mapping into the matte screen. */
   #preshow { position: absolute; left: 0; top: 0; width: 960px; height: 540px; overflow: hidden;
@@ -122,6 +122,18 @@
   .w.sit .sh { display: none; }
   .w .bod { position: absolute; left: 0; top: 0; width: 0; height: 0; }
   .w .em { position: absolute; bottom: 0; }
+  /* golden WEOW (queue 65, L50), as in the lobby: DGG's own gold cell of the emote's sheet, a pulsing aura with
+     sparkles behind the emote and a gold name. No filter on the emote, so the dark-room brightness rule above still
+     holds; with the lights down the aura is dimmer (--ad). Rare: 1 in 20 of the chatters wearing WEOW. */
+  .w .aura { position: absolute; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(255, 214, 90, .5), rgba(255, 190, 50, .34) 50%, rgba(255, 170, 30, 0));
+    animation: aura 1.5s ease-in-out infinite alternate; }
+  .lights-down .w .aura { --ad: .55; }
+  @keyframes aura { from { transform: scale(.84); opacity: calc(.68 * var(--ad, 1)); } to { transform: scale(1.12); opacity: var(--ad, 1); } }
+  .w .aura i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #fffbe0;
+    box-shadow: 0 0 5px 2px rgba(255, 220, 110, .9); animation: twinkle 1.2s ease-in-out infinite; }
+  @keyframes twinkle { 0%, 100% { transform: scale(.2); opacity: 0; } 50% { transform: scale(1); opacity: 1; } }
+  #names .nm.gold { color: #ffd75a !important; text-shadow: 0 0 6px rgba(255, 200, 60, .9); }
   /* popcorn / soda (the lobby's rendered item sprites) and the phone some seated chatters check */
   .w .item { position: absolute; pointer-events: none; }
   /* (.dk: the item shows its dark picture while the room rests dark, see restPic) */
@@ -300,7 +312,7 @@
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const rand = (a, b) => a + Math.random() * (b - a);
 
-  const DRAFT = /^\d{2}$/.test(q.get('draft') || '') ? q.get('draft') : '13';   // draft 13 = draft 12 (lobby's padded door) + re-seated step lights at 45 % (04 Nov)
+  const DRAFT = /^\d{2}$/.test(q.get('draft') || '') ? q.get('draft') : '14';   // draft 14 = draft 13 + the entrance corridor (Brief 90, live 10 Nov); draft 13 = draft 12 (lobby's padded door) + re-seated step lights at 45 % (04 Nov)
   const ART = 'roxy3d/qa11/';
   const world = $('world');
   const nameLayer = $('names');
@@ -348,6 +360,7 @@
     const down = (show.phase === 'dim' || show.phase === 'film') && !show.lightsOn;
     const dimmed = down !== $('stage').classList.contains('lights-down');
     if (dimmed) {
+      if (!down) setTimeout(() => crowdReact('clap'), 1800);   // the lights come up: applause (A13)
       $('stage').classList.toggle('lights-down', down);
       syncFlat();
       lightsAt = performance.now();
@@ -991,9 +1004,11 @@
       // (the last update after a fade takes every chatter still off the end value, whatever strip they have walked into)
       const sweep = !fading && !dimClock.left && i === n - 1;
       for (const w of walkers.values()) {
-        if ((!sweep && (w.band || 0) !== b) || (w.dimF || '') === emoF) continue;
-        w.dimF = emoF;
-        if (w.em) w.em.style.filter = emoF;
+        // (a seated chatter fades to their row's light, everyone else to 50%: rowLight)
+        const wF = emoFading && w.rb != null ? `brightness(${(1 - (1 - w.rb) * emoFade.level).toFixed(3)})` : emoF;
+        if ((!sweep && (w.band || 0) !== b) || (w.dimF ?? '') === wF) continue;
+        w.dimF = wF;
+        if (w.em) w.em.style.filter = wF;
         if (w.item) { w.item.style.filter = emoF; restPic(w.item); }
         if (w.cap) restPic(w.cap);
       }
@@ -1187,6 +1202,21 @@
   // res/dimframes_ab_10nov.txt). All pictures stay loaded (picKeep), which makes a switch of src immediate.
   // Emotes keep their filter (animated sprites). ?restbake=0 (test only): the filters as before.
   const RESTBAKE = q.get('restbake') !== '0';
+  // Row light (queue 63, A7; owner picked it from concepts/improve2/drafts/A7.png): in the dark a seated chatter is
+  // lit by the screen, so the front row is close to full brightness and every row behind it is darker, instead of
+  // the same 50% for everyone. One brightness per row, kept in --rb on the chatter (the dark-room CSS rule and the
+  // stepped fade both use it); walkers in the aisles keep 50%, and so do carried items (their dark pictures are baked
+  // at 50%). It is the same one filter per emote as before, with another number. ?rowlight=0: 50% for everyone.
+  const ROWLIGHT = q.get('rowlight') !== '0';
+  function rowLight(w) {
+    const i = ROWLIGHT && w.sitting && w.seat ? rows.indexOf(w.seat.row) : -1;
+    // (in the entrance corridor, which keeps its own light when the house lights go down, a chatter stays fully lit)
+    const rb = w.inCorr ? 1 : i < 0 ? null : +(0.88 - 0.5 * Math.pow(i / Math.max(1, rows.length - 1), 0.8)).toFixed(3);
+    if (rb === (w.rb ?? null)) return;
+    w.rb = rb;
+    if (rb == null) w.el.style.removeProperty('--rb'); else w.el.style.setProperty('--rb', String(rb));
+    w.dimF = null;   // (a running fade writes this chatter's own value at its next update)
+  }
   let darkRest = false;   // the room rests dark (stepDim, on the update that ends a lights-down)
   const picKeep = new Map();   // url -> an Image holding it loaded
   // src (a canvas or a loaded image) under a CSS filter, as a blob URL (null where it could not be made)
@@ -1265,6 +1295,31 @@
       w.cap.style.top = `${-w.emH + 6 * K - cap.anchor[1] * K}px`;
     }
   }
+  // Golden WEOW (queue 65, L50; the lobby has the same): 1 chatter in 20 of those wearing WEOW (or glorp) is golden,
+  // whether they typed the emote or got it from the default pool. One roll per visit to the hall, from the room's
+  // seed, so every screen sees the same golden one. (The lobby rolls for its own visit: gold there does not mean
+  // gold here.) The gold face is DGG's own, a cell of the emote's sheet. ?gold=<0..1> changes the odds (?gold=0: off).
+  // ?goldtest=1 (test only, to look at it when nobody wears WEOW): one arrival in five is dressed in WEOW.
+  const GOLD_P = q.has('gold') ? clamp(Number(q.get('gold')) || 0, 0, 1) : 1 / 20;
+  const GOLD_TEST = q.get('goldtest') === '1';
+  const GOLD_X = { WEOW: 166, glorp: 166 };
+  function gild(w) {
+    if (w.jan || w.crew || w.usher || GOLD_X[w.emName] == null || !((w.goldRoll ?? 1) < GOLD_P)) return;
+    w.gold = true;
+    const face = w.em.firstElementChild;
+    if (face) face.style.backgroundPosition = `-${GOLD_X[w.emName]}px 0`;
+    const d = Math.round(w.emH * 2.5);   // the lobby's 124 px around a 50 px emote
+    w.aura = h('div', 'aura');
+    w.aura.style.cssText = `left:${-d / 2}px;top:${-w.emH / 2 - d / 2}px;width:${d}px;height:${d}px`;
+    for (const [x, y, dl] of [[0.11, 0.24, 0], [0.77, 0.18, 0.4], [0.84, 0.63, 0.8], [0.18, 0.74, 0.2]]) {
+      const sp = h('i');
+      sp.style.cssText = `left:${x * d}px;top:${y * d}px;animation-delay:${-dl}s`;
+      w.aura.append(sp);
+    }
+    w.el.insertBefore(w.aura, w.bod);   // behind the emote
+    w.nm.classList.add('gold');
+    w.goldSay = true;                   // announced once, when they are first seen (step)
+  }
   // the room's seed for this chatter (shared/room.js): their random looks are the same on every screen
   function seeded(seed) {
     if (!Number.isFinite(seed)) return Math.random;
@@ -1277,6 +1332,7 @@
     };
   }
   function makeWalker(m) {
+    if (GOLD_TEST && SB.hashHue(m.nick) % 5 === 0) m = { ...m, emote: 'WEOW' };
     const key = m.nick.toLowerCase();
     const rr = seeded(m.seed);
     const el = h('div', 'w');
@@ -1291,6 +1347,7 @@
     const item = rr() < 0.85 ? itemEl(rr() < 0.2 ? 'soda' : 'popcorn') : null;
     if (item) bod.append(item);
     const phone = rr() < PHONE_SHARE ? bod.appendChild(h('div', 'phone')) : null;
+    const goldRoll = rr();   // golden WEOW (drawn last, so the picks above stay what they were)
     const nm = nameLayer.appendChild(h('div', 'nm', m.nick));
     nm.style.visibility = 'hidden';
     world.append(el);
@@ -1300,6 +1357,8 @@
     placeItem(w);
     nameStyle(w, m);
     checkAvatar(w);
+    w.goldRoll = goldRoll;
+    gild(w);
     return w;
   }
 
@@ -1336,6 +1395,19 @@
   }
 
   // tunnel -> cross-aisle -> stair aisle (left, or right for the right edge block) -> legroom -> seat
+  // Coming in: down the corridor (when the art has one) to the point outside the door, where the door opens for them
+  // and they wait for it, then on along `path` (which starts at that point). Without a corridor: the door at once.
+  // ?corridor=0: arrivals appear at the door as before.
+  let CORRIDOR = [];
+  function enterVia(w, path) {
+    const pre = CORRIDOR.map((x) => [...x]);
+    w.path = [...pre, ...path];
+    w.seg = 0;
+    w.t = 0;
+    w.pos = [...w.path[0]];
+    if (pre.length) w.doorAt = pre.length;
+    else if (door) { playDoor(); w.wait = DOOR_WAIT; }
+  }
   function routeTo(seat) {
     const pts = L.walk_route.rear_portal_to_cross_aisle.map((p) => [...p]);
     const row = seat.row;
@@ -1360,7 +1432,7 @@
 
   function spawn(m) {
     if (guests() >= seats.length) return false;
-    const portal = L.walk_route.rear_portal_to_cross_aisle[0];
+    const portal = CORRIDOR[0] || L.walk_route.rear_portal_to_cross_aisle[0];
     for (const w of walkers.values()) {
       if (!w.sitting && Math.hypot(w.pos[0] - portal[0], w.pos[1] - portal[1], (w.pos[2] - portal[2]) / 60) < WALK_GAP) return false;
     }
@@ -1375,11 +1447,10 @@
     if (!seat) return false;   // full house: retain the head of the FIFO outside the portal
     seat.taken = true;
     const w = makeWalker(m);
+    w.late = HALL_ON && dark();   // A15: someone who comes in during the film ducks to their seat
     w.seat = seat;
-    w.path = routeTo(seat);
-    w.pos = [...w.path[0]];
-    // the entrance door opens for them; they wait outside until it's open
-    if (door) { playDoor(); w.wait = DOOR_WAIT; }
+    // down the corridor; the entrance door opens for them and they wait outside until it's open
+    enterVia(w, routeTo(seat));
     pendingSpeech(w, m.tokens);
     pendingSpeech(w, m.more);
     walkers.set(w.key, w);
@@ -1487,7 +1558,7 @@
     const w = { key, nick: m.nick, el, sh, bod, em, emName: 'cpMOP', nm, bounce: 0, emW, emH, path: [...portal.map((p) => [...p])], seg: 0, t: 0,
       pos: [...portal[0]], seat: null, sitting: false, pending: [], bub: null, bubT: 0, alpha: 0, phase: rand(0, 6.28), nameT: 8,
       lookT: 0, seen: false, item: null, phone: null, phoneT: 0, hideLocal: 0, jan: true, spot: null, mopUntil: 0, lastMsg: performance.now() };
-    if (door) { playDoor(); w.wait = DOOR_WAIT; }
+    enterVia(w, w.path);
     w.onArrive = janNext;
     walkers.set(key, w);
     jannies.set(key, w);
@@ -1527,10 +1598,11 @@
     j.onArrive = (x) => removeWalker(x);
   }
   // the lobby's floating text, in world space (it zooms with the camera, like the names)
-  function floatAt(w, text, color) {
+  function floatAt(w, text, color, size) {
     const [x, y] = P(...w.pos);
     const el = nameLayer.appendChild(h('div', 'fl', text));
     el.style.color = color;
+    if (size) el.style.fontSize = `${size}px`;
     const top = y - w.emH - 30;
     el.animate([
       { transform: `translate(${x}px, ${top}px) translate(-50%, 0)`, opacity: 0 },
@@ -1545,6 +1617,43 @@
 
   // ---------- staff errands: walking into a row and back ----------
   const dark = () => show.phase === 'dim' || show.phase === 'film';
+
+  // ---------- the crowd reacts with chat (queue 64: A11, A12, A13) ----------
+  // When chat runs an emote combo (three chatters in a row, then every fourth more), the seated audience answers:
+  // a laugh emote sends a ripple of bounces from the front row to the back; CINEMA puts hands in the air; Clap and
+  // Klappa start applause; a shock emote makes the whole house jolt at once. When the house lights come up after the
+  // film, the audience applauds once (applyPhase). Sleepers, staff and people on their way out sit it out. At most
+  // one reaction every 4 s and 14 floating marks at a time. ?react=0: none.
+  const REACT_ON = q.get('react') !== '0';
+  const REACTS = [
+    [/^(LUL|LULW|OMEGALUL|KEKW?|KYEK|PepeLaugh|YeeLaugh|haHAA|GAGAGA)$/, 'laugh'],
+    [/^CINEMA$/, 'cinema'],
+    [/^(Clap|Klappa|IMPRESSED)$/, 'clap'],
+    [/^(monkaS|nathanOOO|OOOO|SWEATSTINY|Concerned)$/, 'shock']];
+  let reactAt = 0;
+  function crowdReact(kind) {
+    const now = performance.now();
+    if (!REACT_ON || now - reactAt < 4000) return;
+    reactAt = now;
+    const mark = { cinema: '\u{1F64C}', clap: '\u{1F44F}', shock: '\u{1F62E}' }[kind];
+    let marks = 0;
+    for (const w of walkers.values()) {
+      if (!w.sitting || w.dozing || w.out || w.jan || w.usher || w.leaving || !w.seat) continue;
+      const delay = kind === 'shock' ? 0 : rows.indexOf(w.seat.row) * 110 + Math.random() * 160;
+      const hop = () => { if (walkers.get(w.key) === w && w.sitting && !w.dozing) w.bounce = 1; };
+      setTimeout(() => {
+        hop();
+        if (mark && marks < 14 && walkers.get(w.key) === w && w.sitting && Math.random() < (kind === 'cinema' ? 0.6 : 0.4)) { marks++; floatAt(w, mark, '#ffe2a8', 30); }
+      }, delay);
+      if (kind === 'laugh' || kind === 'clap') setTimeout(hop, delay + 520);   // laughing and clapping go on a little
+    }
+  }
+  SB.on('combo', ({ emote, count }) => {
+    if (count < 3 || (count - 3) % 4) return;
+    const r = REACTS.find(([re]) => re.test(emote));
+    if (r) crowdReact(r[1]);
+  });
+  window.__crowdReact = crowdReact;   // test hook (otherwise it only fires on real chat combos)
   function go(w, path, next) { w.path = path; w.seg = 0; w.t = 0; w.onArrive = next; }
   function hold(w, secs, next) { go(w, [[...w.pos], [...w.pos]], next); w.wait = secs; }
   // from the cross-aisle, up the stair aisle of that block (the right one for the right edge block) to the row's
@@ -1735,6 +1844,7 @@
     const seat = t.seat;
     t.sitting = false;
     t.el.classList.remove('sit');
+    rowLight(t);
     t.lookT = 0;
     t.pos = [seat.u, seat.v - LEG_DV, seat.z];
     placeItem(t);
@@ -1749,6 +1859,168 @@
   // reset. Staff are left alone: the usher leaves with the lights, the jannies clock off as usual.
   let houseOut = false;
   let nextLeaver = 0;
+  // ---------- hall life (queue 64: A14 snack run, A15 latecomers, A16 aisle vendor, A17 clean-up crew, A18 conductor) ----------
+  // Only things an audience or the staff would do. All of it is this screen's own (not shared through the room).
+  // A14: during the film, every minute or two one seated chatter gets up, goes out through the tunnel and comes back
+  //      to their seat with popcorn. A15: whoever arrives in the dark ducks to their seat and says sorry in their row
+  //      (spawn, step). A16: during seating, with at least 8 seated, a vendor walks the cross-aisle now and then.
+  // A17: once "Everyone leaves" has emptied the hall, two mop penguins sweep the rows and the litter goes as they
+  //      pass. A18: when the film starts, the conductor looks in from the entrance and gives the signal; a DinkDonk
+  //      combo during the film sends the conductor hurrying across the cross-aisle. ?hall=0: none of it.
+  const HALL_ON = q.get('hall') !== '0';
+  const crewSet = new Set();
+  function crewCount() { let n = 0; for (const w of crewSet) { if (walkers.get(w.key) === w) n++; else crewSet.delete(w); } return n; }
+  const hall = { snackNext: 0, snacker: null, vendorNext: 0, cleaning: false, lastPhase: null, conductorAt: 0, checkT: 0 };
+  const crewDone = (w) => { crewSet.delete(w); removeWalker(w); };
+  function crewOut(w) {
+    const portal = L.walk_route.rear_portal_to_cross_aisle.map((x) => [...x]).reverse();
+    go(w, [[...w.pos], ...portal], crewDone);
+  }
+  // staff figure: never sits (leaving), no name, comes in through the entrance like everyone
+  function crewWalker(id, emote, { mop = false, cap = false, pace = 1 } = {}) {
+    if (walkers.has(`#${id}`) || !L) return null;
+    const portal = L.walk_route.rear_portal_to_cross_aisle;
+    let w;
+    if (mop) {
+      const el = h('div', 'w jan');
+      const sh = el.appendChild(h('div', 'sh'));
+      const bod = el.appendChild(h('div', 'bod'));
+      const emH = EH * 52 / 50, emW = Math.round(emH * 144 / 128);
+      const em = bod.appendChild(h('img', 'em'));
+      em.alt = '';
+      em.src = JAN_IMG;
+      Object.assign(em.style, { height: `${emH}px`, width: `${emW}px`, left: `${-emW / 2}px` });
+      Object.assign(sh.style, { width: '30px', left: '-15px' });
+      const nm = nameLayer.appendChild(h('div', 'nm', ''));
+      nm.style.display = 'none';
+      world.append(el);
+      w = { el, sh, bod, em, emName: 'cpMOP', nm, bounce: 0, emW, emH, seat: null, sitting: false, pending: [], bub: null, bubT: 0, alpha: 0,
+        phase: rand(0, 6.28), nameT: 0, lookT: 0, seen: false, item: null, phone: null, phoneT: 0, hideLocal: 0, lastMsg: performance.now(), recent: [] };
+    } else {
+      w = makeWalker({ nick: id, emote, color: '#fff' });
+      w.nm.style.display = 'none';
+      w.phone?.remove();
+      w.phone = null;
+      if (cap) { w.item?.remove(); w.item = null; w.cap = w.bod.appendChild(itemEl('cap_usher')); placeItem(w); }
+    }
+    w.key = `#${id}`;
+    w.nick = id;
+    w.crew = true;
+    w.leaving = true;
+    w.pace = pace;
+    w.dozeAfter = Infinity;
+    go(w, portal.map((x) => [...x]), null);
+    enterVia(w, w.path);
+    walkers.set(w.key, w);
+    crewSet.add(w);
+    return w;
+  }
+  function snackRun(t) {
+    const seat = t.seat;
+    hall.snacker = t;
+    t.sitting = false;
+    t.el.classList.remove('sit');
+    rowLight(t);
+    t.lookT = 0;
+    t.pos = [seat.u, seat.v - LEG_DV, seat.z];
+    placeItem(t);
+    t.leaving = true;
+    // out as far as the tunnel (four points short of the door), a short wait out of sight, and back the same way
+    const out = routeTo(seat).reverse();
+    go(t, out.slice(0, out.length - 4), (x) => hold(x, rand(5, 10), (y) => {
+      y.leaving = false;
+      y.snackBack = true;
+      const back = routeTo(seat).slice(4);
+      go(y, back, null);
+      y.pos = [...back[0]];
+    }));
+  }
+  function sendVendor() {
+    const w = crewWalker('vendor', Cinema.defaultEmote('roxy-clerk2'), { pace: 0.8 });
+    if (!w) return;
+    const cross = L.walk_route.rear_portal_to_cross_aisle.at(-1);
+    w.onArrive = (x) => {
+      floatAt(x, 'popcorn! soda!', '#ffe2a8');
+      const front = [...walkers.values()].filter((g) => g.sitting && !g.dozing && !g.crew && g.seat && rows.indexOf(g.seat.row) <= 1);
+      front.sort(() => Math.random() - 0.5).slice(0, 3).forEach((g, i) => setTimeout(() => { if (walkers.get(g.key) === g && g.sitting) { g.bounce = 1; floatAt(g, '+1 \u{1F37F}', '#ffe2a8'); } }, 2500 + i * 2600));
+      go(x, [[...x.pos], [15.0, cross[1], 24]], (y) => { floatAt(y, 'last call!', '#ffe2a8'); go(y, [[...y.pos], [...cross]], crewOut); });
+    };
+  }
+  function sendConductor(hurry) {
+    const w = crewWalker('conductor', SB.emotes?.names?.has('DinkDonk') ? 'DinkDonk' : Cinema.defaultEmote('roxy-usher'), { cap: true, pace: hurry ? 1.7 : 1 });
+    if (!w) return;
+    const cross = L.walk_route.rear_portal_to_cross_aisle.at(-1);
+    w.onArrive = hurry
+      ? (x) => { floatAt(x, 'DINK DONK!', '#ffe27a'); go(x, [[...x.pos], [15.0, cross[1], 24], [...cross]], crewOut); }
+      : (x) => { x.bounce = 1; floatAt(x, '\u{1F3AC} roll it!', '#ffe27a'); hold(x, 2.5, crewOut); };
+  }
+  function startCleanup() {
+    hall.cleaning = true;
+    const cross = L.walk_route.rear_portal_to_cross_aisle.at(-1);
+    [0, 1].forEach((k) => setTimeout(() => {
+      const w = crewWalker(`mop${k}`, null, { mop: true });
+      if (!w) return;
+      w.mopping = true;
+      w.onArrive = (x) => {
+        const pts = [[...x.pos]];
+        rows.forEach((row, i) => { if (i % 2 !== k) return; const seg = aisleTo(row, 'main', 14.1); pts.push(...seg, ...seg.slice(0, -1).reverse()); });
+        pts.push([...cross]);
+        go(x, pts, (y) => {
+          // whatever is left (on the steps, in the side blocks) goes with the last pass
+          if (![...crewSet].some((o) => o !== y && o.mopping)) { for (const el of litterEls) { el.swept = true; el.style.opacity = '0'; } hall.cleaning = false; }
+          y.mopping = false;
+          crewOut(y);
+        });
+      };
+    }, k * 2500));
+  }
+  function stepHallLife(now) {
+    if (!HALL_ON || !L) return;
+    // litter goes where a mop passes (every frame: two mops, a few dozen pieces)
+    for (const w of crewSet) {
+      if (!w.mopping || !litterList) continue;
+      for (let i = 0; i < litterEls.length; i++) {
+        const el = litterEls[i], pc = litterList[i];
+        if (el.swept || !pc) continue;
+        if (Math.abs(pc.u - w.pos[0]) < 1.3 && Math.abs(pc.v - w.pos[1]) < 1.1) { el.swept = true; el.style.opacity = '0'; }
+      }
+    }
+    if (now < hall.checkT) return;
+    hall.checkT = now + 1000;
+    // A14 back in the seat: popcorn
+    const t = hall.snacker;
+    if (t && (walkers.get(t.key) !== t || (t.sitting && t.snackBack))) {
+      if (walkers.get(t.key) === t) { t.snackBack = false; t.bounce = 1; floatAt(t, '\u{1F37F}', '#ffe2a8', 24); }
+      hall.snacker = null;
+      hall.snackNext = now + rand(70000, 150000);
+    }
+    if (dark() && !houseOut) {
+      if (!hall.snackNext) hall.snackNext = now + rand(40000, 90000);
+      if (!hall.snacker && now > hall.snackNext) {
+        const ok = [...walkers.values()].filter((w) => w.sitting && !w.dozing && !w.out && !w.jan && !w.usher && !w.crew && !w.leaving && !w.texting && director.follow?.w !== w && w.seat);
+        if (ok.length) snackRun(ok[Math.floor(Math.random() * ok.length)]); else hall.snackNext = now + 20000;
+      }
+    } else if (!hall.snacker) hall.snackNext = 0;
+    // A16 vendor during seating
+    if (show.phase === 'seating' && !houseOut) {
+      if (!hall.vendorNext) hall.vendorNext = now + rand(60000, 120000);
+      if (now > hall.vendorNext) { hall.vendorNext = now + rand(200000, 320000); if ([...walkers.values()].filter((w) => w.sitting).length >= 8) sendVendor(); }
+    } else hall.vendorNext = 0;
+    // A18 the conductor at the start of the film
+    if (hall.lastPhase !== null && show.phase === 'film' && hall.lastPhase !== 'film') setTimeout(() => sendConductor(false), 2500);
+    hall.lastPhase = show.phase;
+    // A17 clean-up once the hall is empty
+    if (houseOut && !hall.cleaning && guests() === 0 && litterEls.some((el) => !el.swept)) startCleanup();
+  }
+  SB.on('combo', ({ emote, count }) => {
+    if (!HALL_ON || emote !== 'DinkDonk' || count < 3 || count % 3 || show.phase !== 'film') return;
+    const now = performance.now();
+    if (now - hall.conductorAt < 60000) return;
+    hall.conductorAt = now;
+    sendConductor(true);
+  });
+  window.__hall = { snackRun, sendVendor, sendConductor, startCleanup, state: hall };   // test hooks
+
   function stepHouseOut(now) {
     if (!houseOut || now < nextLeaver) return;
     const seated = [...walkers.values()].filter((w) => w.sitting && !w.out && !w.jan && !w.usher && !w.leaving);
@@ -1770,7 +2042,7 @@
   // Never blocks anyone (and isn't blocked); leaves when the lights come up.
   let usher = null;
   let usherDue = 0;
-  const guests = () => walkers.size - jannies.size - (usher ? 1 : 0);
+  const guests = () => walkers.size - jannies.size - (usher ? 1 : 0) - crewCount();   // (crew: the hall-life staff below)
   function addUsher() {
     const w = makeWalker({ nick: 'usher', emote: Cinema.defaultEmote('roxy-usher'), color: '#fff' });   // the lobby usher's emote
     w.key = '#usher';   // never a chat nick
@@ -1784,8 +2056,7 @@
     placeItem(w);
     const portal = L.walk_route.rear_portal_to_cross_aisle;
     go(w, portal.map((p) => [...p]), usherNext);
-    w.pos = [...portal[0]];
-    if (door) { playDoor(); w.wait = DOOR_WAIT; }
+    enterVia(w, w.path);
     walkers.set(w.key, w);
     return w;
   }
@@ -2115,6 +2386,7 @@
     stepJannies(now);
     stepUsher(now);
     stepHouseOut(now);
+    stepHallLife(now);
     // guests leaving (Everyone leaves) queue among themselves and pass the ones coming in: head-on they blocked each
     // other in the aisle for good
     const ahead = [], aheadOut = [];
@@ -2196,6 +2468,7 @@
         // arrived at the legroom in front of the seat: sit down, facing the screen (up and to the right)
         w.sitting = true;
         w.el.classList.add('sit');
+        rowLight(w);
         w.pos = [w.seat.u, w.seat.v + SIT_DV, w.seat.z + SIT_Z];
         w.nameT = 3;
         SB.faceEmote(w.em, w.emName, 1);
@@ -2206,7 +2479,7 @@
         const climbing = Math.abs(b[2] - a[2]) > 0.5;
         const travel = blockedAhead(w, dt * (climbing ? STAIR_SPEED : SPEED) * (w.pace || 1), ahead);
         w.t += travel / len;
-        if (w.t >= 1) { w.seg += 1; w.t = 0; w.pos = [...b]; } else w.pos = a.map((c, i) => c + (b[i] - c) * w.t);
+        if (w.t >= 1) { w.seg += 1; w.t = 0; w.pos = [...b]; if (w.doorAt != null && w.seg >= w.doorAt) { w.doorAt = null; if (door) { playDoor(); w.wait = DOOR_WAIT; } } if (w.late && !w.sorry && w.seg === w.path.length - 2) { w.sorry = true; floatAt(w, 'sorry... sorry...', '#cfd6e6'); } } else w.pos = a.map((c, i) => c + (b[i] - c) * w.t);
         SB.faceEmote(w.em, w.emName, (b[0] - a[0]) - (b[1] - a[1]));   // looks the way it walks (screen x = u - v)
         // the lobby's walk: one lazy hop every ~0.8 s, waddling along in between, a little squash on landing
         if (travel > .00001) w.phase += dt * 3.9;
@@ -2215,6 +2488,7 @@
         lift = travel > .00001 ? s * 13 * K : 0;
         tilt = travel > .00001 && c >= 0.5 ? Math.sin((c - 0.5) * 4 * Math.PI) * 3.5 : 0;
         sq = travel > .00001 && c < 0.5 && s < 0.2 ? 0.9 : 1;
+        if (w.late) { lift *= 0.3; sq = Math.min(sq, 0.84); }   // ducking: low hops, squashed
       }
     } else {
       if (!w.dozing && !w.out && performance.now() - w.lastMsg > w.dozeAfter) doze(w, true);
@@ -2257,8 +2531,11 @@
     // in the tunnel (under the left seat block, between the rear portal and the mouth) nobody is seen:
     // the depth slices cover them; without slices they fade out
     // (the mouth is at v 9.4, but the guard post and stair cheek still cover most of them until v ~8.8)
-    const inTunnel = u < 2.9 && v > 8.8 && z < 10;
-    if (!w.seen && !inTunnel) { w.nameT = 5; if (w.jan && !w.leaving && !w.onDuty) { w.onDuty = true; floatAt(w, '🧹 janny on duty', '#7ff7f0'); } }
+    const inTunnel = u < 2.9 && v > 8.8 && v < 14.95 && z < 10;   // (beyond the door, v > 14.95, is the corridor: in plain sight)
+    const inCorr = CORRIDOR.length > 0 && u < 2.9 && v >= 14.95;
+    if (inCorr !== !!w.inCorr) { w.inCorr = inCorr; rowLight(w); }
+    if (!w.seen && !inTunnel) { w.nameT = 5; if (w.jan && !w.leaving && !w.onDuty) { w.onDuty = true; floatAt(w, '🧹 janny on duty', '#7ff7f0'); }
+      if (w.goldSay) { w.goldSay = false; floatAt(w, `✨ GOLDEN ${w.emName === 'glorp' ? 'GLORP' : 'WEOW'}`, '#ffd75a', 22); } }
     w.seen = !inTunnel;
     w.alpha += ((w.seen || layers ? 1 : 0) - w.alpha) * Math.min(1, dt * 8);
     // saved messages come out one by one while they can be seen
@@ -2578,6 +2855,7 @@
     w.seen = true;
     w.alpha = 1;
     w.el.classList.add('sit');
+    rowLight(w);
     w.pos = [seat.u, seat.v + SIT_DV, seat.z + SIT_Z];
     SB.faceEmote(w.em, w.emName, 1);
     placeItem(w);
@@ -3026,6 +3304,15 @@
       EH = 45 * K;
       MAXW = 66.6 * K;
       treads = L.stairs.treads_v0_v1_zpx_world;
+      // Entrance corridor (draft 14, queue 63 A8): the layout's entrance route starts at the corridor's far end. The
+      // page keeps that stretch apart (CORRIDOR) and the route itself as it was in draft 13, from the point outside
+      // the door: only people coming in walk the corridor (enterVia); everyone leaving still goes out at the door.
+      {
+        const R = L.walk_route.rear_portal_to_cross_aisle, dw = L.page_layers?.spawn?.door_wait_point;
+        const di = dw ? R.findIndex((x) => Math.abs(x[0] - dw[0]) < 1e-6 && Math.abs(x[1] - dw[1]) < 1e-6) : 0;
+        if (di > 0 && q.get('corridor') !== '0') { CORRIDOR = R.slice(0, di).map((x) => [...x]); }
+        if (di > 0) L.walk_route.rear_portal_to_cross_aisle = R.slice(di);
+      }
       rows = L.rows.map((r) => ({ name: r.row, v: r.v, z: r.floor_zpx_world, flat: r.floor_zpx_world <= 24 }));
       for (const [i, r] of L.rows.entries()) {
         for (const [block, us] of Object.entries(r.seat_u_by_block)) {

@@ -60,9 +60,97 @@
     box-shadow: inset 0 -4px 0 rgba(0,0,0,.25), inset 10px 4px 0 rgba(255,255,255,.12), 0 2px 4px rgba(0,0,0,.5); }
   .umb::after { content: ''; position: absolute; left: 29px; top: 20px; width: 2px; height: 30px; background: #222; }
   .w.out .umb { display: block; }
-  .w.out .em { filter: brightness(.84) saturate(.9); }   /* night street: dimmer than the lobby */
+  .w.out:not([data-lt]) .em { filter: brightness(.84) saturate(.9); }   /* night street: dimmer than the lobby (when the scene light, L6, is off or not loaded) */
+  /* wet reflection under a chatter on the street (queue 63, L7): a flipped copy of the emote, fading out downwards */
+  .refl { position: absolute; left: -42px; top: 1px; width: 84px; height: 48px; overflow: hidden; pointer-events: none; opacity: .44;
+    transform-origin: 0 0; transform: scaleY(.82);
+    -webkit-mask-image: linear-gradient(#000, rgba(0, 0, 0, .5) 45%, transparent); mask-image: linear-gradient(#000, rgba(0, 0, 0, .5) 45%, transparent); }
+  .refl > .em { bottom: auto; top: 0; }
+  .w .refl > .em.em { filter: none !important; }   /* the copy keeps the emote's own light: a dimmed one vanished on the dark pavement */
+  /* golden WEOW (queue 65, L50): DGG's own gold WEOW (a cell of the emote's sheet) with a pulsing aura and sparkles,
+     so it stands out from everyone. Rare (1 in 20 of the chatters wearing WEOW), so its shadows cost next to nothing. */
+  .w.gold .em { filter: drop-shadow(0 0 3px rgba(255, 205, 70, .95)) !important; }
+  .w.gold .nm { color: #ffd75a !important; text-shadow: 0 0 6px rgba(255, 200, 60, .9); }
+  .aura { position: absolute; left: -62px; top: -88px; width: 124px; height: 124px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(255, 214, 90, .5), rgba(255, 190, 50, .34) 50%, rgba(255, 170, 30, 0));
+    animation: aura 1.5s ease-in-out infinite alternate; }
+  @keyframes aura { from { transform: scale(.84); opacity: .68; } to { transform: scale(1.12); opacity: 1; } }
+  .aura i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #fffbe0;
+    box-shadow: 0 0 6px 2px rgba(255, 220, 110, .9); animation: twinkle 1.2s ease-in-out infinite; }
+  @keyframes twinkle { 0%, 100% { transform: scale(.2); opacity: 0; } 50% { transform: scale(1); opacity: 1; } }
   .umbs { position: absolute; display: none; pointer-events: none; }
   .w.out .umbs { display: block; }
+  /* the clipboard of the canvasser (queue 65, L32) */
+  .clip { position: absolute; left: 13px; top: -31px; width: 11px; height: 15px; border: 2px solid #6e5232; border-radius: 2px; background: #efe6cf;
+    transform: rotate(9deg); box-shadow: inset 0 3px 0 #9aa3ad; }
+  .doorlight { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; opacity: 0; transition: opacity .35s;
+    background: linear-gradient(180deg, rgba(255, 220, 160, .8), rgba(255, 190, 110, .5)); box-shadow: 0 0 14px 4px rgba(255, 196, 120, .32); }
+  .doorlight.on { opacity: 1; }
+  /* lobby props drawn by the page (queue 65): the Dear Leader portrait (L38), two posters on the corridor's end wall
+     (L44 the J6 video, L51 Dogtober 7th), the snack menu's slop lines (L46), the gnome (L40) */
+  .dlp { position: absolute; left: 0; top: 0; width: 36px; height: 46px; transform-origin: 0 0; pointer-events: none; box-sizing: border-box;
+    border: 3px solid #b8903a; background: radial-gradient(circle at 50% 34%, #6a2028, #2a0c12 75%); box-shadow: inset 0 0 0 1px #5e4212, 0 2px 3px rgba(0, 0, 0, .55); }
+  .dlp .face { position: absolute; left: 2px; top: 3px; width: 26px; height: 26px; }
+  .dlp .face > * { position: absolute; left: 0; top: 0; }
+  .dlp .plate { position: absolute; left: 1px; right: 1px; bottom: 2px; height: 6px; background: linear-gradient(#ecd07a, #a5822c); color: #2a1c06;
+    font: 700 3.3px/6px Oswald, sans-serif; letter-spacing: .15px; text-align: center; white-space: nowrap; overflow: hidden; }
+  .dlp .lamp { position: absolute; left: -6px; top: -12px; width: 42px; height: 22px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 226, 160, .5), rgba(255, 226, 160, 0)); }
+  .pst { position: absolute; left: 0; top: 0; width: 47.2px; height: 64px; transform-origin: 0 0; pointer-events: none; overflow: hidden; font-family: Oswald, sans-serif; text-align: center; }
+  .pst > * { position: absolute; left: 0; right: 0; }
+  .pst b { font-weight: 700; display: block; }
+  .pst .stk { right: auto; font: 700 3.6px/5px Oswald, sans-serif; padding: 0 1.6px; color: #1a1205; box-shadow: 0 .5px 1px rgba(0, 0, 0, .5); }
+  .menut { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; overflow: hidden; white-space: nowrap; text-align: center;
+    font: 600 8.4px/14px Oswald, sans-serif; letter-spacing: .5px; color: #33261e; }
+  .menut span { display: block; transition: opacity .5s; }
+  .gnome { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+  .gnome i { position: absolute; }
+  /* lobby life (queue 64): a shivering emote (L20), the nothing-burger cloche (L26), the wet-floor sign (L29) */
+  .w.shiver .em { animation: shiver .16s steps(2) infinite; }
+  @keyframes shiver { 50% { translate: 1.5px 0; } }
+  .cloche { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+  .cloche i { position: absolute; }
+  .cloche .plate { left: -9px; top: -2px; width: 18px; height: 5px; border-radius: 50%; background: #c9ccd4; }
+  .cloche .dome { left: -7px; top: -10px; width: 14px; height: 9px; border-radius: 9px 9px 2px 2px; background: linear-gradient(120deg, #f4f6fa, #9aa1ad 70%); }
+  .cloche .dome::before { content: ''; position: absolute; left: 5px; top: -3px; width: 4px; height: 3px; border-radius: 50%; background: #dfe3ea; }
+  .wetsign { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; transition: opacity 1.2s; }
+  .wetsign i { position: absolute; left: -6px; top: -19px; width: 12px; height: 19px; background: #ffd21f; clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%); }
+  .wetsign i::after { content: '!'; position: absolute; left: 0; right: 0; top: 4px; text-align: center; font: 700 10px/10px Arial, sans-serif; color: #1c1508; }
+  /* more street life (queue 64): puddle splash drops (L11), umbrellas in a gust (L12), a newspaper (L15), pigeons (L14),
+     the dog in the window (L19) */
+  .drop { position: absolute; left: 0; top: 0; width: 3px; height: 5px; margin: -3px 0 0 -2px; border-radius: 50%; pointer-events: none; background: rgba(205, 228, 255, .85); }
+  .w .umbs, .w .umb { transition: transform .9s ease-in-out; transform-origin: 50% 70%; }
+  #world.gust .w.out .umbs, #world.gust .w.out .umb { transform: rotate(-12deg); }
+  #world .w.out .umbs.blown, #world .w.out .umb.blown { transform: rotate(-20deg) scaleY(-.7); transition-duration: .18s; }
+  .paper { position: absolute; left: 0; top: 0; width: 13px; height: 9px; margin: -9px 0 0 -6px; pointer-events: none; background: linear-gradient(#d9d3c2, #a9a393); box-shadow: inset 0 -2px 0 rgba(60, 60, 60, .35); }
+  .pigeon { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+  .pigeon i { position: absolute; left: -5px; top: -7px; width: 10px; height: 7px; border-radius: 55% 45% 50% 50%; background: #717a8c; }
+  .pigeon i::before { content: ''; position: absolute; left: 7px; top: -3px; width: 4px; height: 4px; border-radius: 50%; background: #5a6274; }
+  .pigeon i::after { content: ''; position: absolute; left: 1px; top: 2px; width: 6px; height: 3px; border-radius: 50%; background: #9aa3b4; }
+  .wdog { overflow: hidden; transform-origin: 0 0; }
+  .wdog > div { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform: matrix(1, -.5, 0, 1, 0, 0) translateY(6px); transition: transform .7s ease-in-out; }
+  .wdog.up > div { transform: matrix(1, -.5, 0, 1, 0, 0) translateY(0); }
+  .wdog i { position: absolute; background: #2a1d14; }
+  /* chat-driven bits (queue 64): the roof bell's rings (L16), the siren light bar (L17) */
+  .bellring { position: absolute; left: 0; top: 0; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; pointer-events: none;
+    border: 3px solid rgba(255, 226, 120, .95); box-shadow: 0 0 14px rgba(255, 210, 90, .8); }
+  .sirenbar { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+  .sirenbar i { position: absolute; top: -6px; width: 9px; height: 6px; border-radius: 2px; animation: sirenf .5s steps(1) infinite; }
+  .sirenbar i:first-child { left: -10px; background: #ff3b3b; box-shadow: 0 0 16px 8px rgba(255, 50, 50, .75); }
+  .sirenbar i:last-child { left: 1px; background: #3b7bff; box-shadow: 0 0 16px 8px rgba(60, 120, 255, .75); animation-delay: -.25s; }
+  @keyframes sirenf { 0% { opacity: 1; } 50% { opacity: .12; } }
+  /* "bridge out" roadworks board on the far sidewalk (queue 65, L30) */
+  .rwboard { position: absolute; left: 0; top: 0; pointer-events: none; }
+  .rwboard > * { position: absolute; }
+  .rwboard .leg { width: 3px; background: #15171c; }
+  .rwboard .panel { left: -42px; top: -80px; width: 84px; height: 38px; background: #07080a; border: 2px solid #20232b; border-radius: 2px; transform: skewY(26.565deg); }
+  .rwboard canvas { position: absolute; left: 4px; top: 3px; width: 76px; height: 32px; }
+  .rwboard .beacon { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(closest-side, #ffe9a8, rgba(255, 170, 40, .85) 30%, rgba(255, 150, 20, 0));
+    animation: rwblink 1.3s steps(1) infinite; }
+  .rwboard .beacon.b2 { animation-delay: -.65s; }
+  @keyframes rwblink { 0% { opacity: 1; } 50% { opacity: .08; } }
+  .rwboard .pool { left: -60px; top: -14px; width: 120px; height: 40px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 170, 40, .22), rgba(255, 170, 40, 0)); }
+  .rwboard.fire .pool { background: radial-gradient(closest-side, rgba(255, 90, 20, .5), rgba(255, 90, 20, 0)); animation: rwfire .23s steps(2) infinite; }
+  @keyframes rwfire { 0% { opacity: 1; } 50% { opacity: .55; } }
   .doorglow { position: absolute; left: 0; top: 0; width: 150px; height: 96px; margin: -48px 0 0 -75px; pointer-events: none;
     border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 196, 120, .55), rgba(255, 150, 80, .18) 55%, rgba(0,0,0,0));
     mix-blend-mode: plus-lighter; }
@@ -90,6 +178,28 @@
   @keyframes sweepA { from { transform: rotate(-50deg); } to { transform: rotate(-31deg); } }
   @keyframes sweepB { from { transform: rotate(27deg); } to { transform: rotate(46deg); } }
   .skyred { animation: skyred 2.4s steps(1) infinite; }
+  /* neighborhood life (queue 63, L9): steam, apartment windows, a TV, neon dips. Same rules as the sky layers: no
+     blur filters, motion is transform/opacity only. */
+  .lwin { transform-origin: 0 0; opacity: 0; transition: opacity 1.8s ease-in-out; }
+  .lwin.on { opacity: 1; }
+  .ltv { transform-origin: 0 0; background: #9cc4ff; opacity: 0; animation: ltv 6.1s steps(1) infinite; }
+  @keyframes ltv { 0% { opacity: .05; } 6% { opacity: .34; } 11% { opacity: .1; } 19% { opacity: .42; } 24% { opacity: .2; } 31% { opacity: 0; }
+    38% { opacity: .36; } 45% { opacity: .12; } 52% { opacity: .46; } 61% { opacity: .2; } 70% { opacity: .04; } 78% { opacity: .38; } 87% { opacity: .15; } 94% { opacity: .3; } }
+  .ldip { opacity: 0; }
+  .ldip.dip { animation: ldip .95s steps(1) 1; }
+  @keyframes ldip { 0% { opacity: .9; } 8% { opacity: 0; } 16% { opacity: .7; } 24% { opacity: 0; } 46% { opacity: .95; } 78% { opacity: .3; } 88% { opacity: 0; } }
+  /* snarkers (queue 65, L31): two heads in a dark apartment window, a binocular glint; they duck now and then */
+  .snark { overflow: hidden; transform-origin: 0 0; }
+  .snark > div { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform: matrix(1, -.5, 0, 1, 0, 0) translateY(0); transition: transform .5s ease-in; }
+  .snark.down > div { transform: matrix(1, -.5, 0, 1, 0, 0) translateY(22px); }
+  .snark i { position: absolute; background: #2c3650; border-radius: 50% 50% 38% 38%; }
+  .snark b { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #dff4ff; box-shadow: 0 0 3px 1px rgba(190, 235, 255, .9); opacity: 0; animation: sglint 5.3s steps(1) infinite; }
+  @keyframes sglint { 0% { opacity: 1; } 5% { opacity: 0; } 46% { opacity: .8; } 49% { opacity: 0; } }
+  .puff { left: -20px; top: -20px; width: 40px; height: 40px; border-radius: 50%; opacity: 0; will-change: transform, opacity;
+    background: radial-gradient(closest-side, rgba(233, 238, 245, .55), rgba(233, 238, 245, .22) 55%, rgba(233, 238, 245, 0));
+    animation: puff 7s linear infinite; }
+  @keyframes puff { 0% { transform: translate(0, 0) scale(.3); opacity: 0; } 14% { opacity: .6; }
+    100% { transform: translate(-38px, -150px) scale(2.3); opacity: 0; } }
   @keyframes skyred { 0% { opacity: 1; } 30% { opacity: .15; } }
   .wstreak { animation: wetsh 5s ease-in-out infinite alternate; }
   @keyframes wetsh { from { opacity: .7; } to { opacity: 1; } }
@@ -234,6 +344,7 @@
     <div id="skyline" class="layer fxl"></div>
     <div id="skyfx" class="layer fxl"></div>
     <div id="wetfx" class="layer fxl"></div>
+    <div id="lifefx" class="layer fxl"></div>
     <canvas id="mist" class="layer" width="960" height="540"></canvas>
     <canvas id="rain" class="layer" width="960" height="540"></canvas>
     <video id="rainfg" class="layer" muted loop autoplay playsinline></video>
@@ -289,6 +400,67 @@
   }
 })();
 </script>
+<script>
+// ---------- neighborhood life (L9), queue 63 ----------
+// Picked by the owner from the 9 Nov drafts (concepts/improve2/drafts/L9.png): the street around the cinema should not
+// be frozen. Steam drifts from the roof vents and the noodle shop, apartment windows switch on and off over minutes,
+// the blue window flickers like a TV, and the two neon signs dip for a moment like real tubes.
+// Every position is measured on the render (lit_bg_dry@2x). Windows and dips follow the wall clock, so every screen of
+// a shared room shows the same thing. ?life=0 turns it off; ?lifetest=1 shows every window overlay at once (to check
+// that they sit on the render's windows) and dips the signs every 6 s.
+(() => {
+  const q = new URLSearchParams(location.search);
+  if (q.get('life') === '0') return;
+  const TEST = q.get('lifetest') === '1';
+  const fx = document.getElementById('lifefx'), sky = document.getElementById('skyfx');
+  const div = (parent, css, cls) => { const d = document.createElement('div'); if (cls) d.className = cls; d.style.cssText = css; parent.append(d); return d; };
+  // a facade plane of the apartment block: x runs along the wall, which drops 1 px per 2 px (the iso 2:1)
+  const wall = (x, y, w, hgt) => `left:0;top:0;width:${w}px;height:${hgt}px;transform:matrix(1,.5,0,1,${x},${y});`;
+  const hash = (a, b) => { let x = (Math.imul(a, 374761393) + Math.imul(b, 668265263)) >>> 0; x = Math.imul(x ^ (x >>> 13), 1274126177) >>> 0; return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
+
+  // steam: [x, y, size, seconds per puff]
+  for (const [x, y, k, t] of [[636, 188, 1, 7], [206, 191, 0.55, 8.5], [329, 520, 0.5, 6], [150, 964, 1, 8], [1650, 905, 1.1, 7.5]]) {
+    const at = div(fx, `left:${x}px;top:${y}px;transform:scale(${k})`);
+    for (let i = 0; i < 3; i++) div(at, `position:absolute;animation-duration:${t}s;animation-delay:${(-i * t / 3).toFixed(2)}s`, 'puff');
+  }
+
+  // apartment windows. lit: a window that is lit in the render and can go dark; dark: one that can light up.
+  // [x, y of the top-left corner, width, height, lit in the render, seconds per turn, share of turns it is switched]
+  const DARK = 'background:linear-gradient(90deg,#07080b,#090a0e 60%,#060709);', WARM = 'background:linear-gradient(90deg,#b98a58 0 28%,#2a1c10 28% 34%,#ffdca6 34% 100%);box-shadow:inset 0 0 3px rgba(60,30,10,.8);';
+  const wins = [[187, 301, 34, 38, true, 290, 0.35], [238, 326, 34, 38, true, 410, 0.3], [136, 331, 34, 36, true, 350, 0.3],
+    [139, 280, 30, 27, false, 330, 0.4], [190, 360, 29, 28, false, 270, 0.35], [190, 414, 30, 27, false, 380, 0.3]]
+    .map(([x, y, w, hgt, lit, period, share], i) => ({ el: div(fx, wall(x, y, w, hgt) + (lit ? DARK : WARM), 'lwin'), period, share, i }));
+  // the blue window is someone's TV
+  div(sky, wall(238, 438, 31, 29), 'ltv');
+  // snarkers (queue 65, L31): two heads watching the cinema from the dark window above the TV, with a binocular glint.
+  // They duck below the sill for 15 s of every 50 (wall clock). ?snark=0: none.
+  let snark = null;
+  if (q.get('snark') !== '0') {
+    snark = div(fx, wall(240, 386, 30, 30), 'snark');
+    snark.innerHTML = '<div><i style="left:5px;top:24px;width:9px;height:14px"></i><i style="left:16px;top:26px;width:9px;height:13px"></i>' +
+      '<b style="left:11px;top:27px"></b><b style="left:22px;top:29px;animation-delay:-2.1s"></b></div>';
+  }
+  // neon dips: a dark patch over the tubes for an instant. [css, seconds between dips, offset]
+  const dips = [[`left:284px;top:392px;width:64px;height:84px;border-radius:40%;background:radial-gradient(closest-side,rgba(6,4,9,.9),rgba(6,4,9,.7) 60%,rgba(6,4,9,0))`, 53, 11],
+    [wall(99, 418, 91, 30) + 'background:rgba(4,9,9,.72);', 97, 40]].map(([css, period, off]) => ({ el: div(fx, css, 'ldip'), period: TEST ? 6 : period, off, slot: -1 }));
+
+  function tick() {
+    const now = Date.now() / 1000;
+    for (const w of wins) w.el.classList.toggle('on', TEST || hash(w.i + 1, Math.floor(now / w.period) + w.i * 7) < w.share);
+    if (snark) snark.classList.toggle('down', !TEST && now % 50 > 35);
+    for (const d of dips) {
+      const slot = Math.floor((now + d.off) / d.period);
+      if (slot === d.slot) continue;
+      const first = d.slot < 0;
+      d.slot = slot;
+      if (first) continue;   // not on load
+      d.el.classList.remove('dip'); void d.el.offsetWidth; d.el.classList.add('dip');
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
 <script>window.DD_ROOM_CAPS = 'peek,gag,vote';   // room events this page plays (queue 56, 57, 50; shared/cinema.js)</script>
 <script>window.DD_ROOM_PAGE = 'lobby';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
@@ -324,6 +496,17 @@
   const mqClean = (s) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
   const MARQ = { quad: null, bands: [], key: '', foot: null, under: [], dry: null, auto: ['DINK DONK CINEMAS', 'MOVIE NIGHT'],
     custom: [mqClean(q.get('marquee1')), mqClean(q.get('marquee2'))] };
+  // Marquee one-liners (queue 65, L47): while line 2 is on automatic, the last 12 s of every minute it shows one of the
+  // community's stock lines instead of the screen/rating row (the film title on line 1 stays). The line is picked by the
+  // wall clock, so every screen shows the same one. ?mqlines=0 turns them off.
+  const MQ_LINES = ["IT'S OVER.", "I CAN'T BELIEVE THIS HAPPENED???", 'MANY SUCH CASES!', 'WAOW (BASED BASED BASED)', 'WE ARE SO BACK'];
+  const MQ_LINES_ON = q.get('mqlines') !== '0';
+  const mqOneLiner = () => {
+    if (!MQ_LINES_ON || MARQ.custom[1]) return '';
+    const t = Date.now();
+    return t % 60000 >= 48000 ? MQ_LINES[Math.floor(t / 60000) % MQ_LINES.length] : '';
+  };
+  if (MQ_LINES_ON) setInterval(() => showMarquee(), 1000);   // (setMarqueeText does nothing while the text is the same)
   let marqDone;
   const marqReady = new Promise((ok) => { marqDone = ok; });   // the marquee pack is in (or there is none): startRain2 waits for it
   // on the sidewalk under the marquee's roof: no rain lands there
@@ -1049,6 +1232,42 @@
     };
   }
   let combo = { emote: null, until: 0, start: 0 };
+  // Emote walks (queue 64, L20 and L23): some emotes move in character. speed = walking speed factor, crawl = no hops,
+  // shiver = trembles, dance = bobs on the spot most of the time. ?gaits=0: everyone walks alike.
+  const GAITS = q.get('gaits') === '0' ? {} : {
+    DITCHSTINY: { speed: 1.6 }, SLUGSTINY: { speed: 0.5, crawl: true }, PepoTurtle: { speed: 0.5, crawl: true },
+    THATNINJA: { speed: 0.9, crawl: true }, CHILLS: { shiver: true },
+    pepeJAM: { dance: true }, JAMSTINY: { dance: true }, YAM: { dance: true }, RaveDoge: { dance: true }, AlienPls: { dance: true },
+    GatoPls: { dance: true }, RainbowPls: { dance: true }, PoroPls: { dance: true } };
+
+  // Golden WEOW (queue 65, L50; owner 9 Nov 2026): like the rare gold WEOW in DGG chat, a chatter wearing WEOW walks in
+  // golden 1 time in 20, whether they typed the emote or got it from the default pool. One roll per visit (from the
+  // room's seed, so every screen sees the same golden one); it only shows while they wear WEOW.
+  // The gold face is DGG's own: the WEOW sheet (278x28) holds the plain face at 0 and the rare variants after it,
+  // gold at x 168 (the emote's CSS shows a 28 px cell).
+  // ?gold=<0..1> changes the odds (testing: ?gold=1). ?goldtest=1 (test only, to look at it when nobody wears WEOW):
+  // one arrival in five is dressed in WEOW.
+  const GOLD_P = q.has('gold') ? clamp(Number(q.get('gold')) || 0, 0, 1) : 1 / 20;
+  const GOLD_TEST = q.get('goldtest') === '1';
+  const GOLD_X = { WEOW: 166, glorp: 166 };   // the gold cell in each sheet (glorp: queue 64, L27, same odds as WEOW)
+  function gild(w) {
+    const on = !w.staff && !w.jan && !w.npc && GOLD_X[w.emName] != null && (w.goldRoll ?? 1) < GOLD_P;
+    if (on === !!w.gold) return;
+    w.gold = on;
+    w.el.classList.toggle('gold', on);
+    const face = w.em?.firstElementChild;
+    if (face) face.style.backgroundPosition = on ? `-${GOLD_X[w.emName]}px 0` : '';
+    if (on) {
+      w.aura = h('div', 'aura');
+      for (const [x, y, d] of [[14, 30, 0], [96, 22, 0.4], [104, 78, 0.8], [22, 92, 0.2]]) {
+        const sp = h('i');
+        sp.style.cssText = `left:${x}px;top:${y}px;animation-delay:${-d}s`;
+        w.aura.append(sp);
+      }
+      w.el.insertBefore(w.aura, w.bod);   // behind the emote
+      w.goldSay = true;                   // announced once, when they are first seen (frame loop)
+    } else { w.aura?.remove(); w.aura = null; }
+  }
 
   // A cdn.destiny.gg emote image that fails to load (a burst of arrivals can make some time out) left the chatter
   // blank for good: Chrome keeps a failed CSS background broken for every element of that emote. As in the
@@ -1096,6 +1315,7 @@
     if (w.emName === name) return;
     w.emName = name;
     w.em?.remove();
+    w.refl?.remove(); w.refl = null;   // (the street reflection is rebuilt from the new emote, stepLight)
     // wide emotes (wings, banners) are fitted into a max width so they don't dwarf everyone else
     const MAXW = 74;
     const { w: ew, h: eh } = SB.emoteSize(name);
@@ -1111,6 +1331,9 @@
     if (w.carry) placeItem(w, w.carry, 'carry');
     if (w.stub) placeItem(w, w.stub, 'stub');
     if (w.cap) placeItem(w, w.cap, 'cap');
+    gild(w);
+    w.gait = GAITS[name] || null;
+    w.el.classList.toggle('shiver', !!w.gait?.shiver);
   }
 
   function makeFigure(nick, emote, color, staff) {
@@ -1398,7 +1621,7 @@
     });
     const head = gateLine[0];
     if (!head || head.plan.length || head.removing) { gateT = 0; return; }
-    if (!gateT) { bounceStaff('usher'); takeStub(head); usherPoints(head); }
+    if (!gateT) { bounceStaff('usher'); takeStub(head); usherPoints(head); if (LEADER_ON && SB.hashHue(head.nick) % 4 === 0) floatAt(head, 'o7', '#ffe2a8'); }
     gateT += dt;
     if (gateT < (head.hurry ? 0.2 : 0.7)) return;
     gateT = 0;
@@ -1613,7 +1836,7 @@
   function newChatter(wi, key) {
     const rr = wi.room ? rng(wi.seed >>> 0) : Math.random;
     const rs = (a, b) => a + rr() * (b - a);
-    const w = makeFigure(wi.nick, wi.emote, wi.color, false);
+    const w = makeFigure(wi.nick, GOLD_TEST && SB.hashHue(wi.nick) % 5 === 0 ? 'WEOW' : wi.emote, wi.color, false);
     if (wi.rainbow) { w.nm.textContent = ''; w.nm.append(h('span', 'rbt', wi.nick)); }   // tier 5: rainbow name, as in DGG chat
     w.key = key;
     figures.add(w);
@@ -1624,6 +1847,8 @@
     const pick = { umb: rr(), lane: rs(9.78, 10.05), dx: [rs(-0.4, 0.4), rs(-0.3, 0.3), rs(-0.6, 0.6)],
       left: rr() < 0.5, jay: rr(), jayV: rs(-0.1, 0.1), jayX: rs(-0.4, 0.4), at: rr() };
     if (wi.room) w.rolls = { bench: rr(), quit: rr(), quitAt: rr(), outside: rr(), lobby: rr(), hall: rr(), soda: rr(), umb: rr() };
+    w.goldRoll = rr();   // golden WEOW (drawn last, so the picks above stay what they were)
+    gild(w);
     return [w, pick];
   }
   function spawn(wi) {
@@ -1789,6 +2014,67 @@
     const t = performance.now();
     combo = { emote, start: t, until: t + 2600 };
   });
+
+  // ---------- chat-driven street and lobby bits (queue 64: L16, L17, L22) ----------
+  // A combo here is three chatters posting the same emote in a row (then every third more).
+  // L16 the roof bell: a DinkDonk combo rings the bell in the neon sign: rings spread from it and DINK / DONK float up.
+  // L17 sirens: a WEEWOO or ALARMA combo sends a car with a flashing red and blue light bar down the street (at most
+  //     one a minute). L22 pet the cat: a combo of the cat emotes wakes the lobby cat; hearts float up from it and the
+  //     chatters nearby turn to it. ?chatfx=0: none of the three.
+  const CHATFX_ON = q.get('chatfx') !== '0';
+  const BELL_AT = [1206, 112];   // the bell-ringer in the roof sign, stage px
+  const fxAt = { bell: 0, siren: 0, cat: 0 };
+  let bellN = 0;
+  const sirens = [];
+  function ringBell() {
+    for (const d of [0, 260]) {
+      const el = h('div', 'bellring');
+      fx.append(el);
+      el.animate([{ transform: `translate(${BELL_AT[0]}px, ${BELL_AT[1]}px) scale(.3)`, opacity: 0.95 },
+        { transform: `translate(${BELL_AT[0]}px, ${BELL_AT[1]}px) scale(2.6)`, opacity: 0 }], { duration: 900, delay: d, easing: 'ease-out', fill: 'backwards' }).onfinish = () => el.remove();
+    }
+    floatText(BELL_AT[0] + (bellN % 2 ? 34 : -34), BELL_AT[1] - 22, bellN++ % 2 ? 'DONK' : 'DINK', '#ffe27a');
+  }
+  function callSiren(tries = 0) {
+    const v = addVehicle(Math.random() < 0.5 ? 'sedan_a' : 'sedan_b', '+u', { cruise: 6.4 });
+    if (!v) { if (tries < 6) setTimeout(() => callSiren(tries + 1), 1500); return; }
+    const el = h('div', 'sirenbar');
+    el.append(h('i'), h('i'));
+    world.append(el);
+    sirens.push({ v, el });
+  }
+  function stepSirens() {
+    for (let i = sirens.length - 1; i >= 0; i--) {
+      const s = sirens[i];
+      if (s.v.gone) { s.el.remove(); sirens.splice(i, 1); continue; }
+      const [x, y] = P(s.v.u, s.v.lane, 30);
+      s.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      s.el.style.zIndex = String(depth(s.v.u + 1.2, s.v.lane) + 2);
+    }
+  }
+  function petCat() {
+    if (!cat || cat.el.style.display === 'none') return false;
+    if (cat.state === 'sleep') { cat.state = 'sit'; cat.t = 0; cat.dur = 12; }
+    const [cx, cy] = P(cat.u, cat.v);
+    for (let k = 0; k < 4; k++) setTimeout(() => floatText(cx + (k % 2 ? 9 : -9), cy - 26, '\u2665', '#ff8fc0'), k * 320);
+    let n = 0;
+    for (const w of figures) {
+      if (n >= 4) break;
+      if (w.staff || w.removing || w.entering || w.alpha < 0.9 || Math.hypot(w.u - cat.u, w.v - cat.v) > 3) continue;
+      n++;
+      SB.faceEmote(w.em, w.emName, (cat.u - w.u) - (cat.v - w.v));
+      w.bounce = Math.max(w.bounce, 1);
+    }
+    return true;
+  }
+  Cinema.onCombo(({ emote, count }) => {
+    if (!CHATFX_ON || count < 3 || count % 3) return;
+    const now = performance.now();
+    if (emote === 'DinkDonk' && now - fxAt.bell > 2500) { fxAt.bell = now; ringBell(); setTimeout(ringBell, 520); }
+    else if (/^(WEEWOO|ALARMA)$/.test(emote) && now - fxAt.siren > 60000 && VEH) { fxAt.siren = now; callSiren(); }
+    else if (/^(ASLAN|ComfyCat|MotherFuckinGame)$/.test(emote) && now - fxAt.cat > 20000 && petCat()) fxAt.cat = now;
+  });
+  window.__chatfx = { ringBell, callSiren, petCat };   // test hooks (these only fire on real chat combos otherwise)
 
   // ---------- traffic: pre-rendered vehicles (manifest "vehicles") ----------
   // Cars pass both ways; a bus stops at the shelter now and then and a taxi can bring a chatter to the
@@ -2373,8 +2659,25 @@
     w.lastMsg = performance.now();
     figures.add(w);
     jannies.set(w.key, w);
-    w.plan = [{ alpha: 1 }, { call: (x) => { floatAt(x, '🧹 janny on duty', '#7ff7f0'); janNext(x); } }];
+    w.plan = [{ alpha: 1 }, { call: (x) => { floatAt(x, '🧹 janny on duty', '#7ff7f0'); saluteJanny(x); janNext(x); } }];
     return w;
+  }
+  // Salute the janny (queue 65, L39): when a mod's janny comes on duty, the chatters nearby turn to them and salute
+  // (o7). Nobody's route changes: a turn, a small hop and the float.
+  function saluteJanny(j) {
+    let n = 0;
+    for (const w of figures) {
+      if (n >= 8) break;
+      if (w === j || w.staff || w.jan || w.removing || w.entering || w.alpha < 0.9 || w.v > 9.15) continue;
+      if (Math.hypot(w.u - j.u, w.v - j.v) > 5.5) continue;
+      n++;
+      setTimeout(() => {
+        if (!figures.has(w) || w.removing) return;
+        SB.faceEmote(w.em, w.emName, (j.u - w.u) - (j.v - w.v));
+        w.bounce = Math.max(w.bounce, 1);
+        floatAt(w, 'o7', '#cfe8ff');
+      }, 300 + n * 140);
+    }
   }
   // to a free spot (via the hub, like the old janitor), mop it, then the next one
   function janNext(j) {
@@ -2465,7 +2768,7 @@
           break;
         }
         w.holdT = 0;
-        const sp = (w.hurry ? 3.0 : (s.slow ? 0.9 : 2.0) * pace) * dt;
+        const sp = (w.hurry ? 3.0 : (s.slow ? 0.9 : 2.0) * pace * (w.gait?.speed || 1)) * dt;
         if (d <= sp) { w.u = tu; w.v = tv; w.plan.shift(); moving = d > 0.001; } else { w.u += (du / d) * sp; w.v += (dv / d) * sp; moving = true; }
         if (moving) SB.faceEmote(w.em, w.emName, du - dv);   // looks the way it walks (screen x = u - v)
         break;
@@ -2523,13 +2826,14 @@
       lift = s * 13;
       bouncing = c < 0.5;
       tilt = c < 0.5 ? 0 : Math.sin((c - 0.5) * 4 * Math.PI) * 3.5;
+      if (w.gait?.crawl) { s = 0; lift = 0; bouncing = false; tilt *= 0.5; }   // crawlers and sneakers don't hop
       // landing on wet pavement: splash ring
       if (w.lastC != null && w.lastC < 0.5 && c >= 0.5) {
         if (w.v > 9.15) { if (!underMarquee(w.u, w.v) && Math.random() < 0.6) splash(w.u, w.v); } else if (w.wetSteps > 0) { w.wetSteps--; wetPrint(w.u, w.v); }
       }
       w.lastC = c;
     } else if (!w.staff) {
-      if (!w.idle && Math.random() < dt * 0.1) w.idle = 0.001;
+      if (!w.idle && Math.random() < dt * (w.gait?.dance ? 2.5 : 0.1)) w.idle = 0.001;
       if (w.idle) { w.idle += dt * 6; if (w.idle >= Math.PI) w.idle = 0; }
       s = Math.sin(w.idle);
       lift = s * 12;
@@ -2573,7 +2877,7 @@
         w.umbColor = null;
         w.umbSpec = null;
       }
-      if (w.out && !out) w.wetSteps = 4;   // in from the rain: a few wet prints on the lobby floor
+      if (w.out && !out) { w.wetSteps = 4; lobbyLife.wet.push(performance.now()); }   // in from the rain: a few wet prints on the lobby floor
       if (w.out === false && out && !w.umb) giveUmbrella(w, roll(w, 'umb'));   // back out into the rain (changed their mind)
       w.out = out;
       w.el.classList.toggle('out', out);
@@ -2798,6 +3102,450 @@
   let MIST = clamp(Math.round(Number(q.get('mist')) || 0), 0, 4);   // off: style 2 live looked like water boiling off the edges (owner, 04 Nov)
   let MIST_GAIN = clamp(Number(q.get('mistgain')) || 1, 0.1, 4);
   const MIST_DIR = `roxy3d/${(q.get('mistdir') || 'out10mist').replace(/[^a-z0-9_-]/gi, '')}/`;
+
+  // ---------- chatters take the scene's light (L6) and leave a wet reflection (L7), queue 63 ----------
+  // Picked by the owner from the 9 Nov drafts (concepts/improve2/drafts/L6.png, L7.png).
+  // L6: an emote is no longer the same bright sticker everywhere. On the street its light comes from the render's light
+  // pass (out10mist/light.png) under the chatter's feet: dark and cool away from the lamps, warm under the sodium lamps,
+  // purple in the lobby's spill in front of the glass, warm under the marquee's bulbs. Inside, only the corridor (cooler
+  // and dimmer) differs; the lobby floor stays as it was, with no filter. Each look is one colour matrix (per-channel
+  // gains, so an emote keeps its own colours), chosen four times a second per chatter and written only when it changes;
+  // on the street it replaces the flat brightness filter those chatters already had. ?light=0: the old flat dimming.
+  // L7: on the wet street (not under the marquee's roof, which is dry) a chatter has a flipped, faded copy of their
+  // emote under their feet. ?refl=0: none.
+  const LIGHT_ON = q.get('light') !== '0', REFL_ON = q.get('refl') !== '0';
+  const LIGHT = { map: null, w: 480, h: 270 };
+  {
+    const LOOKS = { n1: [0.47, 0.57, 0.75], n2: [0.55, 0.67, 0.87], n3: [0.63, 0.77, 0.97], s1: [0.74, 0.6, 0.42], s2: [0.88, 0.72, 0.5], s3: [1.02, 0.84, 0.6],
+      p: [0.9, 0.73, 1.02], m: [1.05, 0.95, 0.8], h: [0.72, 0.79, 0.92] };
+    const box = h('div');
+    box.innerHTML = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${Object.entries(LOOKS).map(([k, [r, g, b]]) =>
+      `<filter id="lt-${k}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="${r} 0 0 0 0  0 ${g} 0 0 0  0 0 ${b} 0 0  0 0 0 1 0"/></filter>`).join('')}</defs></svg>` +
+      `<style>${Object.keys(LOOKS).map((k) => `.w[data-lt="${k}"] .em { filter: url(#lt-${k}); }`).join(' ')}</style>`;
+    document.body.append(box);
+    if (LIGHT_ON) {
+      const im = new Image();
+      im.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = LIGHT.w; c.height = LIGHT.h;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.filter = 'blur(4px)';
+        g.drawImage(im, 0, 0, LIGHT.w, LIGHT.h);
+        LIGHT.map = g.getImageData(0, 0, LIGHT.w, LIGHT.h).data;
+      };
+      im.src = `${MIST_DIR}light.png`;
+    }
+  }
+  // ---------- the street: "bridge out" board (L30) and the canvasser (L32), queue 65 ----------
+  // L30: a roadworks message board on the far sidewalk. Burning and rebuilding bridges with orbiters is the running
+  // joke of the community: the board says BRIDGE OUT with two blinking beacons; once every 10 minutes (wall clock, so
+  // every screen agrees) it reads BRIDGE REBUILT for 55 s, then BURNED AGAIN with a flicker for 25 s. ?bridge=0: none.
+  if (q.get('bridge') !== '0') {
+    const BU = 4.87, BV = 14.03;
+    const [bx, by] = P(BU, BV);
+    const el = h('div', 'rwboard');
+    el.style.transform = `translate(${bx}px, ${by}px)`;
+    el.style.zIndex = String(depth(BU, BV));
+    el.innerHTML = '<div class="pool"></div><div class="leg" style="left:-30px;top:-52px;height:44px"></div><div class="leg" style="left:27px;top:-24px;height:44px"></div>' +
+      '<div class="panel"><canvas width="228" height="96"></canvas></div><div class="beacon" style="left:-52px;top:-112px"></div><div class="beacon b2" style="left:26px;top:-73px"></div>';
+    world.append(el);
+    const cv = el.querySelector('canvas'), g = cv.getContext('2d');
+    let shown = '';
+    const draw = (l1, l2, color) => {
+      if (shown === `${l1}|${l2}|${color}`) return;
+      shown = `${l1}|${l2}|${color}`;
+      g.clearRect(0, 0, 228, 96);
+      g.fillStyle = color;
+      [l1, l2].forEach((line, row) => {
+        const cols = textCols(line), x0 = Math.round((228 - cols.length * 6) / 2);
+        cols.forEach((m, cx) => { for (let y = 0; y < 7; y++) if (m & (1 << y)) g.fillRect(x0 + cx * 6, 2 + row * 48 + y * 6, 5, 5); });
+      });
+    };
+    const tick = () => {
+      const t = (Date.now() / 1000) % 600;
+      el.classList.toggle('fire', t >= 575);
+      if (t < 520) draw('BRIDGE', 'OUT', '#ffb02e');
+      else if (t < 575) draw('BRIDGE', 'REBUILT', '#7dff8a');
+      else draw('BURNED', 'AGAIN', Math.floor(t * 4) % 2 ? '#ff5a2a' : '#ffb02e');
+    };
+    tick();
+    setInterval(tick, 250);
+  }
+  // L32: a canvasser (Buddy with a clipboard) comes down the street every 9 minutes (wall clock) and knocks on the
+  // doors of the shops: the video store (nobody answers), the greengrocer and the noodle shop (the door opens with a
+  // slice of light). "DGG is the one who knocks." A figure of this screen, like the cat. ?canvass=0: never;
+  // ?canvass=now (test only): 6 s after load.
+  const CANVASS = q.get('canvass');
+  let canv = null, canvSlot = -1, canvTest = CANVASS === 'now' ? performance.now() + 6000 : 0;
+  const DOORLIGHTS = [null, [276, 521, 18, 50], [298, 511, 42, 66]].map((r) => {
+    if (!r) return null;
+    const d = h('div', 'doorlight');
+    Object.assign(d.style, { width: `${r[2]}px`, height: `${r[3]}px`, transform: `matrix(1, .5, 0, 1, ${r[0]}, ${r[1]})` });
+    $('lifefx').append(d);
+    return d;
+  });
+  function stepCanvasser() {
+    if (CANVASS === '0' || canv) return;
+    const slot = Math.floor(Date.now() / 540000);
+    const test = canvTest && performance.now() > canvTest;
+    if (canvSlot < 0) canvSlot = slot;
+    if (slot === canvSlot && !test) return;
+    canvSlot = slot; canvTest = 0;
+    const w = makeFigure('canvasser', SB.emotes?.names?.has('dggL') ? 'dggL' : 'PEPE', '#9fd0ff', false);
+    w.npc = true;
+    w.key = '#canvasser';
+    w.bod.append(h('div', 'clip'));
+    [w.u, w.v] = [-6.6, 9.55];
+    w.nameT = 6;
+    giveUmbrella(w, 0.3);
+    figures.add(w);
+    canv = w;
+    const stop = (u, light, answer) => [{ to: [u, 9.45] },
+      { wait: 0.9, start: (x) => { x.bounce = 1; floatAt(x, 'knock knock', '#cfe8ff'); } },
+      { wait: 0.9, start: (x) => { x.bounce = 1; } },
+      { wait: light ? 2.8 : 1.6, start: (x) => { light?.classList.add('on'); floatAt(x, answer, '#ffe2a8'); }, end: () => light?.classList.remove('on') }];
+    w.plan = [...stop(-3.55, DOORLIGHTS[0], '...'), ...stop(-1.45, DOORLIGHTS[1], '\u{1F4CB} \u2714'), ...stop(-0.8, DOORLIGHTS[2], '\u{1F4CB} \u2714'),
+      { to: [0.6, 9.9] }, { to: [16.8, 9.95] }, { call: (x) => { removeWalker(x); canv = null; } }];
+  }
+
+  // ---------- lobby props drawn by the page (queue 65: L38, L44, L51, L46, L40) ----------
+  // Every position is measured on the render (full@2x). They are flat page drawings on the art's wall planes.
+  // L38 Dear Leader: the rendered poster by the box office comes from the art pack roxy3d/out10l (mergeLeader). This
+  // block is only the fallback when that pack is missing: a small gold-framed portrait (the plain WEOW face) drawn by
+  // the page. One chatter in four salutes the poster at the usher's gate (serveGate). ?leader=0: none of it.
+  const LEADER_ON = q.get('leader') !== '0';
+  let leaderEl = null;   // the page-drawn placeholder; removed when the rendered pack (out10l, mergeLeader) loads
+  if (LEADER_ON) {
+    const el = leaderEl = h('div', 'dlp');
+    el.style.transform = 'matrix(1, -.5, 0, 1, 838, 496)';
+    el.style.zIndex = '1675';   // just over its wall slice (occ_restroom_side_wall, z 1674); chatters in front sort above
+    el.innerHTML = '<div class="lamp"></div><div class="face"></div><div class="plate">DEAR LEADER</div>';
+    world.append(el);
+    const face = () => { if (SB.emotes?.names?.has('WEOW')) el.querySelector('.face').replaceChildren(SB.emoteEl('WEOW', 26)); };
+    SB.on('emotes', face);
+    face();
+  }
+  // L44 and L51: two posters on the frames at the corridor's left end (over the render's filler posters "Night Ferry"
+  // and "The Blue Hour"). The left one hangs half behind the poll projector, so its text sits in the lower half.
+  // L44 "The J6 Video": coming soon for years; the release date is a stack of stickers, and a new one is pasted on
+  // every 3 minutes (wall clock), six in a loop. L51 "Dogtober 7th", a documentary (owner, 9 Nov 2026): a dog, a
+  // collar, the title; no name and no face. ?posters=0: none.
+  if (q.get('posters') !== '0') {
+    const mk = (x, y, html, bg) => {
+      const el = h('div', 'pst');
+      el.style.transform = `matrix(1, -.47, 0, 1, ${x}, ${y})`;
+      el.style.background = bg;
+      el.innerHTML = html;
+      $('lifefx').append(el);
+      return el;
+    };
+    const j6 = mk(767.8, 291.3, '<div style="top:27px;font-size:4.2px;letter-spacing:1px;color:#c9b27a">COMING SOON</div>' +
+      '<b style="top:32px;font-size:9.5px;line-height:9px;color:#f3ead2">THE J6<br>VIDEO</b>' +
+      '<div style="top:60px;font-size:2.6px;letter-spacing:.4px;color:#8f8468">A DESTINY PRODUCTION</div>', 'linear-gradient(#1b2338, #0e1220 60%, #1a1010)');
+    const STICKERS = [['2024', '#e9dcc0', 6, 51, -6], ['SPRING', '#ffd84a', 20, 52, 5], ['SOON', '#ff8a5a', 12, 54, -3], ['2026', '#9fe0b0', 25, 50, 7], ['SOON\u2122', '#ffd84a', 8, 52, 4], ['AFTER HL3', '#ff6a8a', 15, 53, -5]];
+    const stk = STICKERS.map(([t, c, x, y, r]) => { const d = h('div', 'stk', t); d.style.cssText = `left:${x}px;top:${y}px;background:${c};transform:rotate(${r}deg);display:none`; j6.append(d); return d; });
+    const stick = () => { const n = 1 + Math.floor(Date.now() / 180000) % STICKERS.length; stk.forEach((d, i) => { d.style.display = i < n ? '' : 'none'; }); };
+    stick();
+    setInterval(stick, 5000);
+    mk(830.9, 261.6, '<div style="top:4px;font-size:3.4px;letter-spacing:.8px;color:#d9c9a0">A DOCUMENTARY</div>' +
+      '<svg viewBox="0 0 48 30" style="top:10px;height:30px;width:47.2px"><path d="M9 26 L9 17 Q9 11 15 11 L27 11 Q29 5 34 5 L38 5 L40 8 L44 9 L44 13 L38 15 L36 20 L36 26 L32 26 L32 19 L18 19 L16 26 Z" fill="#0c0a0c"/>' +
+      '<path d="M9 17 Q4 14 5 9" fill="none" stroke="#0c0a0c" stroke-width="2.2" stroke-linecap="round"/>' +
+      '<rect x="28.5" y="9.6" width="3.6" height="7.2" rx="1" fill="#ffd84a"/><rect x="29.2" y="15.2" width="2.2" height="2.6" fill="#2a2418"/>' +
+      '<path d="M26 2 l2 3 -3 0 2 3" fill="none" stroke="#ffd84a" stroke-width=".9"/></svg>' +
+      '<b style="top:41px;font-size:8.2px;line-height:8px;letter-spacing:.2px;color:#fff3d6">DOGTOBER<br>7TH</b>' +
+      '<div style="top:58.5px;font-size:3px;letter-spacing:.8px;color:#1a0d08">COMING SOON</div>', 'linear-gradient(#c2372c, #8a1f1c 62%, #e9b23a 62%)');
+  }
+  // L46 slop on the menu: the SODA and NACHOS boards behind the snack bar take turns between a slop line and a house
+  // line, 20 s each (wall clock). The text is drawn over the render's board in pieces, one per wall slice, so the
+  // clerks in front still sort over it; the cream is matched to the board by eye. ?slop=0: none.
+  const SLOP = q.get('slop') === '0' ? [] : [
+    { x: 1181.5, y: 594, w: 105, h: 14.5, lines: ['POLITICS SLOP  $2.75', 'CODE DESTINY: 0% OFF'] },
+    { x: 1298.5, y: 652.5, w: 109, h: 14.5, lines: ['DRAMA SLOP  $5.25', 'DAY 1 HATERS EAT FREE'] }];
+  function buildSlop(m) {
+    const wallOcc = m.occluders.find((o) => /partition_right/.test(o.file));
+    if (!wallOcc || !SLOP.length) return;
+    for (const b of SLOP) {
+      b.els = [];
+      for (const sl of wallOcc.depth_slices || []) {
+        const x0 = Math.max(b.x, sl.x), x1 = Math.min(b.x + b.w, sl.x + sl.w);
+        if (x1 - x0 < 1) continue;
+        const el = h('div', 'menut');
+        // the whole board in every piece, clipped to this slice's span, so the line reads across the pieces
+        Object.assign(el.style, { width: `${b.w}px`, height: `${b.h}px`, transform: `matrix(1, .5, 0, 1, ${b.x}, ${b.y})`, zIndex: String(sl.z_index + 1),
+          background: '#e8e0cd', clipPath: `inset(0 ${(b.x + b.w - x1).toFixed(1)}px 0 ${(x0 - b.x).toFixed(1)}px)` });
+        el.append(h('span', '', b.lines[0]));
+        world.append(el);
+        b.els.push(el);
+      }
+    }
+    const turn = () => { const k = Math.floor(Date.now() / 20000) % 2; for (const b of SLOP) for (const el of b.els || []) if (el.firstChild.textContent !== b.lines[k]) el.firstChild.textContent = b.lines[k]; };
+    turn();
+    setInterval(turn, 1000);
+  }
+  // L40 the gnome: a garden gnome that stands somewhere else every time the camera comes back from a close-up (and
+  // after five minutes at the wide shot it moves anyway). The spot comes from the wall clock, so screens agree.
+  // ?gnome=0: none.
+  const GNOME_SPOTS = [[12.2, 6.1], [10.55, 8.45], [10.6, 5.6], [12.6, 4.35], [9.2, 5.6], [11.6, 7.6], [8.0, 1.2]];   // (the second one peeks through the glass front; none under the marquee's roof)
+  let gnome = null;
+  if (q.get('gnome') !== '0') {
+    gnome = { el: h('div', 'gnome'), at: -1, since: performance.now(), wasClose: false };
+    gnome.el.innerHTML = '<i style="left:-7px;top:-3px;width:14px;height:5px;border-radius:50%;background:rgba(0,0,0,.4)"></i>' +
+      '<i style="left:-4.5px;top:-9px;width:9px;height:8px;border-radius:3px 3px 2px 2px;background:#3b62c4"></i>' +
+      '<i style="left:-4px;top:-13px;width:8px;height:7px;border-radius:50%;background:#f1c9a5"></i>' +
+      '<i style="left:-4.5px;top:-10.5px;width:9px;height:6px;border-radius:2px 2px 50% 50%;background:#f4f0e6"></i>' +
+      '<i style="left:-5px;top:-23px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid #d8342c"></i>';
+    world.append(gnome.el);
+  }
+  function stepGnome() {
+    if (!gnome) return;
+    const close = cam.z > 1.3, now = performance.now();
+    const want = Math.floor(Date.now() / 45000) % GNOME_SPOTS.length;
+    // he only moves while nobody can see the whole room: during a close-up, or after 5 minutes of the wide shot
+    if (gnome.at < 0 || (want !== gnome.at && (close || now - gnome.since > 300000))) {
+      gnome.at = want; gnome.since = now;
+      const [u, v] = GNOME_SPOTS[want], [x, y] = P(u, v);
+      gnome.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(1.8)`;
+      gnome.el.style.zIndex = String(depth(u, v));
+    }
+  }
+
+  // ---------- lobby life (queue 64: L21 the turtle, L26 nothing burger, L28 quickdraw, L29 wet-floor sign) ----------
+  // L21 Aristortle: every 10 minutes (wall clock) a turtle crosses the lobby, taking about a minute and a half.
+  // L26 nothing burger: every 4 minutes a snack clerk lifts a serving cloche and there is nothing under it.
+  // L28 quickdraw: when a chatter wearing PARDNER and one wearing YEEHAW are both in the lobby and near each other,
+  //     they turn to face each other, "DRAW!", and one of them loses (at most once every 3 minutes).
+  // L29 wet floor: after five chatters have come in out of the rain within 40 s, a wet-floor sign stands by the
+  //     entrance for a minute and a half. Figures and timing are this screen's own. ?lobbylife=0: none of it.
+  const LOBBYLIFE_ON = q.get('lobbylife') !== '0';
+  const lobbyLife = { wet: [], turtle: null, turtleSlot: -1, burgerSlot: -1, drawAt: 0, checkT: 0, sign: null, signUntil: 0 };
+  function sendTurtle() {
+    if (lobbyLife.turtle || !SB.emotes?.names?.has('PepoTurtle')) return;
+    const w = makeFigure('Aristortle', 'PepoTurtle', '#7bc35a', false);
+    w.npc = true;
+    w.key = '#turtle';
+    w.gait = { speed: 0.06, crawl: true };
+    [w.u, w.v] = [8.5, 5.6];   // (the floor left of here is under the street marquee's roof from this camera)
+    w.alpha = 0; w.alphaT = 1;
+    w.nameT = 12;
+    figures.add(w);
+    lobbyLife.turtle = w;
+    w.plan = [{ alpha: 1 }, { to: [10.6, 5.7], slow: true }, { to: [12.4, 6.3], slow: true },
+      { call: (x) => { x.alphaT = 0; } }, { alpha: 0 }, { call: (x) => { removeWalker(x); lobbyLife.turtle = null; } }];
+  }
+  function nothingBurger() {
+    const st = staff.clerk2 || staff.clerk;
+    if (!st) return;
+    const [x, y] = P(st.u - 0.42, st.v + 0.72, 44);
+    const el = h('div', 'cloche');
+    el.innerHTML = '<i class="plate"></i><i class="dome"></i>';
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    el.style.zIndex = String(depth(st.u, st.v + 1.25));
+    world.append(el);
+    st.bounce = 1;
+    const dome = el.querySelector('.dome');
+    dome.animate([{ transform: 'translate(0, 0) rotate(0deg)' }, { transform: 'translate(7px, -13px) rotate(24deg)', offset: 0.18 },
+      { transform: 'translate(7px, -13px) rotate(24deg)', offset: 0.8 }, { transform: 'translate(0, 0) rotate(0deg)' }], { duration: 3600, easing: 'ease-in-out' })
+      .onfinish = () => el.remove();
+    setTimeout(() => floatText(x, y - 24, 'nothing.', '#e8e0cd'), 800);
+  }
+  function quickdraw(a, b) {
+    for (const [x, y] of [[a, b], [b, a]]) SB.faceEmote(x.em, x.emName, (y.u - x.u) - (y.v - x.v));
+    a.bounce = Math.max(a.bounce, 1); b.bounce = Math.max(b.bounce, 1);
+    setTimeout(() => { floatAt(a, 'DRAW!', '#ffe27a'); floatAt(b, 'DRAW!', '#ffe27a'); }, 300);
+    const [win, lose] = Math.random() < 0.5 ? [a, b] : [b, a];
+    setTimeout(() => {
+      if (win.gone || lose.gone) return;
+      win.bounce = 1; floatAt(win, '\u{1F4A5}', '#ffb46a');
+      setTimeout(() => { if (!lose.gone) { lose.bounce = 1; floatAt(lose, '\u{1F480}', '#dfe3ea'); } }, 350);
+    }, 1500);
+  }
+  function stepLobbyLife(dt) {
+    if (!LOBBYLIFE_ON) return;
+    lobbyLife.checkT -= dt;
+    if (lobbyLife.checkT > 0) return;
+    lobbyLife.checkT = 1;
+    const now = performance.now(), wall = Date.now();
+    const tSlot = Math.floor(wall / 600000), bSlot = Math.floor((wall + 90000) / 240000);
+    if (lobbyLife.turtleSlot < 0) { lobbyLife.turtleSlot = tSlot; lobbyLife.burgerSlot = bSlot; }
+    if (tSlot !== lobbyLife.turtleSlot) { lobbyLife.turtleSlot = tSlot; sendTurtle(); }
+    if (bSlot !== lobbyLife.burgerSlot) { lobbyLife.burgerSlot = bSlot; nothingBurger(); }
+    if (lobbyLife.turtle?.gone) lobbyLife.turtle = null;
+    // quickdraw
+    if (now - lobbyLife.drawAt > 180000) {
+      const inside = [...figures].filter((w) => !w.staff && !w.npc && !w.jan && !w.out && !w.removing && !w.entering && w.alpha > 0.9 && w.v > 2.8);
+      const a = inside.find((w) => w.emName === 'PARDNER');
+      const b = a && inside.find((w) => w.emName === 'YEEHAW' && Math.hypot(w.u - a.u, w.v - a.v) < 4);
+      if (a && b) { lobbyLife.drawAt = now; quickdraw(a, b); }
+    }
+    // wet floor
+    lobbyLife.wet = lobbyLife.wet.filter((t) => now - t < 40000);
+    if (lobbyLife.wet.length >= 5) lobbyLife.signUntil = now + 90000;
+    const want = now < lobbyLife.signUntil;
+    if (want && !lobbyLife.sign) {
+      const el = lobbyLife.sign = h('div', 'wetsign');
+      el.append(h('i'));
+      const [x, y] = P(10.2, 6.4);
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      el.style.zIndex = String(depth(10.2, 6.4));
+      world.append(el);
+    }
+    if (lobbyLife.sign) lobbyLife.sign.style.opacity = want ? '1' : '0';
+  }
+  window.__lobbyLife = { sendTurtle, nothingBurger, quickdraw, state: lobbyLife };   // test hooks
+
+  // ---------- more street life (queue 64: L11, L12, L13, L14, L15, L19) ----------
+  // L11 puddle splash: a car passing the puddle by the lamp sometimes throws water at the curb; chatters standing
+  //     there hop back. L12 wind: in gust weather ("curtains") the umbrellas lean into the wind, and now and then one
+  //     is blown inside out for a moment. L15: a sheet of newspaper tumbles down the sidewalk in the gusts.
+  // L13 missed the bus: sometimes, as the bus pulls out, someone comes running for it, stops, slumps, waits under
+  //     the shelter and takes the next one. L14 pigeons on the two rooftop billboards fly up when a bus stops and
+  //     come back. L19 a dog rests its head on the sill of the blue (TV) window and lifts it while a bus is about.
+  // Figures and timing here are this screen's own (like the cat and the traffic). ?street2=0: none of it.
+  const STREET2_ON = q.get('street2') !== '0';
+  const street2 = { gustT: 0, paperAt: 0, busStopped: false, pigeons: [], dog: null, late: null };
+  function puddleSplash(u) {
+    for (let i = 0; i < 10; i++) {
+      const el = h('div', 'drop');
+      const [x0, y0] = P(u + rand(-0.5, 0.5), 10.85);
+      const [x1, y1] = P(u + rand(-0.3, 0.6), 10.85 - rand(0.5, 1.2));
+      const hgt = rand(24, 54);
+      el.style.zIndex = String(depth(u, 10.7) + 1);
+      world.append(el);
+      el.animate([{ transform: `translate(${x0}px, ${y0}px)`, opacity: 0.9 },
+        { transform: `translate(${(x0 + x1) / 2}px, ${(y0 + y1) / 2 - hgt}px)`, opacity: 0.9, offset: 0.5 },
+        { transform: `translate(${x1}px, ${y1}px)`, opacity: 0 }], { duration: 480 + i * 22, easing: 'linear' }).onfinish = () => el.remove();
+    }
+    splash(u, 10.35);
+    let n = 0;
+    for (const w of figures) {
+      if (n >= 3) break;
+      if (!w.out || w.ride || w.removing || w.alpha < 0.9 || w.v < 9.85 || Math.abs(w.u - u) > 1.2) continue;
+      n++;
+      w.bounce = Math.max(w.bounce, 1);
+      floatAt(w, n === 1 ? 'hey!!' : '\u{1F4A6}', '#bfe3ff');
+    }
+  }
+  function lateForBus() {
+    if (street2.late || !VEH?.bus?.['+u']) return;
+    const w = makeFigure('', Cinema.defaultEmote(`late-${Math.floor(Date.now() / 60000)}`), '#fff', false);
+    w.npc = true;
+    w.key = '#late';
+    w.nm.style.display = 'none';
+    [w.u, w.v] = [-6.4, 10.0];
+    w.hurry = true;
+    giveUmbrella(w);
+    figures.add(w);
+    street2.late = w;
+    const door = STOPS.bus.door_ground;
+    w.plan = [{ to: [door[0] - 0.2, 10.15] }, { call: (x) => { x.hurry = false; } },
+      { wait: 1.3, start: (x) => { x.bounce = 1; floatAt(x, 'WAIT!!', '#ffb0b0'); } },
+      { wait: 2.4, start: (x) => floatAt(x, '...', '#cfd6e6') },
+      { to: [1.75, 9.95] },
+      { call: (x) => { x.waitingBus = true; x.plan = [{ until: () => { const b = activeBus(); return !!b && b.state === 'stopped' && !b.riders.size; } }, { call: boardBus }]; } }];
+  }
+  if (STREET2_ON) {
+    // pigeons: [x, y] on the top edges of the wcat and the eatfresh billboards (stage px, from the ad quads)
+    for (const [x, y] of [[448, 153], [467, 144], [561, 97], [760, 48]]) {
+      const el = h('div', 'pigeon');
+      el.append(h('i'));
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      el.style.zIndex = '120';
+      world.append(el);
+      street2.pigeons.push({ el, x, y });
+    }
+    // the dog: a dark head with two ears at the bottom of the blue window (wall plane, like the snarkers)
+    const d = h('div', 'wdog');
+    d.style.cssText = 'position:absolute;left:0;top:0;width:31px;height:29px;transform:matrix(1,.5,0,1,238,438)';
+    d.innerHTML = '<div><i style="left:9px;top:27px;width:12px;height:9px;border-radius:50% 50% 30% 30%"></i>' +
+      '<i style="left:8px;top:25px;width:4px;height:6px;border-radius:50% 50% 0 0"></i><i style="left:18px;top:25px;width:4px;height:6px;border-radius:50% 50% 0 0"></i></div>';
+    $('lifefx').append(d);
+    street2.dog = d;
+  }
+  function stepStreet2(dt) {
+    if (!STREET2_ON) return;
+    const now = performance.now();
+    let busNear = false, busStopped = false;
+    for (const v of traffic) {
+      if (v.gone) continue;
+      if (v.type === 'bus') {
+        if (v.u > -5 && v.u < 9) busNear = true;
+        if (v.state === 'stopped') busStopped = true;
+        if (v.leftAt && !v.lateDone) { v.lateDone = true; if (Math.random() < 0.3) setTimeout(lateForBus, 500); }
+      } else if (v.sign > 0 && !v.splashed && v.u > 6.2) {
+        v.splashed = true;
+        if (v.cur > 3 && Math.random() < 0.45) puddleSplash(6.6);
+      }
+    }
+    if (street2.late?.gone) street2.late = null;
+    street2.dog?.classList.toggle('up', busNear);
+    if (busStopped && !street2.busStopped) {
+      street2.pigeons.forEach(({ el, x, y }, i) => {
+        const tr = (dx, dy, r = 0) => `translate(${x + dx}px, ${y + dy}px) rotate(${r}deg)`;
+        el.animate([{ transform: tr(0, 0) }, { transform: tr(-18, -46, -20), offset: 0.08 }, { transform: tr(14, -84, 12), offset: 0.3 },
+          { transform: tr(-10, -70, -14), offset: 0.6 }, { transform: tr(6, -26, 8), offset: 0.9 }, { transform: tr(0, 0) }],
+        { duration: 5200 + i * 500, delay: i * 140, easing: 'ease-in-out' });
+      });
+    }
+    street2.busStopped = busStopped;
+    // gusts
+    const gust = typeof weather === 'object' && weather.name === 'curtains';
+    if (gust !== world.classList.contains('gust')) world.classList.toggle('gust', gust);
+    if (gust) {
+      street2.gustT -= dt;
+      if (street2.gustT <= 0) {
+        street2.gustT = rand(5, 11);
+        const out = [...figures].filter((w) => w.out && w.umb && !w.ride && w.alpha > 0.9 && !w.removing);
+        const w = out[Math.floor(Math.random() * out.length)];
+        if (w) { const u = w.umb; u.classList.add('blown'); floatAt(w, '\u{1F4A8}', '#dfe9ff'); setTimeout(() => u.classList.remove('blown'), 1300); }
+      }
+      if (now > street2.paperAt) {
+        street2.paperAt = now + rand(9000, 20000);
+        const el = h('div', 'paper');
+        el.style.zIndex = String(depth(5, 10.2));
+        world.append(el);
+        const frames = [];
+        for (let k = 0; k <= 10; k++) {
+          const [x, y] = P(-6 + 2.3 * k, 10.2 + Math.sin(k * 1.7) * 0.15);
+          frames.push({ transform: `translate(${x.toFixed(1)}px, ${(y - (k % 2 ? 16 : 0)).toFixed(1)}px) rotate(${k * 140}deg)` });
+        }
+        el.animate(frames, { duration: 6500, easing: 'linear' }).onfinish = () => el.remove();
+      }
+    }
+  }
+  window.__street2 = { puddleSplash, lateForBus };   // test hooks
+
+  function lookAt(w) {
+    if (w.staff || w.jan) return null;
+    if (!w.out) return w.v < 2.7 && w.u > 0 ? 'h' : null;
+    if (underMarquee(w.u, w.v)) return 'm';
+    if (w.v < 10.25 && w.u > 2.9 && w.u < 13.1) return 'p';
+    const [x, y] = P(w.u, w.v);
+    const i = (clamp(Math.round(y * LIGHT.h / 1080), 0, LIGHT.h - 1) * LIGHT.w + clamp(Math.round(x * LIGHT.w / 1920), 0, LIGHT.w - 1)) * 4;
+    const m = LIGHT.map, lum = (m[i] * 0.3 + m[i + 1] * 0.59 + m[i + 2] * 0.11) / 255;
+    return (m[i] > m[i + 2] * 1.12 ? 's' : 'n') + (lum < 0.1 ? 1 : lum < 0.26 ? 2 : 3);
+  }
+  function stepLight(w, dt) {
+    w.ltT = (w.ltT ?? Math.random() * 0.25) - dt;
+    if (w.ltT > 0) return;
+    w.ltT = 0.25;
+    if (LIGHT_ON && LIGHT.map) {
+      const k = lookAt(w);
+      if (k !== (w.lt || null)) { w.lt = k; if (k) w.el.dataset.lt = k; else delete w.el.dataset.lt; }
+    }
+    if (!REFL_ON) return;
+    const wet = !!w.out && !w.staff && !w.jan && !w.ride && w.alpha > 0.5 && !underMarquee(w.u, w.v) && !!w.em;
+    if (!wet) { if (w.refl) { w.refl.remove(); w.refl = null; } return; }
+    if (!w.refl) {
+      w.refl = h('div', 'refl');
+      const copy = w.em.cloneNode(true);
+      copy.style.left = `${42 - Number(w.em.dataset.w || 50) / 2}px`;
+      w.refl.append(copy);
+      w.reflFlip = null;
+      w.el.insertBefore(w.refl, w.bod);
+    }
+    const flip = w.em.dataset.flip === 'true';
+    if (flip !== w.reflFlip) { w.reflFlip = flip; w.refl.firstElementChild.style.transform = flip ? 'scale(-1, -1)' : 'scaleY(-1)'; }
+  }
   let mist = null;
   let mistStarted = false;   // the passes load once, the first time a style is on (URL or control panel)
   function startMist() {
@@ -3138,6 +3886,7 @@ void main() {
       if (rain2) {
         rain2.uW = rain2.gl.getUniformLocation(rain2.pr, 'uW');
         rain2.uS = rain2.gl.getUniformLocation(rain2.pr, 'uS');
+        rain2.uHL = rain2.gl.getUniformLocation(rain2.pr, 'uHL[0]');
         // texture unit 3: the baked foreground rain video (fgToRain2), empty until it plays
         const gl = rain2.gl;
         gl.activeTexture(gl.TEXTURE3);
@@ -3218,12 +3967,33 @@ void main() {
     rain2.gl.uniform4f(rain2.uW, m[0], m[1], m[2], m[3]);
     rainSpeed = rainSpeedFixed ?? m[4];
   }
+  // Headlights in the rain (queue 63, L8): the front lamps of up to four vehicles on screen go to the extra-rain shader
+  // as lights (uHL). ?beams=0: none.
+  const BEAMS_ON = q.get('beams') !== '0';
+  const hlBuf = new Float32Array(16);
+  function setHeadlights() {
+    if (!rain2.uHL) return;
+    hlBuf.fill(0);
+    if (BEAMS_ON) {
+      let n = 0;
+      for (const v of traffic) {
+        if (n >= 4) break;
+        if (v.gone) continue;
+        const [x, y] = P(v.u + v.sign * v.len / 2, v.lane, 17);
+        if (x < -320 || x > 2240 || y < -200 || y > 1280) continue;
+        hlBuf.set([x, y, v.sign, 1], n * 4);
+        n++;
+      }
+    }
+    rain2.gl.uniform4fv(rain2.uHL, hlBuf);
+  }
   const RAIN2_FS = `
 precision highp float;
 uniform sampler2D uL, uC, uM, uV;
 uniform vec2 uRes;
 uniform float uT, uGain, uVid, uS;   // uS = the streaks' own clock (rain speed)
 uniform vec4 uW;   // weights: fine rain, near drops, gust curtains, splash crowns
+uniform vec4 uHL[4];   // headlights (L8): xy = the lamps in stage px, z = +1 / -1 along the street, w = strength (0 = none)
 float h1(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float noise(vec3 p) {
@@ -3295,6 +4065,19 @@ void main() {
     a *= mix(1.0, 0.12 + 2.2 * g, uW.z);
   }
   vec3 col = tint * a;
+  // headlights (queue 63, L8): the rain in front of a vehicle is lit by its lamps. A cone along the street's screen
+  // direction, widening and fading with distance; the streaks inside it turn bright and warm, with a faint haze.
+  for (int i = 0; i < 4; i++) {
+    if (uHL[i].w < 0.01) continue;
+    vec2 d = px - uHL[i].xy;
+    vec2 ax = uHL[i].z * vec2(0.8944, 0.4472);
+    float along = dot(d, ax);
+    if (along < -4.0 || along > 340.0) continue;
+    float lat = length(d - ax * along + vec2(0.0, 10.0));          // (the beam's middle hangs a little above the road)
+    float wd = 16.0 + along * 0.36;
+    float I = uHL[i].w * smoothstep(wd, wd * 0.2, lat) * smoothstep(340.0, 30.0, along) * smoothstep(-4.0, 6.0, along) / (1.0 + along / 150.0);
+    col += vec3(1.0, 0.93, 0.76) * I * (a * 5.0 + 0.11);
+  }
   if (uW.w > 0.01) {
     vec3 Lc;
     float cr = crowns(px, 7.0, 2.2, 0.35, 1.6, Lc);
@@ -3532,7 +4315,7 @@ void main() {
   // screen); a screen on its own rolls it itself when its director is due.
   const PEEK_LEN = 7000;
   const PEEK_P = 0.35;   // share of the director's turns that go to a spot instead of an arrival
-  const PEEK_W = { wcat: 2, eatfresh: 2, sign: 1, cashiers: 2, snack: 2, usher: 1, poster1: 1, poster2: 1, poster3: 1, cat: 2, shelter: 1 };
+  const PEEK_W = { wcat: 2, eatfresh: 2, sign: 1, cashiers: 2, snack: 2, usher: 1, poster1: 1, poster2: 1, poster3: 1, cat: 2, shelter: 1, leader: 2 };   // leader: this screen's own director only (the room's list is in shared/room.js)
   const boxOf = (pts) => { const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
   // name -> [x0, y0, x1, y1] on the 1920x1080 stage (or null: not in this art)
   function peekBox(name) {
@@ -3543,6 +4326,7 @@ void main() {
     switch (name) {
       case 'wcat': case 'eatfresh': case 'shelter': return ad(name);
       case 'sign': return [1350, 10, 1890, 330];   // the roof sign over the entrance (baked into the art)
+      case 'leader': return leaderQuad ? boxOf(leaderQuad.map(([x, y]) => [x, y]).concat([[820, 440], [930, 590]])) : null;   // the Dear Leader poster and a little wall around it
       case 'cashiers': return around(staff.cashiers, 70);
       case 'snack': return around(staff.snack_clerks, 70);
       case 'usher': return staff.usher ? around([staff.usher], 70) : null;
@@ -4056,7 +4840,9 @@ void main() {
       w.moving = stepPlan(w, dt);
       if (w.gone) continue;
       drawFigure(w, dt, t);
+      stepLight(w, dt);
       if (w.pending && onScreen(w)) say(w, w.pending);
+      if (w.goldSay && w.alpha > 0.9 && onScreen(w)) { w.goldSay = false; floatAt(w, `✨ GOLDEN ${w.emName === 'glorp' ? 'GLORP' : 'WEOW'}`, '#ffd75a'); }
       else soloSpeech(w, dt);
       placeBubble(w, dt);
     }
@@ -4069,12 +4855,18 @@ void main() {
       s.pulse = Math.max(0, s.pulse - dt * 1.2);
       s.el.style.boxShadow = s.pulse ? `0 0 ${Math.round(30 * s.pulse)}px rgba(255,95,176,${(0.9 * s.pulse).toFixed(2)}), inset 0 0 ${Math.round(24 * s.pulse)}px rgba(255,95,176,${(0.6 * s.pulse).toFixed(2)})` : '';
     }
+    stepCanvasser();
+    stepGnome();
+    stepSirens();
+    stepStreet2(dt);
+    stepLobbyLife(dt);
     if (rainOn) drawRain(dt);
     if (mist && MIST) drawGL(mist, t, 1000);
     if (rain2) {
       stepWeather(dt);
       rainClock = (rainClock + dt * rainSpeed) % 1000;
       rain2.gl.uniform1f(rain2.uS, rainClock);
+      setHeadlights();
       // stepped like the baked rain (24 fps loops); the canvas keeps its last frame between steps
       const tq = RAIN2_FPS ? Math.floor(t * RAIN2_FPS / 1000) * 1000 / RAIN2_FPS : t;
       // with the foreground-rain video in this pass, its new frames are the steps (24 a second, both layers change
@@ -4145,6 +4937,28 @@ void main() {
       if (b && [b.x, b.y, b.w, b.h].every(Number.isFinite)) softRects.push([b.x, b.y, b.x + b.w, b.y + b.h]);
     } catch { /* no marquee: the lobby as before */ }
   }
+  // "Dear Leader" poster (queue 68; owner 10 Nov 2026, Briefs 84-86): a rendered layer pack in roxy3d/out10l/, six
+  // images: a ground shadow and a ground light under all walkers (they join MARQ.under), and the body (poster, frame,
+  // picture light, contact shadow) with its light pinned just above the wall slice it hangs on, plus two small pieces
+  // on the box office. With the pack in, the page-drawn placeholder portrait goes. ?leader=0 or ?leaderart=0: no pack.
+  let leaderQuad = null;
+  async function mergeLeader(m) {
+    if (!LEADER_ON || q.get('leaderart') === '0') return;
+    try {
+      const res = await fetch('roxy3d/out10l/leader.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      const f = res.ok ? await res.json() : null;
+      if (!f || !Array.isArray(f.render_layers) || !f.render_layers.length) return;
+      const rel = (x) => (typeof x === 'string' ? `../out10l/${x}` : x);
+      for (const l of f.render_layers) {
+        if (!l || typeof l.file !== 'string' || ![l.x, l.y, l.w, l.h].every(Number.isFinite)) continue;
+        if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
+        else m.occluders.push({ ...l, file: rel(l.file), file_2x: rel(l.file_2x) });
+      }
+      leaderQuad = Array.isArray(f.face_quad) ? f.face_quad : null;
+      leaderEl?.remove();
+      leaderEl = null;
+    } catch { /* no pack: the placeholder stays */ }
+  }
   // The street letterboard text, split into the same 0.25-tile depth bands as the body slices so a walker in front
   // of one end of the board covers it there and not at the other end. The face is a parallelogram (TL TR BR BL).
   function buildMarqueeText() {
@@ -4200,7 +5014,7 @@ void main() {
   // the board's two lines: the panel's own text where set ("-" = blank), else the automatic film text
   function showMarquee() {
     const line = (i) => (MARQ.custom[i] === '-' ? '' : MARQ.custom[i] || MARQ.auto[i]);
-    setMarqueeText(line(0), line(1));
+    setMarqueeText(line(0), mqOneLiner() || line(1));
   }
   function setMarqueeText(l1, l2) {
     const key = `${l1}|${l2}`;
@@ -4228,6 +5042,7 @@ void main() {
       const m = res.ok ? await res.json() : null;
       if (!(m && (m.bg || m.base) && Array.isArray(m.occluders))) return null;
       await mergeMarquee(m);
+      await mergeLeader(m);
       return m;
     } catch { return null; }
   }
@@ -4269,6 +5084,7 @@ void main() {
     return dead;
   }
   function setupArt(m) {
+    buildSlop(m);
     document.body.classList.add('art');
     if (m.layout === 3) setupLayout3(m);
     bg.style.display = 'none';

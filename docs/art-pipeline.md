@@ -46,6 +46,7 @@ bundle downloads the same release and checks its official SHA-256.
 | `roxy3d/out10/` | Live lobby art pack | yes |
 | `roxy3d/out10mist/` | Live surface/mist maps for the lobby rain layer | yes |
 | `roxy3d/out10m/` | Street marquee layer pack over `out10` (Brief 83, 10 Nov 2026): `marquee.json`, depth slices, bulb chase | yes |
+| `roxy3d/out10l/` | "Dear Leader" poster layer pack over `out10` and `out10m` (Brief 86, 10 Nov 2026): `leader.json`, body, light and shadow pieces | yes |
 | `roxy3d/qa11/` | Auditorium drafts; only the files `auditorium.html` loads are tracked | partly |
 | `roxy3d/cloud/` | `cloud-render.sh` (RunPod helper), `README-CLOUD.md`, Brief 27 build scripts | yes |
 | `roxy3d/cloud/brief57/` | Brief 57 production bundle sources (`upload/bundle/`) and build scripts | yes, except `upload/bundle/out10/` and `local-cache/` |
@@ -102,7 +103,7 @@ The page reads everything through `out10/manifest.json` (layout 3, `asset_pack_r
 | `.cloud-build.json` | - | Build fingerprint and provenance of the cloud run. |
 | `NOTES-PASS10.md` | `notes` | Short notes for this pack (not loaded by the page). |
 
-`package/art.js` takes `out10/`, `out10mist/` and `out10m/` whole (minus `.md/.txt/.py/.ps1/.log`), because the page reads them
+`package/art.js` takes `out10/`, `out10mist/`, `out10m/` and `out10l/` whole (minus `.md/.txt/.py/.ps1/.log`), because the page reads them
 through the manifest.
 
 ### Resolution rules

@@ -1,0 +1,228 @@
+{
+  "schema": "dinkdonk.leader.layers.v1",
+  "brief": 86,
+  "date": "10 Nov 2026",
+  "stage_size": [
+    1920,
+    1080
+  ],
+  "scale2x": true,
+  "asset_root": "roxy3d/out10l/",
+  "projection": {
+    "origin": [
+      900,
+      350
+    ],
+    "tile_x": [
+      60,
+      30
+    ],
+    "tile_y": [
+      -60,
+      30
+    ],
+    "vertical_px_per_blender_unit": 73.48469228349535
+  },
+  "source_blend_sha256": "8c02b0b274a51ec7bf88b726c698cc6415b7a2b603153cf574a07d7b8dd826cf",
+  "face_quad": [
+    [
+      849.3599510192871,
+      485.0839591026306
+    ],
+    [
+      888.9599990844727,
+      465.2839779853821
+    ],
+    [
+      888.9599990844727,
+      538.0338549613953
+    ],
+    [
+      849.3599510192871,
+      557.8338360786438
+    ]
+  ],
+  "face_quad_order": [
+    "TL",
+    "TR",
+    "BR",
+    "BL"
+  ],
+  "render_layers": [
+    {
+      "name": "leader_shadow_under",
+      "file": "leader_shadow_under.png",
+      "file_2x": "leader_shadow_under@2x.png",
+      "x": 846,
+      "y": 533,
+      "w": 60,
+      "h": 35,
+      "z_index": 5,
+      "blend": "source-over",
+      "kind": "shadow",
+      "under": true
+    },
+    {
+      "name": "leader_light_under",
+      "file": "leader_light_under.png",
+      "file_2x": "leader_light_under@2x.png",
+      "x": 846,
+      "y": 506,
+      "w": 131,
+      "h": 106,
+      "z_index": 5,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": true
+    },
+    {
+      "name": "leader_body",
+      "file": "leader_body.png",
+      "file_2x": "leader_body@2x.png",
+      "x": 837,
+      "y": 458,
+      "w": 62,
+      "h": 107,
+      "z_index": 1675,
+      "blend": "source-over",
+      "kind": "body_with_contact_shadow",
+      "under": false,
+      "occluder": "occ_restroom_side_wall.png",
+      "occluder_slice": "restroom_side_wall_00",
+      "occluder_slice_file": "slices/occ_restroom_side_wall_00.png",
+      "occluder_slice_z_index": 1674
+    },
+    {
+      "name": "leader_light_restroom_side_wall_00",
+      "file": "leader_light_restroom_side_wall_00.png",
+      "file_2x": "leader_light_restroom_side_wall_00@2x.png",
+      "x": 807,
+      "y": 458,
+      "w": 97,
+      "h": 119,
+      "z_index": 1675,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_restroom_side_wall.png",
+      "occluder_slice": "restroom_side_wall_00",
+      "occluder_slice_file": "slices/occ_restroom_side_wall_00.png",
+      "occluder_slice_z_index": 1674
+    },
+    {
+      "name": "leader_shadow_boxoffice_00",
+      "file": "leader_shadow_boxoffice_00.png",
+      "file_2x": "leader_shadow_boxoffice_00@2x.png",
+      "x": 845,
+      "y": 560,
+      "w": 6,
+      "h": 7,
+      "z_index": 1954,
+      "blend": "source-over",
+      "kind": "shadow",
+      "under": false,
+      "occluder": "occ_boxoffice.png",
+      "occluder_slice": "boxoffice_00",
+      "occluder_slice_file": "slices/occ_boxoffice_00.png",
+      "occluder_slice_z_index": 1953
+    },
+    {
+      "name": "leader_light_boxoffice_00",
+      "file": "leader_light_boxoffice_00.png",
+      "file_2x": "leader_light_boxoffice_00@2x.png",
+      "x": 812,
+      "y": 560,
+      "w": 56,
+      "h": 41,
+      "z_index": 1954,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_boxoffice.png",
+      "occluder_slice": "boxoffice_00",
+      "occluder_slice_file": "slices/occ_boxoffice_00.png",
+      "occluder_slice_z_index": 1953
+    }
+  ],
+  "parents": {
+    "body_with_contact_shadow": {
+      "name": "body_with_contact_shadow",
+      "file": "parents/body_with_contact_shadow.png",
+      "file_2x": "parents/body_with_contact_shadow@2x.png",
+      "x": 837,
+      "y": 458,
+      "w": 62,
+      "h": 107,
+      "draw": false,
+      "depth_slices": [
+        "leader_body"
+      ]
+    },
+    "shadow": {
+      "name": "shadow",
+      "file": "parents/shadow.png",
+      "file_2x": "parents/shadow@2x.png",
+      "x": 845,
+      "y": 533,
+      "w": 61,
+      "h": 35,
+      "draw": false,
+      "depth_slices": [
+        "leader_shadow_under",
+        "leader_shadow_boxoffice_00"
+      ]
+    },
+    "light": {
+      "name": "light",
+      "file": "parents/light.png",
+      "file_2x": "parents/light@2x.png",
+      "x": 807,
+      "y": 458,
+      "w": 170,
+      "h": 154,
+      "draw": false,
+      "depth_slices": [
+        "leader_light_under",
+        "leader_light_restroom_side_wall_00",
+        "leader_light_boxoffice_00"
+      ]
+    }
+  },
+  "image_element_count": 6,
+  "dropped_noise": [
+    {
+      "kind": "light",
+      "receiver": "partition_left_00",
+      "max_1x": 1,
+      "max_2x": 1
+    },
+    {
+      "kind": "light",
+      "receiver": "partition_right_00",
+      "max_1x": 1,
+      "max_2x": 1
+    },
+    {
+      "kind": "light",
+      "receiver": "podium_00",
+      "max_1x": 2,
+      "max_2x": 2
+    },
+    {
+      "kind": "light",
+      "receiver": "restroom_side_wall_01",
+      "max_1x": 1,
+      "max_2x": 1
+    }
+  ],
+  "shadow_required": true,
+  "integration_status": "Staging only; no page or live pack changed.",
+  "draw_notes": [
+    "All coordinates and z are logical stage units at either resolution.",
+    "under shadow then under light at z 5, after wet-street light, before all walkers.",
+    "Pinned pieces are above their named existing slice, at its z_index + 1.",
+    "At equal z, draw source-over body/contact shadow before plus-lighter light.",
+    "Body includes black contact shadow to save one image; no rectangular background patch.",
+    "Disable the page-drawn Dear Leader placeholder when integrating this pack."
+  ]
+}

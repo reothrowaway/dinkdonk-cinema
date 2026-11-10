@@ -23,7 +23,8 @@ screens 1-3 and the left wing is the restroom. DGG chatters walk in as small fig
 buy a ticket, sometimes get popcorn, talk in speech bubbles, and go through their screen's door.
 
 The art is a Blender render (`roxy3d/out10/`, plus rain/mist passes in `roxy3d/out10mist/` and the street marquee's
-layers in `roxy3d/out10m/`; `?marquee=0` leaves the marquee out). Everything that
+layers in `roxy3d/out10m/`; `?marquee=0` leaves the marquee out; the "Dear Leader" poster by the box office is a
+second small layer pack, `roxy3d/out10l/`, `?leader=0`). Everything that
 moves or changes (people, vehicles, signs, rain extras, camera) is a live DOM/canvas/WebGL layer on top.
 
 ### DOM (`lobby.html:160-176`)
@@ -136,6 +137,26 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | `marquee=0` | on | Leave out the street marquee (layer pack `roxy3d/out10m/`, 10 Nov 2026) | `MARQ_ON`, `mergeMarquee` |
 | `marquee1=<text>`, `marquee2=<text>` | empty | The marquee board's two lines (40 characters each). Empty = automatic (screen 1's film, `NOW SHOWING · title` / `SCREEN 1 · ★ rating`); `-` = a blank line. Also in the panel ("Marquee line 1/2") | `MARQ.custom`, `showMarquee` |
 | `mqdry=0` | on | Drop the dry patch under the marquee's roof (a still of the loop's base over the baked rain rings there). The extra rain's splash crowns leave that sidewalk and land on the roof either way | `buildMarqueeDry`, `startRain2` |
+| `mqlines=0` | on | No marquee one-liners. While line 2 is on automatic, the last 12 s of every minute it shows a stock line (IT'S OVER. / MANY SUCH CASES! / WAOW (BASED BASED BASED) ...), picked by the wall clock so every screen agrees; a line set in the panel wins | `MQ_LINES`, `mqOneLiner` |
+| `gold=<0..1>` | 0.05 | Odds that a chatter wearing WEOW (or glorp) walks in as the golden WEOW (DGG's own gold cell of the WEOW sheet, with an aura and sparkles). One roll per visit from the room's seed (`w.goldRoll`), so every screen agrees | `GOLD_P`, `gild` |
+| `goldtest=1` | off | Test only: one arrival in five is dressed in WEOW, to look at the golden one when nobody wears it (use with `gold=1`) | `GOLD_TEST` |
+| `life=0` | on | No neighborhood life layer (`#lifefx`): steam from the roof vents and the noodle shop, apartment windows switching over minutes, the TV flicker in the blue window, neon dips. Windows and dips follow the wall clock | the "neighborhood life (L9)" script block |
+| `lifetest=1` | off | Test only: every apartment-window overlay shown at once and a neon dip every 6 s (to check they sit on the render) | same block |
+| `light=0` | on | No lighting looks on chatters. Each walker takes one of nine looks from where they stand (neon pink / teal / amber, street, puddle glow, marquee, hall), an SVG colour matrix chosen by `data-lt`; replaces the old flat street dimming | `LIGHT`, `lookAt`, `stepLight` |
+| `refl=0` | on | No floor reflections under chatters on the wet pavement and the polished lobby floor | `.refl` |
+| `beams=0` | on | No headlight beams from passing cars in the extra rain (`uHL` in `RAIN2_FS`) | `setHeadlights` |
+| `snark=0` | on | No snarky one-liners from the staff | `.snark` |
+| `bridge=0` | on | No "BRIDGE OUT" road-works board on the street | `.rwboard` |
+| `canvass=0` / `canvass=now` | on | No door-to-door canvasser with a clipboard / send one at once (test) | `stepCanvasser` |
+| `leader=0` | on | No "Dear Leader" poster by the box office at all | `LEADER_ON` |
+| `leaderart=0` | on | Use the page-drawn placeholder instead of the rendered poster pack `roxy3d/out10l/` (`leader.json`, loaded after the marquee pack) | `mergeLeader` |
+| `posters=0` | on | No extra lobby posters (the J6 video, the "Dogtober 7th" documentary) | `.pst` |
+| `slop=0` | on | Plain snack-bar menu boards, without the slop menu text (POLITICS SLOP $2.75 ...) | `buildSlop` |
+| `gnome=0` | on | No garden gnome that turns up in a different spot now and then | `GNOME_SPOTS`, `stepGnome` |
+| `chatfx=0` | on | No chat-triggered effects: the box-office bell, a passing siren, petting the cat (`window.__chatfx` for tests) | `ringBell`, `callSiren`, `petCat` |
+| `street2=0` | on | No second street batch: puddle splashes from cars, the runner late for the bus, pigeons, the dog in a window, umbrellas turning in gusts, blown paper (`window.__street2`) | `stepStreet2` |
+| `gaits=0` | on | Everyone walks the same way (no special gaits per emote) | `GAITS` |
+| `lobbylife=0` | on | No lobby-interior batch: the turtle crossing, the nothing burger, quickdraw between two chatters, the wet-floor sign (`window.__lobbyLife`) | `stepLobbyLife` |
 | `layout=<n>` | manifest `layout`, else 1 | Force a queue/staff layout (1, 2, 3). Layout 3 setup (`setupLayout3`) still only runs when the manifest says `layout: 3` | :3718 |
 | `loop=0` | on | No light loop: a lit still (`lit_bg_dry` > `lit_bg` > `full`) + procedural rain | `setupArt` |
 | `loop2x=0` | on | Keep the 1080p light loop even over 4K art | `setupArt` |
