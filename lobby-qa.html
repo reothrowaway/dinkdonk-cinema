@@ -3486,7 +3486,7 @@
   const CLAW_LOST = ['so close\u2026', 'RIGGED', 'it slipped!', 'one more try\u2026', '-1 TOKEN', 'the claw is weak'];
   function setAnim(name, o) {
     const v = String(o);
-    for (const el of PROPS.els[name] || []) if (el.style.opacity !== v) el.style.opacity = v;
+    for (const el of PROPS.els[name] || []) if (el.style.opacity !== v) { el.style.opacity = v; if (el._add) el._add.style.opacity = v; }
   }
   function clawTurn(w) {
     PROPS.clawBusy = w;
@@ -5410,7 +5410,7 @@ void main() {
         im.alt = '';
         im.decoding = 'async';
         Object.assign(im.style, { left: `${s.x}px`, top: `${s.y}px`, width: `${s.w}px`, height: `${s.h}px`, zIndex: String(s.z_index ?? o.z_index) });
-        if (s.blend === 'plus-lighter') im.style.mixBlendMode = 'plus-lighter';   // marquee receiver light (out10m)
+        if (s.blend === 'plus-lighter') { im.style.mixBlendMode = 'plus-lighter'; addLight(im); }   // marquee receiver light (out10m)
         // the restroom's side wall and the ticket wall are two walls almost on top of each other: this slice of the
         // restroom one carries a black strip (its shaded face) that lands on the ticket wall as a black bar beside
         // the box office; only its lit top cap is kept
@@ -5428,7 +5428,7 @@ void main() {
       im.alt = '';
       im.decoding = 'async';
       Object.assign(im.style, { left: `${l.x}px`, top: `${l.y}px`, width: `${l.w}px`, height: `${l.h}px`, zIndex: '5' });
-      if (l.blend === 'plus-lighter') im.style.mixBlendMode = 'plus-lighter';
+      if (l.blend === 'plus-lighter') { im.style.mixBlendMode = 'plus-lighter'; addLight(im); }
       underAt.after(im);
       underAt = im;
       artImgs.push([im, l.file]);
@@ -5470,7 +5470,8 @@ void main() {
           el.append(sheet);
         } else el.style.backgroundSize = `${p.columns * p.w}px ${rows * p.h}px`;
         world.append(el);
-        propLoops.push({ el, p, frame: -1, g: LOOPCV === 1 ? el.getContext('2d') : LOOPCV === 2 ? sheet.getContext('2d') : null, sheet, bmp: null });
+        const br = LOOPCV === 2 && ADDGL && p.blend !== 'source-over' ? sheet.getContext('bitmaprenderer') : null;
+        propLoops.push({ el, p, frame: -1, g: LOOPCV === 1 ? el.getContext('2d') : LOOPCV === 2 && !br ? sheet.getContext('2d') : null, br, sheet, bmp: null });
       }
     }
     // marquee boxes and poster frames as rendered (pass 6 moved them apart); the DOM text/posters follow
@@ -5540,6 +5541,68 @@ void main() {
     setWC(!!wcBusy);
   }
   let loopSwap = null;   // set in setupArt: switches the light loop between 1080p and 4K with the base art
+  // ---------- added light without a blending pass (perf, 11 Nov 2026; ?addgl=0 = as before) ----------
+  // Every plus-lighter element is one more blending pass for the browser on every frame; the ~250 light pieces cost
+  // about half a CPU core at 30 fps, the largest single share of the lobby's load. The same sum without a pass: the
+  // piece's colour (times its alpha) is kept, its alpha is set to 0. Drawn the normal way (source-over) such a
+  // pixel gives "what is under it + its colour", which is exactly plus-lighter. Only a WebGL canvas can hold
+  // pixels like that, so one small WebGL canvas converts each picture once and hands the result to a plain
+  // bitmap canvas that takes the picture's place. Opacity still works (it scales the added light).
+  const ADDGL = q.get('addgl') !== '0' && typeof OffscreenCanvas === 'function' && typeof createImageBitmap === 'function';
+  let addGl = null;   // { oc, gl, max } | false
+  function additive(src, w, h) {   // <img> or ImageBitmap -> ImageBitmap with colour * alpha and alpha 0 (null: not possible)
+    if (!ADDGL || addGl === false) return null;
+    try {
+      if (!addGl) {
+        const oc = new OffscreenCanvas(4, 4);
+        const gl = oc.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false });
+        if (!gl) { addGl = false; return null; }
+        const sh = (type, code) => { const x = gl.createShader(type); gl.shaderSource(x, code); gl.compileShader(x); return x; };
+        const pr = gl.createProgram();
+        gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 v; void main() { v = vec2(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5); gl_Position = vec4(p, 0.0, 1.0); }'));
+        gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, 'precision mediump float; varying vec2 v; uniform sampler2D t; void main() { gl_FragColor = vec4(texture2D(t, v).rgb, 0.0); }'));
+        gl.linkProgram(pr);
+        if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { addGl = false; return null; }
+        gl.useProgram(pr);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0); gl.bindAttribLocation(pr, 0, 'p'); gl.linkProgram(pr); gl.useProgram(pr);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+        for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+        gl.disable(gl.BLEND);
+        addGl = { oc, gl, max: gl.getParameter(gl.MAX_TEXTURE_SIZE) };
+      }
+      const { oc, gl, max } = addGl;
+      if (!w || !h || w > max || h > max || gl.isContextLost()) return null;
+      oc.width = w; oc.height = h;
+      gl.viewport(0, 0, w, h);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      const out = oc.transferToImageBitmap();
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);   // let the big texture go
+      return gl.getError() === gl.NO_ERROR ? out : null;
+    } catch (error) { console.warn('[lobby] additive', error); return null; }
+  }
+  window.__additive = additive;   // (test read-out)
+  // a plus-lighter <img>: a bitmap canvas with the converted picture stands in for it (the <img> stays, hidden, and
+  // keeps loading whatever resolution the page asks for)
+  function addLight(im) {
+    if (!ADDGL) return;
+    const cv = document.createElement('canvas');
+    cv.className = im.className; cv.width = 1; cv.height = 1; cv.dataset.add = '1';
+    const br = cv.getContext('bitmaprenderer');
+    im._add = cv;
+    im.addEventListener('load', () => {
+      const b = additive(im, im.naturalWidth, im.naturalHeight);
+      if (!b) { cv.remove(); im.style.visibility = ''; return; }   // as before: the blended <img>
+      br.transferFromImageBitmap(b);
+      for (const k of ['left', 'top', 'width', 'height', 'zIndex', 'opacity', 'display']) cv.style[k] = im.style[k];
+      if (!cv.isConnected) im.after(cv);
+      im.style.visibility = 'hidden';
+    });
+  }
   const propLoops = [];
   // see loopSheet(): 0 = background-position on a div (old), 1 = one frame drawn per step, 2 = whole sheet drawn once
   const LOOPCV = typeof createImageBitmap !== 'function' ? 0 : q.has('loopcv') ? clamp(Math.round(Number(q.get('loopcv')) || 0), 0, 2) : 2;
@@ -5607,6 +5670,13 @@ void main() {
     }
     sheetBmps.get(src).then((b) => {
       if (l.src !== want) return;
+      if (l.sheet && l.br) {
+        // (added light without a blending pass, see additive()); a sheet too large for it: a plain copy, blended
+        const a = additive(b, b.width, b.height);
+        const show = (x, add) => { if (l.src !== want) return; l.br.transferFromImageBitmap(x); l.el.style.mixBlendMode = add ? 'normal' : ''; l.bmp = b; l.frame = -1; };
+        if (a) show(a, true); else createImageBitmap(b).then((x) => show(x, false), () => {});
+        return;
+      }
       if (l.sheet) {
         l.sheet.width = b.width; l.sheet.height = b.height;
         l.g.drawImage(b, 0, 0);
@@ -5632,7 +5702,7 @@ void main() {
       const src = ART + (two && l.p.file_2x && (wet2x || !/(^|\/)wet_/.test(l.p.file)) ? l.p.file_2x : l.p.file);
       if (l.src === src) continue;
       l.src = src;
-      if (l.g) loopSheet(l, src, src !== ART + l.p.file ? ART + l.p.file : null);
+      if (l.g || l.br) loopSheet(l, src, src !== ART + l.p.file ? ART + l.p.file : null);
       else l.el.style.backgroundImage = `url("${src}")`;
     }
     for (const [im, file] of artImgs) {

@@ -2721,3 +2721,64 @@ Backups before: `qa-night/lobby-qa.before-roofseams-11nov.html`, `auditorium-qa.
   for byte. Packaged server on 18773: the three pages answer, `widezoom` is in its schema, the lobby and the
   auditorium (135 seats, 62 seated) load with real chat and no page errors, the panel has both new controls.
 - Not checked: an existing hosted room in a browser (pages need a room key).
+
+### 11 Nov 2026 (18:20) - where the load goes (CPU and GPU), measured; no page changed (Claude, perf)
+
+Asked by the owner ("it still uses a lot of CPU, GPU or both, the laptop's fans spin up"). Test server 18771 +
+portable OBS, real chat (45-67 walkers), 2560x1440. PC: i7-12650H, RTX 3050 6 GB Laptop, one screen at 119 Hz.
+Tools: `obsbench.mjs` now also prints OBS's own cores and GPU watts; new `loadab.mjs` (states switched on one page
+load: browser cores, GPU % and watts) and `procsplit.ps1` (cores per browser process).
+
+- **Lobby at 30 fps in OBS: 1.2-1.3 CPU cores in the browser** (page process ~0.6, its GPU process ~0.6), separate
+  loads 1.2-1.7. GPU: 12-14% busy, 14 W against 12 W with OBS idle. So in OBS the GPU is not the load, the CPU is.
+- **Auditorium at 30: 0.37 cores, GPU 4%.** A hidden second page costs nothing (its frame clock stops).
+- **Lobby at 60 (custom frame rate off): 2.45 cores, GPU 22%, 16 W**, and the page held only 54.8 fps on that run
+  (40 s after load). Not re-checked.
+- Main thread of the lobby at 30: busy 40%; the page's own script ~30 ms/s, the rain layer's WebGL draw 76 ms/s
+  (waiting for the GPU process), the rest (~290 ms/s) is the browser's style / paint / commit work.
+- What costs, on one page load (`loadab.mjs`, each state 2 x 10 s): everything hidden 0.16 cores; world hidden 0.37;
+  **all 255 blended (plus-lighter) pieces hidden: -0.66 cores; the same pieces shown but not blended: -0.48**;
+  walkers hidden -0.20; the world's canvases hidden -0.28; rain canvases hidden 0; CSS animations paused 0.
+  The 255: 129 light loops on props and walls (58 of them the wet-wall highlights), 89 marquee light pieces
+  (merged2), 12 prop lights, 3 LED canvases, a few others. Loops hidden -0.40, loops not blended -0.27;
+  marquee pieces hidden -0.15, not blended -0.22.
+- Tried and taken out again: baking light pieces into normal (source-over) pictures in the page at load
+  (`qa-night/lobby-qa.bake-attempt-11nov.html`, the code is complete there, `?bake=0` off). It does not qualify
+  enough pieces to pay off: almost every light piece has a wet-wall loop (animated, 1x sheet) under it, the wall
+  pictures are see-through where the light lies on wall tops, and the wet loops themselves cannot be baked at 1x
+  without softening the 2x walls (at 2x they are ~590 MB). `lobby-qa.html` is back to its state before
+  (`qa-night/lobby-qa.before-bake-11nov.html`), 3 lines from live as before.
+- The fix belongs in the art: wall slices rendered with the marquee light and shadow already in them (89 light +
+  97 shadow pieces gone), and the wet highlights as part of fewer, larger pictures instead of 58 blended loops.
+  Not started; owner's call.
+
+### 11 Nov 2026 (19:00) - lobby: added light without a blending pass, in the QA copy: about a third less CPU (Claude, perf)
+
+Follow-up to the entry above. `lobby-qa.html` only; backup before: `qa-night/lobby-qa.before-bake-11nov.html`.
+
+- How: a plus-lighter piece gives "under it + its colour". A pixel that keeps its colour (times alpha) but has
+  alpha 0 gives the same sum when drawn the normal way, with no blending pass. Only a WebGL canvas can hold such
+  pixels, so one small WebGL canvas (`additive()`) converts each light picture once and hands the result to a
+  plain bitmap canvas: for the 103 light pictures (marquee merged2, prop lights, the ground light) a canvas stands
+  in for the hidden `<img>` (`addLight()`), for the 134 light loops the sheet canvas itself holds the converted
+  sheet. Opacity fades still work (they scale the light). `?addgl=0` = as before. Too large a picture or no WebGL:
+  that piece stays blended as before.
+- Look: in the page, 26 of the 103 converted pictures compared against the blended originals over black: largest
+  difference 0. Screenshot with real chat: `qa-night/tools/shots/addgl-on.png`. Blended elements left: 18 (LED
+  signs, vehicles, poll screen) instead of ~255.
+- Load in the test OBS, real chat, 2560x1440, fresh loads alternating old / new:
+  30 fps: 1.65 and 1.47 cores old, 1.14 and 0.88 new; GPU 14.7 / 14.2 W old, 13.8 / 13.9 W new.
+  60 fps: 2.05 cores old (5 frames late), 1.45 new (0 late, worst 16.8 ms).
+- Camera steps at 30 with recording (`res/run_addgl_11nov.txt`): 3 rounds clean except one 313 ms gap on the very
+  first zoom after load in the first run; a second fresh load did not show it (one 68 ms gap; the old method on
+  its own fresh load had one 66 ms gap). Not explained.
+- Not done: promote, push, hosted, zip (owner's call). Not checked: art resolution switching in a small browser
+  window, a long run, the auditorium (0.37 cores, left alone).
+
+### 11 Nov 2026 (19:25) - light without a blending pass promoted to the live lobby (Claude, perf)
+
+On the owner's "Yes, promote". `lobby.html` got the same change as `lobby-qa.html` (same patch; the two differ
+only in the title and the transition script, as before). Backup: `qa-night/lobby.live-before-addgl-11nov.html`.
+Checked from a test port (18771, headless, real chat): 105 light pictures converted, 134 loops none blended, no
+script errors, screenshot `qa-night/tools/shots/addgl-live.png`. Not re-timed in OBS after the promote (the QA
+copy was). `docs/lobby.md`: `addgl=0`. Not pushed, not deployed, zip not rebuilt. OBS needs a source refresh.
