@@ -439,3 +439,4 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
       `?props=0` turns them off. Pushed, hosted deploy and zip rebuilt (they now also have the golden bus).
       Left of item 64/71: DGGWare screens (L25, deferred), the fly-through (corridor and props missing in it,
       deferred), the OBS performance run (another session). Owner to decide: push `memes/LIFE-IDEAS.md` or not.
+    + 11 Nov, owner on `memes/LIFE-IDEAS.md`: "Push it". Committed and pushed the same day.
