@@ -2782,3 +2782,17 @@ only in the title and the transition script, as before). Backup: `qa-night/lobby
 Checked from a test port (18771, headless, real chat): 105 light pictures converted, 134 loops none blended, no
 script errors, screenshot `qa-night/tools/shots/addgl-live.png`. Not re-timed in OBS after the promote (the QA
 copy was). `docs/lobby.md`: `addgl=0`. Not pushed, not deployed, zip not rebuilt. OBS needs a source refresh.
+
+### 11 Nov 2026 (19:30) - lighter lobby pushed, hosted web edition deployed, zip rebuilt (Claude, perf)
+
+On the owner's "Yes, all three". Commit 46020ae (lobby.html, lobby-qa.html, docs/lobby.md, this log), staged diff
+scanned for secrets first. The PC restarted at 19:11 in the middle of the first deploy (nothing had been swapped
+on the server); the local live server on 18770 was started again by this session, the chat relay (18765) and
+OBS were not. Then:
+- Hosted: `node web/build.js`, local test on 18772 with a fresh room (pages 200, 135 auditorium seats, lobby: 105
+  light pictures converted, 134 loops none blended), `web/deploy/deploy.sh`: service active, healthz ok, SHA-256
+  of lobby, auditorium, control, server.js, room.js, settings.js equal on the server and in the local build; the
+  previous version is kept on the server.
+- Zip: `node package/build.js` (853 MB), its lobby is the live file byte for byte; packaged server on 18773:
+  pages 200, 135 seats, lights converted. Test servers stopped.
+- Not checked: an existing hosted room in a browser (needs a room key); the live lobby re-timed in OBS.
