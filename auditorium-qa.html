@@ -134,6 +134,10 @@
     box-shadow: 0 0 5px 2px rgba(255, 220, 110, .9); animation: twinkle 1.2s ease-in-out infinite; }
   @keyframes twinkle { 0%, 100% { transform: scale(.2); opacity: 0; } 50% { transform: scale(1); opacity: 1; } }
   #names .nm.gold { color: #ffd75a !important; text-shadow: 0 0 6px rgba(255, 200, 60, .9); }
+  /* purple Cabge (owner 11 Nov 2026), as in the lobby */
+  .w.purple .aura { background: radial-gradient(closest-side, rgba(200, 140, 255, .5), rgba(160, 90, 240, .34) 50%, rgba(140, 60, 230, 0)); }
+  .w.purple .aura i { background: #f6ecff; box-shadow: 0 0 5px 2px rgba(200, 150, 255, .9); }
+  #names .nm.purple { color: #d9a8ff !important; text-shadow: 0 0 6px rgba(170, 90, 255, .9); }
   /* popcorn / soda (the lobby's rendered item sprites) and the phone some seated chatters check */
   .w .item { position: absolute; pointer-events: none; }
   /* (.dk: the item shows its dark picture while the room rests dark, see restPic) */
@@ -1315,13 +1319,20 @@
   // gold here.) The gold face is DGG's own, a cell of the emote's sheet. ?gold=<0..1> changes the odds (?gold=0: off).
   // ?goldtest=1 (test only, to look at it when nobody wears WEOW): one arrival in five is dressed in WEOW.
   const GOLD_P = q.has('gold') ? clamp(Number(q.get('gold')) || 0, 0, 1) : 1 / 20;
-  const GOLD_TEST = q.get('goldtest') === '1';
+  const GOLD_TEST = q.has('goldtest') && q.get('goldtest') !== '0';   // =1: WEOW, =cabge: Cabge (the purple one)
   const GOLD_X = { WEOW: 166, glorp: 166 };
+  // Purple Cabge (owner, 11 Nov 2026), as in the lobby: DGG's purple cabbage (x 42 of the Cabge sheet), 1 in 20.
+  const PURPLE_X = { Cabge: 42 };
   function gild(w) {
-    if (w.jan || w.crew || w.usher || GOLD_X[w.emName] == null || !((w.goldRoll ?? 1) < GOLD_P)) return;
+    if (w.jan || w.crew || w.usher) return;
+    const r = w.goldRoll ?? 1;
+    const k = GOLD_X[w.emName] != null && r < GOLD_P ? 'gold' : PURPLE_X[w.emName] != null && r < GOLD_P ? 'purple' : null;
+    if (!k) return;
     w.gold = true;
+    w.rare = k;
+    if (k === 'purple') w.el.classList.add('purple');
     const face = w.em.firstElementChild;
-    if (face) face.style.backgroundPosition = `-${GOLD_X[w.emName]}px 0`;
+    if (face) face.style.backgroundPosition = `-${(k === 'purple' ? PURPLE_X : GOLD_X)[w.emName]}px 0`;
     const d = Math.round(w.emH * 2.5);   // the lobby's 124 px around a 50 px emote
     w.aura = h('div', 'aura');
     w.aura.style.cssText = `left:${-d / 2}px;top:${-w.emH / 2 - d / 2}px;width:${d}px;height:${d}px`;
@@ -1331,7 +1342,7 @@
       w.aura.append(sp);
     }
     w.el.insertBefore(w.aura, w.bod);   // behind the emote
-    w.nm.classList.add('gold');
+    w.nm.classList.add(k);
     w.goldSay = true;                   // announced once, when they are first seen (step)
   }
   // the room's seed for this chatter (shared/room.js): their random looks are the same on every screen
@@ -1346,7 +1357,7 @@
     };
   }
   function makeWalker(m) {
-    if (GOLD_TEST && SB.hashHue(m.nick) % 5 === 0) m = { ...m, emote: 'WEOW' };
+    if (GOLD_TEST && SB.hashHue(m.nick) % 5 === 0) m = { ...m, emote: q.get('goldtest') === 'cabge' ? 'Cabge' : 'WEOW' };
     const key = m.nick.toLowerCase();
     const rr = seeded(m.seed);
     const el = h('div', 'w');
@@ -2570,7 +2581,7 @@
     const inCorr = CORRIDOR.length > 0 && u < 2.9 && v >= 14.95;
     if (inCorr !== !!w.inCorr) { w.inCorr = inCorr; rowLight(w); }
     if (!w.seen && !inTunnel) { w.nameT = 5; if (w.jan && !w.leaving && !w.onDuty) { w.onDuty = true; floatAt(w, '🧹 janny on duty', '#7ff7f0'); }
-      if (w.goldSay) { w.goldSay = false; floatAt(w, `✨ GOLDEN ${w.emName === 'glorp' ? 'GLORP' : 'WEOW'}`, '#ffd75a', 22); } }
+      if (w.goldSay) { w.goldSay = false; floatAt(w, w.rare === 'purple' ? '✨ PURPLE CABGE' : `✨ GOLDEN ${w.emName === 'glorp' ? 'GLORP' : 'WEOW'}`, w.rare === 'purple' ? '#d9a8ff' : '#ffd75a', 22); } }
     w.seen = !inTunnel;
     w.alpha += ((w.seen || layers ? 1 : 0) - w.alpha) * Math.min(1, dt * 8);
     // saved messages come out one by one while they can be seen

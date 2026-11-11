@@ -88,6 +88,19 @@
     'BINGQILIN', 'AngelThump', 'Abathur', 'AlienPls', 'Aware', 'Askers', 'COGGERS', 'ASLAN', 'WAYTOODANK',
     'PepoTurkey', 'Hhhehhehe', 'OOOO', 'SPY', 'MiyanoHype', 'DANKMEMES', 'POTATO', 'CuckCrab', 'GODSTINY'];
   const emotes = { names: new Set(), css: false, sizes: new Map() };
+  // Emotes of our own, next to DGG's (owner, 11 Nov 2026): MOPPING is the cpMOP penguin with mop and bucket (what DGG
+  // called the emote), so "Add a chatter" can dress someone in it and chat that types it gets it too. Drawn like a DGG
+  // emote: a .emote.<name> class, here from a small stylesheet of our own.
+  const LOCAL_EMOTES = { MOPPING: { url: 'assets/cpMOP.webp', w: 36, h: 32 } };
+  function addLocalEmotes() {
+    for (const n of Object.keys(LOCAL_EMOTES)) emotes.names.add(n);
+    if (document.getElementById('sb-local-emotes')) return;
+    const st = document.createElement('style');
+    st.id = 'sb-local-emotes';
+    st.textContent = Object.entries(LOCAL_EMOTES).map(([n, e]) => `.emote.${n} { display: inline-block; width: ${e.w}px; height: ${e.h}px; `
+      + `background: url("${e.url}") no-repeat 0 0 / ${e.w}px ${e.h}px; }`).join(' ');
+    document.head.append(st);
+  }
   let measureBox = null;
 
   // A failed list (server or its CDN not ready at page load) is retried every 30 s: before, the 35 fallback names
@@ -104,6 +117,7 @@
       if (!names.size) throw new Error('empty emote list');
       emotes.names.clear();   // (drops the fallback names of a failed first try)
       names.forEach((n) => emotes.names.add(n));
+      addLocalEmotes();
       emotes.sizes.clear();
       await new Promise((resolve) => {
         const link = document.createElement('link');
@@ -120,6 +134,7 @@
     } catch {
       // Opened as a file or without standby-server.js: names only, drawn as text (and tried again in 30 s).
       FALLBACK_EMOTES.forEach((n) => emotes.names.add(n));
+      addLocalEmotes();
       if (location.protocol !== 'file:' && emoteTry < 60) setTimeout(loadEmotes, 30_000);
     }
     emit('emotes', emotes);

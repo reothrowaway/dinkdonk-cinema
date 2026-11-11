@@ -440,3 +440,13 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
       Left of item 64/71: DGGWare screens (L25, deferred), the fly-through (corridor and props missing in it,
       deferred), the OBS performance run (another session). Owner to decide: push `memes/LIFE-IDEAS.md` or not.
     + 11 Nov, owner on `memes/LIFE-IDEAS.md`: "Push it". Committed and pushed the same day.
+73. Owner 11 Nov (~19:30), with two screenshots: "the tier 5 rainbow names look scuffed, emotes appear on top of the
+    cutout of the bathroom wall, aristortle's name should always appear". Then: "some emotes that are queing behind
+    the peepoturtle emote get kinda scuffed, make it so all emotes can go right through the turtle ones"; "just like
+    the golden weow, there should be a similar purple cabge emote" (= the purple variant of DGG's Cabge emote; owner: "it's cabge"); "i want to be able to add
+    the mopping emote cpMop on the add a chatter option, but call the emote MOPPING". Built in the QA pages, the panel
+    and shared/core.js + shared/room.js on 11 Nov; see PROGRESS.
+74. Owner 11 Nov (~19:35), for the next Blender re-render (listed in PAGE-DRAWN-ITEMS.md, "For the next Blender
+    re-render"): the page-drawn graphics made in Blender; baked reflections on outside walls, roofs and other wet
+    surfaces like the street has; remove the "ABSOLUTE CINEMA" lettering on the wall right of the cinema; the
+    DELIVERIES cargo gate has a building in front of it. Needs a render: waits for his go.

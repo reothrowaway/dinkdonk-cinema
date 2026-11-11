@@ -44,6 +44,9 @@
   .rbt { background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bff95, #67d8ff, #b28dff, #ff78c6, #ff6b6b);
     background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
     -webkit-text-fill-color: transparent; animation: rbt 4s linear infinite; }
+  /* (the name tag's black text-shadow showed through the see-through letters and smeared the rainbow dark, owner
+     11 Nov: the outline comes from a drop-shadow instead, drawn behind the letters) */
+  .w .nm .rbt { text-shadow: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .95)) drop-shadow(0 0 1.5px rgba(0, 0, 0, .8)); }
   @keyframes rbt { to { background-position: -220% 0; } }
   /* staff wear a little uniform cap so they don't read as customers */
   /* shaded like the render: lit from the top-left, darker underside */
@@ -75,6 +78,11 @@
     background: radial-gradient(closest-side, rgba(255, 214, 90, .5), rgba(255, 190, 50, .34) 50%, rgba(255, 170, 30, 0));
     animation: aura 1.5s ease-in-out infinite alternate; }
   @keyframes aura { from { transform: scale(.84); opacity: .68; } to { transform: scale(1.12); opacity: 1; } }
+  /* purple Cabge (owner 11 Nov 2026): the same, in DGG's purple cabbage and a purple aura */
+  .w.purple .em { filter: drop-shadow(0 0 3px rgba(190, 120, 255, .95)) !important; }
+  .w.purple .nm { color: #d9a8ff !important; text-shadow: 0 0 6px rgba(170, 90, 255, .9); }
+  .w.purple .aura { background: radial-gradient(closest-side, rgba(200, 140, 255, .5), rgba(160, 90, 240, .34) 50%, rgba(140, 60, 230, 0)); }
+  .w.purple .aura i { background: #f6ecff; box-shadow: 0 0 6px 2px rgba(200, 150, 255, .9); }
   .aura i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #fffbe0;
     box-shadow: 0 0 6px 2px rgba(255, 220, 110, .9); animation: twinkle 1.2s ease-in-out infinite; }
   @keyframes twinkle { 0%, 100% { transform: scale(.2); opacity: 0; } 50% { transform: scale(1); opacity: 1; } }
@@ -1271,15 +1279,32 @@
   // ?gold=<0..1> changes the odds (testing: ?gold=1). ?goldtest=1 (test only, to look at it when nobody wears WEOW):
   // one arrival in five is dressed in WEOW.
   const GOLD_P = q.has('gold') ? clamp(Number(q.get('gold')) || 0, 0, 1) : 1 / 20;
-  const GOLD_TEST = q.get('goldtest') === '1';
+  const GOLD_TEST = q.has('goldtest') && q.get('goldtest') !== '0';
+  const GOLD_TEST_EM = q.get('goldtest') === 'cabge' ? 'Cabge' : 'WEOW';   // ?goldtest=cabge: dressed in Cabge (the purple one)
   const GOLD_X = { WEOW: 166, glorp: 166 };   // the gold cell in each sheet (glorp: queue 64, L27, same odds as WEOW)
+  // Purple Cabge (owner, 11 Nov 2026: "just like the golden weow, there should be a similar purple cabge"): DGG's
+  // Cabge sheet (84x30) holds the green cabbage at 0 and the purple one at x 42. A chatter wearing Cabge is the purple
+  // one when the roll is under GOLD_P (1 in 20, as the golden WEOW). Everything the golden one gets (aura, name, the
+  // bus and the director in the lobby) the purple one gets too: w.gold means "a rare one", w.rare says which.
+  const PURPLE_X = { Cabge: 42 };
+  function rareKind(w) {
+    if (w.staff || w.jan || w.npc) return null;
+    const r = w.goldRoll ?? 1;
+    if (GOLD_X[w.emName] != null && r < GOLD_P) return 'gold';
+    if (PURPLE_X[w.emName] != null && r < GOLD_P) return 'purple';
+    return null;
+  }
   function gild(w) {
-    const on = !w.staff && !w.jan && !w.npc && GOLD_X[w.emName] != null && (w.goldRoll ?? 1) < GOLD_P;
-    if (on === !!w.gold) return;
+    const k = rareKind(w);
+    const on = !!k;
+    if (on === !!w.gold && k === (w.rare || null)) return;
+    if (w.gold) { w.aura?.remove(); w.aura = null; }
     w.gold = on;
-    w.el.classList.toggle('gold', on);
+    w.rare = k;
+    w.el.classList.toggle('gold', k === 'gold');
+    w.el.classList.toggle('purple', k === 'purple');
     const face = w.em?.firstElementChild;
-    if (face) face.style.backgroundPosition = on ? `-${GOLD_X[w.emName]}px 0` : '';
+    if (face) face.style.backgroundPosition = on ? `-${(k === 'purple' ? PURPLE_X : GOLD_X)[w.emName]}px 0` : '';
     if (on) {
       w.aura = h('div', 'aura');
       for (const [x, y, d] of [[14, 30, 0], [96, 22, 0.4], [104, 78, 0.8], [22, 92, 0.2]]) {
@@ -1861,7 +1886,7 @@
   function newChatter(wi, key) {
     const rr = wi.room ? rng(wi.seed >>> 0) : Math.random;
     const rs = (a, b) => a + rr() * (b - a);
-    const w = makeFigure(wi.nick, GOLD_TEST && SB.hashHue(wi.nick) % 5 === 0 ? 'WEOW' : wi.emote, wi.color, false);
+    const w = makeFigure(wi.nick, GOLD_TEST && SB.hashHue(wi.nick) % 5 === 0 ? GOLD_TEST_EM : wi.emote, wi.color, false);
     if (wi.rainbow) { w.nm.textContent = ''; w.nm.append(h('span', 'rbt', wi.nick)); }   // tier 5: rainbow name, as in DGG chat
     w.key = key;
     figures.add(w);
@@ -2786,6 +2811,7 @@
     const ev = dv / d;
     for (const o of figures) {
       if (o === w || o.gone || o.entering || o.alpha < 0.5) continue;
+      if (o === lobbyLife.turtle) continue;   // everyone walks right through Aristortle (owner, 11 Nov: a line piling up behind him looked scuffed)
       const ru = o.u - w.u;
       const rv = o.v - w.v;
       const along = ru * eu + rv * ev;
@@ -2907,7 +2933,7 @@
     if (!w.staff) {
       w.nameT = Math.max(0, (w.nameT ?? 5) - dt);
       // (a janny always wears their name; shown or not in showNames(), so neighbours' names never print on top of each other)
-      w.nameWant = (w.nameT > 0 || w.jan || director.follow?.w === w) && !w.bub && w.alpha > 0.3;
+      w.nameWant = (w.nameT > 0 || w.jan || w.alwaysName || director.follow?.w === w) && !w.bub && w.alpha > 0.3;
     }
     // vehicles are depth-sliced along their length, so plain depth sorting is right beside them too
     const z = depth(w.u, frontV(w.u, w.v));
@@ -2952,7 +2978,7 @@
   // Names that would land on each other show one at a time (QA 05 Nov, as in the auditorium): placed in order (followed,
   // jannies, then the most recent), a name that would overlap one already shown fades out until it is clear.
   // World px; a name sits 7 px under its walker's feet (.w .nm), 14 px Oswald.
-  const nameRank = (w) => (director.follow?.w === w ? 1e6 : 0) + (w.jan ? 1e5 : 0) + w.nameT;
+  const nameRank = (w) => (director.follow?.w === w ? 1e6 : 0) + (w.jan || w.alwaysName ? 1e5 : 0) + w.nameT;
   function showNames() {
     const shown = [];
     const list = [];
@@ -3402,6 +3428,7 @@
     [w.u, w.v] = [8.5, 5.6];   // (the floor left of here is under the street marquee's roof from this camera)
     w.alpha = 0; w.alphaT = 1;
     w.nameT = 12;
+    w.alwaysName = true;   // Aristortle always wears his name (owner, 11 Nov), like a janny
     figures.add(w);
     lobbyLife.turtle = w;
     w.plan = [{ alpha: 1 }, { to: [10.6, 5.7], slow: true }, { to: [12.4, 6.3], slow: true },
@@ -5051,7 +5078,7 @@ void main() {
       drawFigure(w, dt, t);
       stepLight(w, dt);
       if (w.pending && onScreen(w)) say(w, w.pending);
-      if (w.goldSay && w.alpha > 0.9 && onScreen(w)) { w.goldSay = false; floatAt(w, `✨ GOLDEN ${w.emName === 'glorp' ? 'GLORP' : 'WEOW'}`, '#ffd75a'); }
+      if (w.goldSay && w.alpha > 0.9 && onScreen(w)) { w.goldSay = false; floatAt(w, w.rare === 'purple' ? '✨ PURPLE CABGE' : `✨ GOLDEN ${w.emName === 'glorp' ? 'GLORP' : 'WEOW'}`, w.rare === 'purple' ? '#d9a8ff' : '#ffd75a'); }
       else soloSpeech(w, dt);
       placeBubble(w, dt);
     }
@@ -5395,6 +5422,38 @@ void main() {
           () => { fgOk = false; fgPlaying = null; fgToRain2(); sync(); });
       }
     } else if (m.glow) { $('glow').style.display = 'block'; artImgs.push([$('glow'), m.glow]); }
+    // Wall tops (owner, 11 Nov 2026: "emotes appear on top of the cutout of the bathroom wall"). The walls' occluder
+    // pictures hold only the wall's face; its top face is see-through in them and exists only in the background, so
+    // anyone standing behind a wall was drawn over its top. Per wall slice, a piece of the lit background cut to the
+    // slice's top face (its footprint at the wall's height, from the manifest) sits just under the slice at the slice's
+    // depth. Only the thin solid walls: other occluders' footprints are boxes around open shapes (bus stop, ropes, counters), and the snack bar's back wall (partition_right) carries signs and boards in its footprint.
+    // ?walltops=0: as before; ?walltops=debug: the pieces in magenta.
+    const TOPS = q.get('walltops') === '0' ? null : new Set(['restroom_entry_wall', 'restroom_closet_wall', 'front_solid_wall', 'partition_left', 'restroom_side_wall']);
+    const topFile = m.lit_bg_dry || m.lit_bg || m.full;
+    const wallTop = (o, s) => {
+      const fp = s.footprint || o.footprint, H = s.height_px || o.height_px;
+      if (!TOPS?.has(o.name) || typeof topFile !== 'string' || !Array.isArray(fp) || fp.length !== 4 || !fp.every(Number.isFinite) || !Number.isFinite(H)) return;
+      const [u0, v0, u1, v1] = fp;
+      const pts = [P(u0, v0, H), P(u1, v0, H), P(u1, v1, H), P(u0, v1, H)];
+      // grown 1.5 px around its centre: the soft edge of the face picture meets it without a gap
+      const cx = pts.reduce((a, p) => a + p[0], 0) / 4, cy = pts.reduce((a, p) => a + p[1], 0) / 4;
+      const g = pts.map(([x, y]) => { const d = Math.hypot(x - cx, y - cy) || 1; return [x + ((x - cx) / d) * 1.5, y + ((y - cy) / d) * 1.5]; });
+      const x0 = Math.floor(Math.min(...g.map((p) => p[0]))), y0 = Math.floor(Math.min(...g.map((p) => p[1])));
+      const bw = Math.ceil(Math.max(...g.map((p) => p[0]))) - x0, bh = Math.ceil(Math.max(...g.map((p) => p[1]))) - y0;
+      const box = h('div', 'layer walltop');
+      Object.assign(box.style, { left: `${x0}px`, top: `${y0}px`, width: `${bw}px`, height: `${bh}px`, overflow: 'hidden', zIndex: String(s.z_index ?? o.z_index),
+        clipPath: `polygon(${g.map(([x, y]) => `${(x - x0).toFixed(2)}px ${(y - y0).toFixed(2)}px`).join(', ')})` });
+      if (q.get('walltops') === 'debug') box.style.background = '#f0f';
+      else {
+        const im = h('img');
+        im.alt = '';
+        im.decoding = 'async';
+        Object.assign(im.style, { position: 'absolute', left: `${-x0}px`, top: `${-y0}px`, width: '1920px', height: '1080px' });
+        box.append(im);
+        artImgs.push([im, topFile]);
+      }
+      world.append(box);
+    };
     for (const o of m.occluders) {
       if (!o || typeof o !== 'object') continue;
       const sliced = Array.isArray(o.depth_slices) && o.depth_slices.length ? o.depth_slices : null;
@@ -5406,6 +5465,7 @@ void main() {
         ? [{ ...o, z_index: Math.min(...sliced.map((s) => s.z_index ?? o.z_index)) }, ...sliced] : sliced || [o];
       for (const s of parts) {
         if (!s || typeof s.file !== 'string' || ![s.x, s.y, s.w, s.h].every(Number.isFinite)) continue;   // skip broken entries
+        if (sliced ? s !== parts[0] : true) wallTop(o, s);   // (not under the whole-wall copy: its slices have their own)
         const im = h('img', 'prop');
         im.alt = '';
         im.decoding = 'async';

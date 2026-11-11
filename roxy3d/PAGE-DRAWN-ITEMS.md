@@ -127,6 +127,27 @@ Auditorium:
   runner). A few popcorn groups on the floor are baked into the render.
 - Popcorn, soda and the usher's cap are the lobby's rendered item sprites (`roxy3d/out10`).
 
+## For the next Blender re-render (owner, 11 Nov 2026)
+
+Things the owner wants changed that only a re-render of the lobby art can fix. Together with the page-drawn items
+above ("web graphics to Blender"), this is the list for the next lobby render job (brief, blockout where the layout
+changes, one draft, full render only on the owner's word).
+
+- **Reflections everywhere it is wet.** The street has rich baked reflections; the outside walls, roofs and other
+  wet surfaces (sidewalks by the walls, roof slabs, ledges, the alley) have almost none, so the scene looks uneven.
+  Give them the same wet, reflective look as the street.
+- **Remove the "ABSOLUTE CINEMA" lettering** on the brick wall right of the cinema (above the EXIT door and the
+  DELIVERIES gate): it makes no sense there.
+- **The cargo bay (DELIVERIES roller gate) is blocked by a building in front of it.** Free its approach (move the
+  gate or the building), so a delivery could actually reach it. Layout change: blockout first.
+- **Walls' top faces in the occluder pictures.** The wall occluders hold only the face; the top is see-through, so
+  emotes behind a wall show over its top. The page now covers the thin walls' tops with a piece of the background
+  (`walltops`, 11 Nov), but not the snack bar's back wall (`partition_right`, its footprint holds signs and boards).
+  A re-render with the tops in the occluders fixes all of them.
+- **Claw machine behind the glass** (props pack `out10p`, NOTES-94): its darkest parts come out a little too light
+  under the page's two glass layers, and its light pieces sit above the glass (a chatter at the machine gets its teal
+  line across them). Fix when the glass is re-rendered.
+
 ## Notes
 
 Placement conflicts with the render:

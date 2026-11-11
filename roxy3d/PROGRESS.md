@@ -2796,3 +2796,34 @@ OBS were not. Then:
 - Zip: `node package/build.js` (853 MB), its lobby is the live file byte for byte; packaged server on 18773:
   pages 200, 135 seats, lights converted. Test servers stopped.
 - Not checked: an existing hosted room in a browser (needs a room key); the live lobby re-timed in OBS.
+
+### 11 Nov 2026 (19:30-19:55) - owner's notes: rainbow names, wall tops, Aristortle, turtle, purple glorp, MOPPING (Claude; QA)
+
+Queue 73. Backups: `backups/2026-11-11-names-walltops/` (lobby, lobby-qa, auditorium, auditorium-qa, control,
+control-qa, shared/core.js, shared/room.js as they were).
+- Rainbow (tier 5) names: the name tag's black text-shadow showed through the see-through rainbow letters and made
+  them muddy. `.w .nm .rbt`: no text-shadow, a drop-shadow filter instead (lobby). Checked enlarged, before/after.
+- Wall tops: per slice of the thin walls (restroom entry, side and closet walls, partition_left, the front wall), a
+  piece of `lit_bg_dry` cut to the slice's top face (footprint at the wall's height, from the manifest) just under the
+  slice at its depth (`wallTop`, `?walltops=0` off, `?walltops=debug` magenta). The snack bar's back wall is left
+  out: its footprint holds the SNACK BAR sign and the menu boards, which the piece cut (seen in a close-up).
+- Aristortle always wears his name (`w.alwaysName`, ranked like a janny's). Everyone walks through him
+  (`blockedAhead` skips the turtle): a line piling up behind him looked scuffed. (Not watched in motion.)
+- Purple Cabge, lobby and auditorium (first built on glorp by mistake; owner: "it's cabge"): DGG's Cabge sheet
+  (84x30) has the green cabbage at 0 and the purple one at x 42. 1 in 20 of the chatters wearing Cabge are the purple
+  one: purple aura and name, "PURPLE CABGE"; in the lobby it comes by bus with the director, as the golden WEOW
+  (`w.gold` = rare, `w.rare` = which, `PURPLE_X`). Test: `?gold=1&goldtest=cabge`. Checked enlarged.
+- MOPPING: an emote of our own, the cpMOP penguin (`shared/core.js` LOCAL_EMOTES, its own small stylesheet), in the
+  panel's "looks like" list (`control.html` and `control-qa.html`), accepted by the room (`shared/room.js`
+  LOCAL_EMOTES). core.js and control.html are live at once (shared files); room.js needs a server restart. Chat that
+  types MOPPING also wears it. A slip in core.js (a broken string) was live for about a minute at 19:38 and fixed;
+  a page loaded in that minute would have had no emotes until reloaded.
+- Re-render items (queue 74) are listed in `PAGE-DRAWN-ITEMS.md`, "For the next Blender re-render".
+- Not promoted yet: lobby.html and auditorium.html still without these (waiting for the owner's OK).
+- 11 Nov ~20:10, owner: "Yes, promote". `lobby.html` = `lobby-qa.html` with the live title and
+  `shared/transition.js`; `auditorium.html` got the same diff as its QA copy (patch; the QA copy keeps its test
+  hooks). Backups of the live pages just before: `backups/2026-11-11-names-walltops/*.before-promote.html`. OBS was
+  not running; the local server on 18770 was stopped by its exact PID and started again (new `shared/room.js` for
+  MOPPING), now in its own minimized window; the old `start-standby.bat` window stays open at its prompt. Checked:
+  live lobby and auditorium load with real chat, no page errors, 21 wall-top pieces, MOPPING known; a real golden
+  WEOW came by bus with the director following. Not pushed, deployed or zipped.

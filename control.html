@@ -350,7 +350,7 @@
   };
   // the "looks like" list: the emote names the screens know
   fetch('/dgg/emotes.json', { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).then((list) => {
-    $('looks').replaceChildren(...list.map((e) => e.prefix).filter(Boolean).sort((a, b) => a.localeCompare(b)).map((n) => { const o = document.createElement('option'); o.value = n; return o; }));
+    $('looks').replaceChildren(...[...list.map((e) => e.prefix), 'MOPPING'].filter(Boolean).sort((a, b) => a.localeCompare(b)).map((n) => { const o = document.createElement('option'); o.value = n; return o; }));
   }).catch(() => {});
   const td = (text) => { const el = document.createElement('td'); el.textContent = text; return el; };
   const btn = (label, cmd, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = () => send(cmd); return b; };

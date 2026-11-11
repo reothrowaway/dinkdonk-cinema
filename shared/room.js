@@ -43,13 +43,15 @@ const PAGES = ['lobby', 'auditorium'];
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const rand = (a, b) => a + Math.random() * (b - a);
 
+// emotes of our own next to DGG's (shared/core.js LOCAL_EMOTES): MOPPING = the cpMOP penguin (owner, 11 Nov 2026)
+const LOCAL_EMOTES = new Set(['MOPPING']);
 // same as shared/core.js tokenize(): the emote names a message uses, in order
 function messageEmotes(text, names) {
   const out = [];
   for (const part of String(text || '').replace(URL_RE, ' ').split(/\s+/)) {
     if (!part) continue;
     const [base, ...mods] = part.split(':');
-    if (names.has(base) && mods.every((m) => /^[a-z]+$/.test(m))) out.push(base);
+    if ((names.has(base) || LOCAL_EMOTES.has(base)) && mods.every((m) => /^[a-z]+$/.test(m))) out.push(base);
   }
   return out;
 }
@@ -352,7 +354,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     const key = nick.toLowerCase();
     const own = messageEmotes(text, emoteNames()).filter((n) => !AVATAR_BLOCK.has(n));
     // the panel's "looks like" emote (owner, 11 Nov 2026) leads, as if it were the first emote of the message
-    if (emote && emoteNames().has(emote) && !AVATAR_BLOCK.has(emote)) { if (own.includes(emote)) own.splice(own.indexOf(emote), 1); own.unshift(emote); }
+    if (emote && (emoteNames().has(emote) || LOCAL_EMOTES.has(emote)) && !AVATAR_BLOCK.has(emote)) { if (own.includes(emote)) own.splice(own.indexOf(emote), 1); own.unshift(emote); }
     const before = lastEmotes.get(key) || [];
     if (own.length) remember(lastEmotes, key, [...new Set([...own, ...before])].slice(0, 4));
     if (!force && Array.isArray(d.features) && d.features.includes('moderator')) return;   // mods are jannies
