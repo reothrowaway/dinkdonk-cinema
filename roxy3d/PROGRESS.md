@@ -2609,3 +2609,26 @@ profile + the page's frame clock), `profab.sh`, `loadpage.mjs`, `pinstats.mjs`, 
 - The trace window ends 7 s after the phase change, so only the first 0.8 s of the applause (it starts at 6.2 s) is
   inside it; the applause on its own was measured on the page's frame clock only (0 late frames in 5 s, lit room).
 - At 30 the same four fades were clean that morning (0 late or held frames in 8), before the fix; not repeated.
+
+### 11 Nov 2026 (12:55) - go live: pushed, hosted web edition deployed, zip rebuilt; servers fixed for the draft 14 seat layout (Claude, on the owner's "lets go live")
+
+- Repo: `bd80ff7` "Stutter run after the life round: lighter marquee layers, applause after the fade" (the two live
+  pages, the QA copies, docs, this log, `roxy3d/out10m/merged2/` + `merged2.json`, `roxy3d/marquee/merge_light2.mjs`
+  force-added) and `d28afc7` (the seat layout fix below), both on `main`.
+- **Found while testing the hosted build locally (18772): the auditorium of a hosted room stayed empty.** The room
+  reported 26 waiting and 0 seats. `web/server.js` and `standby-server.js` took the seat list from
+  `roxy3d/qa11/cinema_layout_13.json`; since draft 14 (the corridor, live 10 Nov) the builds ship only
+  `cinema_layout_14.json`, so a hosted or packaged room had no seats and everyone waited outside. The hosted site and
+  the zip had been like that since the deploy of the life round; the local live server was not affected (the old
+  file is still on disk). Fix: both servers take the newest layout that is there (14, else 13); the rows and seats
+  of the two files are identical. After the fix a fresh hosted room: 135 seats, 14 seated and walking in.
+- Hosted web edition: built, checked locally on 18772 with a test room and real chat (lobby: 212 marquee images, 90
+  blended, 188 from `merged2/`, no page errors; auditorium: new applause timing, seats filled, no page errors), then
+  `web/deploy/deploy.sh`. Service active, `healthz` ok, 7 rooms loaded; `lobby.html`, `auditorium.html`, `server.js`
+  and `out10m/merged2.json` on the server have the same SHA-256 as the local build, 372 files in `merged2/on`,
+  `cinema_layout_14.json` present. The version before is in `/opt/dinkdonk-cinema/previous`.
+- Zip: `dist/DinkDonk-Cinema.zip` (853 MB). Its `lobby.html`, `auditorium.html` and `standby-server.js` are the live
+  files byte for byte. Packaged server on 18773: lobby, auditorium and control answer, the lobby loads the merged2
+  layers, the auditorium has 135 seats and seated 17 real chatters; no page errors.
+- Not checked: an existing hosted room in a browser (pages need a room key). The owner's local live server on 18770
+  was not running during all of this.
