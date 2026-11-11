@@ -2827,3 +2827,10 @@ control-qa, shared/core.js, shared/room.js as they were).
   MOPPING), now in its own minimized window; the old `start-standby.bat` window stays open at its prompt. Checked:
   live lobby and auditorium load with real chat, no page errors, 21 wall-top pieces, MOPPING known; a real golden
   WEOW came by bus with the director following. Not pushed, deployed or zipped.
+- 11 Nov ~20:25, owner: "Yes, all three". Pushed (69f8620). Hosted deployed: service active, health ok, the
+  server's lobby.html, auditorium.html and shared/core.js equal the build (SHA-256), room.js there has MOPPING. Zip
+  rebuilt (853 MB), smoke-tested on 18773 (pages and cpMOP.webp 200, lobby loads with real chat, 21 wall-top pieces,
+  MOPPING known), stopped by its exact PID. Found afterwards: the local server on 18770 was DOWN. The copy started at
+  ~20:10 from the PowerShell tool (Start-Process) did not outlive the tool's session; it was up at the 20:10 check,
+  gone later (when exactly is not known). Started again in a Terminal-panel tab ("standby server 18770"); the room
+  came back from its file (55 in the lobby, 273 in the auditorium). Lesson: restart 18770 in a Terminal tab.
