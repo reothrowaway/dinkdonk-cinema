@@ -57,6 +57,7 @@ after.
 | `corridor=0` | on | Arrivals appear at the door as before, instead of walking down the entrance corridor (needs a draft whose layout has `page_layers.spawn.door_wait_point`) | `CORRIDOR`, `enterVia` |
 | `rowlight=0` | on | With the lights down every chatter is at 50%, instead of a seated chatter being lit by the screen (front row brightest) | `rowLight` |
 | `react=0` | on | No crowd reactions to chat combos (laughs, gasps, boos) and no applause when the lights come up (`window.__crowdReact` for tests) | `REACTS`, `crowdReact` |
+| `clapwait=0` | after the fade | The applause at lights-up starts 1.8 s into the 6 s fade, as it did until 11 Nov 2026, instead of when the lights are up (6.2 s). In the middle of the fade it made every lights-up drop frames at 60 fps | `CLAP_WAIT`, `applyPhase` |
 | `hall=0` | on | No hall life: the snack run, the vendor, the conductor on a combo, late-comers saying sorry, the clean-up crew (`window.__hall`) | `HALL_ON`, `stepHallLife` |
 | `gold=<0..1>` | 0.05 | Odds that a chatter wearing WEOW or glorp is the golden one (gold face, aura, gold name). The hall's own roll per visit, from the room's seed; `0` = off | `GOLD_P`, `gild` |
 | `goldtest=1` | off | Test only: one arrival in five is dressed in WEOW (use with `gold=1`) | `GOLD_TEST` |

@@ -5090,17 +5090,23 @@ void main() {
       const f = res.ok ? await res.json() : null;
       if (!f || !Array.isArray(f.render_layers)) return;
       const rel = (p) => (typeof p === 'string' ? `../out10m/${p}` : p);
-      // Lighter layer set (out10m/merged.json, marquee/merge_layers.mjs, 10 Nov 2026): the same shadow and light, but
-      // what lies on the ground and the background art is one shadow image and one light image under all walkers
-      // (MARQ.under, placed in setupArt); only what lies on a sprite keeps its depth, cut small. The 135 blended light
-      // slices held frames in OBS. ?mqmerge=0 = the original slices.
+      // Lighter layer sets: the same shadow and light, but what lies on the ground and the background art is one
+      // shadow image and one light image under all walkers (MARQ.under, placed in setupArt); only what lies on a
+      // sprite sits in the occluder stack. The 135 blended light slices held frames in OBS.
+      // - out10m/merged.json (marquee/merge_layers.mjs, 10 Nov 2026): one piece per depth slice and sprite, at the
+      //   slice's depth: 451 blended pieces. Clean at 30 fps, but with the life round in, the page no longer held 60.
+      // - out10m/merged2.json (marquee/merge_light2.mjs, 11 Nov 2026): one shadow and one light piece per sprite,
+      //   right above it: 89 blended pieces. Same picture against everything that stands still; a walker between a
+      //   sprite and the depth of the light on it now covers that light instead of having it drawn over him.
+      // ?mqmerge=1 = the 451 pieces, ?mqmerge=0 = the original slices.
       let merged = null;
-      if (q.get('mqmerge') !== '0') {
+      const mqSet = q.get('mqmerge');
+      for (const name of mqSet === '0' ? [] : mqSet === '1' ? ['merged'] : ['merged2', 'merged']) {
         try {
-          const r2 = await fetch('roxy3d/out10m/merged.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+          const r2 = await fetch(`roxy3d/out10m/${name}.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
           const j = r2.ok ? await r2.json() : null;
-          if (j && Array.isArray(j.layers) && j.layers.length) merged = j.layers;
-        } catch { /* the slices */ }
+          if (j && Array.isArray(j.layers) && j.layers.length) { merged = j.layers; break; }
+        } catch { /* the next set, or the slices */ }
       }
       for (const r of f.render_layers) {
         if (merged && (r.parent === 'marquee_shadow' || r.parent === 'marquee_light')) continue;

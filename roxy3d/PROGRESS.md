@@ -2514,3 +2514,98 @@ and the two QA copies as they were).
   running. Hosted deploy done: service active, health ok, the server's `lobby.html` equals the build (same hash),
   `out10p` there. Commit and push: see git log.
 - `props/layer94/stageb/work/` keeps 292 MB of arrays (re-solve the pack without Blender); local only.
+
+### 11 Nov 2026 (10:40) - stutter run after the life round: both pages clean at 30; two 60 fps fixes in the QA copies (Claude, perf)
+
+Asked by the owner ("another session did quite a few changes, make another stutter test and fix run"). Test server
+18771 + portable OBS, real chat, 2560x1440, NVENC recording on, no Blender. Raw numbers in `qa-night/tools/res/`:
+`run_base_11nov.txt`, `run_pins_11nov.txt`, `run_mq2_11nov.txt`, `run_audup_11nov.txt`, `prof_lobby_11nov.txt`.
+New tools in `qa-night/tools`: `runone.sh` (one fresh load, camera or fade steps), `pageprof.mjs` (main-thread
+profile + the page's frame clock), `profab.sh`, `loadpage.mjs`, `pinstats.mjs`, `pingroups.mjs`.
+
+- **At 30 (the owner's OBS setting) nothing to fix.** Live auditorium: 0 late or held frames in 8 fades, 135 seated.
+  Live lobby: 0 in 8 camera steps with all 451 marquee light pieces, 0 in 8 under the heaviest rain (`morerain=4`).
+  (The very first run of the day had late frames, 33 of 210 in one step; the GPU was already 39% busy before the
+  page loaded, so it is not counted.)
+- **Lobby at 60: the page no longer held 60 fps.** Its own frame clock was late in 90-139 of ~420 frames per camera
+  step (worst 50 ms); on 10 Nov it was on time. On one page load: all 451 blended marquee light pieces shown = late
+  42-145 per step; every 6th shown (76) = 0-1; none = 0. A profile shows the page waiting in the rain layer's WebGL
+  draw for the busy GPU process, not in its own code.
+  - Fix in `lobby-qa.html`: a second layer set `roxy3d/out10m/merged2/` + `merged2.json`, built by the new
+    `roxy3d/marquee/merge_light2.mjs` (the 10 Nov set `merged/` and its script are untouched). Every shadow and
+    light pixel goes to the picture it lies on (topmost static picture at or below its slice's depth: occluder
+    slices, body slices, doors, the poster's and props' source-over pieces), one shadow piece and one light piece
+    per picture, right above it; pixels with no picture under them join the under-walkers layers. 89 blended
+    pieces instead of 451; 212 marquee images instead of 583.
+  - Look: the script puts the slice stack and the new stack together at 1x and 2x over two backgrounds: largest
+    difference 2 of 255 (dropped render noise), 4 and 12 channel values over 1. What differs by design: a walker
+    between a sprite and the depth of the light lying on it now covers that light (and shadow) instead of having
+    it drawn over him. A page screenshot diff showed nothing around the marquee but is too noisy to count
+    (sub-pixel offset, changing text, rain). Screenshot with real chat:
+    `qa-night/tools/shots/mq2/lobby-qa-new-marquee-layers.png`.
+  - Measured in `lobby-qa.html` at 60, one load each: new layers 0 late page frames, 0 gaps in 8 steps (worst
+    19 ms); `&mqmerge=1` (the 451 pieces) late 21-151, gaps 3-42 per step. New layers at 30: 0 in 8 steps.
+  - Switches: default = merged2 (falls back to merged), `?mqmerge=1` = the 451 pieces, `?mqmerge=0` = the slices.
+    Backup before: `qa-night/lobby-qa.before-mqmerge2-11nov.html`. `package/art.js` and `.gitignore` already take
+    `out10m` whole, so the builds and the repo pick the new folder up without changes.
+- **Auditorium at 60: every lights-up had 21-24 frames one frame late** (lights-down clean). With `react=0`: 0-3;
+  `rowlight=0` no change; hall, gold and aisle off: a little better (4, 3, 2). Cause: the applause (A13) starts
+  1.8 s into the 6 s fade, and the whole house hopping re-draws the seating every frame at the fade's busiest point.
+  - Fix in `auditorium-qa.html`: the applause starts when the lights are up (6.2 s after the phase change), and
+    not at all if the lights went down again in between; `?clapwait=0` = as it was. Lights-up at 60: 3, 0, 0 gaps
+    with the fix, 26, 19, 22 with `clapwait=0`; the applause alone in the lit room: 0 late page frames in 5 s.
+    This moves an approved moment by about 4 s, so it waits for the owner's OK. Backup before:
+    `qa-night/auditorium-qa.before-clapwait-11nov.html`.
+- Left as it is: a crowd reaction (laugh, shock, clap) in the dark room at 60 costs 5-8 of 300 frames one frame
+  late (0 without a reaction). Nothing at 30.
+- Not done: promote to the live pages, push, hosted, zip (owner's call). The live server on 18770 was not running
+  during this run (last state saved 11 Nov 01:24); not started by this session.
+
+### 11 Nov 2026 (11:25) - both 60 fps fixes promoted to the live pages (Claude, on the owner's "Promote both")
+
+- `lobby.html`: the marquee draws the lighter layer set `out10m/merged2.json` (89 blended light pieces; falls back to
+  `merged.json`; `?mqmerge=1` = the 451 pieces, `?mqmerge=0` = the slices). Now the same as `lobby-qa.html` apart
+  from the title and the transition script. Backup: `qa-night/lobby.live-before-mqmerge2-11nov.html`.
+- `auditorium.html`: the applause at lights-up starts when the lights are up (6.2 s; `?clapwait=0` = 1.8 s as
+  before) and is skipped if the lights went down again. Backup:
+  `qa-night/auditorium.live-before-clapwait-11nov.html`.
+- Checked through the test server in headless Edge with real chat: the live lobby loads 212 marquee images, 90
+  blended, 188 from `merged2/`, 61 chatters, no script errors; the live auditorium has the new timing, 135 seated,
+  no test hooks, no script errors. Screenshots: `qa-night/tools/shots/mq2/live-lobby-after-promote.png`,
+  `live-auditorium-after-promote.png`. The promoted files were not re-timed in OBS (same code as the QA copies
+  measured an hour earlier).
+- Docs: `docs/lobby.md` (`mqmerge`), `docs/auditorium.md` (`clapwait=0`).
+- Not done (owner's call): push, hosted web edition, zip. New files for a push: `roxy3d/out10m/merged2/`,
+  `roxy3d/out10m/merged2.json`, `roxy3d/marquee/merge_light2.mjs`. The live server on 18770 is not running; OBS
+  sources need a refresh once it is.
+  (`merge_light2.mjs` needs `git add -f`: `/roxy3d/*/` is ignored and the other marquee scripts were force-added.)
+
+### 11 Nov 2026 (12:10) - cold start and full crowd checked on the promoted live pages: clean (Claude, perf)
+
+- Asked by the owner (the two gaps he picked from the list of what the morning run had not covered). Raw numbers:
+  `qa-night/tools/res/run_cold_11nov.txt`. `camtrace.mjs` got `KEYS=1` (camera by the page's own keys r / w, for a
+  page loaded with `ctl=0`; the copy before is `camtrace.before-keys-11nov.mjs`).
+- Cold start at 30: test OBS started fresh on an idle GPU, live `lobby.html` timed from 25 s after load with 60
+  chatters in it: 0 late page frames, 0 held frames in 8 camera steps (worst gap 36 ms). Same again with OBS warm
+  (24 chatters): 0 in 8. So the late frames of the very first run that morning were the busy GPU, not a cold start.
+- Full crowd at 60: the test server got a copy of the live room saved on 11 Nov 01:24 (55 in the lobby, real
+  chatters; its own state was put back afterwards). Live `lobby.html`, 61 chatters at the start: 2 late page frames
+  and 1 late shown frame in 8 steps (worst gap 35 ms once, otherwise 19-20). With 17-20 chatters: 0 in 16 steps.
+- Live `auditorium.html` after the promote, lights-up at 60 with that full room (301 on the roster, 135 seated):
+  0, 2 and 8 frames one frame late (19-26 before the applause moved). More drawing work than in the QA run an hour
+  earlier (3.8-4.4 s of raster per fade against 2.7-3.2), from the fuller room.
+- Nothing changed in any page. Still not covered: the scene cut and the fly-through, a long soak, the owner's real
+  OBS scene collection.
+
+### 11 Nov 2026 (12:35) - live auditorium at 60: all four fades, still and zooming, after the promote (Claude, perf)
+
+- The owner asked whether the fades were tested while the zoom changes. After the applause fix only lights-up with a
+  still camera had been re-timed, so the full set ran once more on live `auditorium.html` at 60, 135 seated, two
+  rounds (`qa-night/tools/res/run_zoomfade_11nov.txt`). Frames shown one frame late per 7.5 s fade:
+  lights down, still camera 3 and 1; lights up while zooming in 3 and 4 (39 and 42 that morning, before the fix);
+  lights down while zoomed and following 2 and 1; lights up, still camera 2 and 2.
+- Three of the eight fades had one single longer gap (42, 48 and 73 ms), all three on a lights-down. That is the
+  first-frame gap known since 10 Nov (lead: Chrome's 2,000-entry picture cache against long emote GIFs), still open.
+- The trace window ends 7 s after the phase change, so only the first 0.8 s of the applause (it starts at 6.2 s) is
+  inside it; the applause on its own was measured on the page's frame clock only (0 late frames in 5 s, lit room).
+- At 30 the same four fades were clean that morning (0 late or held frames in 8), before the fix; not repeated.

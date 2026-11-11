@@ -355,12 +355,17 @@
     if (st.contains('dim-ready')) dimDoneTimer = setTimeout(() => { if (st.contains('lights-down')) st.add('dim-done'); }, 6500);
   }
   function syncFlat() { const st = $('stage').classList; st.toggle('lights-flat', st.contains('lights-down') && !st.contains('has-dim-art')); }
+  // The applause when the house lights come up (A13) starts once they are up: the fade takes 6 s, and the whole house
+  // hopping in the middle of it made every lights-up show 21-24 frames a frame late at 60 fps (1-3 without the
+  // applause; perf 11 Nov 2026, res/run_audup_11nov.txt). ?clapwait=0: 1.8 s into the fade, as it was.
+  const CLAP_WAIT = q.get('clapwait') === '0' ? 1800 : 6200;
   function applyPhase() {
     // lightsOn: the house lights come up while the film keeps playing (credits); the next phase brings them back
     const down = (show.phase === 'dim' || show.phase === 'film') && !show.lightsOn;
     const dimmed = down !== $('stage').classList.contains('lights-down');
     if (dimmed) {
-      if (!down) setTimeout(() => crowdReact('clap'), 1800);   // the lights come up: applause (A13)
+      // the lights come up: applause (A13), unless they went down again in the meantime
+      if (!down) setTimeout(() => { if (!$('stage').classList.contains('lights-down')) crowdReact('clap'); }, CLAP_WAIT);
       $('stage').classList.toggle('lights-down', down);
       syncFlat();
       lightsAt = performance.now();
