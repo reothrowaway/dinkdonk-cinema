@@ -171,7 +171,9 @@ const settings = createSettings({
 });
 const room = ROOM_ON ? createRoom({
   file: path.join(ROOT, 'cache', PORT === 18770 ? 'room-state.json' : `room-state-${PORT}.json`),
-  layoutFile: path.join(ROOT, 'roxy3d', 'qa11', 'cinema_layout_13.json'),
+  // the seat list of the draft the page shows (auditorium.html DRAFT: 14 since 10 Nov 2026); the zip ships only that
+  // draft's layout, so a fixed "13" left the packaged room without seats (11 Nov 2026). Newest layout there wins.
+  layoutFile: ['14', '13'].map((d) => path.join(ROOT, 'roxy3d', 'qa11', `cinema_layout_${d}.json`)).find((f) => fs.existsSync(f)) || null,
   emoteNames: () => emoteNameSet,
   crowd: () => settings.get('lobby').crowd,   // the panel's lobby crowd setting (undefined: the room's own 14)
   log: (m) => console.log(m),

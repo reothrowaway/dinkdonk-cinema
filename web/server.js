@@ -82,9 +82,13 @@ async function refreshEmoteNames() {
 }
 const roomStates = new Map();   // key -> room
 const roomFile = (k) => path.join(DATA, 'room-state', `${k}.json`);
+// The auditorium's seat list comes from the layout of the draft the page shows (auditorium.html DRAFT: 14 since
+// 10 Nov 2026). A build ships only that draft's layout, so with the name fixed at "13" the hosted room had no seats:
+// everyone waited outside and the auditorium stayed empty (found 11 Nov 2026). Newest layout that is there wins.
+const LAYOUT_FILE = ['14', '13'].map((d) => path.join(SITE, 'roxy3d', 'qa11', `cinema_layout_${d}.json`)).find((f) => fs.existsSync(f)) || null;
 function ensureRoom(k) {
   if (!roomStates.has(k)) {
-    roomStates.set(k, createRoom({ file: roomFile(k), layoutFile: path.join(SITE, 'roxy3d', 'qa11', 'cinema_layout_13.json'),
+    roomStates.set(k, createRoom({ file: roomFile(k), layoutFile: LAYOUT_FILE,
       emoteNames: () => emoteNameSet, log: (m) => log(`${rooms[k]?.name || '?'}: ${m}`),
       crowd: () => roomSettings(k).get('lobby').crowd }));   // the panel's lobby crowd setting
   }
