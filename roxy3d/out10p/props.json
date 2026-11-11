@@ -1,0 +1,966 @@
+{
+  "schema": "dinkdonk.props.layers.v1",
+  "brief": 94,
+  "date": "11 Nov 2026",
+  "stage_size": [
+    1920,
+    1080
+  ],
+  "scale2x": true,
+  "asset_root": "roxy3d/out10p/",
+  "projection": {
+    "origin": [
+      900,
+      350
+    ],
+    "tile_x": [
+      60,
+      30
+    ],
+    "tile_y": [
+      -60,
+      30
+    ],
+    "vertical_px_per_blender_unit": 73.48469228349535
+  },
+  "source_blend_sha256": "09868390fa69940797ed7f49b7455a0e263cbeb7222991f73d73a54fe706b72d",
+  "source_blend": "props/props_draft93.blend (draft 31); captures from its packed copy props/layer94/scene94.blend",
+  "tv": {
+    "screen_quad": [
+      [
+        1010.8799743652344,
+        551.3215398788452
+      ],
+      [
+        1040.8799743652344,
+        566.3215148448944
+      ],
+      [
+        1040.8799743652344,
+        592.7760243415833
+      ],
+      [
+        1010.8799743652344,
+        577.7760171890259
+      ]
+    ],
+    "screen_quad_order": [
+      "TL",
+      "TR",
+      "BR",
+      "BL"
+    ]
+  },
+  "render_layers": [
+    {
+      "name": "tv_body",
+      "prop": "tv",
+      "file": "tv_body.png",
+      "file_2x": "tv_body@2x.png",
+      "x": 945,
+      "y": 538,
+      "w": 140,
+      "h": 106,
+      "z_index": 1904,
+      "blend": "source-over",
+      "kind": "body_with_contact_shadow",
+      "under": false,
+      "occluder": "occ_partition_right.png",
+      "occluder_slice": "partition_right_01",
+      "occluder_slice_file": "slices/occ_partition_right_01.png",
+      "occluder_slice_z_index": 1903,
+      "drawn_over_it": [
+        {
+          "name": "partition_right_02",
+          "z_index": 1999,
+          "shared_px": 3
+        },
+        {
+          "name": "snack_00",
+          "z_index": 2041,
+          "shared_px": 167
+        }
+      ]
+    },
+    {
+      "name": "tv_light",
+      "prop": "tv",
+      "file": "tv_light.png",
+      "file_2x": "tv_light@2x.png",
+      "x": 958,
+      "y": 511,
+      "w": 123,
+      "h": 113,
+      "z_index": 2044,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_snack.png",
+      "occluder_slice": "snack_00",
+      "occluder_slice_file": "slices/occ_snack_00.png",
+      "occluder_slice_z_index": 2041
+    },
+    {
+      "name": "tv_glow",
+      "prop": "tv",
+      "file": "tv_glow.png",
+      "file_2x": "tv_glow@2x.png",
+      "x": 936,
+      "y": 549,
+      "w": 108,
+      "h": 105,
+      "z_index": 2044,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tv_glow",
+      "occluder": "occ_snack.png",
+      "occluder_slice": "snack_00",
+      "occluder_slice_file": "slices/occ_snack_00.png",
+      "occluder_slice_z_index": 2041
+    },
+    {
+      "name": "jukebox_body",
+      "prop": "jukebox",
+      "file": "jukebox_body.png",
+      "file_2x": "jukebox_body@2x.png",
+      "x": 1330,
+      "y": 737,
+      "w": 174,
+      "h": 175,
+      "z_index": 2542,
+      "blend": "source-over",
+      "kind": "body_with_contact_shadow",
+      "under": false,
+      "occluder": "occ_partition_right.png",
+      "occluder_slice": "partition_right_07",
+      "occluder_slice_file": "slices/occ_partition_right_07.png",
+      "occluder_slice_z_index": 2477,
+      "drawn_over_it": [
+        {
+          "name": "partition_right_08",
+          "z_index": 2572,
+          "shared_px": 40
+        },
+        {
+          "name": "palm_00",
+          "z_index": 2594,
+          "shared_px": 698
+        },
+        {
+          "name": "palm_01",
+          "z_index": 2646,
+          "shared_px": 35
+        },
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 28
+        }
+      ]
+    },
+    {
+      "name": "jukebox_light",
+      "prop": "jukebox",
+      "file": "jukebox_light.png",
+      "file_2x": "jukebox_light@2x.png",
+      "x": 1312,
+      "y": 728,
+      "w": 183,
+      "h": 200,
+      "z_index": 2595,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_00",
+      "occluder_slice_file": "slices/occ_palm_00.png",
+      "occluder_slice_z_index": 2594,
+      "drawn_over_it": [
+        {
+          "name": "palm_01",
+          "z_index": 2646,
+          "shared_px": 4
+        },
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 12
+        }
+      ]
+    },
+    {
+      "name": "jukebox_tube_pink",
+      "prop": "jukebox",
+      "file": "jukebox_tube_pink.png",
+      "file_2x": "jukebox_tube_pink@2x.png",
+      "x": 1310,
+      "y": 746,
+      "w": 170,
+      "h": 183,
+      "z_index": 2595,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_pink",
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_00",
+      "occluder_slice_file": "slices/occ_palm_00.png",
+      "occluder_slice_z_index": 2594,
+      "drawn_over_it": [
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 65
+        }
+      ]
+    },
+    {
+      "name": "jukebox_tube_teal",
+      "prop": "jukebox",
+      "file": "jukebox_tube_teal.png",
+      "file_2x": "jukebox_tube_teal@2x.png",
+      "x": 1314,
+      "y": 746,
+      "w": 123,
+      "h": 178,
+      "z_index": 2595,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_teal",
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_00",
+      "occluder_slice_file": "slices/occ_palm_00.png",
+      "occluder_slice_z_index": 2594,
+      "drawn_over_it": [
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 2
+        }
+      ]
+    },
+    {
+      "name": "jukebox_shadow_over",
+      "prop": "jukebox",
+      "file": "jukebox_shadow_over.png",
+      "file_2x": "jukebox_shadow_over@2x.png",
+      "x": 1393,
+      "y": 739,
+      "w": 102,
+      "h": 104,
+      "z_index": 2647,
+      "blend": "source-over",
+      "kind": "shadow",
+      "under": false,
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_01",
+      "occluder_slice_file": "slices/occ_palm_01.png",
+      "occluder_slice_z_index": 2646
+    },
+    {
+      "name": "jukebox_light_front",
+      "prop": "jukebox",
+      "file": "jukebox_light_front.png",
+      "file_2x": "jukebox_light_front@2x.png",
+      "x": 1397,
+      "y": 740,
+      "w": 87,
+      "h": 99,
+      "z_index": 2647,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_01",
+      "occluder_slice_file": "slices/occ_palm_01.png",
+      "occluder_slice_z_index": 2646
+    },
+    {
+      "name": "jukebox_tube_pink_front",
+      "prop": "jukebox",
+      "file": "jukebox_tube_pink_front.png",
+      "file_2x": "jukebox_tube_pink_front@2x.png",
+      "x": 1315,
+      "y": 758,
+      "w": 122,
+      "h": 119,
+      "z_index": 2765,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_pink",
+      "occluder": "occ_standee_1.png",
+      "occluder_slice": "standee_1_00",
+      "occluder_slice_file": "slices/occ_standee_1_00.png",
+      "occluder_slice_z_index": 2744
+    },
+    {
+      "name": "claw_body",
+      "prop": "claw",
+      "file": "claw_body.png",
+      "file_2x": "claw_body@2x.png",
+      "x": 901,
+      "y": 823,
+      "w": 371,
+      "h": 257,
+      "z_index": 2951,
+      "blend": "source-over",
+      "kind": "body_with_contact_shadow",
+      "under": false,
+      "occluder": "occ_bench.png",
+      "occluder_slice": "bench_01",
+      "occluder_slice_file": "slices/occ_bench_01.png",
+      "occluder_slice_z_index": 2845,
+      "drawn_over_it": [
+        {
+          "name": "glass_right_00",
+          "z_index": 3000,
+          "shared_px": 4840
+        },
+        {
+          "name": "arcade_00",
+          "z_index": 3027,
+          "shared_px": 2
+        },
+        {
+          "name": "glass_right_01",
+          "z_index": 3080,
+          "shared_px": 5408
+        },
+        {
+          "name": "glass_right_02",
+          "z_index": 3160,
+          "shared_px": 2319
+        }
+      ]
+    },
+    {
+      "name": "claw_light",
+      "prop": "claw",
+      "file": "claw_light.png",
+      "file_2x": "claw_light@2x.png",
+      "x": 902,
+      "y": 827,
+      "w": 370,
+      "h": 253,
+      "z_index": 3190,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_glass_right.png",
+      "occluder_slice": "glass_right_02",
+      "occluder_slice_file": "slices/occ_glass_right_02.png",
+      "occluder_slice_z_index": 3160
+    },
+    {
+      "name": "claw_chase_0",
+      "prop": "claw",
+      "file": "claw_chase_0.png",
+      "file_2x": "claw_chase_0@2x.png",
+      "x": 1012,
+      "y": 847,
+      "w": 93,
+      "h": 209,
+      "z_index": 3190,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "chase_0",
+      "occluder": "occ_glass_right.png",
+      "occluder_slice": "glass_right_01",
+      "occluder_slice_file": "slices/occ_glass_right_01.png",
+      "occluder_slice_z_index": 3080
+    },
+    {
+      "name": "claw_chase_1",
+      "prop": "claw",
+      "file": "claw_chase_1.png",
+      "file_2x": "claw_chase_1@2x.png",
+      "x": 1017,
+      "y": 849,
+      "w": 92,
+      "h": 207,
+      "z_index": 3190,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "chase_1",
+      "occluder": "occ_glass_right.png",
+      "occluder_slice": "glass_right_01",
+      "occluder_slice_file": "slices/occ_glass_right_01.png",
+      "occluder_slice_z_index": 3080
+    },
+    {
+      "name": "claw_chase_2",
+      "prop": "claw",
+      "file": "claw_chase_2.png",
+      "file_2x": "claw_chase_2@2x.png",
+      "x": 1024,
+      "y": 853,
+      "w": 68,
+      "h": 206,
+      "z_index": 3190,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "chase_2",
+      "occluder": "occ_glass_right.png",
+      "occluder_slice": "glass_right_01",
+      "occluder_slice_file": "slices/occ_glass_right_01.png",
+      "occluder_slice_z_index": 3080
+    },
+    {
+      "name": "claw_chase_3",
+      "prop": "claw",
+      "file": "claw_chase_3.png",
+      "file_2x": "claw_chase_3@2x.png",
+      "x": 1031,
+      "y": 853,
+      "w": 62,
+      "h": 211,
+      "z_index": 3190,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "chase_3",
+      "occluder": "occ_glass_right.png",
+      "occluder_slice": "glass_right_02",
+      "occluder_slice_file": "slices/occ_glass_right_02.png",
+      "occluder_slice_z_index": 3160
+    }
+  ],
+  "parents": {},
+  "image_element_count": 16,
+  "image_elements_per_prop": {
+    "claw": 6,
+    "jukebox": 7,
+    "tv": 3
+  },
+  "props": {
+    "claw": {
+      "label": "claw machine \"WIN A BUDDY\"",
+      "box_page_uvz": {
+        "u": [
+          10.8,
+          11.55
+        ],
+        "v": [
+          8.13,
+          8.88
+        ],
+        "z_m": [
+          0.0,
+          1.25
+        ],
+        "z_px": [
+          0.0,
+          91.856
+        ]
+      },
+      "footprint_uv": [
+        [
+          10.8,
+          8.13
+        ],
+        [
+          11.55,
+          8.13
+        ],
+        [
+          11.55,
+          8.88
+        ],
+        [
+          10.8,
+          8.88
+        ]
+      ],
+      "front_faces": "+u",
+      "standing_spots_uv": [
+        [
+          11.76,
+          8.5
+        ]
+      ],
+      "standing_spots_stage_px": [
+        [
+          1095.6,
+          957.8
+        ]
+      ],
+      "front_depth": 3006,
+      "depth": {
+        "formula": "1000 + round((u + v) * 100)",
+        "front_face_centre_uv": [
+          11.55,
+          8.505
+        ],
+        "front_face_centre": 3006,
+        "nearest_corner_uv": [
+          11.55,
+          8.88
+        ],
+        "nearest_corner": 3043,
+        "farthest_corner": 2893
+      },
+      "body_z_index": 2951,
+      "light_z_index": 3190,
+      "image_elements": 6,
+      "layers": [
+        "claw_body",
+        "claw_light",
+        "claw_chase_0",
+        "claw_chase_1",
+        "claw_chase_2",
+        "claw_chase_3"
+      ],
+      "animated": {
+        "chase_0": [
+          "claw_chase_0"
+        ],
+        "chase_1": [
+          "claw_chase_1"
+        ],
+        "chase_2": [
+          "claw_chase_2"
+        ],
+        "chase_3": [
+          "claw_chase_3"
+        ]
+      },
+      "capture_rect_stage_px": [
+        870,
+        780,
+        420,
+        300
+      ]
+    },
+    "jukebox": {
+      "label": "jukebox \"JAMS\"",
+      "box_page_uvz": {
+        "u": [
+          11.68,
+          12.18
+        ],
+        "v": [
+          3.4,
+          3.88
+        ],
+        "z_m": [
+          0.0,
+          0.93
+        ],
+        "z_px": [
+          0.0,
+          68.341
+        ]
+      },
+      "footprint_uv": [
+        [
+          11.68,
+          3.4
+        ],
+        [
+          12.18,
+          3.4
+        ],
+        [
+          12.18,
+          3.88
+        ],
+        [
+          11.68,
+          3.88
+        ]
+      ],
+      "front_faces": "+v",
+      "standing_spots_uv": [
+        [
+          11.97,
+          4.14
+        ],
+        [
+          12.36,
+          4.26
+        ],
+        [
+          12.76,
+          4.5
+        ],
+        [
+          12.93,
+          4.18
+        ]
+      ],
+      "standing_spots_stage_px": [
+        [
+          1369.8000000000002,
+          833.3
+        ],
+        [
+          1386.0,
+          848.5999999999999
+        ],
+        [
+          1395.6,
+          867.8
+        ],
+        [
+          1425.0,
+          863.3
+        ]
+      ],
+      "front_depth": 2581,
+      "depth": {
+        "formula": "1000 + round((u + v) * 100)",
+        "front_face_centre_uv": [
+          11.93,
+          3.88
+        ],
+        "front_face_centre": 2581,
+        "nearest_corner_uv": [
+          12.18,
+          3.88
+        ],
+        "nearest_corner": 2606,
+        "farthest_corner": 2508
+      },
+      "body_z_index": 2542,
+      "light_z_index": 2595,
+      "image_elements": 7,
+      "layers": [
+        "jukebox_body",
+        "jukebox_light",
+        "jukebox_tube_pink",
+        "jukebox_tube_teal",
+        "jukebox_shadow_over",
+        "jukebox_light_front",
+        "jukebox_tube_pink_front"
+      ],
+      "animated": {
+        "tube_pink": [
+          "jukebox_tube_pink",
+          "jukebox_tube_pink_front"
+        ],
+        "tube_teal": [
+          "jukebox_tube_teal"
+        ]
+      },
+      "capture_rect_stage_px": [
+        1220,
+        660,
+        320,
+        320
+      ]
+    },
+    "tv": {
+      "label": "breaking-news TV",
+      "box_page_uvz": {
+        "u": [
+          5.34,
+          5.96
+        ],
+        "v": [
+          3.13,
+          3.55
+        ],
+        "z_m": [
+          0.5,
+          0.97
+        ],
+        "z_px": [
+          36.742,
+          71.28
+        ]
+      },
+      "footprint_uv": [
+        [
+          5.34,
+          3.13
+        ],
+        [
+          5.96,
+          3.13
+        ],
+        [
+          5.96,
+          3.55
+        ],
+        [
+          5.34,
+          3.55
+        ]
+      ],
+      "front_faces": "+v",
+      "standing_spots_uv": [],
+      "standing_spots_stage_px": [],
+      "front_depth": 1920,
+      "depth": {
+        "formula": "1000 + round((u + v) * 100)",
+        "front_face_centre_uv": [
+          5.65,
+          3.55
+        ],
+        "front_face_centre": 1920,
+        "nearest_corner_uv": [
+          5.96,
+          3.55
+        ],
+        "nearest_corner": 1951,
+        "farthest_corner": 1847
+      },
+      "body_z_index": 1904,
+      "light_z_index": 2044,
+      "image_elements": 3,
+      "layers": [
+        "tv_body",
+        "tv_light",
+        "tv_glow"
+      ],
+      "animated": {
+        "tv_glow": [
+          "tv_glow"
+        ]
+      },
+      "capture_rect_stage_px": [
+        900,
+        500,
+        260,
+        190
+      ],
+      "screen_quad": [
+        [
+          1010.8799743652344,
+          551.3215398788452
+        ],
+        [
+          1040.8799743652344,
+          566.3215148448944
+        ],
+        [
+          1040.8799743652344,
+          592.7760243415833
+        ],
+        [
+          1010.8799743652344,
+          577.7760171890259
+        ]
+      ],
+      "screen_quad_order": [
+        "TL",
+        "TR",
+        "BR",
+        "BL"
+      ],
+      "screen_depth": [
+        1895,
+        1945
+      ],
+      "shelf_box_page_uvz": {
+        "u": [
+          5.32,
+          5.98
+        ],
+        "v": [
+          3.13,
+          3.57
+        ],
+        "z": [
+          0.47,
+          0.5
+        ]
+      }
+    }
+  },
+  "animation": {
+    "rule": "Each animated piece is plus-lighter on top of the always-on pieces. All on = draft 31. All off = the prop with only its always-on emitters. Fade a piece with opacity (0..1).",
+    "pieces": {
+      "chase_0": "claw header bulb group 0 (bulbs, their glow on the header and on the wet pavement); off = that group dark",
+      "chase_1": "claw header bulb group 1, what it adds on top of group 0",
+      "chase_2": "claw header bulb group 2, on top of groups 0-1",
+      "chase_3": "claw header bulb group 3, on top of groups 0-2",
+      "tube_pink": "jukebox pink arch tube and its pink pool on the carpet (and on bar end, standee foot, pot); off = tube dark, no pool",
+      "tube_teal": "jukebox teal arch tube, what it adds on top of the pink tube; off = tube dark",
+      "tv_glow": "TV screen glow: the faint blue of the picture tube inside the screen quad and its light on shelf, worktop and wall; off = dead screen"
+    },
+    "stacking_order_used": {
+      "claw": [
+        "chase_0",
+        "chase_1",
+        "chase_2",
+        "chase_3"
+      ],
+      "jukebox": [
+        "tube_pink",
+        "tube_teal"
+      ],
+      "tv": [
+        "tv_glow"
+      ]
+    },
+    "always_on_base_contains_no_animated_light": true
+  },
+  "glass": {
+    "what": "claw_body is solved for the storefront glass as lobby-qa.html draws it: the whole occ_glass_right once at z 3000 and its three slices again (3000, 3080, 3160), so two layers of glass lie over everything below z 3000.",
+    "glass_layers_assumed_below_z_3000": 2,
+    "pack_glass_sprite_pane_alpha": 0.5803921818733215,
+    "share_of_a_body_value_that_reaches_the_screen": 0.1761,
+    "cycles_glass_transmission_rgb_linear": [
+      0.5147616267204285,
+      0.522011399269104,
+      0.5284996032714844
+    ],
+    "claw_light_and_chase_are_above_the_glass": true,
+    "if_the_page_drew_the_glass_once_the_claw_would_be_brighter_by": {
+      "claw_pixels": 7202,
+      "brighter_mean": 21.77,
+      "brighter_p50": 32.0,
+      "brighter_p95": 49.0,
+      "brighter_max": 52.0
+    }
+  },
+  "dropped_noise": [
+    {
+      "kind": "shadow on sprites in front of the body / darkness the page stack cannot show",
+      "prop": "claw",
+      "separate_image_allowed": false,
+      "stage_px_darker_than_2": 2682,
+      "stage_px_darker_than_8": 787,
+      "darkest": -28.58
+    },
+    {
+      "kind": "shadow on sprites in front of the body / darkness the page stack cannot show",
+      "prop": "tv",
+      "separate_image_allowed": true,
+      "stage_px_darker_than_2": 135,
+      "stage_px_darker_than_8": 0,
+      "darkest": -5.97
+    }
+  ],
+  "shadow_required": true,
+  "integration_status": "Staging only; no page or live pack changed.",
+  "draw_notes": [
+    "All coordinates and z are logical stage units at either resolution. Resolve files against roxy3d/out10p/.",
+    "No layer is \"under\": push every render_layer into the occluder stack (img.prop) at its z_index, AFTER out10, out10m and out10l, so that at equal z it is later in the document.",
+    "Bodies are straight-alpha source-over and carry the contact shadow (black with alpha) outside the silhouette. Light pieces are RGB on black, plus-lighter.",
+    "claw_body (z 2951) must stay below z 3000 and under both the whole-glass copy and the glass slices; it looks blown out without the glass over it.",
+    "claw_light and claw_chase_0..3 (z 3190) are above the storefront glass on purpose: the glass sprites would dim them to about 17%.",
+    "tv_body carries the popcorn machine pixels in front of the TV (same pack slice as the worktop). Draw the TV picture into props.tv.screen_quad above tv_body.",
+    "Animated pieces: layers with \"anim\". Everything else is always on.",
+    "parents is empty: no piece is split into slices."
+  ],
+  "light_over_walkers_at_standing_spots": {
+    "claw": [
+      {
+        "uv": [
+          11.76,
+          8.5
+        ],
+        "walker_z": 3026,
+        "light_z": 3190,
+        "sprite_rect_assumed_44x64": [
+          1074,
+          894,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          3.6,
+          5.3,
+          8.3
+        ],
+        "added_light_max": 173.0,
+        "px_over_8": 363
+      }
+    ],
+    "jukebox": [
+      {
+        "uv": [
+          11.97,
+          4.14
+        ],
+        "walker_z": 2611,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1348,
+          769,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 13.0,
+        "px_over_8": 2
+      },
+      {
+        "uv": [
+          12.36,
+          4.26
+        ],
+        "walker_z": 2662,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1364,
+          785,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 0.0,
+        "px_over_8": 0
+      },
+      {
+        "uv": [
+          12.76,
+          4.5
+        ],
+        "walker_z": 2726,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1374,
+          804,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 7.0,
+        "px_over_8": 0
+      },
+      {
+        "uv": [
+          12.93,
+          4.18
+        ],
+        "walker_z": 2711,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1403,
+          799,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.1,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 7.0,
+        "px_over_8": 0
+      }
+    ],
+    "tv": []
+  }
+}

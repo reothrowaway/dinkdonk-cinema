@@ -15,7 +15,7 @@ __pycache__/
 /roxy3d/cloud/cloud-state*.json
 
 # roxy3d: the art working folders (drafts, QA shots, old packs, render caches; about 30 GB) stay local.
-# Kept: briefs, notes, scripts and source .blend files at the top; the live packs out10 + out10mist + out10m + out10l; memes, tools,
+# Kept: briefs, notes, scripts and source .blend files at the top; the live packs out10 + out10mist + out10m + out10l + out10p; memes, tools,
 # ref, research; the cloud render helper and the Brief 57 production bundle.
 # The auditorium art in qa11 is ignored as a folder; only the files auditorium.html loads are tracked
 # (added with: node -e "..." from package/art.js, then git add -f; see README.md).
@@ -24,6 +24,7 @@ __pycache__/
 !/roxy3d/out10mist/
 !/roxy3d/out10m/
 !/roxy3d/out10l/
+!/roxy3d/out10p/
 !/roxy3d/memes/
 !/roxy3d/tools/
 !/roxy3d/ref/

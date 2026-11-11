@@ -24,7 +24,8 @@ buy a ticket, sometimes get popcorn, talk in speech bubbles, and go through thei
 
 The art is a Blender render (`roxy3d/out10/`, plus rain/mist passes in `roxy3d/out10mist/` and the street marquee's
 layers in `roxy3d/out10m/`; `?marquee=0` leaves the marquee out; the "Dear Leader" poster by the box office is a
-second small layer pack, `roxy3d/out10l/`, `?leader=0`). Everything that
+second small layer pack, `roxy3d/out10l/`, `?leader=0`; the claw machine, the jukebox and the TV are a third,
+`roxy3d/out10p/`, `?props=0`). Everything that
 moves or changes (people, vehicles, signs, rain extras, camera) is a live DOM/canvas/WebGL layer on top.
 
 ### DOM (`lobby.html:160-176`)
@@ -157,6 +158,9 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | `chatfx=0` | on | No chat-triggered effects: the box-office bell, a passing siren, petting the cat (`window.__chatfx` for tests) | `ringBell`, `callSiren`, `petCat` |
 | `street2=0` | on | No second street batch: puddle splashes from cars, the runner late for the bus, pigeons, the dog in a window, umbrellas turning in gusts, blown paper (`window.__street2`) | `stepStreet2` |
 | `gaits=0` | on | Everyone walks the same way (no special gaits per emote) | `GAITS` |
+| `props=0` | on | No lobby props: the "WIN A BUDDY" claw machine behind the front glass (about 1 arrival in 14 has a go, about 1 in 9 wins and carries a Buddy plush), the "JAMS" jukebox (chatters wearing a dance emote dance at its four spots, the tubes pulse) and the TV on the back bar (BREAKING NEWS on "BREAKING ..." in chat, a DinkDonk combo and every fifth minute). Art: layer pack `roxy3d/out10p/` (`props.json`, loaded after the poster pack); pieces with `anim` are lights the page dims and flashes | `mergeProps`, `stepProps`, `clawTurn`, `goDance`, `breakingNews` |
+| `clawtest=win` / `clawtest=lose` | off | Test only: every arrival without another errand plays the claw machine, with that result | `CLAW_TEST` |
+| `dancetest=1` | off | Test only: everyone who would hang out in the lobby dances at the jukebox | `DANCE_TEST` |
 | `lobbylife=0` | on | No lobby-interior batch: the turtle crossing, the nothing burger, quickdraw between two chatters, the wet-floor sign (`window.__lobbyLife`) | `stepLobbyLife` |
 | `layout=<n>` | manifest `layout`, else 1 | Force a queue/staff layout (1, 2, 3). Layout 3 setup (`setupLayout3`) still only runs when the manifest says `layout: 3` | :3718 |
 | `loop=0` | on | No light loop: a lit still (`lit_bg_dry` > `lit_bg` > `full`) + procedural rain | `setupArt` |

@@ -435,3 +435,7 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
 72. Owner 10 Nov (~21:40): "Golden weow will also be in the lobby right? It should always arrive by bus, and the
     director should always follow this chatter when it arrives". (It has been in the lobby since batch 1.) Built
     and live the same evening: `GOLD_BUS`, `goldRide`; `?goldbus=0` turns it off.
+    + 11 Nov ~01:15: the three lobby props (L18 TV, L23 jukebox, L24 claw machine) are live: pack `out10p/`,
+      `?props=0` turns them off. Pushed, hosted deploy and zip rebuilt (they now also have the golden bus).
+      Left of item 64/71: DGGWare screens (L25, deferred), the fly-through (corridor and props missing in it,
+      deferred), the OBS performance run (another session). Owner to decide: push `memes/LIFE-IDEAS.md` or not.

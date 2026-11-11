@@ -1,0 +1,172 @@
+[
+  {
+    "file": "claw_body.png",
+    "bytes": 26481,
+    "sha256": "8bcf6ac4584047e3fc21c71b39c3b0cf30491fff60488ce645074c27cd8a17b5"
+  },
+  {
+    "file": "claw_body@2x.png",
+    "bytes": 89725,
+    "sha256": "147203ac4f0b1f9a5ba3e2bb4ab4cfe3f0238563cd15c3958bac667bc5de2045"
+  },
+  {
+    "file": "claw_chase_0.png",
+    "bytes": 1262,
+    "sha256": "8f29c895f7229cd88efb79ead9ec5fbf87e368a64f824619107dbeb06acbad56"
+  },
+  {
+    "file": "claw_chase_0@2x.png",
+    "bytes": 3442,
+    "sha256": "d75a2f99d220cfa5c5866f7796e4c10ef21349ecece1ff2d011b1ef5de4a6223"
+  },
+  {
+    "file": "claw_chase_1.png",
+    "bytes": 1530,
+    "sha256": "ca5f2dbd609ac5a16819c8a725094c55b08813a7930a37d1bddb4ca967a2fe43"
+  },
+  {
+    "file": "claw_chase_1@2x.png",
+    "bytes": 4154,
+    "sha256": "139a6901de1d9e5011c26dfeeb71924b96ec441b87503d9b567c2928829a0c54"
+  },
+  {
+    "file": "claw_chase_2.png",
+    "bytes": 1239,
+    "sha256": "30d53522e10780a0b3115df5141fbac13ecfffe4b53e6b9bf3d85a893910771c"
+  },
+  {
+    "file": "claw_chase_2@2x.png",
+    "bytes": 3370,
+    "sha256": "82f9ff3016e149b3732b3a3d5a3d4abe5ba5376bfd7113ca0118273f4f228bf9"
+  },
+  {
+    "file": "claw_chase_3.png",
+    "bytes": 1103,
+    "sha256": "e088812c244ade4d13e09a53b48012696d9b149dcf5cd3c07a69ceb9c7fa949f"
+  },
+  {
+    "file": "claw_chase_3@2x.png",
+    "bytes": 2983,
+    "sha256": "9ff14167f0c47114808e8cef3a801a33698ac710c5f7922898b49a2504fbfdbb"
+  },
+  {
+    "file": "claw_light.png",
+    "bytes": 38965,
+    "sha256": "38936101e38c66b251ec11b859f9ad11b39e86eca1c8581f55305244f1617612"
+  },
+  {
+    "file": "claw_light@2x.png",
+    "bytes": 128937,
+    "sha256": "947e8eb3bb3b3b1cf06193f5c3d5456e10762d77c086ec2cfe18585693b00940"
+  },
+  {
+    "file": "jukebox_body.png",
+    "bytes": 16083,
+    "sha256": "eed8097dc62a3526b07250c0a5d16f63b8737927a6f73158af4678d31e861b8d"
+  },
+  {
+    "file": "jukebox_body@2x.png",
+    "bytes": 51970,
+    "sha256": "00001b408719c4a9e55e9ec050d4fa3cdb68395a72e71036cfdf7adeb7107c6f"
+  },
+  {
+    "file": "jukebox_light.png",
+    "bytes": 8169,
+    "sha256": "dfec3cfcba3b3faafa0d6c5aa7d894d04d2a34437d970904510da2cd17f1d6f7"
+  },
+  {
+    "file": "jukebox_light@2x.png",
+    "bytes": 25785,
+    "sha256": "d8cc5542ea4ed565aeb616469f00c488f45c241e33d51d652da14839c69b7469"
+  },
+  {
+    "file": "jukebox_light_front.png",
+    "bytes": 1791,
+    "sha256": "55e12fa7470401b5fb74ecb3a61ee360aa5e0f63a8fbf4ca5722a9777f91e34b"
+  },
+  {
+    "file": "jukebox_light_front@2x.png",
+    "bytes": 5437,
+    "sha256": "cf46c6af9f3a6892ae9fad73c4afa4c3c709017fe2215dc977ad0610e78bf2ee"
+  },
+  {
+    "file": "jukebox_shadow_over.png",
+    "bytes": 5638,
+    "sha256": "6ebb9f5ce6df5888a90b81c41b01385f8ef45b0b75130993f7527218a27bd206"
+  },
+  {
+    "file": "jukebox_shadow_over@2x.png",
+    "bytes": 19391,
+    "sha256": "4cc3a57d93625973c222a2470d0d1d30d3c8e1c46460f437f3b83e1b5b0b31df"
+  },
+  {
+    "file": "jukebox_tube_pink.png",
+    "bytes": 10683,
+    "sha256": "726e4be71a174a3368dd593c39e0863d124cd68562c73ff65171fbf9dc54d0be"
+  },
+  {
+    "file": "jukebox_tube_pink@2x.png",
+    "bytes": 32490,
+    "sha256": "c73ceda10d1266e3acde75c15aecc021f9881d604f5b7fcef0a607c8ccf4bc91"
+  },
+  {
+    "file": "jukebox_tube_pink_front.png",
+    "bytes": 662,
+    "sha256": "fe1cd36b1cfe0709bcd4435e1657a9606a1747797305b630eac9b882e88131af"
+  },
+  {
+    "file": "jukebox_tube_pink_front@2x.png",
+    "bytes": 1640,
+    "sha256": "811e4b4c374698ade1e2d0f429f7b10012a91189f6840a4a5a12af2a9fd679cc"
+  },
+  {
+    "file": "jukebox_tube_teal.png",
+    "bytes": 2974,
+    "sha256": "6cf2d467f1a30db218c8ffa7d9d3ca8ebee976572473e5f497ee73d9accfde51"
+  },
+  {
+    "file": "jukebox_tube_teal@2x.png",
+    "bytes": 8901,
+    "sha256": "2cc9b3c075ed0895894f6c221983feb497ae7d6e53363b91c1782000407e6d3c"
+  },
+  {
+    "file": "props.json",
+    "bytes": 23443,
+    "sha256": "dd99f964e765d3a880ea44649adaa7800866449dbcc60f6e01a86219a781c1a0"
+  },
+  {
+    "file": "tv_body.png",
+    "bytes": 11516,
+    "sha256": "d98c42afddf48f1a8fd078de4267581df91797179dd57e9986b37657d0978271"
+  },
+  {
+    "file": "tv_body@2x.png",
+    "bytes": 37056,
+    "sha256": "850ef2b397e2166ec8445036fdedba4b658df10121ae57d550d5c561541917b3"
+  },
+  {
+    "file": "tv_glow.png",
+    "bytes": 2065,
+    "sha256": "8300cf2ade717191653e1d7e57a7dda80b4538f5d158f07ac19e2ad97a8a4735"
+  },
+  {
+    "file": "tv_glow@2x.png",
+    "bytes": 5774,
+    "sha256": "bd4b4ad98d19e9dc3fa7c809c45e3f1b49bfb55d2901260e71ef3a304e8f7e56"
+  },
+  {
+    "file": "tv_light.png",
+    "bytes": 3988,
+    "sha256": "99321de2d8760dd0de2fdc627a86fddb0cfabf85a85b2fc11832b08d511c979b"
+  },
+  {
+    "file": "tv_light@2x.png",
+    "bytes": 12764,
+    "sha256": "69bec7712116a0ce1e863ef25f00bb169461ab9831348a33f598a9c630459930"
+  },
+  {
+    "file": "validation.json",
+    "bytes": 64757,
+    "sha256": "5b642f1d5cb9639041dfa22cbc9cabc5dd706cc4bade6e7ba076b9a179e6d2c9"
+  }
+]

@@ -214,6 +214,21 @@
     background: repeating-linear-gradient(90deg, #e8283c 0 3px, #fff 3px 6px); box-shadow: 0 1px 2px rgba(0,0,0,.6); }
   .carry::before { content: ''; position: absolute; left: -2px; right: -2px; top: -7px; height: 9px; border-radius: 50%;
     background: radial-gradient(circle at 30% 50%, #fff6c8 0 3px, transparent 4px), radial-gradient(circle at 70% 40%, #ffe28a 0 3px, transparent 4px), #ffd75a; }
+  /* lobby props (queue 64: L18, L23, L24; art pack roxy3d/out10p): the TV's picture and the Buddy plush a winner carries */
+  .tvscr { position: absolute; left: 0; top: 0; width: 96px; height: 72px; transform-origin: 0 0; overflow: hidden; pointer-events: none;
+    background: linear-gradient(180deg, #2a55b8, #0d1f5c); font: 900 15px/15px Arial, sans-serif; color: #fff; text-align: center; white-space: pre-line; }
+  .tvscr .bell { position: absolute; left: 7px; top: 3px; font-size: 25px; line-height: 30px; transform-origin: 50% 10%; }
+  .tvscr .dgg { position: absolute; right: 6px; top: 6px; font-size: 11px; line-height: 12px; color: #cfe0ff; text-align: right; }
+  .tvscr .band { position: absolute; left: 0; right: 0; bottom: 7px; padding: 3px 0 2px; background: #d81f2c; letter-spacing: .5px; box-shadow: 0 -2px 0 #fff; }
+  .tvscr::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, rgba(0,0,0,.2) 0 1px, rgba(0,0,0,0) 1px 3px); }
+  /* (the flash is stepped by the frame loop, not a CSS animation: those stall in throttled sources) */
+  .tvscr.live .bell { transform: rotate(-24deg); transition: transform .2s; }
+  .tvscr.flip .bell { transform: rotate(24deg); }
+  .tvscr.flip .band { background: #fff; color: #d81f2c; }
+  .buddy { position: absolute; bottom: 5px; width: 18px; height: 16px; border-radius: 50% 50% 46% 46%;
+    background: radial-gradient(circle at 35% 30%, #a6d8ff, #3f8fe0 70%); box-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .buddy::before { content: ''; position: absolute; left: 4px; top: 6px; width: 3px; height: 3px; border-radius: 50%; background: #10203a; box-shadow: 7px 0 0 #10203a; }
+  .buddy::after { content: ''; position: absolute; left: 2px; top: 10px; width: 3px; height: 2px; border-radius: 50%; background: #ff9ab8; box-shadow: 11px 0 0 #ff9ab8; }
 
   #stage { overflow: hidden; }
   /* will-change: the director's moves and zooms are a compositor transform of one raster (kept at the zoomed scale)
@@ -1188,6 +1203,13 @@
   const fx = $('fx');
   let wcBusy = null;
   let arcadeBusy = null;
+  // lobby props (queue 64: L18 TV, L23 jukebox, L24 claw machine): state; the block itself is further down ("lobby props")
+  const PROPS_ON = q.get('props') !== '0';
+  const CLAW_TEST = q.get('clawtest');   // test only: win | lose
+  const DANCE_TEST = q.get('dancetest') === '1';   // test only: everyone who would hang out in the lobby dances
+  const PROPS = { on: false, els: {}, clawSpot: [11.76, 8.5], clawBusy: null, clawWinT: 0, chase: -1,
+    jukeSpots: [[11.97, 4.14], [12.36, 4.26], [12.76, 4.5], [12.93, 4.18]], jukeFront: [11.93, 3.88], dance: [null, null, null, null], beat: -2, noteT: 0,
+    quad: null, tv: null, tvZ: 2045, tvPos: [1038, 545], tvAt: -1e9, tvUntil: 0, tvLive: false, tvSlot: -1, glow: -1 };
   let arcadeHiUntil = 0;
   const arrivals = {};               // side -> recent arrival times (staggering)
   const ARCADE = [12.95, 7.85];      // player spot in front of the cabinet's screen
@@ -1598,6 +1620,8 @@
           if (r < 0.15) { floatAt(w, '★ NEW HIGH SCORE ★', '#9fd8ff'); arcadeHiUntil = performance.now() + 3500; } else if (r < 0.5) floatAt(w, 'GAME OVER', '#9fd8ff');
         } },
         { to: [12.95, 7.0] }, { to: [8.0, 6.6] }];
+    } else if (w.detour === 'claw' && PROPS.on && !PROPS.clawBusy && !w.hurry) {
+      pre = clawTurn(w);   // a go on the claw machine before the film (lobby props)
     } else {
       pre = L.toGate.map((to) => ({ to }));
     }
@@ -1843,7 +1867,7 @@
     w.room = wi.roomIndex;
     // with the real restroom (layout 3) about one in five drops by before the film (chat already sends ~5 %)
     const r = rr();
-    w.detour = wi.detour || (RESTROOM && r < 0.16 ? 'bathroom' : r > 0.93 ? 'arcade' : null);
+    w.detour = wi.detour || (RESTROOM && r < 0.16 ? 'bathroom' : r > 0.93 ? 'arcade' : r > 0.86 || CLAW_TEST ? 'claw' : null);
     const pick = { umb: rr(), lane: rs(9.78, 10.05), dx: [rs(-0.4, 0.4), rs(-0.3, 0.3), rs(-0.6, 0.6)],
       left: rr() < 0.5, jay: rr(), jayV: rs(-0.1, 0.1), jayX: rs(-0.4, 0.4), at: rr() };
     if (wi.room) w.rolls = { bench: rr(), quit: rr(), quitAt: rr(), outside: rr(), lobby: rr(), hall: rr(), soda: rr(), umb: rr() };
@@ -1853,6 +1877,7 @@
   }
   function spawn(wi) {
     if (wi.features?.includes('moderator')) return;   // mods are the jannies (see onModMessage), they don't walk in
+    if (PROPS.on && wi.tokens?.some((t) => t.t === 'text' && /^breaking\b/i.test(t.v))) breakingNews();   // "BREAKING ..." in chat: the lobby TV
     const key = wi.nick.toLowerCase();
     const old = walkers.get(key);
     if (old && !old.entering && !old.removing) {
@@ -2000,6 +2025,7 @@
     if (w.inQueue) leaveQueue(w);
     if (wcBusy === w) { wcBusy = null; setWC(false); }
     if (arcadeBusy === w) arcadeBusy = null;
+    if (PROPS.clawBusy === w) PROPS.clawBusy = null;
     if (benchBusy === w) benchBusy = null;
     if (w.stall) {
       if (w.stall.busy === w) w.stall.busy = null;
@@ -2084,7 +2110,7 @@
   Cinema.onCombo(({ emote, count }) => {
     if (!CHATFX_ON || count < 3 || count % 3) return;
     const now = performance.now();
-    if (emote === 'DinkDonk' && now - fxAt.bell > 2500) { fxAt.bell = now; ringBell(); setTimeout(ringBell, 520); }
+    if (emote === 'DinkDonk' && now - fxAt.bell > 2500) { fxAt.bell = now; ringBell(); setTimeout(ringBell, 520); breakingNews(); }
     else if (/^(WEEWOO|ALARMA)$/.test(emote) && now - fxAt.siren > 60000 && VEH) { fxAt.siren = now; callSiren(); }
     else if (/^(ASLAN|ComfyCat|MotherFuckinGame)$/.test(emote) && now - fxAt.cat > 20000 && petCat()) fxAt.cat = now;
   });
@@ -2857,7 +2883,7 @@
       }
       w.lastC = c;
     } else if (!w.staff) {
-      if (!w.idle && Math.random() < dt * (w.gait?.dance ? 2.5 : 0.1)) w.idle = 0.001;
+      if (!w.idle && Math.random() < dt * (w.gait?.dance || w.dancing ? 2.5 : 0.1)) w.idle = 0.001;
       if (w.idle) { w.idle += dt * 6; if (w.idle >= Math.PI) w.idle = 0; }
       s = Math.sin(w.idle);
       lift = s * 12;
@@ -3416,6 +3442,131 @@
     if (lobbyLife.sign) lobbyLife.sign.style.opacity = want ? '1' : '0';
   }
   window.__lobbyLife = { sendTurtle, nothingBurger, quickdraw, state: lobbyLife };   // test hooks
+
+  // ---------- lobby props (queue 64: L18 breaking-news TV, L23 jukebox, L24 claw machine; Briefs 89-94) ----------
+  // Three rendered props from the layer pack roxy3d/out10p (mergeProps in the art section). Without the pack, or with
+  // ?props=0, none of this runs and the lobby is as before.
+  // L24 "WIN A BUDDY": about one arrival in 14 has a go on the claw machine behind the front glass before the gate
+  //     (one player at a time, like the arcade). Most lose; about 1 in 9 wins and carries a Buddy plush from then on
+  //     (the result comes from the nick and the half hour, so screens agree). The header's four bulb groups chase:
+  //     slowly on their own, quickly during a go, all flashing on a win.
+  // L23 "JAMS": a chatter wearing a dance emote (GAITS .dance) dances at one of four spots in front of the jukebox
+  //     instead of joining a talk group. While someone dances the two neon tubes take turns on the beat and notes
+  //     float up; otherwise the tubes are steady.
+  // L18 the TV on the back bar: the page draws the news picture into the screen quad; the screen's glow flickers.
+  //     "BREAKING ..." in chat, a DinkDonk combo (with the roof bell) and every fifth minute make it flash BREAKING
+  //     NEWS for eight seconds (at most once in 45 s).
+  // All pieces lit and steady is the approved still (draft 31). ?clawtest=win|lose (test only): every arrival plays,
+  // with that result; ?dancetest=1 (test only): every chatter counts as a dancer. window.__props for tests.
+  const CLAW_LOST = ['so close\u2026', 'RIGGED', 'it slipped!', 'one more try\u2026', '-1 TOKEN', 'the claw is weak'];
+  function setAnim(name, o) {
+    const v = String(o);
+    for (const el of PROPS.els[name] || []) if (el.style.opacity !== v) el.style.opacity = v;
+  }
+  function clawTurn(w) {
+    PROPS.clawBusy = w;
+    const [cu, cv] = PROPS.clawSpot;
+    // (with the rope lane: out past its west end and along below the back rope, as to the arcade)
+    const there = L.lane ? [[5.2, 6.6], [8.2, 6.6], [cu, 7.0]] : [[8.2, 7.0], [cu, 7.0]];
+    return [...there.map((to) => ({ to })), { to: [cu, cv] },
+      { wait: rand(3.5, 6), start: () => SB.faceEmote(w.em, w.emName, -1), end: () => {
+        if (PROPS.clawBusy === w) PROPS.clawBusy = null;
+        const win = CLAW_TEST ? CLAW_TEST === 'win' : SB.hashHue(`${w.key}:buddy:${Math.floor(Date.now() / 1800000)}`) % 9 === 0;
+        if (win) {
+          PROPS.clawWinT = performance.now() + 2600;
+          w.bounce = 1;
+          floatAt(w, '\u{1F9F8} WON A BUDDY!', '#9fd4ff');
+          if (!w.carry) { w.carry = h('div', 'buddy'); w.bod.append(w.carry); placeItem(w, w.carry, 'carry'); }
+        } else if (Math.random() < 0.8) floatAt(w, CLAW_LOST[Math.floor(Math.random() * CLAW_LOST.length)], '#9fd4ff');
+      } },
+      { to: [cu, 7.0] }, { to: [8.0, 6.6] }];
+  }
+  function goDance(w) {
+    const i = PROPS.dance.findIndex((d) => !d || d.gone || d.removing);
+    if (i < 0) return false;
+    const [u, v] = PROPS.jukeSpots[i];
+    // round the talk spot and the standee: the two east spots from the east, the others straight up
+    const via = u > 12.5 ? [[11.9, 5.65], [12.92, 5.65]] : [[11.9, 5.65], [11.9, 4.85]];
+    PROPS.dance[i] = w;
+    w.afterHang = w.plan;
+    w.plan = [...via.map((to) => ({ to })), { to: [u, v] },
+      { wait: rand(14, 26), start: (x) => { x.dancing = true; SB.faceEmote(x.em, x.emName, (PROPS.jukeFront[0] - u) - (PROPS.jukeFront[1] - v)); },
+        end: (x) => { x.dancing = false; if (PROPS.dance[i] === x) PROPS.dance[i] = null; } },
+      ...via.slice().reverse().map((to) => ({ to })), { call: (x) => { x.plan = x.afterHang || []; x.afterHang = null; } }];
+    return true;
+  }
+  function breakingNews(force) {
+    const now = performance.now();
+    if (!PROPS.on || !PROPS.tv || (!force && now - PROPS.tvAt < 45000)) return false;
+    PROPS.tvAt = now;
+    PROPS.tvUntil = now + 8000;
+    floatText(PROPS.tvPos[0], PROPS.tvPos[1] - 30, 'BREAKING NEWS', '#ff6a6a');
+    let n = 0;   // a few chatters close by look up at it
+    for (const w of figures) {
+      if (n >= 4) break;
+      if (w.staff || w.npc || w.removing || w.entering || w.alpha < 0.9 || w.v < 3.6 || Math.hypot(w.u - 5.65, w.v - 3.55) > 3.2) continue;
+      n++;
+      SB.faceEmote(w.em, w.emName, (5.65 - w.u) - (3.55 - w.v));
+    }
+    return true;
+  }
+  // called once from setupArt, after the pack's images are in the page
+  function setupProps() {
+    if (!PROPS.on || !PROPS.quad || PROPS.tv) return;
+    const [TL, TR, , BL] = PROPS.quad, W = 96, H = 72;
+    const el = PROPS.tv = h('div', 'tvscr');
+    el.append(h('b', 'bell', '\u{1F514}'), h('span', 'dgg', 'DGG\nNEWS'), h('div', 'band', 'BREAKING\nNEWS'));
+    el.style.transform = `matrix(${(TR[0] - TL[0]) / W}, ${(TR[1] - TL[1]) / W}, ${(BL[0] - TL[0]) / H}, ${(BL[1] - TL[1]) / H}, ${TL[0]}, ${TL[1]})`;
+    el.style.zIndex = String(PROPS.tvZ);
+    world.append(el);
+    PROPS.tvPos = [(TL[0] + TR[0]) / 2, Math.min(TL[1], TR[1])];
+  }
+  function stepProps(dt, now) {
+    if (!PROPS.on) return;
+    // claw machine header
+    const cb = PROPS.clawBusy;
+    const playing = !!cb && !cb.gone && Math.hypot(cb.u - PROPS.clawSpot[0], cb.v - PROPS.clawSpot[1]) < 0.1;
+    const winning = now < PROPS.clawWinT;
+    const step = Math.floor(now / (winning ? 140 : playing ? 110 : 420));
+    if (step !== PROPS.chase) {
+      PROPS.chase = step;
+      for (let i = 0; i < 4; i++) setAnim(`chase_${i}`, winning ? (step % 2 ? 1 : 0.15) : (step + i) % 4 ? 1 : 0.2);
+    }
+    // jukebox
+    let n = 0;
+    PROPS.dance.forEach((d, i) => {
+      if (!d) return;
+      if (d.gone || d.removing) { d.dancing = false; PROPS.dance[i] = null; return; }
+      if (!d.dancing) return;
+      const [u, v] = PROPS.jukeSpots[i];
+      if (Math.hypot(d.u - u, d.v - v) > 0.3) { d.dancing = false; PROPS.dance[i] = null; return; }   // (sent elsewhere meanwhile)
+      if (d.hurry && d.plan[0]?.wait > 0.2) d.plan[0].wait = 0.2;   // the film is starting
+      n++;
+    });
+    const beat = n ? Math.floor(now / 250) % 4 : -1;
+    if (beat !== PROPS.beat) {
+      PROPS.beat = beat;
+      setAnim('tube_pink', beat < 2 ? 1 : 0.4);
+      setAnim('tube_teal', beat < 0 || beat >= 2 ? 1 : 0.4);
+    }
+    if (n) {
+      PROPS.noteT -= dt;
+      if (PROPS.noteT <= 0) {
+        PROPS.noteT = rand(0.9, 1.8);
+        const [x, y] = P(PROPS.jukeFront[0], PROPS.jukeFront[1] - 0.2, 62);
+        floatText(x + rand(-10, 10), y, Math.random() < 0.5 ? '\u266A' : '\u266B', Math.random() < 0.5 ? '#ff8fd8' : '#7ff7e0');
+      }
+    }
+    // TV
+    const slot = Math.floor(Date.now() / 300000);
+    if (PROPS.tvSlot < 0) PROPS.tvSlot = slot;
+    if (slot !== PROPS.tvSlot) { PROPS.tvSlot = slot; breakingNews(); }
+    const live = now < PROPS.tvUntil;
+    if (PROPS.tv && live !== PROPS.tvLive) { PROPS.tvLive = live; PROPS.tv.classList.toggle('live', live); }
+    const g = Math.floor(now / (live ? 250 : 180));
+    if (g !== PROPS.glow) { PROPS.glow = g; PROPS.tv?.classList.toggle('flip', live && g % 2 === 1); setAnim('tv_glow', live ? (g % 2 ? 1 : 0.5) : (0.84 + 0.16 * Math.random()).toFixed(2)); }
+  }
+  window.__props = { state: PROPS, breakingNews: () => breakingNews(true) };   // test hooks
 
   // ---------- more street life (queue 64: L11, L12, L13, L14, L15, L19) ----------
   // L11 puddle splash: a car passing the puddle by the lamp sometimes throws water at the curb; chatters standing
@@ -4198,6 +4349,7 @@ void main() {
   function hangOut(w, kind = 'lobby') {
     if (w.hurry || w.removing || (w.hung ||= new Set()).has(kind)) return;
     w.hung.add(kind);
+    if (kind === 'lobby' && PROPS.on && (w.gait?.dance || DANCE_TEST) && goDance(w)) return;   // dance emotes: to the jukebox
     const [pTalk, pQuiet] = HANG_P[kind];
     if (roll(w, kind) > (w.lines?.length ? pTalk : pQuiet)) return;   // some just go in
     let g = groups.find((x) => x.kind === kind && !x.janitor && x.members.length < 4);
@@ -4401,7 +4553,7 @@ void main() {
   let gagNext = performance.now() + rand(300, 1200) * 1000;
   function gagFree(w) {
     return !!w && !w.gone && !w.removing && !w.entering && !w.ride && !w.inQueue && !w.snack && !w.staff && !w.jan
-      && !w.doorBound && !w.hurry && !w.stall && wcBusy !== w && wcWait !== w && arcadeBusy !== w && benchBusy !== w
+      && !w.doorBound && !w.hurry && !w.stall && wcBusy !== w && wcWait !== w && arcadeBusy !== w && benchBusy !== w && PROPS.clawBusy !== w && !w.dancing
       && !gateLine.includes(w) && !windows.some((x) => x.cur === w) && w.alpha > 0.9 && w.v < 8.9;
   }
   function startGag(a, b) {
@@ -4620,6 +4772,8 @@ void main() {
     if (gateLine.includes(w)) return 'usher gate';
     if (wcBusy === w || wcWait === w || w.stall) return 'restroom';
     if (arcadeBusy === w) return 'arcade';
+    if (PROPS.clawBusy === w) return 'claw machine';
+    if (w.dancing) return 'jukebox';
     if (benchBusy === w) return 'bench';
     if (w.group) return w.group.janitor ? 'talking to the janitor' : 'chatting';
     return w.u < 3 || w.v < 3 ? 'corridor' : 'lobby';
@@ -4713,6 +4867,8 @@ void main() {
     for (const s of snackSpots) { s.line = []; s.t = 0; }
     groups.length = 0;
     wcBusy = wcWait = arcadeBusy = benchBusy = null;
+    PROPS.clawBusy = null;
+    PROPS.dance.fill(null);
     setWC(restroomFull());
     for (const k of Object.keys(arrivals)) delete arrivals[k];
     crowdN = 0;
@@ -4764,7 +4920,7 @@ void main() {
       // in the lobby (they stay to talk: the lobby flip is set), then on to the gate and their door
       giveStub(w);
       inLobby();
-      if (w.detour === 'popcorn' || w.detour === 'arcade') w.detour = null;
+      if (w.detour === 'popcorn' || w.detour === 'arcade' || w.detour === 'claw') w.detour = null;
       w.rolls.lobby = 0;
       afterTicket(w);
       w.plan.unshift({ call: hangOut });
@@ -4884,6 +5040,7 @@ void main() {
     stepSirens();
     stepStreet2(dt);
     stepLobbyLife(dt);
+    stepProps(dt, t);
     if (rainOn) drawRain(dt);
     if (mist && MIST) drawGL(mist, t, 1000);
     if (rain2) {
@@ -4983,6 +5140,40 @@ void main() {
       leaderEl = null;
     } catch { /* no pack: the placeholder stays */ }
   }
+  // Lobby props (queue 64: L18 TV, L23 jukebox, L24 claw machine; Briefs 89-94): a rendered layer pack in
+  // roxy3d/out10p/, loaded after the marquee and the poster. Pieces marked "under" join the ground layers under all
+  // walkers, the others the occluder stack at their own depth. Pieces with "anim" (chase_0..3, tube_pink, tube_teal,
+  // tv_glow) are additive lights the page dims and flashes (stepProps); all of them at full is the approved still.
+  // The cat and the gnome give up the spots the props and the dancers take. ?props=0: no pack.
+  async function mergeProps(m) {
+    if (!PROPS_ON) return;
+    try {
+      const res = await fetch('roxy3d/out10p/props.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      const f = res.ok ? await res.json() : null;
+      if (!f || !Array.isArray(f.render_layers) || !f.render_layers.length) return;
+      const rel = (x) => (typeof x === 'string' ? `../out10p/${x}` : x);
+      for (const l of f.render_layers) {
+        if (!l || typeof l.file !== 'string' || ![l.x, l.y, l.w, l.h].every(Number.isFinite)) continue;
+        if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
+        else m.occluders.push({ ...l, file: rel(l.file), file_2x: rel(l.file_2x) });
+      }
+      const pt = (a) => Array.isArray(a) && a.length >= 2 && a.slice(0, 2).every(Number.isFinite);
+      const spots = (x) => (Array.isArray(x) ? x.filter(pt).map((a) => a.slice(0, 2)) : []);
+      const cs = spots(f.props?.claw?.standing_spots_uv), js = spots(f.props?.jukebox?.standing_spots_uv);
+      if (cs.length) PROPS.clawSpot = cs[0];
+      if (js.length) { PROPS.jukeSpots = js.slice(0, 4); PROPS.dance = PROPS.jukeSpots.map(() => null); }
+      const quad = f.props?.tv?.screen_quad || f.tv?.screen_quad;
+      if (Array.isArray(quad) && quad.length === 4 && quad.every(pt)) PROPS.quad = quad;
+      if (Number.isFinite(f.props?.tv?.screen_z_index)) PROPS.tvZ = f.props.tv.screen_z_index;
+      for (const [arr, at] of [[CAT_SPOTS, (c) => c.at], [GNOME_SPOTS, (c) => c]]) {
+        for (let i = arr.length - 1; i >= 0; i--) {
+          const [u, v] = at(arr[i]);
+          if ((Math.abs(u - 12.3) < 0.75 && Math.abs(v - 4.3) < 0.4) || (Math.abs(u - 10.9) < 0.9 && Math.abs(v - 8.3) < 0.6)) arr.splice(i, 1);
+        }
+      }
+      PROPS.on = true;
+    } catch { /* no pack: the lobby without the props */ }
+  }
   // The street letterboard text, split into the same 0.25-tile depth bands as the body slices so a walker in front
   // of one end of the board covers it there and not at the other end. The face is a parallelogram (TL TR BR BL).
   function buildMarqueeText() {
@@ -5067,6 +5258,7 @@ void main() {
       if (!(m && (m.bg || m.base) && Array.isArray(m.occluders))) return null;
       await mergeMarquee(m);
       await mergeLeader(m);
+      await mergeProps(m);
       return m;
     } catch { return null; }
   }
@@ -5180,6 +5372,7 @@ void main() {
         if (/occ_restroom_side_wall_01\.png$/.test(s.file) && s.w === 159 && s.h === 99) im.style.clipPath = 'polygon(0 0, 159px 0, 159px 10px, 143px 10px, 143px 99px, 0 99px)';
         world.append(im);
         artImgs.push([im, s.file]);
+        if (s.anim) (PROPS.els[s.anim] ||= []).push(im);   // lobby props: lights the page animates
       }
     }
     // the marquee's ground shadow, then its ground light (merged.json "under" layers): over the background, the light
@@ -5194,7 +5387,9 @@ void main() {
       underAt.after(im);
       underAt = im;
       artImgs.push([im, l.file]);
+      if (l.anim) (PROPS.els[l.anim] ||= []).push(im);
     }
+    setupProps();
     buildMarqueeText();
     showMarquee();
     if (rooms.length || ddData) applyRooms(rooms);

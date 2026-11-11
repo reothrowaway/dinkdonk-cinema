@@ -23,8 +23,9 @@ function artFiles(standby, fail) {
   // The lobby (roxy3d/out10 + out10mist) is read through manifests that list everything, so those folders go in whole.
   // out10m is the street marquee's layer pack (marquee.json), drawn over out10 by lobby.html.
   // out10l is the "Dear Leader" poster's layer pack (leader.json), drawn over out10 and out10m by lobby.html.
+  // out10p is the lobby props' layer pack (props.json: claw machine, jukebox, TV), drawn over those by lobby.html.
   // auditorium.html also loads roxy3d/out10/ (ITEM_ART), already covered.
-  for (const dir of ['out10', 'out10mist', 'out10m', 'out10l']) walkFiles(path.join(standby, 'roxy3d', dir), standby, files);
+  for (const dir of ['out10', 'out10mist', 'out10m', 'out10l', 'out10p']) walkFiles(path.join(standby, 'roxy3d', dir), standby, files);
 
   // The auditorium (roxy3d/qa11, 2 GB of drafts) loads one draft: its layout JSON names every picture it needs.
   const aud = fs.readFileSync(path.join(standby, 'auditorium.html'), 'utf8');

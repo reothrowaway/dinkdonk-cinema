@@ -2435,3 +2435,82 @@ and the two QA copies as they were).
   stepped off at the bus door; picture with the director on one stepping off:
   `concepts/life/golden-weow-bus-follow.png`. Not checked: the wait when no bus can be had, the shared room, normal
   odds. The hosted edition and the zip do NOT have this change yet (they were built before it).
+- 10 Nov ~21:30, Brief 94 stage A in (NOTES-94, `props/layer94/CAPTURES.md`): the portable capture job
+  (`scene94.blend` 21.7 MiB with everything packed, `capture94.py`, `job94.json`), 30 captures (claw 12, jukebox 9,
+  TV 9) smoke-rendered locally at 16 samples and half size, 155 s, all looked at by the agent; estimate for the
+  production set on the RTX 3050: 9-10 min. Planned page elements: 18 (claw 9, jukebox 6, TV 3). Findings for stage
+  B: the popcorn machine in front of the TV is part of occluder `partition_right` (capture `tv_body_front` carries
+  it); the palm sorts at z 2594 / 2646, so the jukebox's front band is clamped below 2594; captures from two runs
+  or machines must not be mixed within one prop. Not proven: the job under Linux.
+- 10 Nov ~21:31, RunPod run started for the production captures (owner: RunPod, max $2; queue 71): bundle
+  `props/layer94/cloud/props-bundle-94.tar.gz` (the three job files + `run.sh`: Blender 5.2.3 by pinned checksum,
+  `capture94.py` with its defaults, result as `out10.tar.gz` holding `captures/`, a 40-minute self-stop on the
+  pod), launcher `props/layer94/cloud/run-cloud94.sh` -> `cloud/cloud-render.sh full` with `MAX_HOURS=0.75`,
+  `KEEP_ON_FAIL=0`, `OUTDIR=props/layer94/cloud/result`, in its own Terminal tab so it outlives the session. First
+  minutes: no RTX 5090 free in EU-RO-1, the helper retries every minute (up to 15 min).
+  If this session stops here: the helper deletes the pod and the volume itself when the result is home; check with
+  `tools/runpodctl/runpodctl.exe pod list` and `network-volume list` that nothing is left. Then stage B (a message
+  to the Brief 94 agent or a new Fable 5.2 high agent with BRIEF-94: captures are in
+  `props/layer94/cloud/result/captures/`), then the page work in `lobby-qa.html` (a `mergeProps` like `mergeLeader`
+  for `out10p/props.json`, claw machine play, jukebox dancers, TV chyron), go live, rebuild hosted + zip (they also
+  still lack the golden-bus change), push.
+- 10 Nov ~21:40, first RunPod attempt failed after about a minute: the bundle archive carried the Windows file
+  owner (uid 197609) and `tar` on the pod stopped on the ownership change; the helper deleted pod and volume
+  (checked: both lists empty; cost about a tenth of a cent). Archive rebuilt with `--owner=0 --group=0
+  --numeric-owner`, second attempt started ~21:45 in the same Terminal tab.
+- Owner (~21:50), asked whether to wait for the 5-hour usage reset (about 23:50) or go into paid extra usage for
+  the packing (stage B) and the page work: "1" = wait for the reset. So this session only collects and checks the
+  RunPod result now, and stops; stage B, the props in the lobby, the hosted + zip rebuild and the push follow when
+  the owner says to continue.
+- Owner (~21:55): "you continue without my input with the e same rules after the reset". A one-shot wake-up is set
+  for 23:56 (session-only: it is lost if the app closes). Rules stay: until weekly usage reaches 72%, never into paid
+  extra usage, no OBS performance run, DGGWare and the fly-through fix deferred.
+- 10 Nov ~21:57, RunPod run 2 succeeded: RTX 4090 (EU-RO-1), OptiX, Blender 5.2.3 Linux, all 30 captures at the
+  production settings in about 2 minutes of rendering; result home in `props/layer94/cloud/result/captures/`
+  (72 files: 30 `.exr`, 11 `.pos.exr`, 30 receipts, `manifest.json`; 107 MB) with `progress.log`. Pod and volume
+  deleted by the helper; checked afterwards: no pod, no volume. Spend for both attempts together: about $0.06 of
+  the $2 limit. The log has "Image ... not available. Keeping packed image" lines for three packed textures
+  (travel.png, whiplash.png, wcat.png): Blender on Linux could not see the Windows source paths and used the packed
+  copies; stage B must confirm against draft 31 that no texture came out missing (pink). Captures not looked at
+  here yet. Next after the usage reset (wake-up 23:56): stage B.
+
+## 11 Nov 2026, ~00:00-01:15: lobby props packed, wired, live, pushed (queue 64: L18, L23, L24)
+
+- After the usage reset (5-hour window 1%, weekly 67%; limit 72%, no paid extra usage). RunPod: no pod, no volume.
+- **Stage B of Brief 94** (Fable 5.2 high agent): pack `out10p/` from the RunPod captures: 16 images (claw 6, jukebox
+  7, TV 3), `props.json` (schema `dinkdonk.props.layers.v1`), `checksums.json`, `validation.json`; check image
+  `qa10/props-layer-check.png`; report in `NOTES-94.md` (stage B). The "Keeping packed image" log lines were harmless
+  (all 16 packed textures; no missing texture). Against draft 31: jukebox and TV within the captures' own difference.
+  Known, from the notes: the claw's darkest parts stay up to 29/255 too light under the page's two glass layers
+  (`validation.json` says `passed: false` for that), the claw's light pieces sit ABOVE the storefront glass (z 3190)
+  and so also lie over a walker at the machine and over sidewalk walkers in front of that window; one body piece
+  per prop instead of depth bands; no `under` layers. No second-opinion critique of the pack was run.
+- **Page** (`lobby-qa.html`, then `lobby.html`; backups in `backups/2026-11-11-life-props/`):
+  - `mergeProps` loads `out10p/props.json` after the poster pack; pieces with `anim` are kept in `PROPS.els`.
+    `?props=0`: none of it. Without the pack the lobby is as before.
+  - Claw machine: detour `claw` for about 1 arrival in 14 (the same roll as the arcade: r 0.86-0.93), one player at
+    a time, 3.5-6 s; 1 in 9 wins (from nick + half hour) and carries a Buddy plush (`.buddy`), the others mostly get
+    a line ("so close...", "RIGGED" ...). Header chase: slow, quick while someone plays, all flashing on a win.
+  - Jukebox: a chatter wearing a dance emote (`GAITS` `.dance`) goes to one of the four spots instead of a talk
+    group, dances 14-26 s (leaves at once when the film starts); tubes take turns on the beat, notes float up.
+  - TV: the page draws the news picture into `tv.screen_quad` (z 2045, above `tv_glow`); glow flickers; BREAKING
+    NEWS flashes 8 s on "BREAKING ..." in chat, on a DinkDonk combo and every fifth minute (at most once in 45 s).
+    The flash is stepped by the frame loop, not a CSS animation.
+  - The cat and the gnome lose the spots the props and dancers take (cat: by the palm, near the entrance; gnome:
+    the glass-front spot and the palm spot).
+  - Test switches: `?clawtest=win|lose`, `?dancetest=1`, `window.__props`.
+- **Checked** (headless Edge, real chat, no page errors): QA in the shared room and with `room=0&director=0` using
+  the test switches (6 claw players, wins with the plush, 14-16 dancers over the run, TV flash; close-ups looked
+  at); live `lobby.html?everyone=1` at normal odds loads the pack; `?props=0` loads no pack image.
+  Screenshots: `concepts/life/props-qa-wide.png`, `concepts/life/props-live-lobby.png` (not committed).
+- **Not checked:** OBS and frame times (owner: another session; 16 more images, 13 of them blended, and four small
+  ones change opacity a few times a second); a claw turn or a dancer at normal odds seen by eye (the test switches
+  were used); the claw win roll across two screens; the hosted page in a browser (needs a room key).
+- **Known:** the fly-through video shows the lobby without the three props (same as the corridor: deferred by the
+  owner). A walker at the claw machine gets the machine's teal line across the sprite (light piece above the glass).
+- Docs (`docs/lobby.md`, `docs/art-pipeline.md`, `AGENTS.md`), `.gitignore` and `package/art.js` take `out10p`.
+  Builds: hosted (854 MB) and zip (850 MB), both now also with the golden-bus change. Packaged server smoke-tested
+  on 18773 (pages and pack files 200, lobby loads the props with real chat), stopped by its exact PID; 18770 kept
+  running. Hosted deploy done: service active, health ok, the server's `lobby.html` equals the build (same hash),
+  `out10p` there. Commit and push: see git log.
+- `props/layer94/stageb/work/` keeps 292 MB of arrays (re-solve the pack without Blender); local only.
