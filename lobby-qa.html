@@ -173,10 +173,11 @@
     background: linear-gradient(0deg, rgba(234,243,255,.5), rgba(234,243,255,.16) 55%, rgba(234,243,255,0));
     clip-path: polygon(44% 100%, 56% 100%, 100% 0, 0 0);
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 32%, #000 68%, transparent); mask-image: linear-gradient(90deg, transparent, #000 32%, #000 68%, transparent); }
-  .sbA { animation: sweepA 23s ease-in-out infinite alternate; }
-  .sbB { animation: sweepB 29s ease-in-out -9s infinite alternate; }
-  @keyframes sweepA { from { transform: rotate(-50deg); } to { transform: rotate(-31deg); } }
-  @keyframes sweepB { from { transform: rotate(27deg); } to { transform: rotate(46deg); } }
+  /* (owner, 11 Nov 2026: faster and a wider sweep; it was 19 degrees in 23 s and 29 s) */
+  .sbA { animation: sweepA 13s ease-in-out infinite alternate; }
+  .sbB { animation: sweepB 16s ease-in-out -5s infinite alternate; }
+  @keyframes sweepA { from { transform: rotate(-58deg); } to { transform: rotate(-22deg); } }
+  @keyframes sweepB { from { transform: rotate(19deg); } to { transform: rotate(55deg); } }
   .skyred { animation: skyred 2.4s steps(1) infinite; }
   /* neighborhood life (queue 63, L9): steam, apartment windows, a TV, neon dips. Same rules as the sky layers: no
      blur filters, motion is transform/opacity only. */
@@ -1341,7 +1342,7 @@
     // wide emotes (wings, banners) are fitted into a max width so they don't dwarf everyone else
     const MAXW = 74;
     const { w: ew, h: eh } = SB.emoteSize(name);
-    const e = SB.emoteEl(name, Math.min(EH, MAXW * eh / ew));   // fits both max height and max width
+    const e = SB.emoteEl(name, Math.min(EH, MAXW * eh / ew) * (w.emScale || 1));   // fits both max height and max width (emScale: Aristortle is smaller)
     e.classList.add('em');
     e.style.left = `${-Number(e.dataset.w) / 2}px`;
     w.bod.prepend(e);
@@ -2876,7 +2877,7 @@
       lift = s * 13;
       bouncing = c < 0.5;
       tilt = c < 0.5 ? 0 : Math.sin((c - 0.5) * 4 * Math.PI) * 3.5;
-      if (w.gait?.crawl) { s = 0; lift = 0; bouncing = false; tilt *= 0.5; }   // crawlers and sneakers don't hop
+      if (w.gait?.crawl) { s = 0; lift = 0; bouncing = false; tilt *= 0.5 * (w.gait.wobble || 1); }   // crawlers and sneakers don't hop
       // landing on wet pavement: splash ring
       if (w.lastC != null && w.lastC < 0.5 && c >= 0.5) {
         if (w.v > 9.15) { if (!underMarquee(w.u, w.v) && Math.random() < 0.6) splash(w.u, w.v); } else if (w.wetSteps > 0) { w.wetSteps--; wetPrint(w.u, w.v); }
@@ -2890,11 +2891,13 @@
       bouncing = w.idle > 0;
     }
     const sq = bouncing && s < 0.2 ? 0.9 : 1;
+    // a crawler with gait.stretch pulls itself along: longer and flatter, then shorter and taller, once per step
+    const st = moving && w.gait?.stretch ? Math.sin(w.phase * 2) * w.gait.stretch : 0;
     const [x, y] = P(w.u, w.v, w.stand || 0);
     w.x = x; w.y = y; w.lift = lift;
     // only touch the DOM when something changed (most figures stand still most of the time)
     const tEl = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-    const tBod = `translateY(${(-lift).toFixed(1)}px)${tilt ? ` rotate(${tilt.toFixed(1)}deg)` : ''} scale(${(2 - sq).toFixed(3)}, ${sq})`;
+    const tBod = `translateY(${(-lift).toFixed(1)}px)${tilt ? ` rotate(${tilt.toFixed(1)}deg)` : ''} scale(${((2 - sq) * (1 + st)).toFixed(3)}, ${st ? (sq * (1 - st * 0.6)).toFixed(3) : sq})`;
     if (tEl !== w.tEl) { w.tEl = tEl; w.el.style.transform = tEl; }
     if (tBod !== w.tBod) { w.tBod = tBod; w.bod.style.transform = tBod; }
     // the contact shadow shrinks and fades while they're in the air, full and dark on landing
@@ -3292,7 +3295,12 @@
     const j6 = mk(767.8, 291.3, '<div style="top:27px;font-size:4.2px;letter-spacing:1px;color:#c9b27a">COMING SOON</div>' +
       '<b style="top:32px;font-size:9.5px;line-height:9px;color:#f3ead2">THE J6<br>VIDEO</b>' +
       '<div style="top:60px;font-size:2.6px;letter-spacing:.4px;color:#8f8468">A DESTINY PRODUCTION</div>', 'linear-gradient(#1b2338, #0e1220 60%, #1a1010)');
-    const STICKERS = [['2024', '#e9dcc0', 6, 51, -6], ['SPRING', '#ffd84a', 20, 52, 5], ['SOON', '#ff8a5a', 12, 54, -3], ['2026', '#9fe0b0', 25, 50, 7], ['SOON\u2122', '#ffd84a', 8, 52, 4], ['AFTER HL3', '#ff6a8a', 15, 53, -5]];
+    // The restroom wall stands in front of this poster's lower left corner, and its occluder picture only covers the
+    // wall's face, not its top: the poster was drawn across the top of the wall (owner, 11 Nov 2026). The corner is
+    // cut along the wall's outline (art manifest, restroom_entry_wall_00 polygon_px: 727.8,311.1 -> 785.8,340.1).
+    // (2.6 px below that outline: that is where the top of the wall starts in the picture)
+    j6.style.clipPath = 'polygon(0 0, 47.2px 0, 47.2px 64px, 22.3px 64px, 0 42.4px)';
+    const STICKERS = [['2024', '#e9dcc0', 14, 51, -6], ['SPRING', '#ffd84a', 28, 52, 5], ['SOON', '#ff8a5a', 20, 54, -3], ['2026', '#9fe0b0', 33, 50, 7], ['SOON\u2122', '#ffd84a', 16, 52, 4], ['AFTER HL3', '#ff6a8a', 23, 53, -5]];   // (8 px further right than at first: clear of the corner the wall hides)
     const stk = STICKERS.map(([t, c, x, y, r]) => { const d = h('div', 'stk', t); d.style.cssText = `left:${x}px;top:${y}px;background:${c};transform:rotate(${r}deg);display:none`; j6.append(d); return d; });
     const stick = () => { const n = 1 + Math.floor(Date.now() / 180000) % STICKERS.length; stk.forEach((d, i) => { d.style.display = i < n ? '' : 'none'; }); };
     stick();
@@ -3310,7 +3318,7 @@
   // clerks in front still sort over it; the cream is matched to the board by eye. ?slop=0: none.
   const SLOP = q.get('slop') === '0' ? [] : [
     { x: 1181.5, y: 594, w: 105, h: 14.5, lines: ['POLITICS SLOP  $2.75', 'CODE DESTINY: 0% OFF'] },
-    { x: 1298.5, y: 652.5, w: 109, h: 14.5, lines: ['DRAMA SLOP  $5.25', 'DAY 1 HATERS EAT FREE'] }];
+    { x: 1298.5, y: 652.5, w: 109, h: 14.5, lines: ['DRAMA SLOP  $5.25', 'NOTHINGBURGERS  $3.50'] }];   // (owner, 11 Nov 2026: was 'DAY 1 HATERS EAT FREE')
   function buildSlop(m) {
     const wallOcc = m.occluders.find((o) => /partition_right/.test(o.file));
     if (!wallOcc || !SLOP.length) return;
@@ -3345,22 +3353,38 @@
       '<i style="left:-4.5px;top:-10.5px;width:9px;height:6px;border-radius:2px 2px 50% 50%;background:#f4f0e6"></i>' +
       '<i style="left:-5px;top:-23px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid #d8342c"></i>';
     world.append(gnome.el);
+    // the gnome is the NiceMeMe emote (owner, 11 Nov 2026); the page-drawn figure above stays only until the emote
+    // list is in, or if the emote is ever gone from it
+    const gnomeEmote = () => {
+      if (gnome.emote || !SB.emotes?.names?.has('NiceMeMe')) return;
+      const H = 34, e = SB.emoteEl('NiceMeMe', H);
+      Object.assign(e.style, { position: 'absolute', left: `${(-Number(e.dataset.w) / 2).toFixed(1)}px`, top: `${-H}px` });
+      const sh = h('i');
+      sh.style.cssText = 'left:-12px;top:-4px;width:24px;height:8px;border-radius:50%;background:rgba(0,0,0,.4)';
+      gnome.el.replaceChildren(sh, e);
+      gnome.emote = true;
+      gnome.at = -1;   // placed again at its spot, now without the drawn figure's scale
+    };
+    SB.on('emotes', gnomeEmote);
+    gnomeEmote();
   }
   function stepGnome() {
     if (!gnome) return;
-    const close = cam.z > 1.3, now = performance.now();
+    const close = cam.z > WIDE_Z + 0.3, now = performance.now();
     const want = Math.floor(Date.now() / 45000) % GNOME_SPOTS.length;
     // he only moves while nobody can see the whole room: during a close-up, or after 5 minutes of the wide shot
     if (gnome.at < 0 || (want !== gnome.at && (close || now - gnome.since > 300000))) {
       gnome.at = want; gnome.since = now;
       const [u, v] = GNOME_SPOTS[want], [x, y] = P(u, v);
-      gnome.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(1.8)`;
+      gnome.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)${gnome.emote ? '' : ' scale(1.8)'}`;
       gnome.el.style.zIndex = String(depth(u, v));
     }
   }
 
   // ---------- lobby life (queue 64: L21 the turtle, L26 nothing burger, L28 quickdraw, L29 wet-floor sign) ----------
-  // L21 Aristortle: every 10 minutes (wall clock) a turtle crosses the lobby, taking about a minute and a half.
+  // L21 Aristortle: every 10 minutes (wall clock) a turtle crosses the lobby, taking about a minute. (Owner, 11 Nov
+  //     2026: 25% smaller than a chatter's emote, 50% faster than at first, and the crawl a little more pronounced:
+  //     a stronger rock and a slug's stretch-and-gather.)
   // L26 nothing burger: every 4 minutes a snack clerk lifts a serving cloche and there is nothing under it.
   // L28 quickdraw: when a chatter wearing PARDNER and one wearing YEEHAW are both in the lobby and near each other,
   //     they turn to face each other, "DRAW!", and one of them loses (at most once every 3 minutes).
@@ -3373,7 +3397,8 @@
     const w = makeFigure('Aristortle', 'PepoTurtle', '#7bc35a', false);
     w.npc = true;
     w.key = '#turtle';
-    w.gait = { speed: 0.06, crawl: true };
+    w.emScale = 0.75; w.emName = null; setEmote(w, 'PepoTurtle');   // (setEmote also sets the emote's own gait: replaced below)
+    w.gait = { speed: 0.09, crawl: true, wobble: 1.8, stretch: 0.07 };
     [w.u, w.v] = [8.5, 5.6];   // (the floor left of here is under the street marquee's roof from this camera)
     w.alpha = 0; w.alphaT = 1;
     w.nameT = 12;
@@ -4700,12 +4725,15 @@ void main() {
     if (list.length) startFollow(list[Math.floor(Math.random() * list.length)]);
     return list.length > 0;
   }
+  // The wide shot's own zoom (owner, 11 Nov 2026): 1 = the whole scene, more = the wide shot sits that much closer,
+  // on the same centre. ?widezoom=<1-1.6>, live from the panel ("Wide shot zoom").
+  let WIDE_Z = clamp(Number(q.get('widezoom')) || 1, 1, 1.6);
   function stepCamera(dt) {
     const now = performance.now();
     const f = director.follow;
     let tx = WIDE_X;
     let ty = 540;
-    let tz = 1;
+    let tz = WIDE_Z;
     if (f) {
       const w = f.w;
       // in through the door (or gone): hold on the doorway a moment, then back to the wide shot
@@ -4797,6 +4825,7 @@ void main() {
     weather: { get: () => WEATHER_SPEED, set: (v) => { WEATHER_SPEED = clamp(Number(v) || 1, 0.1, 100); } },
     mist: { get: () => MIST, set: (v) => setMist(v) },
     mistgain: { get: () => MIST_GAIN, set: (v) => setMist(undefined, v) },
+    widezoom: { get: () => WIDE_Z, set: (v) => { WIDE_Z = clamp(Number(v) || 1, 1, 1.6); } },
     marquee1: { get: () => MARQ.custom[0], set: (v) => { MARQ.custom[0] = mqClean(v); showMarquee(); } },
     marquee2: { get: () => MARQ.custom[1], set: (v) => { MARQ.custom[1] = mqClean(v); showMarquee(); } },
   };
@@ -4839,7 +4868,7 @@ void main() {
         const tokens = SB.tokenize(String(c.text || '').slice(0, 200));
         const w = walkers.get(key);
         if (c.cmd === 'say' && w && !w.entering && !w.removing) { say(w, tokens); break; }
-        const em = tokens.find((t) => t.t === 'emote')?.name;
+        const em = (SB.emotes?.names?.has(c.emote) ? c.emote : null) || tokens.find((t) => t.t === 'emote')?.name;   // (c.emote: the panel's "looks like")
         spawn({ nick, emote: em || Cinema.defaultEmote(nick), tokens, color: SB.nickColor(nick),
           roomIndex: Math.floor(Math.random() * 5), detour: c.detour || null });
         break;
@@ -5107,6 +5136,16 @@ void main() {
           const j = r2.ok ? await r2.json() : null;
           if (j && Array.isArray(j.layers) && j.layers.length) { merged = j.layers; break; }
         } catch { /* the next set, or the slices */ }
+      }
+      // The whole body picture goes underneath at the body's lowest slice depth (body.png is exactly the 24 slices put
+      // together). Where two slices meet, both edges are soft, and at any zoom that is not a whole number the floor
+      // and the street behind showed through as thin lines across the canopy roof (owner, 11 Nov 2026). Anyone further
+      // back than the lowest slice is behind every slice anyway, so it hides nothing the slices didn't: the same remedy
+      // as for the sliced walls in setupArt. ?mqbody=0: slices only, as before.
+      const whole = f.parents?.body;
+      const bodyZ = f.render_layers.filter((r) => r.parent === 'marquee_body').map((r) => r.z_index).filter(Number.isFinite);
+      if (q.get('mqbody') !== '0' && whole && typeof whole.file === 'string' && [whole.x, whole.y, whole.w, whole.h].every(Number.isFinite) && bodyZ.length) {
+        m.occluders.push({ name: 'marquee_body_whole', file: rel(whole.file), file_2x: rel(whole.file_2x), x: whole.x, y: whole.y, w: whole.w, h: whole.h, z_index: Math.min(...bodyZ), blend: 'source-over' });
       }
       for (const r of f.render_layers) {
         if (merged && (r.parent === 'marquee_shadow' || r.parent === 'marquee_light')) continue;

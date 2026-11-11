@@ -73,6 +73,7 @@
     <button id="outro" title="The camera eases back out to the wide shot; the film keeps playing">Film outro</button>
     <button id="lightson" title="House lights up while the film keeps playing (e.g. the credits); press again to dim them">Lights on (film plays)</button>
     <button id="houseout" title="Everyone stands up and walks out, one after another; new arrivals wait until the next Seating">Everyone leaves</button>
+    <button id="yeefront" title="Every seated chatter wearing a Yee emote who is not in the front row stands up and walks to a free front seat">Yee to the front</button>
     <button data-phase="up">Lights up</button>
     <button id="phaseauto">Auto: on</button>
   </div>
@@ -130,6 +131,8 @@
   <h2>Add a chatter / make someone talk</h2>
   <form class="row" id="addform">
     <input id="nick" placeholder="nick" maxlength="25" required style="width:180px">
+    <input id="look" list="looks" placeholder="looks like (emote, optional)" maxlength="40" style="width:210px" title="The emote this chatter wears when they walk in. Empty: the first emote in the message, else their usual one. Someone already seated in the auditorium keeps the emote they came in with.">
+    <datalist id="looks"></datalist>
     <input id="text" placeholder="message (emote names work, e.g. PEPE hi)" maxlength="200" style="flex:1;min-width:240px">
     <button type="submit">Walk in / say it</button>
   </form>
@@ -172,6 +175,7 @@
   $('outro').onclick = () => send({ cmd: 'outro' });
   $('lightson').onclick = () => send({ cmd: 'lights', on: !preshow?.lightsOn });
   $('houseout').onclick = () => send({ cmd: 'houseOut', on: !preshow?.houseOut });
+  $('yeefront').onclick = () => send({ cmd: 'yeefront', page: 'auditorium' });
   $('reset').onclick = () => send({ cmd: 'reset' });
   $('screenpick').onchange = (e) => send({ cmd: 'screen', value: e.target.value });
   $('litter').onclick = () => send({ cmd: 'litter', on: !(preshow?.litter ?? true) });
@@ -341,9 +345,13 @@
   $('zoom').onchange = (e) => send({ cmd: 'zoom', value: Number(e.target.value) });
   $('addform').onsubmit = (e) => {
     e.preventDefault();
-    send({ cmd: 'say', nick: $('nick').value.trim(), text: $('text').value });
+    send({ cmd: 'say', nick: $('nick').value.trim(), text: $('text').value, emote: $('look').value.trim() });
     $('text').value = '';
   };
+  // the "looks like" list: the emote names the screens know
+  fetch('/dgg/emotes.json', { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).then((list) => {
+    $('looks').replaceChildren(...list.map((e) => e.prefix).filter(Boolean).sort((a, b) => a.localeCompare(b)).map((n) => { const o = document.createElement('option'); o.value = n; return o; }));
+  }).catch(() => {});
   const td = (text) => { const el = document.createElement('td'); el.textContent = text; return el; };
   const btn = (label, cmd, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = () => send(cmd); return b; };
   let editing = false;

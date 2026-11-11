@@ -22,6 +22,8 @@ const text = (key, label, max, group, hint = '') => ({ key, label, kind: 'text',
 
 const BUBSTYLE = pick('bubstyle', 'Bubble look', [[0, 'Old dialog box'], [1, 'Marquee'], [2, 'Ticket stub'], [3, 'Neon'], [4, 'Comic'], [5, 'RPG window']], 3, 'Look');
 const JANIDLE = num('janidle', 'Janny clocks off after', 20, 3600, 10, 600, 'People', 's without a message');
+// the wide shot's own zoom (owner, 11 Nov 2026): the camera's resting view; follows and the film push are not changed
+const WIDEZOOM = num('widezoom', 'Wide shot zoom', 1, 1.6, 0.01, 1, 'Look', '1 = the whole scene');
 
 const SCHEMA = {
   lobby: [
@@ -30,6 +32,7 @@ const SCHEMA = {
     text('marquee2', 'Marquee line 2', 40, 'Marquee', 'empty = screen and rating; - = blank'),
     BUBSTYLE,
     num('bubbles', 'Bubbles on screen at most', 2, 14, 1, 8, 'Look', 'the oldest fades for a new one'),
+    WIDEZOOM,
     bool('pollscreen', 'Poll screen on the back wall', true, 'Look', 'off hides it (the Poll screen card still rolls it up/down)'),
     num('crowd', 'Crowd before new chatters are thinned', 0, 60, 1, 14, 'People', 'people outside or in line; 0 = never thin'),
     num('quit', 'Chance to give up in the ticket line', 0, 1, 0.01, 0.06, 'People', '0-1, for people joining the line'),
@@ -49,6 +52,7 @@ const SCHEMA = {
     pick('slidefade', 'Pre-show slide change', [['cross', 'Cross-fade'], ['seq', 'Fade out, then in']], 'cross', 'Look'),
     num('sitscale', 'Seated emote size', 0.5, 2, 0.05, 1.2, 'Look'),
     num('sitz', 'Seated emote lift', 0, 120, 1, 48, 'Look', 'px above the seat'),
+    WIDEZOOM,
     num('leave', 'Dozers go home when full after', 0, 240, 1, 0, 'People', 'min quiet; 0 = off'),
     num('doze', 'Nod off after', 10, 7200, 10, 600, 'People', 's quiet (x0.8-1.6 each)'),
     num('chatty', 'Phone out in the dark after', 2, 20, 1, 3, 'People', 'messages within a minute'),

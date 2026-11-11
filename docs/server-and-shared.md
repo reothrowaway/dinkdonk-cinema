@@ -180,9 +180,9 @@ timeout).
 | Part | Controls | Sends |
 |---|---|---|
 | Scene | Lobby / Auditorium select; clears the old scene's rows at once | (added as `page` to every command) |
-| Auditorium pre-show (auditorium only) | Seating, Lights down, Film, Movie (no zoom), Film outro, Lights on (film plays), Everyone leaves, Lights up, Auto | `phase` + `value`, `movie`, `outro`, `lights` + `on`, `houseOut` + `on`, `phaseAuto` + `on` |
+| Auditorium pre-show (auditorium only) | Seating, Lights down, Film, Movie (no zoom), Film outro, Lights on (film plays), Everyone leaves, Yee to the front (`yeefront`: every seated Yee not in the front row walks to a free front seat), Lights up, Auto | `phase` + `value`, `movie`, `outro`, `lights` + `on`, `houseOut` + `on`, `phaseAuto` + `on` |
 | Camera | Wide shot, Follow the next arrival, Follow someone now, Automatic director; Every (s), Zoom | `wide`, `next`, `random`, `director` + `on`, `every` + `value`, `zoom` + `value` |
-| Add a chatter / make someone talk | nick + message | `say` + `nick`, `text` |
+| Add a chatter / make someone talk | nick + optional "looks like" emote + message | `say` + `nick`, `text`, `emote` (the emote they walk in wearing; wins over emotes in the message) |
 | In the cinema | seat counts, Reset (auditorium only), per chatter Follow / Remove | `reset`, `follow` + `nick`, `remove` + `nick` |
 
 - It shows the state of the OBS screen (`obs: true`) first, else the biggest screen, so a 4K preview tab doesn't

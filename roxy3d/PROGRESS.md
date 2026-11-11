@@ -2632,3 +2632,76 @@ profile + the page's frame clock), `profab.sh`, `loadpage.mjs`, `pinstats.mjs`, 
   layers, the auditorium has 135 seats and seated 17 real chatters; no page errors.
 - Not checked: an existing hosted room in a browser (pages need a room key). The owner's local live server on 18770
   was not running during all of this.
+
+### 11 Nov 2026 (16:00) - owner's list after the go-live: roof lines, searchlights, Aristortle, gnome, menu line, Yee to the front, look-like emote, wide zoom (Claude; QA copies, nothing promoted)
+
+All in the QA copies (`lobby-qa.html`, `auditorium-qa.html`, `control-qa.html`) plus two shared server files that have
+no QA copy (`shared/room.js`, `shared/settings.js`: on disk now, a running server uses them after its next restart).
+Backups before: `qa-night/lobby-qa.before-roofseams-11nov.html`, `auditorium-qa.before-yee-11nov.html`,
+`control-qa.before-yee-11nov.html`, `room.before-yee-11nov.js`, `settings.before-widezoom-11nov.js`.
+
+- **Thin lines across the marquee roof** (owner's screenshot): not from the day's layer change; all three layer sets
+  show them. The marquee body is 24 depth slices with soft edges, and at any zoom that is not a whole number the
+  floor and street showed through where two slices meet. Fix: the whole `out10m/body.png` (checked: equal to the 24
+  slices put together, 1x and 2x) goes underneath at the lowest slice depth, as the sliced walls already do.
+  `?mqbody=0` = slices only. Before / after at the follow zoom: `qa-night/tools/shots/mq2/roof_2.png`, `roof_fixed.png`.
+- **Searchlights**: faster and wider: 36 degrees in 13 s and 16 s (was 19 degrees in 23 s and 29 s).
+- **Aristortle**: 25% smaller (`w.emScale`), 50% faster (gait speed 0.09), and a stronger crawl: the rock is 1.8x
+  and the body stretches and gathers by 7% once per step (`gait.wobble`, `gait.stretch`; other crawlers unchanged).
+- **Gnome**: the figure is the NiceMeMe emote (34 px tall); the page-drawn gnome stays only until the emote list is in.
+- **Snack menu**: "DAY 1 HATERS EAT FREE" is now "NOTHINGBURGERS  $3.50".
+- **Panel, auditorium: "Yee to the front"** button (`cmd: 'yeefront'`): the room gives every seated Yee who is not in
+  the front row the nearest free front seat and sends `seat` with `move`; the page walks them there (`moveSeat`: up,
+  down the stair aisle to the cross-aisle, along and in). Tested on a second test server with panel-made chatters:
+  3 Yees elsewhere, 3 free front seats, "3 moved"; on the page 3-4 more chatters on their feet right after the press,
+  seated again within ~40 s, no page errors. Not looked at frame by frame.
+- **Panel: "looks like (emote)"** field in "Add a chatter" (list of the 325 emote names): `say` carries `emote`, and
+  the room puts it first, so the chatter walks in wearing it whatever the message says. Tested: NiceMeMe with a
+  message containing PEPE. Someone already seated in the auditorium keeps the emote they came in with (as before).
+- **Wide shot zoom** setting for both scenes (`widezoom`, 1-1.6, default 1, group Look; `?widezoom=`): the camera's
+  resting view sits that much closer on the same centre; follows and the film push are unchanged. Tested from the
+  panel command: lobby 1.3, auditorium 1.25, no page errors.
+- Looked at, not changed: the **J6 poster** hangs on the render's left frame, which is half behind the poll
+  projector (placed there on purpose in the life round); the **emote clipping** screenshot could not be matched to
+  a mis-sort: what the test page shows are chatters cut by a wall they stand behind (restroom wall end, snack bar
+  wall). Both wait for the owner's word.
+- Not done: promote to the live pages and panel, push, hosted, zip. The live server on 18770 still runs the old
+  `room.js` / `settings.js` until it is restarted.
+
+### 11 Nov 2026 (16:20) - J6 poster no longer drawn over the restroom wall; why emotes show over wall tops (Claude; QA lobby)
+
+- Owner: "the j6 poster is still clipping on top of the bathroom wall". The page-drawn poster covered the top face of
+  the restroom wall that stands in front of its lower left corner. In `lobby-qa.html` the poster's corner is now cut
+  along the wall's outline (`clip-path`; the line is the manifest's `restroom_entry_wall_00` polygon top edge, 2.6 px
+  lower, where the wall top starts in the picture), and the six date stickers sit 8 px further right so the wall
+  does not hide them. Before / after, enlarged: `qa-night/tools/shots/mq2/j6_on.png`, `j6_fixed.png`. The blue box in
+  front of the frame's lower left is still covered by the poster (not asked for).
+- Cause, and the same for the owner's "emotes clip in some parts": the occluder pictures of the walls hold the wall's
+  FACE only. The top face (a band of about 14 px behind the face's upper edge) is see-through in them and exists only
+  in the background picture, so anything that stands behind a wall is drawn over the wall's top: an emote looks as if
+  it stood in the wall. Seen in the alpha of `occ_restroom_entry_wall*` and `occ_partition_right*`; in the pack since
+  it was made, not from this week's changes. Not changed. A page-side remedy to try: per wall slice, a piece of the
+  background picture clipped to the slice's `polygon_px`, at the slice's depth, so the top covers who stands behind;
+  it has to be checked against the light loop and the marquee's ground light, which lie under it. The clean remedy is
+  a re-render of the occluders with their tops (owner's call).
+- `roxy3d/PAGE-DRAWN-ITEMS.md`: the list of everything the pages draw themselves (posters, signs, small props, ...),
+  asked for by the owner as the basis for making those items in Blender later; being written by a sub-agent.
+
+### 11 Nov 2026 (16:35) - the afternoon's list promoted to the live pages and panel (Claude, on the owner's "Yes, promote")
+
+- `lobby.html` = `lobby-qa.html` with the live title and `shared/transition.js` (roof picture under the marquee slices,
+  searchlights, Aristortle, NiceMeMe gnome, "NOTHINGBURGERS  $3.50", wide shot zoom, look-like emote, J6 poster cut
+  at the restroom wall). `auditorium.html`: the same edits as the QA page (seat move for "Yee to the front", wide
+  shot zoom, look-like emote), without the QA page's test read-outs. `control.html` = `control-qa.html` ("looks like"
+  field, "Yee to the front" button; the wide zoom shows up under Scene settings from the schema).
+  `shared/room.js` and `shared/settings.js` were already on disk.
+- Backups of the live files before: `qa-night/lobby.live-before-list-11nov.html`,
+  `auditorium.live-before-list-11nov.html`, `control.live-before-list-11nov.html` (and `room.before-yee-11nov.js`,
+  `settings.before-widezoom-11nov.js` for the two shared files).
+- The local live server on 18770 was restarted (OBS was not running) so it runs the new room and settings code: it
+  serves the new pages, `/ctl/settings` offers `widezoom` for both scenes, the room loaded 55 in the lobby and 135
+  seated.
+- Checked through the test server in headless Edge with real chat: live lobby (62 chatters, gnome emote, roof
+  picture, poster clip, 13 s searchlights), live auditorium (135 seated, no test hooks) and the panel (325 emote
+  names, both new controls) load without script errors. Not timed in OBS after these changes.
+- Not done (owner's call): push, hosted web edition, zip.

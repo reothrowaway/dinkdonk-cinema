@@ -345,12 +345,14 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   }
 
   // ---------- chat ----------
-  function onMessage(d, { force = false, say = false } = {}) {
+  function onMessage(d, { force = false, say = false, emote = null } = {}) {
     const nick = String(d.nick || '').trim().slice(0, 25);
     const text = String(d.data || '');
     if (!nick || (!text && !force)) return;
     const key = nick.toLowerCase();
     const own = messageEmotes(text, emoteNames()).filter((n) => !AVATAR_BLOCK.has(n));
+    // the panel's "looks like" emote (owner, 11 Nov 2026) leads, as if it were the first emote of the message
+    if (emote && emoteNames().has(emote) && !AVATAR_BLOCK.has(emote)) { if (own.includes(emote)) own.splice(own.indexOf(emote), 1); own.unshift(emote); }
     const before = lastEmotes.get(key) || [];
     if (own.length) remember(lastEmotes, key, [...new Set([...own, ...before])].slice(0, 4));
     if (!force && Array.isArray(d.features) && d.features.includes('moderator')) return;   // mods are jannies
@@ -465,7 +467,26 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'say':
       case 'add': {
         const nick = String(c.nick || '').trim().slice(0, 25);
-        if (nick) onMessage({ nick, data: String(c.text || '').slice(0, 200) }, { force: true, say: c.cmd === 'say' });
+        if (nick) onMessage({ nick, data: String(c.text || '').slice(0, 200) }, { force: true, say: c.cmd === 'say', emote: String(c.emote || '').trim().slice(0, 40) || null });
+        break;
+      }
+      case 'yeefront': {
+        // the panel's "Yee to the front" (owner, 11 Nov 2026): every seated chatter wearing a Yee emote who is not in
+        // the front row gets the free front seat nearest to theirs; the screens walk them there (seat event, move)
+        if (page !== 'auditorium') break;
+        const taken = new Set(P.roster.map((x) => x.seat).filter(Boolean));
+        const front = (getSeats() || []).filter((s) => s.ri === 0 && !taken.has(s.id));
+        let moved = 0;
+        for (const e of P.roster) {
+          if (!front.length) break;
+          const cur = e.seat && YEE_EMOTES.has(e.emote) ? seatOf(e.seat) : null;
+          if (!cur || cur.ri === 0) continue;
+          front.sort((a, b) => Math.abs(a.u - cur.u) - Math.abs(b.u - cur.u));
+          e.seat = front.shift().id;
+          emit('auditorium', { t: 'seat', nick: e.nick, seat: e.seat, move: true });
+          moved++;
+        }
+        log(`room: Yee to the front: ${moved} moved, ${front.length} front seats still free`);
         break;
       }
       case 'who': {

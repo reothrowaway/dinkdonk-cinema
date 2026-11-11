@@ -1858,6 +1858,27 @@
     return exit;
   }
 
+  // Someone seated moves to another seat (the panel's "Yee to the front", owner 11 Nov 2026; the room picks the seat):
+  // up, down the stair aisle to the cross-aisle, along to the new row and in. They sit down on arrival like anyone.
+  function moveSeat(t, seat) {
+    if (!t.sitting || !t.seat || !seat || seat.taken || t.leaving || t.out || hall.snacker === t) return false;
+    const old = t.seat, n0 = L.walk_route.rear_portal_to_cross_aisle.length;
+    if (t.dozing) doze(t, false);
+    old.taken = false;
+    seat.taken = true;
+    t.seat = seat;
+    t.sitting = false;
+    t.el.classList.remove('sit');
+    rowLight(t);
+    t.lookT = 0;
+    t.pos = [old.u, old.v - LEG_DV, old.z];
+    placeItem(t);
+    const out = routeTo(old).reverse(), back = routeTo(seat);
+    go(t, [...out.slice(0, out.length - n0 + 1), ...back.slice(n0)], null);
+    t.nameT = 4;
+    return true;
+  }
+
   // ---------- show over: everyone stands up and heads out ----------
   // One guest after another gets up and walks out the way they came in (so the aisles fill like a real crowd, not
   // all at once); anyone still walking in leaves once seated. New arrivals wait outside until the next Seating or a
@@ -2653,12 +2674,15 @@
     if (list.length) startFollow(list[Math.floor(Math.random() * list.length)]);
     return list.length > 0;
   }
+  // The wide shot's own zoom (owner, 11 Nov 2026): 1 = the whole scene, more = the wide shot sits that much closer,
+  // on the same centre. ?widezoom=<1-1.6>, live from the panel ("Wide shot zoom").
+  let WIDE_Z = clamp(Number(q.get('widezoom')) || 1, 1, 1.6);
   function stepCamera(dt) {
     const now = performance.now();
     const f = director.follow;
     let tx = 960;
     let ty = 540;
-    let tz = 1;
+    let tz = WIDE_Z;
     if (f && !f.manual && onScreen(now)) endFollow();
     else if (f) {
       const w = f.w;
@@ -2728,6 +2752,7 @@
     screen: { get: () => alwaysGreen, set: (v) => { alwaysGreen = !!v; applyPhase(); } },
     slidefade: { get: () => (SEQ_FADE ? 'seq' : 'cross'), set: (v) => setSeqFade(v === 'seq') },
     sitscale: { get: () => SIT_SCALE, set: (v) => { SIT_SCALE = clamp(Number(v) || 1.2, 0.5, 2); } },
+    widezoom: { get: () => WIDE_Z, set: (v) => { WIDE_Z = clamp(Number(v) || 1, 1, 1.6); } },
     sitz: {
       get: () => SIT_Z,
       set: (v) => {
@@ -2816,7 +2841,8 @@
         if (!nick) break;
         const text = String(c.text || '').slice(0, 200);
         const tokens = SB.tokenize(text);
-        const emote = tokens.find((t) => t.t === 'emote')?.name || Cinema.defaultEmote(nick);
+        const look = SB.emotes?.names?.has(c.emote) ? c.emote : null;   // the panel's "looks like" emote
+        const emote = look || tokens.find((t) => t.t === 'emote')?.name || Cinema.defaultEmote(nick);
         onMessage({ nick, text, tokens, emote, color: SB.nickColor(nick) });
         break;
       }
@@ -2911,7 +2937,12 @@
     switch (ev.t) {
       case 'snapshot': applySnapshot(ev); break;
       case 'show': if (ev.show) { roomShow(ev.show, ev.now); applyPhase(); } break;
-      case 'seat': { const a = arrivals.find((x) => x.nick.toLowerCase() === key); if (a) a.seat = ev.seat; break; }
+      case 'seat': {
+        const a = arrivals.find((x) => x.nick.toLowerCase() === key);
+        if (a) a.seat = ev.seat;
+        else if (ev.move && walkers.has(key)) moveSeat(walkers.get(key), seatById(ev.seat));   // "Yee to the front"
+        break;
+      }
       case 'follow': followSomeone(key); break;
       case 'clear': resetHall(); break;
       case 'remove': {
