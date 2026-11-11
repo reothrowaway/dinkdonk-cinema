@@ -2705,3 +2705,19 @@ Backups before: `qa-night/lobby-qa.before-roofseams-11nov.html`, `auditorium-qa.
   picture, poster clip, 13 s searchlights), live auditorium (135 seated, no test hooks) and the panel (325 emote
   names, both new controls) load without script errors. Not timed in OBS after these changes.
 - Not done (owner's call): push, hosted web edition, zip.
+
+### 11 Nov 2026 (16:20) - the afternoon's list pushed, hosted web edition deployed, zip rebuilt (Claude, on the owner's "Yes, all three")
+
+- Repo: `a3be3a6` "Owner's list of 11 Nov 2026: marquee roof, searchlights, Aristortle, gnome, Yee to the front, wide
+  zoom" on `main` (live pages and panel, QA copies, `shared/room.js`, `shared/settings.js`, docs, this log,
+  `roxy3d/PAGE-DRAWN-ITEMS.md`). Staged changes were scanned for secrets first.
+- Hosted web edition: built and checked locally on 18772 with a fresh room and real chat: the panel has the "looks
+  like" list (325 names) and "Yee to the front", `say` with `emote` and `yeefront` are accepted, `widezoom` is in the
+  schema for both scenes, the lobby loads the roof picture, the merged2 layers and the gnome emote, the auditorium
+  seats arrivals (81 of 135 seats), no page errors. Then `web/deploy/deploy.sh`: service active, `healthz` ok;
+  `lobby.html`, `auditorium.html`, `control.html`, `server.js`, `room.js` and `settings.js` on the server have the
+  same SHA-256 as the local build. The version before is in `/opt/dinkdonk-cinema/previous`.
+- Zip: `dist/DinkDonk-Cinema.zip` (853 MB); its pages, panel, server and the two shared files are the live files byte
+  for byte. Packaged server on 18773: the three pages answer, `widezoom` is in its schema, the lobby and the
+  auditorium (135 seats, 62 seated) load with real chat and no page errors, the panel has both new controls.
+- Not checked: an existing hosted room in a browser (pages need a room key).
