@@ -2834,3 +2834,43 @@ control-qa, shared/core.js, shared/room.js as they were).
   ~19:55 from the PowerShell tool (Start-Process) did not outlive the tool's session; it was up at the check right after,
   gone later (when exactly is not known). Started again in a Terminal-panel tab ("standby server 18770"); the room
   came back from its file (55 in the lobby, 273 in the auditorium). Lesson: restart 18770 in a Terminal tab.
+
+### 12 Nov 2026 (14:30-15:30) - Brief 95 blockout; Yee vs Pepe (QA); coMMMMfy (Claude)
+
+- Owner: "do all the blender stuff" with Fable 5.2 high. Brief 95 stage 1 (blockout + plan) done by the render agent:
+  `qa10/blockout95.png` (A: DELIVERIES gate to the head of the alley, recommended; B: buildings cut back), lettering
+  removed in both; `NOTES-95.md` with the plan for stages 2-4 (draft 32, production job, full render: RunPod ~$4-6 or
+  local ~20-27 h). Findings: the 58 wet-wall loops are nearly empty (page could drop them); wall-top pieces sit in the
+  background group (fixable by regrouping). Waiting for the owner's A or B.
+- coMMMMfy Halloween version: not found. DGG serves one picture (624e76368b3a9.png, same bytes on r2cdn.destiny.gg),
+  no October copy of DGG's emote files in the web archive; chat-gui and kenany/destiny.gg-emotes hold no pictures.
+- Yee vs Pepe (owner): built in `lobby-qa.html` only (backup `backups/2026-11-11-names-walltops/lobby-qa.before-fight.html`):
+  every 4-9 min, a free Yee-emote chatter and a Pepe-emote chatter in the lobby meet on the open floor at (10.95,
+  6.35), scuffle ~4 s in a dust cloud, the director follows; "YEE WINS!" / "PEPE WINS!" stays 5.5 s; loser 💫.
+  `?fight=0` off; `window.__fight.start()` / `.start(true)` / `.free()` for tests. Syntax checked; NOT seen working:
+  the DGG chat relay (18765) was offline, so no real chat to test with (no fake chat used). Spare server 18775
+  started and stopped by PID; 18770 untouched.
+- 12 Nov ~16:00-16:45, Brief 95 stages 2-3 (Fable 5.2 high; NOTES-95.md): draft 32 `qa10/draft32-rerender.png`
+  (wet sheen and reflection cards on walls/roofs/ledges/alley, gate A, lettering off, wall tops regrouped, static
+  page items baked); production bundle `rerender95/roxy-cloud-bundle-95.tar.gz` (502 items) for the multi-pod helper,
+  local 8-item smoke passed; home pack step `rerender95/pack95.py`. Not in this pack: the claw/glass fix (needs out10p
+  again + page) and the marquee light baked into walls; marquee, poster and props stay layer packs.
+- Owner: Fable only for Blender design, the rest by Opus 5.5 (AGENTS.md "Who renders the art" changed); RunPod
+  5 pods, "Max $8". Run scripts `rerender95/run95-test.sh` / `run95-final.sh` (GPUs 4090-class or cheaper; final
+  MAX_HOURS 1.25: worst case 5 x 1.25 h x $1.19 = $7.44 + canary < $0.50). 16:36 and 16:37: "No GPU could be created"
+  (RunPod stock: no 4090s, single Low GPUs; nothing created). `run95-retry.sh` retries the canary every 10 min for
+  up to 3 h, in the Terminal tab "runpod 95 test".
+- 12 Nov 16:38-18:11, RunPod (owner limit $8): canary 8 items on one RTX 6000 Ada (US-IL-1), passed, ~$0.14; final
+  502 items on 5 A40 (CA-MTL-1, $0.59/h; 2 at 17:14, 3 added by 17:24), GPU 86-100% with 2-3 workers each, done 18:09,
+  801 MB result checked; all pods and the volume deleted (pod and volume lists empty). Spend about $2.5-3 (estimate
+  from pod run times). The final was started 25 min late (my slip) and needed the retry loop once.
+- `rerender95/pack95.py` built `out10r/` (808 files, 154 MB; 1,166 checks passed, 353 files byte-identical to out10).
+- Page (`lobby-qa.html`, then live `lobby.html`; backups `backups/2026-11-12-r95/`): default `artdir` out10r and mist from
+  it; `bakedBy95` hides what the pack bakes (#wetfx, skyline + aircraft lamp, Dogtober poster, projector body, poll
+  screen case, bridge board legs/panel), moves the searchlight beams to the rendered lamps, lifts the board's dot text
+  above the baked board's slices; `walltops` only for the walls whose pictures still lack their tops. Checked: QA wide
+  shot and a board close-up, live lobby loads out10r with the props, no page errors. The chat relay was offline: the
+  walkers seen were the room's saved roster (real chatters, earlier messages), no new chat. Not checked: OBS frame
+  times, zoomed views of every changed spot, the layer packs (marquee, poster, props) against the new base in detail.
+- Docs, .gitignore and package/art.js take out10r. Not in this round: claw/glass (needs out10p again + page), marquee
+  light baked into the wall pictures.

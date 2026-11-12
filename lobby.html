@@ -512,7 +512,9 @@
   // out8 = out7 + the city around the cinema, heavy rain (6 s loop + foreground rain), glass water, arcade play/hiscore, wet prints,
   // out8b = out8 polished: denser rain, wetter glass, broken reflections, textured alley, no carpet outlines, dry fallback still
   // out10 = final render of approved draft 13 (layout 3, cloud run 03 Nov 2026); ?artdir=out8b for the previous pack
-  const ART = `roxy3d/${(q.get('artdir') || 'out10').replace(/[^a-z0-9_-]/gi, '')}/`;
+  // out10r = the Brief 95 re-render (12 Nov 2026: wet reflections on walls and roofs, the DELIVERIES gate moved to the
+  // alley, no ABSOLUTE CINEMA lettering, wall tops in the wall pictures, page-drawn bits baked); ?artdir=out10 = before
+  const ART = `roxy3d/${(q.get('artdir') || 'out10r').replace(/[^a-z0-9_-]/gi, '')}/`;
   // L1 street marquee layer pack (roxy3d/out10m, mergeMarquee in the art section); ?marquee=0 leaves it out
   const MARQ_ON = q.get('marquee') !== '0';
   // auto = what the board writes by itself (screen 1's film); custom = the panel's / URL's own lines
@@ -3180,7 +3182,7 @@
   //         3 lamp-lit mist (soft drifting mist that glows under lamps and neon), 4 wind sheets (gusts sweep across).
   let MIST = clamp(Math.round(Number(q.get('mist')) || 0), 0, 4);   // off: style 2 live looked like water boiling off the edges (owner, 04 Nov)
   let MIST_GAIN = clamp(Number(q.get('mistgain')) || 1, 0.1, 4);
-  const MIST_DIR = `roxy3d/${(q.get('mistdir') || 'out10mist').replace(/[^a-z0-9_-]/gi, '')}/`;
+  const MIST_DIR = `roxy3d/${(q.get('mistdir') || (q.get('artdir') && q.get('artdir') !== 'out10r' ? 'out10mist' : 'out10r')).replace(/[^a-z0-9_-]/gi, '')}/`;   // out10r carries its own mist maps
 
   // ---------- chatters take the scene's light (L6) and leave a wet reflection (L7), queue 63 ----------
   // Picked by the owner from the 9 Nov drafts (concepts/improve2/drafts/L6.png, L7.png).
@@ -5246,6 +5248,35 @@ void main() {
       PROPS.on = true;
     } catch { /* no pack: the lobby without the props */ }
   }
+  // Brief 95 (out10r, 12 Nov 2026) bakes some things the page drew (manifest brief95.page_must): the sidewalk's purple
+  // light and the puddle streaks (#wetfx), the skyline and the aircraft lamp, the Dogtober poster, the poll projector's
+  // body, the poll screen's case and the bridge board's legs, panel and beacon housings. Those page drawings go; what
+  // changes stays the page's (the board's dot text and blinking beacons, the projector's LED and beam, the poll screen's
+  // cloth). The searchlight beams start at the rendered lamps.
+  function bakedBy95(m) {
+    for (const id of ['wetfx', 'skyline']) { const el = $(id); if (el) el.style.display = 'none'; }
+    document.querySelector('#skyfx .skyred')?.style.setProperty('display', 'none');
+    for (const el of document.querySelectorAll('#lifefx .pst')) if (/\b830\.9\b/.test(el.style.transform)) el.style.display = 'none';   // Dogtober 7th
+    const css = h('style');
+    css.textContent = '.pj-body > :not(.pj-led):not(.pj-glow):not(defs), .pscr-case { visibility: hidden; } '
+      + '.rwboard .leg { display: none; } .rwboard .panel { background: transparent; border-color: transparent; }';
+    document.head.append(css);
+    // the board's dot text and beacons sit on the rendered panel: above the board's own depth slices
+    const bb = m.occluders.find((o) => o?.name === 'bridge_board');
+    const bz = bb && Math.max(bb.z_index || 0, ...(bb.depth_slices || []).map((x) => x.z_index || 0));
+    const rw = document.querySelector('.rwboard');
+    if (rw && bz) rw.style.zIndex = String(bz + 1);
+    const lens = m.brief95.baked_items_stage_px?.searchlight_lenses;
+    if (Array.isArray(lens) && lens.length === 2) {
+      document.querySelectorAll('#skyfx .sbeam').forEach((b, i) => {
+        const [x, y] = lens[i], len = parseFloat(b.style.height) || 360;
+        b.style.left = `${x - 60}px`;
+        b.style.top = `${y - len}px`;
+        const glow = b.nextElementSibling;   // the page-drawn lens glow: the render has the lamp now
+        if (glow && !glow.classList.contains('sbeam')) glow.style.display = 'none';
+      });
+    }
+  }
   // The street letterboard text, split into the same 0.25-tile depth bands as the body slices so a walker in front
   // of one end of the board covers it there and not at the other end. The face is a parallelogram (TL TR BR BL).
   function buildMarqueeText() {
@@ -5374,6 +5405,7 @@ void main() {
   function setupArt(m) {
     buildSlop(m);
     document.body.classList.add('art');
+    if (m.brief95) bakedBy95(m);
     if (m.layout === 3) setupLayout3(m);
     bg.style.display = 'none';
     $('bgimg').style.display = 'block';
@@ -5428,7 +5460,10 @@ void main() {
     // slice's top face (its footprint at the wall's height, from the manifest) sits just under the slice at the slice's
     // depth. Only the thin solid walls: other occluders' footprints are boxes around open shapes (bus stop, ropes, counters), and the snack bar's back wall (partition_right) carries signs and boards in its footprint.
     // ?walltops=0: as before; ?walltops=debug: the pieces in magenta.
-    const TOPS = q.get('walltops') === '0' ? null : new Set(['restroom_entry_wall', 'restroom_closet_wall', 'front_solid_wall', 'partition_left', 'restroom_side_wall']);
+    // (the Brief 95 pack, out10r, has the tops of the restroom entry wall, the front wall and the snack bar's back
+    // wall in their pictures: no cover for those)
+    const TOPS = q.get('walltops') === '0' ? null : new Set(m.brief95 ? ['restroom_closet_wall', 'partition_left', 'restroom_side_wall']
+      : ['restroom_entry_wall', 'restroom_closet_wall', 'front_solid_wall', 'partition_left', 'restroom_side_wall']);
     const topFile = m.lit_bg_dry || m.lit_bg || m.full;
     const wallTop = (o, s) => {
       const fp = s.footprint || o.footprint, H = s.height_px || o.height_px;

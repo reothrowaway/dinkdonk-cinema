@@ -450,3 +450,6 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     re-render"): the page-drawn graphics made in Blender; baked reflections on outside walls, roofs and other wet
     surfaces like the street has; remove the "ABSOLUTE CINEMA" lettering on the wall right of the cinema; the
     DELIVERIES cargo gate has a building in front of it. Needs a render: waits for his go.
+75. Owner 12 Nov 2026, on the re-render list (queue 74, Brief 95): "do all the blender stuff" (Fable 5.2 high); gate
+    fix "A"; then "just go full do it, no need for my feedback", "skip the critique"; full render on RunPod, 5 pods,
+    several workers per GPU: "Max $8". Then wire in, go live, push, deploy, zip without asking.

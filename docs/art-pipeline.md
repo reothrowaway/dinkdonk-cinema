@@ -47,6 +47,7 @@ bundle downloads the same release and checks its official SHA-256.
 | `roxy3d/out10mist/` | Live surface/mist maps for the lobby rain layer | yes |
 | `roxy3d/out10m/` | Street marquee layer pack over `out10` (Brief 83, 10 Nov 2026): `marquee.json`, depth slices, bulb chase | yes |
 | `roxy3d/out10l/` | "Dear Leader" poster layer pack over `out10` and `out10m` (Brief 86, 10 Nov 2026): `leader.json`, body, light and shadow pieces | yes |
+| `roxy3d/out10r/` | The lobby's base pack since 12 Nov 2026 (Brief 95, rendered on RunPod): `out10`'s contract with wet reflections on walls and roofs, the DELIVERIES gate moved to the alley, no ABSOLUTE CINEMA lettering, wall tops in the wall pictures, the skyline, Dogtober poster, projector, poll screen case and bridge board baked; its own mist maps; the empty wet-wall loops left out. `manifest.brief95` lists what the page does differently | yes |
 | `roxy3d/out10p/` | Lobby props layer pack over `out10`, `out10m` and `out10l` (Briefs 89-94, 11 Nov 2026): `props.json`, 16 images (claw machine 6, jukebox 7, TV 3); the pieces with `anim` are additive lights the page animates | yes |
 | `roxy3d/qa11/` | Auditorium drafts; only the files `auditorium.html` loads are tracked | partly |
 | `roxy3d/cloud/` | `cloud-render.sh` (RunPod helper), `README-CLOUD.md`, Brief 27 build scripts | yes |
@@ -104,7 +105,7 @@ The page reads everything through `out10/manifest.json` (layout 3, `asset_pack_r
 | `.cloud-build.json` | - | Build fingerprint and provenance of the cloud run. |
 | `NOTES-PASS10.md` | `notes` | Short notes for this pack (not loaded by the page). |
 
-`package/art.js` takes `out10/`, `out10mist/`, `out10m/`, `out10l/` and `out10p/` whole (minus `.md/.txt/.py/.ps1/.log`), because the page reads them
+`package/art.js` takes `out10r/`, `out10/`, `out10mist/`, `out10m/`, `out10l/` and `out10p/` whole (minus `.md/.txt/.py/.ps1/.log`), because the page reads them
 through the manifest.
 
 ### Resolution rules

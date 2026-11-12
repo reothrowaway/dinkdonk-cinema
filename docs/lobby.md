@@ -22,7 +22,7 @@ Behind the usher, a corridor leads to the screen doors. With the current art (la
 screens 1-3 and the left wing is the restroom. DGG chatters walk in as small figures wearing their emote. They
 buy a ticket, sometimes get popcorn, talk in speech bubbles, and go through their screen's door.
 
-The art is a Blender render (`roxy3d/out10/`, plus rain/mist passes in `roxy3d/out10mist/` and the street marquee's
+The art is a Blender render (`roxy3d/out10r/` since 12 Nov 2026, Brief 95, with its own mist maps; before it `roxy3d/out10/` with the rain/mist passes in `roxy3d/out10mist/` and the street marquee's
 layers in `roxy3d/out10m/`; `?marquee=0` leaves the marquee out; the "Dear Leader" poster by the box office is a
 second small layer pack, `roxy3d/out10l/`, `?leader=0`; the claw machine, the jukebox and the TV are a third,
 `roxy3d/out10p/`, `?props=0`). Everything that
@@ -133,7 +133,7 @@ The header comment lists only some of these. This table is from the actual `q.ge
 
 | Option | Default | Effect | Where |
 |---|---|---|---|
-| `artdir=<name>` | `out10` | Art pack folder under `roxy3d/` (non `[a-z0-9_-]` stripped), e.g. `out8b` | `ART`, :202 |
+| `artdir=<name>` | `out10r` | Art pack folder under `roxy3d/` (non `[a-z0-9_-]` stripped), e.g. `out10` (the pack before Brief 95). With `manifest.brief95` the page hides what that pack bakes (`bakedBy95`) | `ART`, `bakedBy95` |
 | `art=flat` | off | Skip the art; flat canvas blockout | `loadArt`, :3461 |
 | `marquee=0` | on | Leave out the street marquee (layer pack `roxy3d/out10m/`, 10 Nov 2026) | `MARQ_ON`, `mergeMarquee` |
 | `mqbody=0` | on | The marquee body as its 24 depth slices only. Default: the whole body picture (`out10m/body.png`) lies under the slices, so no thin lines show across the canopy roof where two slices meet at a fractional zoom (11 Nov 2026) | `mergeMarquee` |
@@ -688,7 +688,7 @@ Make the change in `lobby-qa.html` first, check it with real chat (`?everyone=1`
   `occluders` array. Missing optional parts just switch features off.
 - The manifest's `layout` picks `LAYOUTS[n]`. Staff, queue, door and talk-spot positions are in the page, not the
   manifest, so a pack with a different floor plan needs matching `LAYOUTS` / `DOORS` / `SPOTS` edits.
-- Mist and extra-rain passes come from `mistdir` (default `out10mist`), separately from `artdir`.
+- Mist and extra-rain passes come from `mistdir` (default `out10r`, or `out10mist` when another `artdir` is given), separately from `artdir`.
 - To make a new pack the default, change the `'out10'` fallback in `ART` (`:202`) and update the file list in
   `package/art.js`. The promote steps (stage, verify, back up) are in [art-pipeline.md](art-pipeline.md). Art files
   are byte-exact; don't re-save them.

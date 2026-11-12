@@ -1,0 +1,550 @@
+{
+  "passed": true,
+  "complete": true,
+  "checks": 1166,
+  "failures": [],
+  "brief": 95,
+  "report": {
+    "partial": false,
+    "skipped": [],
+    "groups": {
+      "partition_left": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 5,
+        "phase_144_against_0_mean_8bit": 0.06237908496732026
+      },
+      "partition_right": {
+        "phases": 24,
+        "alpha": "from the render; 7013 more 1x pixels than the live picture (the wall top)",
+        "slices": [
+          "partition_right_00",
+          "partition_right_01",
+          "partition_right_02",
+          "partition_right_03",
+          "partition_right_04",
+          "partition_right_05",
+          "partition_right_06",
+          "partition_right_07",
+          "partition_right_08"
+        ],
+        "wet_loops_kept": 9,
+        "phase_144_against_0_mean_8bit": 0.004831347149406449
+      },
+      "boxoffice": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 4,
+        "phase_144_against_0_mean_8bit": 0.003790648920091658
+      },
+      "snack": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 6,
+        "phase_144_against_0_mean_8bit": 0.008392644220722547
+      },
+      "podium": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "bench": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "arcade": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "standee_1": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "standee_2": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "palm": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "street_lamp": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 1,
+        "phase_144_against_0_mean_8bit": 0.003511171910624715
+      },
+      "bus_stop": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 10,
+        "phase_144_against_0_mean_8bit": 0.0013757575757575758
+      },
+      "glass_left": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 6,
+        "phase_144_against_0_mean_8bit": 0.003305899559501865
+      },
+      "glass_right": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 3,
+        "phase_144_against_0_mean_8bit": 0.07488726251201301
+      },
+      "entrance_post_1": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 1,
+        "phase_144_against_0_mean_8bit": 0.02064409578860446
+      },
+      "entrance_post_2": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 1,
+        "phase_144_against_0_mean_8bit": 0.023190200935865674
+      },
+      "entrance_header": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 3,
+        "phase_144_against_0_mean_8bit": 0.002181267806267806
+      },
+      "paste_wall": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "entrance_neon": {
+        "phases": 24,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 1,
+        "phase_144_against_0_mean_8bit": 0.03297989373405426
+      },
+      "restroom_entry_wall": {
+        "phases": 1,
+        "alpha": "from the render; 1674 more 1x pixels than the live picture (the wall top)",
+        "slices": [
+          "restroom_entry_wall_00",
+          "restroom_entry_wall_01",
+          "restroom_entry_wall_02"
+        ],
+        "wet_loops_kept": 0
+      },
+      "restroom_stall_1": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_stall_2": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_stall_3": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_stall_4": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_sinks": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_dryer": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_service": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "front_solid_wall": {
+        "phases": 24,
+        "alpha": "from the render; 1917 more 1x pixels than the live picture (the wall top)",
+        "slices": [
+          "front_solid_wall_00",
+          "front_solid_wall_01",
+          "front_solid_wall_02",
+          "front_solid_wall_03"
+        ],
+        "wet_loops_kept": 4,
+        "phase_144_against_0_mean_8bit": 0.10442802713502462
+      },
+      "queue_front": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "queue_back": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "corridor_standee_1": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "corridor_standee_2": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "corridor_bench": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "corridor_fountain": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "corridor_bin": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "corridor_extinguisher": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_side_wall": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_closet_wall": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "restroom_entry_leaf": {
+        "phases": 1,
+        "alpha": "live (unchanged shape)",
+        "wet_loops_kept": 0
+      },
+      "bridge_board": {
+        "phases": 1,
+        "alpha": "from the render (new group)",
+        "slices": [
+          "bridge_board_00",
+          "bridge_board_01"
+        ],
+        "wet_loops_kept": 0
+      }
+    },
+    "wet_loops": {
+      "kept": [
+        {
+          "name": "wet_partition_left_00",
+          "peak": 14
+        },
+        {
+          "name": "wet_partition_left_01",
+          "peak": 16
+        },
+        {
+          "name": "wet_partition_left_02",
+          "peak": 15
+        },
+        {
+          "name": "wet_partition_left_03",
+          "peak": 18
+        },
+        {
+          "name": "wet_partition_left_04",
+          "peak": 14
+        },
+        {
+          "name": "wet_partition_right_00",
+          "peak": 9
+        },
+        {
+          "name": "wet_partition_right_01",
+          "peak": 18
+        },
+        {
+          "name": "wet_partition_right_02",
+          "peak": 12
+        },
+        {
+          "name": "wet_partition_right_03",
+          "peak": 11
+        },
+        {
+          "name": "wet_partition_right_04",
+          "peak": 13
+        },
+        {
+          "name": "wet_partition_right_05",
+          "peak": 14
+        },
+        {
+          "name": "wet_partition_right_06",
+          "peak": 13
+        },
+        {
+          "name": "wet_partition_right_07",
+          "peak": 13
+        },
+        {
+          "name": "wet_partition_right_08",
+          "peak": 16
+        },
+        {
+          "name": "wet_boxoffice_00",
+          "peak": 9
+        },
+        {
+          "name": "wet_boxoffice_01",
+          "peak": 7
+        },
+        {
+          "name": "wet_boxoffice_02",
+          "peak": 22
+        },
+        {
+          "name": "wet_boxoffice_03",
+          "peak": 9
+        },
+        {
+          "name": "wet_snack_00",
+          "peak": 8
+        },
+        {
+          "name": "wet_snack_01",
+          "peak": 13
+        },
+        {
+          "name": "wet_snack_02",
+          "peak": 10
+        },
+        {
+          "name": "wet_snack_03",
+          "peak": 10
+        },
+        {
+          "name": "wet_snack_04",
+          "peak": 10
+        },
+        {
+          "name": "wet_snack_05",
+          "peak": 10
+        },
+        {
+          "name": "wet_street_lamp_00",
+          "peak": 16
+        },
+        {
+          "name": "wet_bus_stop_03",
+          "peak": 5
+        },
+        {
+          "name": "wet_bus_stop_04",
+          "peak": 6
+        },
+        {
+          "name": "wet_bus_stop_06",
+          "peak": 17
+        },
+        {
+          "name": "wet_bus_stop_07",
+          "peak": 9
+        },
+        {
+          "name": "wet_bus_stop_09",
+          "peak": 5
+        },
+        {
+          "name": "wet_bus_stop_10",
+          "peak": 15
+        },
+        {
+          "name": "wet_bus_stop_12",
+          "peak": 5
+        },
+        {
+          "name": "wet_bus_stop_13",
+          "peak": 4
+        },
+        {
+          "name": "wet_bus_stop_15",
+          "peak": 9
+        },
+        {
+          "name": "wet_bus_stop_16",
+          "peak": 6
+        },
+        {
+          "name": "wet_glass_left_00",
+          "peak": 36
+        },
+        {
+          "name": "wet_glass_left_01",
+          "peak": 103
+        },
+        {
+          "name": "wet_glass_left_02",
+          "peak": 116
+        },
+        {
+          "name": "wet_glass_left_03",
+          "peak": 130
+        },
+        {
+          "name": "wet_glass_left_04",
+          "peak": 123
+        },
+        {
+          "name": "wet_glass_left_05",
+          "peak": 93
+        },
+        {
+          "name": "wet_glass_right_00",
+          "peak": 24
+        },
+        {
+          "name": "wet_glass_right_01",
+          "peak": 23
+        },
+        {
+          "name": "wet_glass_right_02",
+          "peak": 144
+        },
+        {
+          "name": "wet_entrance_post_1_00",
+          "peak": 7
+        },
+        {
+          "name": "wet_entrance_post_2_00",
+          "peak": 7
+        },
+        {
+          "name": "wet_entrance_header_00",
+          "peak": 5
+        },
+        {
+          "name": "wet_entrance_header_01",
+          "peak": 138
+        },
+        {
+          "name": "wet_entrance_header_02",
+          "peak": 4
+        },
+        {
+          "name": "wet_entrance_neon_00",
+          "peak": 15
+        },
+        {
+          "name": "wet_front_solid_wall_00",
+          "peak": 10
+        },
+        {
+          "name": "wet_front_solid_wall_01",
+          "peak": 14
+        },
+        {
+          "name": "wet_front_solid_wall_02",
+          "peak": 12
+        },
+        {
+          "name": "wet_front_solid_wall_03",
+          "peak": 10
+        }
+      ],
+      "left_out_as_empty": [
+        {
+          "name": "wet_bus_stop_00",
+          "peak": 1
+        },
+        {
+          "name": "wet_bus_stop_02",
+          "peak": 0
+        },
+        {
+          "name": "wet_bus_stop_08",
+          "peak": 2
+        },
+        {
+          "name": "wet_bus_stop_11",
+          "peak": 0
+        }
+      ]
+    },
+    "background": {
+      "phases": 48,
+      "loop_is_exact_complement": true,
+      "wrap_proof": [
+        {
+          "scale": 1,
+          "phase_144_against_0_mean_8bit": 1.377177533436214,
+          "p99": 30.0
+        },
+        {
+          "scale": 2,
+          "phase_144_against_0_mean_8bit": 1.4164080182613168,
+          "p99": 30.0
+        }
+      ]
+    },
+    "weather": 48,
+    "doors": [
+      "screen_1",
+      "screen_2",
+      "screen_3",
+      "restroom_entry",
+      "stall_1",
+      "stall_2",
+      "stall_3",
+      "stall_4"
+    ],
+    "mist_maps_at_pack_root": [
+      "catch.png",
+      "catch@2x.png",
+      "height.png",
+      "height@2x.png",
+      "rim.png",
+      "rim@2x.png",
+      "light.png",
+      "light@2x.png"
+    ],
+    "videos": {
+      "light_loop": {
+        "bytes": 9291399,
+        "sha256": "822cdae45ae823ce27fc273e9623e85ef5448b5e57c78a06b08118783125ce34",
+        "passed": true,
+        "decoded_black_max": 1
+      },
+      "light_loop_2x": {
+        "bytes": 31801119,
+        "sha256": "40ae10f8f75e7ba3fc701837034f08a6b0e94dad83e31f05445451539057104b",
+        "passed": true,
+        "decoded_black_max": 1
+      },
+      "rain_fg": {
+        "bytes": 234683,
+        "sha256": "25c9f64dc239a31a488d4b0ba39ea937b9e4a12be3557042c807f08e5367d410",
+        "passed": true,
+        "decoded_black_max": 0
+      }
+    }
+  },
+  "seconds": 498.0363426999975,
+  "items": 502,
+  "render_gpus": []
+}

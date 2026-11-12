@@ -10,7 +10,7 @@ runs) a DinkDonk movie night. People in Destiny.gg (DGG) chat become small walke
 
 | Scene | File | Art |
 |---|---|---|
-| Lobby (main screen): a pre-rendered isometric late-90s cinema on a rainy night | `lobby.html` | `roxy3d/out10/`, `roxy3d/out10mist/`, `roxy3d/out10m/` (street marquee), `roxy3d/out10l/` ("Dear Leader" poster), `roxy3d/out10p/` (claw machine, jukebox, TV) |
+| Lobby (main screen): a pre-rendered isometric late-90s cinema on a rainy night | `lobby.html` | `roxy3d/out10r/` (base and mist, Brief 95 re-render, 12 Nov 2026; `?artdir=out10` = the one before), `roxy3d/out10mist/`, `roxy3d/out10m/` (street marquee), `roxy3d/out10l/` ("Dear Leader" poster), `roxy3d/out10p/` (claw machine, jukebox, TV) |
 | Auditorium: seats, lights down and up, the film pinned onto the big screen | `auditorium.html` | `roxy3d/qa11/` (draft 14 = draft 13 + the entrance corridor) |
 
 `roxy.html` and `roxy-qa.html` are **redirect stubs** left over from the old name. Never edit them, and never put
@@ -55,8 +55,8 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
      clips, extra audits or comparisons unless the owner asks.
    - Layout changes start as a quick labelled **blockout** (plain boxes). Styled drafts come only after the owner
      approves the layout.
-   - Before writing the next brief, get a read-only second-opinion critique of the latest draft (from a Claude
-     Fable 5.2 agent at high effort, see "Who renders the art") and say which points you took.
+   - Before writing the next brief, get a read-only second-opinion critique of the latest draft (from a
+     Claude Opus 5.5 agent, see "Who renders the art") and say which points you took.
    - Run **full renders** only when the owner says so. Stage new packs in a separate folder (such as `out10i/`),
      verify them, back up the current pack, then promote.
    - Never redo something the owner already approved.
@@ -85,13 +85,14 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
 
 ## Who renders the art
 
-**From 10 Nov 2026 (owner): art jobs go to Claude Fable 5.2 at high effort, not to Codex.** That covers everything
-the Codex CLI used to do here: building and editing the Blender scenes from the numbered briefs
-(`roxy3d/BRIEF-NN-*.md`), blockouts, drafts, layer and production renders, packing the art, and the read-only
-second-opinion critique of a draft. In Claude Code that is a subagent with the model set to Fable 5.2 and the
-effort set to high (Agent tool: `model: "fable"`, `effort: "high"`), given the brief as its task and run in the
-background. It writes only inside `roxy3d/` and reports in `roxy3d/NOTES-NN.md`, exactly as Codex did. Do not start
-new `codex exec` jobs for art.
+**Owner, 12 Nov 2026: Claude Fable 5.2 (high effort) is used only for the Blender design work; everything else
+(QA, critiques, checks, packing reviews, page work) is done by Claude Opus 5.5.** Fable's part is what the Codex CLI
+used to do in Blender: building and editing the scenes from the numbered briefs (`roxy3d/BRIEF-NN-*.md`),
+blockouts, styled drafts, and the layer and production renders. In Claude Code that is a subagent with the model set
+to Fable 5.2 and the effort set to high (Agent tool: `model: "fable"`, `effort: "high"`), given the brief as its task
+and run in the background. It writes only inside `roxy3d/` and reports in `roxy3d/NOTES-NN.md`, exactly as Codex
+did. The read-only second-opinion critique of a draft goes to an Opus 5.5 agent (`model: "opus"`), or is skipped
+when the owner says so. Do not start new `codex exec` jobs for art.
 
 A brief states what to change, what must stay the same, the exact deliverable (for example the single draft
 image) and "write only inside roxy3d/". It ends with a STATUS line.

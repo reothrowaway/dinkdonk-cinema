@@ -1,0 +1,3 @@
+# Pass 10 / layout 3 / Brief 95
+
+Re-render of the lobby pack from the draft 32 scene (rerender95/lobby_draft32.blend): wet reflections on outside walls, roofs, ledges and the alley; the ABSOLUTE CINEMA lettering removed; the DELIVERIES gate at the head of the alley; wall tops in the occluder pictures of three walls; page items baked (skyline windows, aircraft lamp, Dogtober poster, searchlights, poll projector and screen case, bridge board, wet-street lights). Same contracts as the pack before it: placements, loop timing (48 phases, 144 frames, 24 fps), alpha and depth ownership of every unchanged group. Vehicles, umbrellas, cat, janitor, items and interior prop loops are inherited byte for byte. See manifest.brief95 and ../NOTES-95.md.
