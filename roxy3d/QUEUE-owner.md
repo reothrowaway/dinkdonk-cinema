@@ -453,3 +453,7 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
 75. Owner 12 Nov 2026, on the re-render list (queue 74, Brief 95): "do all the blender stuff" (Fable 5.2 high); gate
     fix "A"; then "just go full do it, no need for my feedback", "skip the critique"; full render on RunPod, 5 pods,
     several workers per GPU: "Max $8". Then wire in, go live, push, deploy, zip without asking.
+76. Owner 12 Nov 2026 (~20:00), with a screen recording: reflections flicker all over the lobby (the out10r light loop:
+    roof frame-to-frame change 0.86 vs 0.05 before). Fix without a new render (loop rebuilt from the phases, staged as
+    out10r2, Opus agent). Also: "yes render them" (the leftover page items, NOTES-95 point 7) and "replace the arcade
+    machine with the claw machine" (Brief 96, Fable 5.2 high: blockout first).

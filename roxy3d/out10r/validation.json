@@ -546,5 +546,388 @@
   },
   "seconds": 498.0363426999975,
   "items": 502,
-  "render_gpus": []
+  "render_gpus": [],
+  "brief95b": {
+    "passed": true,
+    "checks": 896,
+    "failures": [],
+    "report": {
+      "method": "one chunk-aligned (worker) switch at a time, largest first: per pixel within 24 px (1x) of its two-level pixels and not within 2 px of a real pattern, step c = mean(on phases) - mean(off phases); where the luminance step is clear the pixel is set to the target state: x - c (s(t) - target); (area gate off: 64 px, 9x9 box, 1.0 - tried, made rippled surfaces worse); then pixels flat inside every four-phase worker chunk (luma std <= 0.5) but stepping between chunks (>= 1.5) take their 48-phase median; base = minimum, loop = phase - base",
+      "gate": {
+        "abs_luma_step_8bit": 0.75,
+        "t_value": 5.0
+      },
+      "worker_switches_removed": [
+        {
+          "pattern": "111110000111111111111000011110000000000000000000",
+          "two_level_pixels_1x": 51724,
+          "bbox_1x": [
+            411,
+            102,
+            1919,
+            754
+          ],
+          "on_mean": 29.06,
+          "off_mean": 14.24,
+          "draft32": 28.76,
+          "draft_margin": 0.96,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "011110000111100001111111100001111111100000000111",
+          "two_level_pixels_1x": 35021,
+          "bbox_1x": [
+            292,
+            112,
+            1604,
+            822
+          ],
+          "on_mean": 29.69,
+          "off_mean": 10.06,
+          "draft32": 14.13,
+          "draft_margin": 0.59,
+          "target_on_fraction": 0.562,
+          "target_from": "time average (draft unclear)"
+        },
+        {
+          "pattern": "111111111111111111111111100001111111111111111111",
+          "two_level_pixels_1x": 12921,
+          "bbox_1x": [
+            13,
+            0,
+            1919,
+            1076
+          ],
+          "on_mean": 57.27,
+          "off_mean": 40.35,
+          "draft32": 44.94,
+          "draft_margin": 0.46,
+          "target_on_fraction": 0.917,
+          "target_from": "time average (draft unclear)"
+        },
+        {
+          "pattern": "011110000000000000000000000001111111111110000111",
+          "two_level_pixels_1x": 3401,
+          "bbox_1x": [
+            1256,
+            935,
+            1632,
+            1079
+          ],
+          "on_mean": 18.71,
+          "off_mean": 11.24,
+          "draft32": 11.69,
+          "draft_margin": 0.88,
+          "target_on_fraction": 0.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "100001111111111111111111111111111111111111111111",
+          "two_level_pixels_1x": 3255,
+          "bbox_1x": [
+            25,
+            1,
+            1917,
+            1068
+          ],
+          "on_mean": 20.3,
+          "off_mean": 9.83,
+          "draft32": 21.77,
+          "draft_margin": 1.0,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "100001111111111110000111111111111111100001111111",
+          "two_level_pixels_1x": 2719,
+          "bbox_1x": [
+            411,
+            175,
+            1168,
+            508
+          ],
+          "on_mean": 26.7,
+          "off_mean": 21.82,
+          "draft32": 25.74,
+          "draft_margin": 0.6,
+          "target_on_fraction": 0.75,
+          "target_from": "time average (draft unclear)"
+        },
+        {
+          "pattern": "000000000111100000000111100001111111100000000000",
+          "two_level_pixels_1x": 1419,
+          "bbox_1x": [
+            18,
+            270,
+            1271,
+            866
+          ],
+          "on_mean": 47.28,
+          "off_mean": 8.93,
+          "draft32": 8.32,
+          "draft_margin": 1.0,
+          "target_on_fraction": 0.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "100000000000011110000000011110000000000000000000",
+          "two_level_pixels_1x": 874,
+          "bbox_1x": [
+            0,
+            0,
+            1919,
+            1079
+          ],
+          "on_mean": 43.13,
+          "off_mean": 42.24,
+          "draft32": 51.12,
+          "draft_margin": 1.0,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "100001111111111111111000000000000000011110000000",
+          "two_level_pixels_1x": 587,
+          "bbox_1x": [
+            97,
+            2,
+            901,
+            349
+          ],
+          "on_mean": 10.52,
+          "off_mean": 1.77,
+          "draft32": 10.56,
+          "draft_margin": 1.0,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "011111111111100001111111100001111111111111111111",
+          "two_level_pixels_1x": 448,
+          "bbox_1x": [
+            0,
+            0,
+            1919,
+            1079
+          ],
+          "on_mean": 43.97,
+          "off_mean": 43.28,
+          "draft32": 52.74,
+          "draft_margin": 1.0,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "000001111000000000000000011111111111100000000111",
+          "two_level_pixels_1x": 442,
+          "bbox_1x": [
+            872,
+            5,
+            1912,
+            587
+          ],
+          "on_mean": 23.42,
+          "off_mean": 18.29,
+          "draft32": 19.63,
+          "draft_margin": 0.48,
+          "target_on_fraction": 0.396,
+          "target_from": "time average (draft unclear)"
+        },
+        {
+          "pattern": "111110000000011110000000011111111111111110000111",
+          "two_level_pixels_1x": 413,
+          "bbox_1x": [
+            1255,
+            1015,
+            1760,
+            1079
+          ],
+          "on_mean": 30.96,
+          "off_mean": 27.33,
+          "draft32": 31.07,
+          "draft_margin": 1.0,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "011110000000000000000000000001111000011110000000",
+          "two_level_pixels_1x": 338,
+          "bbox_1x": [
+            0,
+            839,
+            1548,
+            1079
+          ],
+          "on_mean": 44.51,
+          "off_mean": 0.62,
+          "draft32": 43.61,
+          "draft_margin": 0.96,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        },
+        {
+          "pattern": "111111111111111111111111111111111111111111111000",
+          "two_level_pixels_1x": 296,
+          "bbox_1x": [
+            9,
+            7,
+            1917,
+            1077
+          ],
+          "on_mean": 41.02,
+          "off_mean": 32.69,
+          "draft32": 45.86,
+          "draft_margin": 1.0,
+          "target_on_fraction": 1.0,
+          "target_from": "draft 32"
+        }
+      ],
+      "real_patterns_kept": [
+        {
+          "pattern": "000000000000111111111111000000000000111111111111",
+          "two_level_pixels_1x": 2753,
+          "bbox_1x": [
+            46,
+            1,
+            1897,
+            1067
+          ]
+        },
+        {
+          "pattern": "111111111111000000000000111111111111000000000000",
+          "two_level_pixels_1x": 2021,
+          "bbox_1x": [
+            25,
+            1,
+            1875,
+            1060
+          ]
+        },
+        {
+          "pattern": "111111101110000111111111111111001110000111111111",
+          "two_level_pixels_1x": 1757,
+          "bbox_1x": [
+            0,
+            848,
+            379,
+            1079
+          ]
+        },
+        {
+          "pattern": "111111001110000111111111111111001110000111111111",
+          "two_level_pixels_1x": 1531,
+          "bbox_1x": [
+            0,
+            853,
+            363,
+            1079
+          ]
+        },
+        {
+          "pattern": "011011000100000000000000000000000100000000000000",
+          "two_level_pixels_1x": 1098,
+          "bbox_1x": [
+            208,
+            424,
+            1189,
+            1079
+          ]
+        },
+        {
+          "pattern": "000000010001111000000000000000110001111000000000",
+          "two_level_pixels_1x": 321,
+          "bbox_1x": [
+            40,
+            865,
+            373,
+            1077
+          ]
+        },
+        {
+          "pattern": "100100111011111111111111111111111011111111111111",
+          "two_level_pixels_1x": 169,
+          "bbox_1x": [
+            288,
+            1007,
+            367,
+            1079
+          ]
+        }
+      ],
+      "scales": {
+        "1": {
+          "pixels_changed_in_some_phase": 292645,
+          "gated_pixels_per_switch": [
+            63411,
+            46665,
+            62042,
+            10255,
+            23662,
+            10659,
+            6490,
+            26129,
+            15970,
+            929,
+            8874,
+            1093,
+            9241,
+            10977
+          ],
+          "stage2_flat_in_chunk_pixels_set_to_median": 67309,
+          "seconds": 40.0
+        },
+        "2": {
+          "pixels_changed_in_some_phase": 1232544,
+          "gated_pixels_per_switch": [
+            253766,
+            186263,
+            289560,
+            40632,
+            96286,
+            42517,
+            25495,
+            126732,
+            62269,
+            4377,
+            35288,
+            4341,
+            32488,
+            45573
+          ],
+          "stage2_flat_in_chunk_pixels_set_to_median": 299282,
+          "seconds": 168.7
+        }
+      },
+      "videos": {
+        "light_loop": {
+          "bytes": 9003817,
+          "sha256": "12770d8b94cfdf074222b7de27a8127f3be8033669fe1ee241a62fec2c535be3",
+          "passed": true,
+          "decoded_black_max": 1,
+          "frames": 144,
+          "fps": 24,
+          "size": [
+            1920,
+            1080
+          ],
+          "codec": "VP9"
+        },
+        "light_loop_2x": {
+          "bytes": 30857643,
+          "sha256": "948597cf5a406e0e4a8e62fe583ea5b6fc63770d98c17ac914d58d83455a4d3d",
+          "passed": true,
+          "decoded_black_max": 1,
+          "frames": 144,
+          "fps": 24,
+          "size": [
+            3840,
+            2160
+          ],
+          "codec": "VP9"
+        }
+      }
+    },
+    "seconds": 416.5
+  }
 }

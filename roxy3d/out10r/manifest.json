@@ -14554,7 +14554,7 @@
     "bus_stop",
     "entrance_posts"
   ],
-  "loop_note": "Native nonnegative light/reflection/rain difference above its matching temporal-minimum base and below actors/occluders. Indoor and shelter rain protection remains; the old billboard/marquee protection masks are removed. Foreground rain is a separate additive stream. Use full.png as the flattened still fallback. DINK DONK bell holds A12/B12 (0.50 seconds/state); CINEMAS and shielded central flood are baked into this pack. Brief 95: same loop contract; base and loop were rendered together from the draft 32 scene.",
+  "loop_note": "Native nonnegative light/reflection/rain difference above its matching temporal-minimum base and below actors/occluders. Indoor and shelter rain protection remains; the old billboard/marquee protection masks are removed. Foreground rain is a separate additive stream. Use full.png as the flattened still fallback. DINK DONK bell holds A12/B12 (0.50 seconds/state); CINEMAS and shielded central flood are baked into this pack. Brief 95: same loop contract; base and loop were rendered together from the draft 32 scene. Brief 95b: worker on/off switches removed from the phases before base and loop were taken.",
   "vehicles": {
     "bus": {
       "+u": {
@@ -18542,7 +18542,7 @@
     "z_index": 70001,
     "holdout": "All current scene geometry, including shelter and interior foreground."
   },
-  "asset_pack_revision": "brief95-draft32-rerender",
+  "asset_pack_revision": "brief95b-stabilised-loop",
   "lit_bg_dry": "lit_bg_dry.png",
   "lit_bg_dry_2x": "lit_bg_dry@2x.png",
   "led_signs": [
@@ -19539,5 +19539,235 @@
         ]
       ]
     }
+  },
+  "brief95b": {
+    "what": "out10r with the light loop rebuilt from the same 48 phases without the per-worker on/off switches (walls, roofs, NEXT SHOWING board, WC signs). base, bg, lit_bg, full, ad overlays and both light_loop videos changed; everything else is out10r byte for byte.",
+    "notes": "NOTES-95b.md in roxy3d, one folder up",
+    "switch_targets": [
+      {
+        "pattern": "111110000111111111111000011110000000000000000000",
+        "two_level_pixels_1x": 51724,
+        "bbox_1x": [
+          411,
+          102,
+          1919,
+          754
+        ],
+        "on_mean": 29.06,
+        "off_mean": 14.24,
+        "draft32": 28.76,
+        "draft_margin": 0.96,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "011110000111100001111111100001111111100000000111",
+        "two_level_pixels_1x": 35021,
+        "bbox_1x": [
+          292,
+          112,
+          1604,
+          822
+        ],
+        "on_mean": 29.69,
+        "off_mean": 10.06,
+        "draft32": 14.13,
+        "draft_margin": 0.59,
+        "target_on_fraction": 0.562,
+        "target_from": "time average (draft unclear)"
+      },
+      {
+        "pattern": "111111111111111111111111100001111111111111111111",
+        "two_level_pixels_1x": 12921,
+        "bbox_1x": [
+          13,
+          0,
+          1919,
+          1076
+        ],
+        "on_mean": 57.27,
+        "off_mean": 40.35,
+        "draft32": 44.94,
+        "draft_margin": 0.46,
+        "target_on_fraction": 0.917,
+        "target_from": "time average (draft unclear)"
+      },
+      {
+        "pattern": "011110000000000000000000000001111111111110000111",
+        "two_level_pixels_1x": 3401,
+        "bbox_1x": [
+          1256,
+          935,
+          1632,
+          1079
+        ],
+        "on_mean": 18.71,
+        "off_mean": 11.24,
+        "draft32": 11.69,
+        "draft_margin": 0.88,
+        "target_on_fraction": 0.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "100001111111111111111111111111111111111111111111",
+        "two_level_pixels_1x": 3255,
+        "bbox_1x": [
+          25,
+          1,
+          1917,
+          1068
+        ],
+        "on_mean": 20.3,
+        "off_mean": 9.83,
+        "draft32": 21.77,
+        "draft_margin": 1.0,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "100001111111111110000111111111111111100001111111",
+        "two_level_pixels_1x": 2719,
+        "bbox_1x": [
+          411,
+          175,
+          1168,
+          508
+        ],
+        "on_mean": 26.7,
+        "off_mean": 21.82,
+        "draft32": 25.74,
+        "draft_margin": 0.6,
+        "target_on_fraction": 0.75,
+        "target_from": "time average (draft unclear)"
+      },
+      {
+        "pattern": "000000000111100000000111100001111111100000000000",
+        "two_level_pixels_1x": 1419,
+        "bbox_1x": [
+          18,
+          270,
+          1271,
+          866
+        ],
+        "on_mean": 47.28,
+        "off_mean": 8.93,
+        "draft32": 8.32,
+        "draft_margin": 1.0,
+        "target_on_fraction": 0.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "100000000000011110000000011110000000000000000000",
+        "two_level_pixels_1x": 874,
+        "bbox_1x": [
+          0,
+          0,
+          1919,
+          1079
+        ],
+        "on_mean": 43.13,
+        "off_mean": 42.24,
+        "draft32": 51.12,
+        "draft_margin": 1.0,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "100001111111111111111000000000000000011110000000",
+        "two_level_pixels_1x": 587,
+        "bbox_1x": [
+          97,
+          2,
+          901,
+          349
+        ],
+        "on_mean": 10.52,
+        "off_mean": 1.77,
+        "draft32": 10.56,
+        "draft_margin": 1.0,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "011111111111100001111111100001111111111111111111",
+        "two_level_pixels_1x": 448,
+        "bbox_1x": [
+          0,
+          0,
+          1919,
+          1079
+        ],
+        "on_mean": 43.97,
+        "off_mean": 43.28,
+        "draft32": 52.74,
+        "draft_margin": 1.0,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "000001111000000000000000011111111111100000000111",
+        "two_level_pixels_1x": 442,
+        "bbox_1x": [
+          872,
+          5,
+          1912,
+          587
+        ],
+        "on_mean": 23.42,
+        "off_mean": 18.29,
+        "draft32": 19.63,
+        "draft_margin": 0.48,
+        "target_on_fraction": 0.396,
+        "target_from": "time average (draft unclear)"
+      },
+      {
+        "pattern": "111110000000011110000000011111111111111110000111",
+        "two_level_pixels_1x": 413,
+        "bbox_1x": [
+          1255,
+          1015,
+          1760,
+          1079
+        ],
+        "on_mean": 30.96,
+        "off_mean": 27.33,
+        "draft32": 31.07,
+        "draft_margin": 1.0,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "011110000000000000000000000001111000011110000000",
+        "two_level_pixels_1x": 338,
+        "bbox_1x": [
+          0,
+          839,
+          1548,
+          1079
+        ],
+        "on_mean": 44.51,
+        "off_mean": 0.62,
+        "draft32": 43.61,
+        "draft_margin": 0.96,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      },
+      {
+        "pattern": "111111111111111111111111111111111111111111111000",
+        "two_level_pixels_1x": 296,
+        "bbox_1x": [
+          9,
+          7,
+          1917,
+          1077
+        ],
+        "on_mean": 41.02,
+        "off_mean": 32.69,
+        "draft32": 45.86,
+        "draft_margin": 1.0,
+        "target_on_fraction": 1.0,
+        "target_from": "draft 32"
+      }
+    ]
   }
 }

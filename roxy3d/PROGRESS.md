@@ -2890,3 +2890,14 @@ control-qa, shared/core.js, shared/room.js as they were).
   real chat (relay up), no page errors; live `lobby.html` (backup `backups/2026-11-12-r95/lobby.before-sims.html`),
   pushed, zip rebuilt. Hosted deploy blocked by the permission check (needs the owner). Not checked closely: the
   knocked-over pose at full zoom.
+- 12 Nov ~20:00: owner's recording (Desktop, 21 s) decoded to frames with headless Edge: wet roofs/walls flicker.
+  Measured the light loops (first 20 frames, 480x270, mean abs change per frame): roof out10 0.05 (max 0.09) vs out10r
+  0.86 (max 2.93); street 0.55 vs 0.85; whole 0.16 vs 0.51. Opus agent rebuilds the loop from the phases into
+  out10r2 (no GPU render). Brief 96 (arcade -> claw machine, leftover page items) started with the Fable agent.
+- 12 Nov ~21:15, flicker fix (Opus agent, NOTES-95b.md): cause = lights on in some cloud workers' renders and off in
+  others, switching at the CHUNK=4 boundaries (walls, alley, left block, NEXT SHOWING board and WC signs, roofs), not
+  render noise. `rerender95b/pack95b.py` rebuilt the loop and stills from the same 49 phases into out10r2 (14 switches
+  removed, bell neon, rain and ripples kept; 896 checks). The 20 changed files + checksums.json copied into the live
+  out10r/ (backup `backups/2026-11-12-r95/out10r.before-r2/`). Re-measured live loop: roof 0.86 -> 0.34 (max 2.93 ->
+  0.72), whole 0.51 -> 0.30; live lobby plays it. Still open: the wet glass loops (follow-up running, out10r3). The
+  Brief 96 agent was told to make light state identical per item and smoke-test two workers before its bundle.
