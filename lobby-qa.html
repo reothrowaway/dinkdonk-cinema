@@ -274,6 +274,14 @@
   .fightwin { position: absolute; left: 0; top: 0; white-space: nowrap; pointer-events: none; font: 700 30px/1 Oswald, sans-serif;
     letter-spacing: .06em; color: #fff; text-shadow: 0 0 10px rgba(0, 0, 0, .9), 0 2px 3px #000; }
   .fightwin.yee { color: #b6f58f; } .fightwin.pepe { color: #6fdc6f; }
+  /* the Sims way: one big dust cloud hides both, bits fly out of it; the loser ends up on the floor with stars */
+  .scuffle.sims { width: 170px; height: 120px; margin: -104px 0 0 -85px; }
+  .scuffle.sims b { left: 0; top: 0; width: 170px; height: 120px; border-radius: 0; background: none; }
+  .scuffle.sims b i { position: absolute; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #fbf7ee, #e2d8c4 55%, #b9ac93);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+  .fightbit { position: absolute; left: 0; top: 0; font-size: 28px; line-height: 1; pointer-events: none; font-weight: 700;
+    color: #ff5a4a; text-shadow: 0 1px 2px #000; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7)); }
+  .w.ko .em { rotate: -84deg; translate: 12px 6px; }
   .ticket { position: absolute; left: -9px; top: -6px; width: 18px; height: 11px; background: #ffd75a; border-radius: 2px;
     box-shadow: 0 0 8px rgba(255, 215, 90, .9); }
 
@@ -4733,7 +4741,7 @@ void main() {
     w.doorBound = false;
     const ok = gagFree(w);
     w.doorBound = d;
-    return ok && !w.npc && w.v > 2.9 && w.v < 8.6 && !w.group?.janitor && w !== lobbyLife.turtle;
+    return ok && !w.npc && w.key !== '#turtle' && w.nick !== 'Aristortle' && w.v > 2.9 && w.v < 8.6 && !w.group?.janitor && w !== lobbyLife.turtle;
   }
   function startFight(a, b) {
     if (fight || gag || !a || !b || a === b) return false;
@@ -4752,15 +4760,15 @@ void main() {
       w.passT = 30;   // nobody holds them up on the way
     });
     startFollow(a);   // the director always takes the fight
-    director.follow.endAt = now + 22000;
-    director.next = now + 22000 + director.every * 1000 * 0.5;
+    director.follow.endAt = now + 30000;
+    director.next = now + 30000 + director.every * 1000 * 0.5;
     return true;
   }
   function endFight(f) {
     if (fight !== f) return;
     f.done = true;
     f.cloud?.remove();
-    for (const w of [f.a, f.b]) { w.fighting = false; w.passT = 0; }
+    for (const w of [f.a, f.b]) { w.fighting = false; w.passT = 0; w.el.style.visibility = ''; w.el.classList.remove('ko'); }
     fight = null;
   }
   function stepFight() {
@@ -4776,47 +4784,94 @@ void main() {
     }
     if (f.a.gone || f.b.gone || now - f.t0 > 40000) { endFight(f); return; }
     if (f.at < 2) return;
+    // The Sims way (owner, 12 Nov 2026): first they square off and trade insults (angry faces, a shove), then one big
+    // dust cloud swallows both and rolls about on the spot while fists, feet, stars and swear symbols fly out of it;
+    // bystanders turn to watch and some cheer. When it clears, the winner flexes, the loser lies on the floor seeing
+    // stars, gets up after a moment and slinks off humiliated. "YEE WINS!" / "PEPE WINS!" stays 5.5 s.
     f.fightAt ||= now;
     const t = now - f.fightAt;
-    if (t < 4200) {
-      if (!f.cloud) {
-        const [x, y] = P(FIGHT_AT[0], FIGHT_AT[1]);
-        const el = f.cloud = h('div', 'scuffle');
-        el.innerHTML = '<b></b><i>💥</i><i>💢</i><i>✨</i><i>💥</i>';
-        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-        el.style.zIndex = String(depth(FIGHT_AT[0] + 0.5, FIGHT_AT[1]));
-        world.append(el);
-      }
-      // the scuffle: both hop at random, the cloud's bits jump about
-      for (const w of [f.a, f.b]) if (Math.random() < 0.35) w.bounce = Math.max(w.bounce, 0.8);
-      const k = Math.floor(t / 120);
+    const [cx, cy] = P(FIGHT_AT[0], FIGHT_AT[1]);
+    const ARGUE = 1800, CLOUD = 5800;
+    if (t < ARGUE) {
+      const k = Math.floor(t / 450);
       if (k !== f.k) {
         f.k = k;
-        [...f.cloud.querySelectorAll('i')].forEach((i, n) => { i.style.left = `${8 + Math.random() * 84}px`; i.style.top = `${Math.random() * 40}px`; i.style.opacity = (k + n) % 3 ? '1' : '0'; });
-        f.cloud.firstChild.style.transform = `scale(${(0.9 + Math.random() * 0.25).toFixed(2)}, ${(0.85 + Math.random() * 0.3).toFixed(2)})`;
+        const w = k % 2 ? f.b : f.a;
+        floatAt(w, ['😠', '#@!%', '😤', '💢'][k % 4], '#ff8a7a');
+        w.bounce = Math.max(w.bounce, 0.7);
+      }
+      return;
+    }
+    if (t < ARGUE + CLOUD) {
+      if (!f.cloud) {
+        const el = f.cloud = h('div', 'scuffle sims');
+        // a cartoon dust ball: a heap of solid puffs that churn (Sims-style, opaque, so the fighters are hidden)
+        el.innerHTML = '<b>' + [[20, 46, 54], [56, 30, 60], [96, 40, 56], [40, 64, 52], [86, 66, 58], [62, 54, 66], [8, 70, 40], [124, 62, 42]]
+          .map(([x, y, d]) => `<i style="left:${x}px;top:${y}px;width:${d}px;height:${d * 0.86}px"></i>`).join('') + '</b>';
+        f.puffs = [...el.querySelectorAll('b i')];
+        el.style.zIndex = String(Math.max(f.a.z || 0, f.b.z || 0, depth(FIGHT_AT[0] + 0.5, FIGHT_AT[1])) + 2);
+        world.append(el);
+        for (const w of [f.a, f.b]) { w.el.style.visibility = 'hidden'; dropBubble(w); }   // the cloud hides them, as in the Sims
+        // bystanders turn to watch; a few cheer
+        let n = 0;
+        for (const w of figures) {
+          if (n >= 6 || w === f.a || w === f.b || w.staff || w.npc || w.gone || w.removing || w.alpha < 0.9) continue;
+          if (Math.hypot(w.u - FIGHT_AT[0], w.v - FIGHT_AT[1]) > 4) continue;
+          n++;
+          SB.faceEmote(w.em, w.emName, (FIGHT_AT[0] - w.u) - (FIGHT_AT[1] - w.v));
+          if (n % 2) setTimeout(() => { if (!w.gone) { w.bounce = 1; floatAt(w, n % 3 ? '👏' : '😮', '#ffe27a'); } }, rand(300, 2500));
+        }
+      }
+      // the cloud rolls about on the spot and puffs
+      const tc = (t - ARGUE) / 1000;
+      const ox = Math.sin(tc * 5.1) * 9 + Math.sin(tc * 13.7) * 3, oy = Math.cos(tc * 4.3) * 4 + Math.sin(tc * 11.3) * 2;
+      f.cloud.style.transform = `translate(${(cx + ox).toFixed(1)}px, ${(cy + oy).toFixed(1)}px)`;
+      f.puffs.forEach((pf, i) => { const ph = tc * (6 + i * 0.9) + i * 1.7; pf.style.transform = `translate(${(Math.sin(ph) * 4).toFixed(1)}px, ${(Math.cos(ph * 1.3) * 3).toFixed(1)}px) scale(${(1 + Math.sin(ph * 1.7) * 0.1).toFixed(3)})`; });
+      // fists, feet, stars and symbols fly out of it
+      const k = Math.floor(t / 130);
+      if (k !== f.k) {
+        f.k = k;
+        const bit = h('div', 'fightbit', ['👊', '🦶', '⭐', '💥', '💢', '👊', '🦶', '✨', '#!@', '💥'][Math.floor(Math.random() * 10)]);
+        fx.append(bit);
+        const a = Math.random() * Math.PI * 2, d = rand(45, 85);
+        const x0 = cx + ox + Math.cos(a) * 46, y0 = cy + oy - 50 + Math.sin(a) * 26;
+        bit.animate([
+          { transform: `translate(${x0}px, ${y0}px) translate(-50%, -50%) scale(.5)`, opacity: 0 },
+          { transform: `translate(${x0 + Math.cos(a) * d * 0.5}px, ${y0 + Math.sin(a) * d * 0.35}px) translate(-50%, -50%) scale(1.15)`, opacity: 1, offset: 0.3 },
+          { transform: `translate(${x0 + Math.cos(a) * d}px, ${y0 + Math.sin(a) * d * 0.6}px) translate(-50%, -50%) scale(.9)`, opacity: 0 },
+        ], { duration: 650, easing: 'ease-out' }).onfinish = () => bit.remove();
       }
       return;
     }
     if (!f.result) {
-      f.cloud?.remove();
+      // the cloud clears with a last puff
+      const c = f.cloud;
       f.cloud = null;
+      c?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400 }).finished.then(() => c.remove(), () => c.remove());
+      for (const w of [f.a, f.b]) w.el.style.visibility = '';
       const yee = isYee(f.a.emName) ? f.a : f.b, pepe = yee === f.a ? f.b : f.a;
       const yeeWins = Math.random() < 0.5;
       const [win, lose] = yeeWins ? [yee, pepe] : [pepe, yee];
       f.result = yeeWins ? 'yee' : 'pepe';
+      f.lose = lose;
       win.bounce = 1;
-      floatAt(lose, '💫', '#ffe27a');
-      const [x, y] = P(FIGHT_AT[0], FIGHT_AT[1]);
+      setTimeout(() => { if (!win.gone) { win.bounce = 1; floatAt(win, '💪', '#ffe27a'); } }, 500);
+      lose.el.classList.add('ko');   // knocked flat
       const el = h('div', `fightwin ${f.result}`, yeeWins ? 'YEE WINS!' : 'PEPE WINS!');
       fx.append(el);
       el.animate([
-        { transform: `translate(${x}px, ${y - 96}px) translate(-50%, 0) scale(.6)`, opacity: 0 },
-        { transform: `translate(${x}px, ${y - 104}px) translate(-50%, 0) scale(1.1)`, opacity: 1, offset: 0.05 },
-        { transform: `translate(${x}px, ${y - 104}px) translate(-50%, 0) scale(1)`, opacity: 1, offset: 0.9 },
-        { transform: `translate(${x}px, ${y - 112}px) translate(-50%, 0) scale(1)`, opacity: 0 },
+        { transform: `translate(${cx}px, ${cy - 110}px) translate(-50%, 0) scale(.6)`, opacity: 0 },
+        { transform: `translate(${cx}px, ${cy - 118}px) translate(-50%, 0) scale(1.1)`, opacity: 1, offset: 0.05 },
+        { transform: `translate(${cx}px, ${cy - 118}px) translate(-50%, 0) scale(1)`, opacity: 1, offset: 0.9 },
+        { transform: `translate(${cx}px, ${cy - 126}px) translate(-50%, 0) scale(1)`, opacity: 0 },
       ], { duration: 5500, easing: 'ease-out' }).onfinish = () => el.remove();
     }
-    if (t > 4200 + 5500) endFight(f);
+    const tr = t - ARGUE - CLOUD;
+    // the loser sees stars on the floor, then gets up, humiliated
+    const ks = Math.floor(tr / 700);
+    if (f.lose && tr < 2800 && ks !== f.ks) { f.ks = ks; floatAt(f.lose, '💫', '#ffe27a'); }
+    if (f.lose && tr >= 3000 && f.lose.el.classList.contains('ko')) { f.lose.el.classList.remove('ko'); f.lose.bounce = 0.6; floatAt(f.lose, '😳', '#ffb3c8'); }
+    if (tr > 5500) endFight(f);
   }
   setInterval(stepFight, 100);
   window.__fight = {

@@ -2881,3 +2881,12 @@ control-qa, shared/core.js, shared/room.js as they were).
   room's chatters (relay still offline): `__fight.start(true)` dressed two of them as YEE and PEPE, they met, the
   director zoomed in, scuffle cloud, "YEE WINS!" for 5.5 s, both went on; no page errors. Promoted to `lobby.html`
   (backup `backups/2026-11-12-r95/lobby.before-fight.html`). Not seen: a fight that starts by itself at normal timing.
+- 12 Nov ~19:30, owner: "Launch the relay" and "The fight should be like in the Sims, research that". Relay started
+  in the Terminal tab "chat relay 18765" (start-windows.bat of the DSA overlay). Sims fights (Sims Wiki, TV Tropes): a
+  dust cloud hides both fighters while symbols fly out, the winner gets confident, the loser is knocked over (dazed in
+  the Sims 4) and humiliated. Built: insults (1.8 s), an opaque churning dust ball of puffs that hides both while fists,
+  feet, stars and #!@ fly out (5.8 s), bystanders within 4 tiles turn to watch and some cheer, then the winner flexes,
+  the loser lies flat (`.w.ko`) seeing stars for 3 s and gets up; the turtle can no longer be picked. Tested twice with
+  real chat (relay up), no page errors; live `lobby.html` (backup `backups/2026-11-12-r95/lobby.before-sims.html`),
+  pushed, zip rebuilt. Hosted deploy blocked by the permission check (needs the owner). Not checked closely: the
+  knocked-over pose at full zoom.
