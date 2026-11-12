@@ -18542,7 +18542,7 @@
     "z_index": 70001,
     "holdout": "All current scene geometry, including shelter and interior foreground."
   },
-  "asset_pack_revision": "brief95b-stabilised-loop",
+  "asset_pack_revision": "brief95c-stabilised-wet-loops",
   "lit_bg_dry": "lit_bg_dry.png",
   "lit_bg_dry_2x": "lit_bg_dry@2x.png",
   "led_signs": [
@@ -19769,5 +19769,74 @@
         "target_from": "draft 32"
       }
     ]
+  },
+  "brief95c": {
+    "what": "out10r (with brief95b) plus the wet groups front_solid_wall, glass_left, glass_right, partition_right rebuilt from the same occluder items without the per-worker on/off switches: their occluder pictures, slices and wet sheets, the full stills and the ad overlays changed.",
+    "notes": "NOTES-95b.md in roxy3d, one folder up (section Brief 95c)",
+    "switch_targets": {
+      "partition_right": [
+        {
+          "pattern": "000000000000001111000000",
+          "pixels": 59,
+          "worker_switch": true,
+          "on_mean": 67.93,
+          "off_mean": 62.36,
+          "draft": 99.2,
+          "draft_margin": 1.0,
+          "tau": 1.0,
+          "tau_from": "draft 32"
+        },
+        {
+          "pattern": "111111111111110000111111",
+          "pixels": 43,
+          "worker_switch": true,
+          "on_mean": 69.91,
+          "off_mean": 64.29,
+          "draft": 94.35,
+          "draft_margin": 1.0,
+          "tau": 1.0,
+          "tau_from": "draft 32"
+        }
+      ],
+      "glass_left": [
+        {
+          "pattern": "000000001111000000001111",
+          "pixels": 3777,
+          "worker_switch": true,
+          "on_mean": 42.04,
+          "off_mean": 17.26,
+          "draft": 34.16,
+          "draft_margin": 0.36,
+          "tau": 0.33,
+          "tau_from": "time average (draft unclear)"
+        }
+      ],
+      "glass_right": [
+        {
+          "pattern": "111111100000000111111110",
+          "pixels": 250,
+          "worker_switch": true,
+          "on_mean": 18.21,
+          "off_mean": 11.61,
+          "draft": 20.97,
+          "draft_margin": 1.0,
+          "tau": 1.0,
+          "tau_from": "draft 32"
+        }
+      ],
+      "front_solid_wall": [
+        {
+          "pattern": "110000111111111111111111",
+          "pixels": 80,
+          "worker_switch": true,
+          "on_mean": 44.91,
+          "off_mean": 39.24,
+          "draft": 44.02,
+          "draft_margin": 0.69,
+          "tau": 0.83,
+          "tau_from": "time average (draft unclear)"
+        }
+      ]
+    }
   }
 }

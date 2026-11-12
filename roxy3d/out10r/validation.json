@@ -929,5 +929,646 @@
       }
     },
     "seconds": 416.5
+  },
+  "brief95c": {
+    "passed": true,
+    "checks": 1277,
+    "failures": [],
+    "report": {
+      "groups": {
+        "partition_left": {
+          "chunks_of_the_24_phases": "aaabbbbccccddddeeeeffffg",
+          "patterns": [],
+          "sheets_before": {
+            "wet_partition_left_00": {
+              "mean_step": 0.0057,
+              "max_step": 0.05,
+              "chunk_boundary_share": 0.48
+            },
+            "wet_partition_left_01": {
+              "mean_step": 0.0036,
+              "max_step": 0.032,
+              "chunk_boundary_share": 0.47
+            },
+            "wet_partition_left_02": {
+              "mean_step": 0.0035,
+              "max_step": 0.033,
+              "chunk_boundary_share": 0.48
+            },
+            "wet_partition_left_03": {
+              "mean_step": 0.0032,
+              "max_step": 0.032,
+              "chunk_boundary_share": 0.51
+            },
+            "wet_partition_left_04": {
+              "mean_step": 0.0097,
+              "max_step": 0.095,
+              "chunk_boundary_share": 0.54
+            }
+          }
+        },
+        "partition_right": {
+          "chunks_of_the_24_phases": "aabbbbccccddddeeeeffffgg",
+          "patterns": [
+            {
+              "pattern": "000000000000001111000000",
+              "pixels": 59,
+              "worker_switch": true,
+              "on_mean": 67.93,
+              "off_mean": 62.36,
+              "draft": 99.2,
+              "draft_margin": 1.0,
+              "tau": 1.0,
+              "tau_from": "draft 32"
+            },
+            {
+              "pattern": "111111111111110000111111",
+              "pixels": 43,
+              "worker_switch": true,
+              "on_mean": 69.91,
+              "off_mean": 64.29,
+              "draft": 94.35,
+              "draft_margin": 1.0,
+              "tau": 1.0,
+              "tau_from": "draft 32"
+            }
+          ],
+          "sheets_before": {
+            "wet_partition_right_00": {
+              "mean_step": 0.0048,
+              "max_step": 0.055,
+              "chunk_boundary_share": 0.73
+            },
+            "wet_partition_right_01": {
+              "mean_step": 0.0039,
+              "max_step": 0.046,
+              "chunk_boundary_share": 0.74
+            },
+            "wet_partition_right_02": {
+              "mean_step": 0.0044,
+              "max_step": 0.056,
+              "chunk_boundary_share": 0.77
+            },
+            "wet_partition_right_03": {
+              "mean_step": 0.0044,
+              "max_step": 0.054,
+              "chunk_boundary_share": 0.76
+            },
+            "wet_partition_right_04": {
+              "mean_step": 0.0039,
+              "max_step": 0.05,
+              "chunk_boundary_share": 0.76
+            },
+            "wet_partition_right_05": {
+              "mean_step": 0.0036,
+              "max_step": 0.049,
+              "chunk_boundary_share": 0.78
+            },
+            "wet_partition_right_06": {
+              "mean_step": 0.0045,
+              "max_step": 0.06,
+              "chunk_boundary_share": 0.78
+            },
+            "wet_partition_right_07": {
+              "mean_step": 0.0042,
+              "max_step": 0.056,
+              "chunk_boundary_share": 0.78
+            },
+            "wet_partition_right_08": {
+              "mean_step": 0.0109,
+              "max_step": 0.124,
+              "chunk_boundary_share": 0.74
+            }
+          },
+          "correction": {
+            "1": {
+              "gated_per_switch": [
+                3011,
+                678
+              ],
+              "stage2_flat_in_chunk": 266,
+              "pixels_changed": 3882
+            },
+            "2": {
+              "gated_per_switch": [
+                17591,
+                3861
+              ],
+              "stage2_flat_in_chunk": 2504,
+              "pixels_changed": 23380
+            }
+          },
+          "files_written": 38,
+          "sheets_after": {
+            "wet_partition_right_00": {
+              "mean_step": 0.0044,
+              "max_step": 0.045,
+              "chunk_boundary_share": 0.71
+            },
+            "wet_partition_right_01": {
+              "mean_step": 0.0033,
+              "max_step": 0.034,
+              "chunk_boundary_share": 0.7
+            },
+            "wet_partition_right_02": {
+              "mean_step": 0.0036,
+              "max_step": 0.037,
+              "chunk_boundary_share": 0.72
+            },
+            "wet_partition_right_03": {
+              "mean_step": 0.0039,
+              "max_step": 0.044,
+              "chunk_boundary_share": 0.74
+            },
+            "wet_partition_right_04": {
+              "mean_step": 0.0033,
+              "max_step": 0.037,
+              "chunk_boundary_share": 0.72
+            },
+            "wet_partition_right_05": {
+              "mean_step": 0.0029,
+              "max_step": 0.034,
+              "chunk_boundary_share": 0.73
+            },
+            "wet_partition_right_06": {
+              "mean_step": 0.0036,
+              "max_step": 0.04,
+              "chunk_boundary_share": 0.73
+            },
+            "wet_partition_right_07": {
+              "mean_step": 0.0034,
+              "max_step": 0.038,
+              "chunk_boundary_share": 0.73
+            },
+            "wet_partition_right_08": {
+              "mean_step": 0.0101,
+              "max_step": 0.106,
+              "chunk_boundary_share": 0.72
+            }
+          },
+          "sheet_peaks_after": {
+            "wet_partition_right_00": 7,
+            "wet_partition_right_01": 18,
+            "wet_partition_right_02": 9,
+            "wet_partition_right_03": 9,
+            "wet_partition_right_04": 5,
+            "wet_partition_right_05": 7,
+            "wet_partition_right_06": 9,
+            "wet_partition_right_07": 3,
+            "wet_partition_right_08": 16
+          }
+        },
+        "boxoffice": {
+          "chunks_of_the_24_phases": "abbbbccccddddeeeeffffggg",
+          "patterns": [],
+          "sheets_before": {
+            "wet_boxoffice_00": {
+              "mean_step": 0.0077,
+              "max_step": 0.062,
+              "chunk_boundary_share": 0.53
+            },
+            "wet_boxoffice_01": {
+              "mean_step": 0.0058,
+              "max_step": 0.047,
+              "chunk_boundary_share": 0.53
+            },
+            "wet_boxoffice_02": {
+              "mean_step": 0.007,
+              "max_step": 0.055,
+              "chunk_boundary_share": 0.52
+            },
+            "wet_boxoffice_03": {
+              "mean_step": 0.0108,
+              "max_step": 0.095,
+              "chunk_boundary_share": 0.56
+            }
+          }
+        },
+        "snack": {
+          "chunks_of_the_24_phases": "aaaabbbbccccddddeeeeffff",
+          "patterns": [],
+          "sheets_before": {
+            "wet_snack_00": {
+              "mean_step": 0.0099,
+              "max_step": 0.085,
+              "chunk_boundary_share": 0.78
+            },
+            "wet_snack_01": {
+              "mean_step": 0.0097,
+              "max_step": 0.083,
+              "chunk_boundary_share": 0.78
+            },
+            "wet_snack_02": {
+              "mean_step": 0.0109,
+              "max_step": 0.095,
+              "chunk_boundary_share": 0.79
+            },
+            "wet_snack_03": {
+              "mean_step": 0.0124,
+              "max_step": 0.107,
+              "chunk_boundary_share": 0.79
+            },
+            "wet_snack_04": {
+              "mean_step": 0.0124,
+              "max_step": 0.112,
+              "chunk_boundary_share": 0.81
+            },
+            "wet_snack_05": {
+              "mean_step": 0.0231,
+              "max_step": 0.202,
+              "chunk_boundary_share": 0.78
+            }
+          }
+        },
+        "street_lamp": {
+          "chunks_of_the_24_phases": "aabbbbccccddddeeeeffffgg",
+          "patterns": [],
+          "sheets_before": {
+            "wet_street_lamp_00": {
+              "mean_step": 0.0383,
+              "max_step": 0.189,
+              "chunk_boundary_share": 0.45
+            }
+          }
+        },
+        "bus_stop": {
+          "chunks_of_the_24_phases": "abbbbccccddddeeeeffffggg",
+          "patterns": [],
+          "sheets_before": {
+            "wet_bus_stop_03": {
+              "mean_step": 0.0006,
+              "max_step": 0.005,
+              "chunk_boundary_share": 0.51
+            },
+            "wet_bus_stop_04": {
+              "mean_step": 0.0017,
+              "max_step": 0.005,
+              "chunk_boundary_share": 0.3
+            },
+            "wet_bus_stop_06": {
+              "mean_step": 0.0025,
+              "max_step": 0.019,
+              "chunk_boundary_share": 0.49
+            },
+            "wet_bus_stop_07": {
+              "mean_step": 0.0072,
+              "max_step": 0.035,
+              "chunk_boundary_share": 0.39
+            },
+            "wet_bus_stop_09": {
+              "mean_step": 0.0012,
+              "max_step": 0.009,
+              "chunk_boundary_share": 0.32
+            },
+            "wet_bus_stop_10": {
+              "mean_step": 0.0086,
+              "max_step": 0.061,
+              "chunk_boundary_share": 0.32
+            },
+            "wet_bus_stop_12": {
+              "mean_step": 0.0033,
+              "max_step": 0.016,
+              "chunk_boundary_share": 0.3
+            },
+            "wet_bus_stop_13": {
+              "mean_step": 0.0075,
+              "max_step": 0.048,
+              "chunk_boundary_share": 0.29
+            },
+            "wet_bus_stop_15": {
+              "mean_step": 0.0166,
+              "max_step": 0.058,
+              "chunk_boundary_share": 0.39
+            },
+            "wet_bus_stop_16": {
+              "mean_step": 0.0152,
+              "max_step": 0.051,
+              "chunk_boundary_share": 0.34
+            }
+          }
+        },
+        "glass_left": {
+          "chunks_of_the_24_phases": "aaaabbbbccccddddeeeeffff",
+          "patterns": [
+            {
+              "pattern": "000000001111000000001111",
+              "pixels": 3777,
+              "worker_switch": true,
+              "on_mean": 42.04,
+              "off_mean": 17.26,
+              "draft": 34.16,
+              "draft_margin": 0.36,
+              "tau": 0.33,
+              "tau_from": "time average (draft unclear)"
+            }
+          ],
+          "sheets_before": {
+            "wet_glass_left_00": {
+              "mean_step": 0.0257,
+              "max_step": 0.225,
+              "chunk_boundary_share": 0.78
+            },
+            "wet_glass_left_01": {
+              "mean_step": 0.0358,
+              "max_step": 0.337,
+              "chunk_boundary_share": 0.82
+            },
+            "wet_glass_left_02": {
+              "mean_step": 0.0487,
+              "max_step": 0.504,
+              "chunk_boundary_share": 0.88
+            },
+            "wet_glass_left_03": {
+              "mean_step": 0.0843,
+              "max_step": 0.898,
+              "chunk_boundary_share": 0.9
+            },
+            "wet_glass_left_04": {
+              "mean_step": 0.1166,
+              "max_step": 1.238,
+              "chunk_boundary_share": 0.9
+            },
+            "wet_glass_left_05": {
+              "mean_step": 0.1185,
+              "max_step": 1.25,
+              "chunk_boundary_share": 0.9
+            }
+          },
+          "correction": {
+            "1": {
+              "gated_per_switch": [
+                4432
+              ],
+              "stage2_flat_in_chunk": 371,
+              "pixels_changed": 4720
+            },
+            "2": {
+              "gated_per_switch": [
+                17734
+              ],
+              "stage2_flat_in_chunk": 3336,
+              "pixels_changed": 20639
+            }
+          },
+          "files_written": 26,
+          "sheets_after": {
+            "wet_glass_left_00": {
+              "mean_step": 0.0123,
+              "max_step": 0.064,
+              "chunk_boundary_share": 0.53
+            },
+            "wet_glass_left_01": {
+              "mean_step": 0.0121,
+              "max_step": 0.053,
+              "chunk_boundary_share": 0.47
+            },
+            "wet_glass_left_02": {
+              "mean_step": 0.0108,
+              "max_step": 0.049,
+              "chunk_boundary_share": 0.47
+            },
+            "wet_glass_left_03": {
+              "mean_step": 0.015,
+              "max_step": 0.067,
+              "chunk_boundary_share": 0.46
+            },
+            "wet_glass_left_04": {
+              "mean_step": 0.0206,
+              "max_step": 0.088,
+              "chunk_boundary_share": 0.45
+            },
+            "wet_glass_left_05": {
+              "mean_step": 0.0236,
+              "max_step": 0.116,
+              "chunk_boundary_share": 0.5
+            }
+          },
+          "sheet_peaks_after": {
+            "wet_glass_left_00": 10,
+            "wet_glass_left_01": 13,
+            "wet_glass_left_02": 8,
+            "wet_glass_left_03": 21,
+            "wet_glass_left_04": 11,
+            "wet_glass_left_05": 21
+          }
+        },
+        "glass_right": {
+          "chunks_of_the_24_phases": "aaabbbbccccddddeeeeffffg",
+          "patterns": [
+            {
+              "pattern": "111111100000000111111110",
+              "pixels": 250,
+              "worker_switch": true,
+              "on_mean": 18.21,
+              "off_mean": 11.61,
+              "draft": 20.97,
+              "draft_margin": 1.0,
+              "tau": 1.0,
+              "tau_from": "draft 32"
+            },
+            {
+              "pattern": "100111000111101111111111",
+              "pixels": 225,
+              "worker_switch": false
+            }
+          ],
+          "sheets_before": {
+            "wet_glass_right_00": {
+              "mean_step": 0.0185,
+              "max_step": 0.081,
+              "chunk_boundary_share": 0.36
+            },
+            "wet_glass_right_01": {
+              "mean_step": 0.0227,
+              "max_step": 0.095,
+              "chunk_boundary_share": 0.35
+            },
+            "wet_glass_right_02": {
+              "mean_step": 0.0439,
+              "max_step": 0.264,
+              "chunk_boundary_share": 0.55
+            }
+          },
+          "correction": {
+            "1": {
+              "gated_per_switch": [
+                440
+              ],
+              "stage2_flat_in_chunk": 398,
+              "pixels_changed": 815
+            },
+            "2": {
+              "gated_per_switch": [
+                1593
+              ],
+              "stage2_flat_in_chunk": 2274,
+              "pixels_changed": 3787
+            }
+          },
+          "files_written": 14,
+          "sheets_after": {
+            "wet_glass_right_00": {
+              "mean_step": 0.0184,
+              "max_step": 0.08,
+              "chunk_boundary_share": 0.36
+            },
+            "wet_glass_right_01": {
+              "mean_step": 0.0225,
+              "max_step": 0.093,
+              "chunk_boundary_share": 0.35
+            },
+            "wet_glass_right_02": {
+              "mean_step": 0.031,
+              "max_step": 0.115,
+              "chunk_boundary_share": 0.37
+            }
+          },
+          "sheet_peaks_after": {
+            "wet_glass_right_00": 24,
+            "wet_glass_right_01": 23,
+            "wet_glass_right_02": 144
+          }
+        },
+        "entrance_post_1": {
+          "chunks_of_the_24_phases": "aabbbbccccddddeeeeffffgg",
+          "patterns": [],
+          "sheets_before": {
+            "wet_entrance_post_1_00": {
+              "mean_step": 0.0069,
+              "max_step": 0.034,
+              "chunk_boundary_share": 0.45
+            }
+          }
+        },
+        "entrance_post_2": {
+          "chunks_of_the_24_phases": "abbbbccccddddeeeeffffggg",
+          "patterns": [],
+          "sheets_before": {
+            "wet_entrance_post_2_00": {
+              "mean_step": 0.0116,
+              "max_step": 0.103,
+              "chunk_boundary_share": 0.53
+            }
+          }
+        },
+        "entrance_header": {
+          "chunks_of_the_24_phases": "aaaabbbbccccddddeeeeffff",
+          "patterns": [],
+          "sheets_before": {
+            "wet_entrance_header_00": {
+              "mean_step": 0.0015,
+              "max_step": 0.005,
+              "chunk_boundary_share": 0.3
+            },
+            "wet_entrance_header_01": {
+              "mean_step": 0.0046,
+              "max_step": 0.059,
+              "chunk_boundary_share": 0.18
+            },
+            "wet_entrance_header_02": {
+              "mean_step": 0.0068,
+              "max_step": 0.027,
+              "chunk_boundary_share": 0.3
+            }
+          }
+        },
+        "entrance_neon": {
+          "chunks_of_the_24_phases": "aabbbbccccddddeeeeffffgg",
+          "patterns": [],
+          "sheets_before": {
+            "wet_entrance_neon_00": {
+              "mean_step": 0.0103,
+              "max_step": 0.108,
+              "chunk_boundary_share": 0.7
+            }
+          }
+        },
+        "front_solid_wall": {
+          "chunks_of_the_24_phases": "aabbbbccccddddeeeeffffgg",
+          "patterns": [
+            {
+              "pattern": "110000111111111111111111",
+              "pixels": 80,
+              "worker_switch": true,
+              "on_mean": 44.91,
+              "off_mean": 39.24,
+              "draft": 44.02,
+              "draft_margin": 0.69,
+              "tau": 0.83,
+              "tau_from": "time average (draft unclear)"
+            }
+          ],
+          "sheets_before": {
+            "wet_front_solid_wall_00": {
+              "mean_step": 0.0028,
+              "max_step": 0.018,
+              "chunk_boundary_share": 0.77
+            },
+            "wet_front_solid_wall_01": {
+              "mean_step": 0.0045,
+              "max_step": 0.027,
+              "chunk_boundary_share": 0.7
+            },
+            "wet_front_solid_wall_02": {
+              "mean_step": 0.0094,
+              "max_step": 0.051,
+              "chunk_boundary_share": 0.68
+            },
+            "wet_front_solid_wall_03": {
+              "mean_step": 0.0223,
+              "max_step": 0.128,
+              "chunk_boundary_share": 0.72
+            }
+          },
+          "correction": {
+            "1": {
+              "gated_per_switch": [
+                445
+              ],
+              "stage2_flat_in_chunk": 323,
+              "pixels_changed": 649
+            },
+            "2": {
+              "gated_per_switch": [
+                1863
+              ],
+              "stage2_flat_in_chunk": 1851,
+              "pixels_changed": 3143
+            }
+          },
+          "files_written": 18,
+          "sheets_after": {
+            "wet_front_solid_wall_00": {
+              "mean_step": 0.0027,
+              "max_step": 0.016,
+              "chunk_boundary_share": 0.76
+            },
+            "wet_front_solid_wall_01": {
+              "mean_step": 0.0044,
+              "max_step": 0.024,
+              "chunk_boundary_share": 0.7
+            },
+            "wet_front_solid_wall_02": {
+              "mean_step": 0.0094,
+              "max_step": 0.05,
+              "chunk_boundary_share": 0.68
+            },
+            "wet_front_solid_wall_03": {
+              "mean_step": 0.0218,
+              "max_step": 0.125,
+              "chunk_boundary_share": 0.72
+            }
+          },
+          "sheet_peaks_after": {
+            "wet_front_solid_wall_00": 10,
+            "wet_front_solid_wall_01": 8,
+            "wet_front_solid_wall_02": 8,
+            "wet_front_solid_wall_03": 10
+          }
+        }
+      },
+      "method": "Per wet group (24 phases 0, 2, ... 46; each rendered as its own item; the five-pod run claimed items in chunks of four,\nchunk = (global item - 1) // 4, read from frames.json):\n  1. two-level patterns over the 24 phases inside the group's alpha; a pattern constant inside every worker chunk is a\n     worker switch (removed), the others are real (kept, guarded);\n  2. per switch, largest first, near its own pixels: step c = mean(on) - mean(off); where clear (|luma c| >= 0.75,\n     t >= 5) the pixel is set to the target state (draft 32's state where it is clear, else the time average);\n  3. pixels flat inside every chunk but stepping between chunks take their median over the 24 phases;\n  4. then exactly pack95's method: occluder picture = per-channel minimum of the phases (live alpha; for the groups\n     whose shape changed in Brief 95, RGB zeroed where a phase's alpha is 0, as pack95 did), slices cut by the live\n     slice alphas (must rebuild the parent), wet sheets = phase - parent inside each slice's mask (48 frames, phase\n     f // 2 * 2, 8 x 6 sheet), all wet sheets the manifest lists are kept. Full stills and ad overlays rebuilt by\n     pack95's own production.full_stills_ads."
+    },
+    "seconds": 39.2
   }
 }

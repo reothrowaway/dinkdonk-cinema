@@ -2901,3 +2901,8 @@ control-qa, shared/core.js, shared/room.js as they were).
   out10r/ (backup `backups/2026-11-12-r95/out10r.before-r2/`). Re-measured live loop: roof 0.86 -> 0.34 (max 2.93 ->
   0.72), whole 0.51 -> 0.30; live lobby plays it. Still open: the wet glass loops (follow-up running, out10r3). The
   Brief 96 agent was told to make light state identical per item and smoke-test two workers before its bundle.
+- 12 Nov ~22:00, glass fix (NOTES-95b "Brief 95c"): 4 of 13 wet groups switched at worker chunks too (glass_left,
+  glass_right, partition_right, front_solid_wall); rebuilt without a render (`rerender95b/pack95c.py`, reproduces
+  pack95 byte-exact 250/250), out10r3 1,277 checks; wet_glass_left max step 1.25 -> 0.12. 103 files copied into the
+  live out10r/ (backup `backups/2026-11-12-r95/out10r.before-r3/`); live lobby loads it. Not checked by eye: the two
+  time-average targets (glass_left 0.33, front_solid_wall 0.83).

@@ -129,4 +129,89 @@ To use it: test with `?artdir=out10r2&mistdir=out10r2` (both are needed: without
 `checksums.json` from `out10r2/` into `out10r/` (same names; mist maps and everything else are identical), then
 redeploy the hosted edition and rebuild the zip as usual.
 
-STATUS: DONE - CAUSE FOUND (PER-WORKER ON/OFF LIGHT SWITCHES AT THE CLOUD JOB'S 4-ITEM CHUNK BOUNDARIES, NOT RENDER NOISE); out10r2 STAGED FROM THE SAME 49 PHASES WITHOUT A RENDER (14 SWITCHES REMOVED, REAL BELL NEON, RAIN AND RIPPLES KEPT; 896 CHECKS PASS; VP9 1x/2x, 144 FRAMES, 24 FPS); WALL FLICKER 0.70 -> 0.15 AND 0.31 -> 0.06, WHOLE FRAME 0.43 -> 0.22; PAGE LOADS IT WITH NO ERRORS; WET GLASS LOOPS STILL FLICKER (NOT IN SCOPE); out10r AND PAGES UNCHANGED; NOT PROMOTED; STOP.
+STATUS (95b): DONE - CAUSE FOUND (PER-WORKER ON/OFF LIGHT SWITCHES AT THE CLOUD JOB'S 4-ITEM CHUNK BOUNDARIES, NOT RENDER NOISE); out10r2 STAGED FROM THE SAME 49 PHASES WITHOUT A RENDER (14 SWITCHES REMOVED, REAL BELL NEON, RAIN AND RIPPLES KEPT; 896 CHECKS PASS; VP9 1x/2x, 144 FRAMES, 24 FPS); WALL FLICKER 0.70 -> 0.15 AND 0.31 -> 0.06, WHOLE FRAME 0.43 -> 0.22; PAGE LOADS IT WITH NO ERRORS; WET GLASS LOOPS STILL FLICKER (NOT IN SCOPE); out10r AND PAGES UNCHANGED; NOT PROMOTED; STOP.
+
+---
+
+## Brief 95c (12 Nov 2026): the wet highlight loops, staged as out10r3
+
+The coordinator copied out10r2's 20 changed files + `checksums.json` into the live `out10r/` (backup in
+`standby/backups/2026-11-12-r95/out10r.before-r2/`). This follow-up fixes the occluders' wet highlight loops
+(`prop_loops wet_*`) the same way. No render, no cloud; `out10r/`, pages and everything outside `roxy3d/` untouched.
+
+**Same cause.** Each wet group was rendered as 24 occluder items (phases 0, 2, ... 46), claimed four at a time
+(chunk = (global item - 1) // 4 from `frames.json`; for every wet group the 24 phases fall in six chunks of four).
+Two-level patterns inside the groups' alpha (40+ px), and which are constant in every chunk:
+
+| Group | Worker switch (24 phases) | px | levels off / on | target |
+|---|---|---|---|---|
+| glass_left | `000000001111000000001111` | 3,777 | 17.3 / 42.0 | time average 0.33 (draft 32 unclear: 34.2) |
+| glass_right | `111111100000000111111110` | 250 | 11.6 / 18.2 | on (draft 32) |
+| partition_right | `000000000000001111000000`, `111111111111110000111111` | 59, 43 | 62-64 / 68-70 | on (draft 32) |
+| front_solid_wall | `110000111111111111111111` | 80 | 39.2 / 44.9 | time average 0.83 |
+
+The other 9 wet groups have no switch and are untouched. glass_right also has one real (non-aligned) pattern, kept and
+guarded.
+
+**What changed.** `rerender95b/pack95c.py`, same method as pack95b (per switch near its pixels: step c = mean(on) -
+mean(off), set to the target where clear; then flat-inside-every-chunk pixels to their median), applied to the 24
+phases at 1x and 2x of the four groups (glass_left: 4,720 px changed at 1x, 20,639 at 2x). Then exactly pack95's
+build: occluder picture = per-channel minimum (live alpha; RGB zeroed under per-phase alpha 0 for the Brief 95 shape
+groups, as pack95 did), slices cut by the live slice alphas, wet sheets = phase - parent (48 frames, 8 x 6), full
+stills and ad overlays by pack95's own code. **Proof that the script builds what pack95 built:** `--reproduce`
+rebuilds all 13 wet groups without correction and got 250 of 250 files byte-identical to out10r. Checks on out10r3:
+1,277, 0 failures (alpha of every occluder equal to out10r, slices disjoint and rebuilding their parents at 1x and 2x,
+sheet sizes, referenced files). The light loop and base are not touched (they are the out10r2 files).
+
+**Numbers** (wet sheets, 1x, 48 frames cyclic, mean |frame(i+1) - frame(i)| over the sheet; mean / max / peak value;
+`rerender95b/wetloops95c.json`):
+
+| Sheet | out10 | out10r | out10r3 |
+|---|---|---|---|
+| wet_glass_left_00 | 0.011 / 0.040 / 9 | 0.026 / 0.225 / 35 | 0.012 / 0.064 / 3 |
+| wet_glass_left_01 | 0.012 / 0.043 / 11 | 0.036 / 0.337 / 100 | 0.012 / 0.053 / 9 |
+| wet_glass_left_02 | 0.011 / 0.040 / 15 | 0.049 / 0.504 / 115 | 0.011 / 0.049 / 5 |
+| wet_glass_left_03 | 0.013 / 0.045 / 12 | 0.084 / 0.898 / 129 | 0.015 / 0.067 / 9 |
+| wet_glass_left_04 | 0.018 / 0.055 / 9 | 0.117 / 1.238 / 123 | 0.021 / 0.088 / 3 |
+| wet_glass_left_05 | 0.019 / 0.060 / 16 | 0.118 / 1.250 / 91 | 0.024 / 0.116 / 12 |
+| wet_glass_right_02 | 0.022 / 0.061 / 93 | 0.044 / 0.264 / 97 | 0.031 / 0.115 / 97 |
+| wet_partition_right_08 | 0.004 / 0.031 / 4 | 0.011 / 0.124 / 8 | 0.010 / 0.106 / 8 |
+| wet_front_solid_wall_03 | 0.011 / 0.064 / 3 | 0.022 / 0.128 / 5 | 0.022 / 0.125 / 3 |
+| All sheets, pixel-weighted mean step | 0.007 (58 sheets) | 0.019 (54) | **0.009** (54) |
+| Largest max step of any sheet | 0.182 | 1.250 | **0.202** (wet_snack_05, no switch, unchanged) |
+
+The bright glass reflection (peak 91-129 in out10r, on in 2 of 6 chunks) is now a steady part of the glass picture at a
+third of its strength; what still moves in the sheets is the rain on the glass (peaks 3-12, like out10's 9-16).
+
+**Page check.** Headless Edge, real chat, `lobby-qa.html?everyone=1&director=0&artdir=out10r3&mistdir=out10r3`, six
+shots about 0.8 s apart: the page loads out10r3 (light loop and rain playing), no page errors (favicon 404 only).
+Shot-to-shot change on the left storefront glass 4.5-4.8 and right glass 4.8-5.3 over the first four steps (rain
+overlay, chatters); the last step was a camera move of the shared room. The same burst on out10r was zoomed in by
+the shared room (again not comparable), so there is no page-level A/B; the figures above are from the pack files.
+
+**Not checked:** OBS; hosted edition and zip; the slices of the four groups in motion on the page at a fixed camera;
+the switch targets chosen by time average (glass_left 0.33, front_solid_wall 0.83) against the owner's eye.
+
+**Files to copy from `out10r3/` into `out10r/`** (after backing up `out10r/`): 103 files - these 102, plus
+`checksums.json`. Nothing is removed. (Machine-readable: `out10r3_work/pack95c-report.json` -> `differs_from_out10r`.)
+
+- `manifest.json`, `validation.json`, `checksums.json`
+- `full.png`, `full@2x.png`, `ads/shelter.png`, `ads/shelter@2x.png`
+- `occ_glass_left`, `occ_glass_right`, `occ_partition_right`, `occ_front_solid_wall` - each `.png` and `@2x.png` (8)
+- `slices/occ_glass_left_00` ... `_05` (6), `slices/occ_glass_right_00` ... `_02` (3),
+  `slices/occ_partition_right_00` ... `_08` (9), `slices/occ_front_solid_wall_00` ... `_03` (4) - each `.png` and
+  `@2x.png` (44)
+- `prop_loops/wet_glass_left_00` ... `_05` (6), `prop_loops/wet_glass_right_00` ... `_02` (3),
+  `prop_loops/wet_partition_right_00` ... `_08` (9), `prop_loops/wet_front_solid_wall_00` ... `_03` (4) - each `.png`
+  and `@2x.png` (44)
+
+```powershell
+$r = Get-Content roxy3d\out10r3_work\pack95c-report.json -Raw | ConvertFrom-Json
+foreach ($f in @($r.differs_from_out10r) + 'checksums.json') { Copy-Item "roxy3d\out10r3\$f" "roxy3d\out10r\$f" -Force }
+```
+
+Files: `rerender95b/pack95c.py` (+ `pack95c.log`; `--reproduce`, `--diagnose`), `rerender95b/wetloops95b.py` (now lists
+every sheet) + `wetloops95c.json`, `out10r3/` (808 files), `out10r3_work/` (0.1 MB, the report). Blender ran one job at
+a time; I waited while the rerender96 agent's jobs ran. `PROGRESS.md` not updated.
+
+STATUS (95c): DONE - THE WET GLASS / WALL LOOPS SWITCHED AT WORKER CHUNKS TOO (4 OF 13 WET GROUPS); REBUILT WITHOUT A RENDER BY THE SAME METHOD, SCRIPT PROVEN BYTE-EXACT AGAINST pack95 (250/250); out10r3 STAGED, 1,277 CHECKS PASS; wet_glass_left MAX STEP 1.25 -> 0.12 (out10 0.06), ALL SHEETS 0.019 -> 0.009 (out10 0.007); PAGE LOADS IT WITH NO ERRORS; 103 FILES TO COPY INTO out10r LISTED; out10r AND PAGES UNCHANGED; NOT PROMOTED; STOP.
