@@ -266,6 +266,14 @@
     filter: drop-shadow(0 0 4px rgba(255, 80, 160, .75)); }
   .fl { position: absolute; left: 0; top: 0; white-space: nowrap; font: 600 16px/1 Oswald, sans-serif; letter-spacing: .04em;
     color: #ffe08a; text-shadow: 0 0 6px rgba(255, 140, 200, .8), 0 1px 2px #000; }
+  /* Yee vs Pepe (owner 12 Nov 2026): the scuffle cloud and the result that stays for 5 s */
+  .scuffle { position: absolute; left: 0; top: 0; width: 120px; height: 70px; margin: -62px 0 0 -60px; pointer-events: none; }
+  .scuffle i { position: absolute; font-style: normal; font-size: 22px; line-height: 1; }
+  .scuffle b { position: absolute; left: 10px; top: 14px; width: 100px; height: 44px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(225, 215, 200, .75), rgba(200, 190, 175, .45) 60%, rgba(200, 190, 175, 0)); }
+  .fightwin { position: absolute; left: 0; top: 0; white-space: nowrap; pointer-events: none; font: 700 30px/1 Oswald, sans-serif;
+    letter-spacing: .06em; color: #fff; text-shadow: 0 0 10px rgba(0, 0, 0, .9), 0 2px 3px #000; }
+  .fightwin.yee { color: #b6f58f; } .fightwin.pepe { color: #6fdc6f; }
   .ticket { position: absolute; left: -9px; top: -6px; width: 18px; height: 11px; background: #ffd75a; border-radius: 2px;
     box-shadow: 0 0 8px rgba(255, 215, 90, .9); }
 
@@ -4608,7 +4616,7 @@ void main() {
   function gagFree(w) {
     return !!w && !w.gone && !w.removing && !w.entering && !w.ride && !w.inQueue && !w.snack && !w.staff && !w.jan
       && !w.doorBound && !w.hurry && !w.stall && wcBusy !== w && wcWait !== w && arcadeBusy !== w && benchBusy !== w && PROPS.clawBusy !== w && !w.dancing
-      && !gateLine.includes(w) && !windows.some((x) => x.cur === w) && w.alpha > 0.9 && w.v < 8.9;
+      && !gateLine.includes(w) && !windows.some((x) => x.cur === w) && w.alpha > 0.9 && w.v < 8.9 && !w.fighting;
   }
   function startGag(a, b) {
     const R = RESTROOM;
@@ -4701,6 +4709,133 @@ void main() {
     }
   }
   setInterval(stepGag, 250);
+
+  // ---------- Yee vs Pepe (owner, 12 Nov 2026) ----------
+  // "every once in a while, one yee emote and one pepe emote will get into a fight, the director will always zoom in
+  // on it, and whomever wins, a text that remains for like 5 secs that either says yee wins or pepe wins."
+  // Every 4-9 minutes (this screen's own clock), if a chatter wearing a Yee emote and one wearing a Pepe emote are both
+  // free in the lobby, they walk up to each other on the open floor, square off and scuffle for about 4 s in a dust
+  // cloud; the director always takes it (it drops whatever it was following). One wins at random: "YEE WINS!" or
+  // "PEPE WINS!" stays over them for 5 s, the loser sees stars. Then both carry on with what they were doing.
+  // ?fight=0: never. window.__fight.start() starts one now (test; start(true): any two free chatters, dressed as
+  // YEE and PEPE).
+  const FIGHT_ON = q.get('fight') !== '0';
+  const YEE_FIGHTERS = new Set(['YEE', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE', 'KYEK', 'YEEHAW']);
+  const isYee = (n) => !!n && (YEE_FIGHTERS.has(n) || /^yee/i.test(n));
+  const isPepe = (n) => !!n && /^pep[eo]|pepe/i.test(n) && n !== 'PepoTurtle';
+  const FIGHT_AT = [10.95, 6.35];   // open floor between the two talk spots, clear of the ropes, the bench and the snack lines
+  let fight = null;
+  let fightNext = performance.now() + rand(240, 540) * 1000;
+  // like a gag's pick, but someone on their way to a door still counts while they are in the lobby (when the doors are
+  // open, everyone is on their way in; the fight is a detour of ~15 s, then they go on)
+  function fightFree(w) {
+    const d = w.doorBound;
+    w.doorBound = false;
+    const ok = gagFree(w);
+    w.doorBound = d;
+    return ok && !w.npc && w.v > 2.9 && w.v < 8.6 && !w.group?.janitor && w !== lobbyLife.turtle;
+  }
+  function startFight(a, b) {
+    if (fight || gag || !a || !b || a === b) return false;
+    const now = performance.now();
+    const f = fight = { a, b, at: 0, t0: now, done: false, cloud: null };
+    const spots = [[FIGHT_AT[0] - 0.32, FIGHT_AT[1] + 0.12], [FIGHT_AT[0] + 0.32, FIGHT_AT[1] - 0.12]];
+    [a, b].forEach((w, i) => {
+      let rest = w.plan;
+      if (w.group) { w.group.members = w.group.members.filter((m) => m !== w); w.group = null; w.arrived = false; rest = w.afterHang || []; w.afterHang = null; }
+      w.fighting = true;
+      const other = i ? a : b;
+      w.plan = [{ to: spots[i] }, { call: () => { f.at++; SB.faceEmote(w.em, w.emName, (other.u - w.u) - (other.v - w.v)); } },
+        { until: () => f.done || w.gone || other.gone }, { call: () => { w.fighting = false; } },
+        { to: [w.u, w.v] },   // back to where they were (their plan's next point may lie behind a counter from here)
+        ...rest];
+      w.passT = 30;   // nobody holds them up on the way
+    });
+    startFollow(a);   // the director always takes the fight
+    director.follow.endAt = now + 22000;
+    director.next = now + 22000 + director.every * 1000 * 0.5;
+    return true;
+  }
+  function endFight(f) {
+    if (fight !== f) return;
+    f.done = true;
+    f.cloud?.remove();
+    for (const w of [f.a, f.b]) { w.fighting = false; w.passT = 0; }
+    fight = null;
+  }
+  function stepFight() {
+    const now = performance.now();
+    const f = fight;
+    if (!f) {
+      if (!FIGHT_ON || now < fightNext || gag || director.spot) return;
+      fightNext = now + rand(240, 540) * 1000;
+      const free = [...walkers.values()].filter(fightFree);
+      const y = free.filter((w) => isYee(w.emName)), pe = free.filter((w) => isPepe(w.emName));
+      if (y.length && pe.length) startFight(y[Math.floor(Math.random() * y.length)], pe[Math.floor(Math.random() * pe.length)]);
+      return;
+    }
+    if (f.a.gone || f.b.gone || now - f.t0 > 40000) { endFight(f); return; }
+    if (f.at < 2) return;
+    f.fightAt ||= now;
+    const t = now - f.fightAt;
+    if (t < 4200) {
+      if (!f.cloud) {
+        const [x, y] = P(FIGHT_AT[0], FIGHT_AT[1]);
+        const el = f.cloud = h('div', 'scuffle');
+        el.innerHTML = '<b></b><i>💥</i><i>💢</i><i>✨</i><i>💥</i>';
+        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+        el.style.zIndex = String(depth(FIGHT_AT[0] + 0.5, FIGHT_AT[1]));
+        world.append(el);
+      }
+      // the scuffle: both hop at random, the cloud's bits jump about
+      for (const w of [f.a, f.b]) if (Math.random() < 0.35) w.bounce = Math.max(w.bounce, 0.8);
+      const k = Math.floor(t / 120);
+      if (k !== f.k) {
+        f.k = k;
+        [...f.cloud.querySelectorAll('i')].forEach((i, n) => { i.style.left = `${8 + Math.random() * 84}px`; i.style.top = `${Math.random() * 40}px`; i.style.opacity = (k + n) % 3 ? '1' : '0'; });
+        f.cloud.firstChild.style.transform = `scale(${(0.9 + Math.random() * 0.25).toFixed(2)}, ${(0.85 + Math.random() * 0.3).toFixed(2)})`;
+      }
+      return;
+    }
+    if (!f.result) {
+      f.cloud?.remove();
+      f.cloud = null;
+      const yee = isYee(f.a.emName) ? f.a : f.b, pepe = yee === f.a ? f.b : f.a;
+      const yeeWins = Math.random() < 0.5;
+      const [win, lose] = yeeWins ? [yee, pepe] : [pepe, yee];
+      f.result = yeeWins ? 'yee' : 'pepe';
+      win.bounce = 1;
+      floatAt(lose, '💫', '#ffe27a');
+      const [x, y] = P(FIGHT_AT[0], FIGHT_AT[1]);
+      const el = h('div', `fightwin ${f.result}`, yeeWins ? 'YEE WINS!' : 'PEPE WINS!');
+      fx.append(el);
+      el.animate([
+        { transform: `translate(${x}px, ${y - 96}px) translate(-50%, 0) scale(.6)`, opacity: 0 },
+        { transform: `translate(${x}px, ${y - 104}px) translate(-50%, 0) scale(1.1)`, opacity: 1, offset: 0.05 },
+        { transform: `translate(${x}px, ${y - 104}px) translate(-50%, 0) scale(1)`, opacity: 1, offset: 0.9 },
+        { transform: `translate(${x}px, ${y - 112}px) translate(-50%, 0) scale(1)`, opacity: 0 },
+      ], { duration: 5500, easing: 'ease-out' }).onfinish = () => el.remove();
+    }
+    if (t > 4200 + 5500) endFight(f);
+  }
+  setInterval(stepFight, 100);
+  window.__fight = {
+    start(any) {
+      const free = [...walkers.values()].filter(fightFree);
+      let a = free.find((w) => isYee(w.emName)), b = free.find((w) => isPepe(w.emName));
+      if (any && !(a && b)) {
+        [a, b] = free.slice(0, 2);
+        if (a && b) { setEmote(a, 'YEE'); setEmote(b, 'PEPE'); }
+      }
+      if (!(a && b)) return 'no free Yee and Pepe in the lobby';
+      return startFight(a, b) ? `${a.nick} vs ${b.nick}` : 'busy';
+    },
+    get state() { return fight; },
+    free() { const ws = [...walkers.values()]; return { walkers: ws.length, gagFree: ws.filter(gagFree).length, fightFree: ws.filter(fightFree).length,
+      yee: ws.filter((w) => isYee(w.emName)).length, pepe: ws.filter((w) => isPepe(w.emName)).length,
+      why: ws.slice(0, 10).map((w) => Object.entries({ gone: w.gone, rem: w.removing, ent: w.entering, ride: !!w.ride, q: w.inQueue, snack: !!w.snack, door: w.doorBound,
+        hurry: w.hurry, stall: !!w.stall, gate: gateLine.includes(w), win: windows.some((x) => x.cur === w), alpha: w.alpha <= 0.9, out: w.v >= 8.9 }).filter(([, x]) => x).map(([k]) => k).join(',')) }; },
+  };
 
   // ---------- camera + zoom director ----------
   // Wide shot most of the time. Every ~2-3 min (director=<seconds>) the camera takes the next arrival and

@@ -2874,3 +2874,10 @@ control-qa, shared/core.js, shared/room.js as they were).
   times, zoomed views of every changed spot, the layer packs (marquee, poster, props) against the new base in detail.
 - Docs, .gitignore and package/art.js take out10r. Not in this round: claw/glass (needs out10p again + page), marquee
   light baked into the wall pictures.
+- 12 Nov ~19:00, owner: "Yes deploy, also do the pepe yee thing". Hosted deployed (lobby.html and out10r manifest equal
+  the build by SHA-256 on the server). Push of 85b2ffd needed three tries (GitHub dropped the 150 MB upload twice;
+  went through over HTTP/1.1). Yee vs Pepe: someone on their way to a door now counts while in the lobby (the doors
+  were open, so nobody was free); fighters walk back to where they were afterwards. Tested in the QA lobby with the
+  room's chatters (relay still offline): `__fight.start(true)` dressed two of them as YEE and PEPE, they met, the
+  director zoomed in, scuffle cloud, "YEE WINS!" for 5.5 s, both went on; no page errors. Promoted to `lobby.html`
+  (backup `backups/2026-11-12-r95/lobby.before-fight.html`). Not seen: a fight that starts by itself at normal timing.
