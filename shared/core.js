@@ -131,7 +131,7 @@
         link.href = '/dgg/emotes.css';
         let late = false;
         // a stylesheet that arrives after the 8 s wait: sizes measured meanwhile were text estimates, so measure again
-        link.onload = () => { emotes.css = true; if (late) { emotes.sizes.clear(); emit('emotes', emotes); } resolve(); };
+        link.onload = () => { emotes.css = true; loopEmotes(link); if (late) { emotes.sizes.clear(); emit('emotes', emotes); } resolve(); };
         // a failed stylesheet is tried again every 30 s (else every emote stays a text pill all night)
         link.onerror = () => { resolve(); retryCss(link); };
         setTimeout(() => { late = true; resolve(); }, 8000);
@@ -146,6 +146,25 @@
     emit('emotes', emotes);
   }
 
+  // Animated emotes loop for good on our screens (owner, 13 Nov 2026: "some animated emotes appear to play only once or
+  // not at all, like the wooyeah one, they should constantly loop"). DGG's chat CSS plays many of them a few times
+  // (WooYeah: 6 runs) and keeps the endless version for :hover. Here every emote uses its :hover animation when it has
+  // one, and any other animation repeats without end. Only inside our emote boxes (.sb-emote), never DGG's own chat.
+  function loopEmotes(link) {
+    let rules = [];
+    try { rules = [...(link.sheet?.cssRules || [])]; } catch { /* not readable: the global rule below still applies */ }
+    const out = ['.sb-emote > .emote, .sb-emote > .emote::before, .sb-emote > .emote::after { animation-iteration-count: infinite !important; }'];
+    for (const r of rules) {
+      const m = /^\.emote\.([A-Za-z0-9_-]+):hover$/.exec(r.selectorText || '');
+      if (!m || !r.style?.animationName || r.style.animationName === 'none') continue;
+      out.push(`.sb-emote > .emote.${m[1]} { animation: ${r.style.animation} !important; animation-iteration-count: infinite !important; }`);
+    }
+    let st = document.getElementById('sb-emote-loop');
+    if (!st) { st = document.createElement('style'); st.id = 'sb-emote-loop'; }
+    st.textContent = out.join(' ');
+    document.head.append(st);   // (after DGG's sheet, so it wins)
+  }
+
   let cssTry = 0;
   function retryCss(failed) {
     if (++cssTry > 60) return;
@@ -153,7 +172,7 @@
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = `/dgg/emotes.css?retry=${cssTry}`;
-      link.onload = () => { failed.remove(); emotes.css = true; emotes.sizes.clear(); emit('emotes', emotes); };
+      link.onload = () => { failed.remove(); emotes.css = true; loopEmotes(link); emotes.sizes.clear(); emit('emotes', emotes); };
       link.onerror = () => { link.remove(); retryCss(failed); };
       document.head.append(link);
     }, 30_000);

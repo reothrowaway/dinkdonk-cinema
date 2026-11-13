@@ -2997,3 +2997,9 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   glass (glass_left/right and their wet sheets) goes see-through with the marquee when zoomed in; panel setting "See-
   through when zoomed in" (seethru, 0-1, default 0.75; shared/settings.js, server restarted). (3) Askers faces right
   (shared/emote-facing.json). Live, pushed, deployed, zipped.
+- 13 Nov ~08:40 (owner: animated emotes like WooYeah play once or not at all, they should loop): shared/core.js
+  loopEmotes: inside our emote boxes (.sb-emote) every emote with a DGG :hover animation uses it (66 emotes, e.g.
+  WooYeah, BINGQILIN, catJAM), and every other animation repeats without end. Checked: WooYeah still changing frame
+  after 16 s (DGG's runs 6 times, 10.5 s). A broken string in core.js was live for about a minute at 08:37 and was
+  fixed; shared files are now edited on a copy and checked before they replace the live one. Not measured: CPU cost
+  of more animations running (the performance session's area).
