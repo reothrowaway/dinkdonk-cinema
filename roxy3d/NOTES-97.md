@@ -57,7 +57,8 @@ draft 14 (floor, runner, far wall, three posters, two sconces, five lights). End
 - **Part B: 120 new frames (4 s) down the corridor**, straight along its center at eye height 1.15 m, from v 21.4 to
   the door. They replace the old first 24 frames (a start from standstill just inside the door). Speed goes from the
   lobby's 1.07 to the tunnel's 2.01 units/s in the dark and stays there through the door. One slow right turn
-  (0 to 7 degrees) leads into the old path; from 40.7 s on it is the old route, 96 frames later.
+  (0 to 7 degrees) leads into the old path; from 40.7 s on it is the old route, 96 frames later (97b, at the
+  end of this file, changes where the camera looks in the hall).
 - **Exposure:** the corridor is dim by design, so the picture is 1.5 stops brighter in it and comes back down
   through the door (39.7 to 40.7 s). One number in `route_v97.py` (`LIFT`); 0 turns it off.
 - Bus and car paths are byte copies.
@@ -109,8 +110,7 @@ draft 14 (floor, runner, far wall, three posters, two sconces, five lights). End
    base plus the marquee, poster and props layers, so the final needs a composed first plate or a fresh render.
 8. **Chatters in the fly-through** need the camera file and depth of the new render.
 9. Not merged: the lobby's changed glare group (the fly renderer has its own). Marquee and claw bulbs stand still.
-10. Unchanged from 7 Nov and not looked at: the hall in Godot is darker than the plate on walls and carpet (8 against
-    24 and 14 against 30 of 255), so the switch to the plate at 52.3 s shows a step. Cycles does not have this.
+10. The step at the switch to the plate (52.3 s) was large on 7 Nov and in the first v97; 97b below reduces it.
 
 ## Files
 
@@ -122,3 +122,62 @@ draft 14 (floor, runner, far wall, three posters, two sconces, five lights). End
 `run-live-7nov.bat` (old), `route_v97_*` (QA results). README, `FINAL-CHECKLIST.md` and `NOTES-godot.md` updated.
 
 STATUS: GODOT STAGE COMPLETE - `godot-spike/run-live.bat` OPENS THE NEW VERSION (CURRENT LOBBY: MARQUEE, POSTER, PROPS, CLAW MACHINE, GATE, WET WALLS; DRAFT-14 AUDITORIUM ENTERED DOWN ITS CORRIDOR AND THROUGH THE DOOR); 7 NOV VERSION KEPT AS `run-live-7nov.bat`; ROUTE 1,600 FRAMES / 53.3 S, PART A UNCHANGED, 120 NEW CORRIDOR FRAMES IN PART B; CAMERA-PATH, GEOMETRY AND TIMELINE QA PASS, LIVE VIEWER STARTS OFFSCREEN; ADDED ON MY OWN AND WAITING FOR THE OWNER'S OK: FLY-ONLY CORRIDOR SHELL (NEAR WALL, CEILING, DOOR-WALL LINING) AND A 1.5-STOP EXPOSURE LIFT IN THE CORRIDOR; NOT DONE: CYCLES PORT AND RENDER (NOTHING IN fly/v9 RENDERED IN CYCLES), MARQUEE TEXT, NEW transition.webm; NO CLOUD, NO VIDEO, NO COMMIT; STOP.
+
+## Version 97b (13 Nov 2026, afternoon): hall pan and hall brightness
+
+Owner, after the first 720p capture: "from 43 up to 49 seconds, it kinda shows the same piece of screen ... first
+panning to the right to partially show the audience and then finally towards the screen to finally do the final zoom
+out"; and the hall was almost black at 46 to 48 s.
+
+**Capture: `standby/concepts/fly/flythrough-v97b-godot-720p.mp4`** (1280x720, 30 fps, 1,600 frames, 53.3 s, 17.7 MB;
+made the same way as the first one). The live viewer (`run-live.bat`) shows the same version.
+
+**The pan** (`route_v97.py`, `PAN`): only where the camera looks changes. Its path, speed, lens, part A, the corridor
+and the length (53.3 s) are as before, and the end is the same exact draft-14 pose and plate.
+
+| Time | What |
+|---|---|
+| 42.4 s | Leaving the tunnel, the camera starts to pan right |
+| 43.5 to 44.5 s | The seat bank comes in from the right (first its dark side, then the rows) |
+| 45.4 s | Furthest right: 110 degrees from the screen wall, looking across and slightly back at the seat rows |
+| 45.4 to 49.0 s | One left turn: screen back in the picture from 46.1 s, filling it at 47.2 to 48.5 s |
+| 48.2 s | The approved zoom-out begins; from 49.2 s the camera is the approved one again |
+| 52.3 s | Draft-14 plate |
+
+- The lens comes down 7 degrees with the pan (the approved route looks up at the screen there; the seats sit lower).
+- The camera banks into the pan like the rest of the route: up to 8 degrees right, then left into the zoom-out.
+- `campath.py`: part B still has one yaw reversal, now the pan's far point at 45.4 s (it was the 46.4 s one). No speed
+  swing added. Fastest turn of the pan 48 deg/s; the route's fastest is still the zoom-out (66 deg/s).
+- Geometry QA (500 B frames, doors, clearance) and timeline QA pass again.
+
+**Brightness in the hall:**
+- Exposure (`HALL_LIFT`): the picture stays 1.0 stop up from the door through the tunnel and the hall, and is back at
+  0 between 48.0 and 49.7 s, before the zoom-out reaches the end pose. The corridor's 1.5 stops are unchanged.
+- The Godot hall itself (`cinema_timeline_v97.gd`): the Cycles hall is lit by broad soft lights; as Godot spots they
+  gave one bright patch in the middle of the seats and black walls. One even, shadowless fill for the hall replaces
+  most of the row fills. Measured at the end pose against the plate, of 255:
+
+| | Plate | Before | Now |
+|---|---|---|---|
+| Left wall | 24 | 8 | 25 |
+| Seats, middle | 30 | 39 | 30 |
+| Seats, lower right | 33 | 10 | 28 |
+| Seats, rear left | 25 | 4 | 23 |
+| Seats, front | 30 | 14 | 28 |
+| Front of the seat bank | 21 | 11 | 21 |
+| Screen | 39 | 38 | 40 |
+
+  So the step at 52.3 s is much smaller. The seats are a little redder than in the plate (41, 25, 50 against 35, 26, 48).
+  `--hallfill=0` after `--mode=live` switches the fill off.
+
+**Not done or to know:**
+- The pan looks over the cutaway: beyond the seats there is no right wall and no ceiling, so the background is the
+  dark navy surround. In the live picture those sides are cut away too.
+- The seats are empty. Chatters in the fly-through come from the page (item 8 above).
+- At 43.5 s the dark side of the seat bank fills the right half of the picture for about half a second.
+- The even fill and the lower row-fill gain are Godot only; Cycles keeps its own lights. Whether the Cycles hall needs
+  the exposure lift has to be judged there.
+- The 1,600 capture frames are kept in `godot-spike/captures_v2/v97b/` (1.5 GB); delete them when not needed.
+- The 7 Nov version and `assets_v2/` are untouched.
+
+STATUS: 97B COMPLETE - HALL PAN (RIGHT ACROSS THE SEAT ROWS 42.4-45.4 S, ONE LEFT TURN TO THE SCREEN AND INTO THE UNCHANGED ZOOM-OUT, END POSE AND PLATE EXACT), HALL EXPOSURE +1.0 STOP UNTIL 48.0 S, GODOT HALL FILL TUNED TO THE PLATE (WALLS 25 AGAINST 24, WERE 8); LENGTH STILL 1,600 FRAMES / 53.3 S, PART A UNCHANGED; CAMERA-PATH, GEOMETRY AND TIMELINE QA PASS; CAPTURE `concepts/fly/flythrough-v97b-godot-720p.mp4`; CORRIDOR SHELL AND CORRIDOR LIFT AS BEFORE (OWNER UNDECIDED); NO CYCLES RENDER, NO CLOUD, NO COMMIT; STOP.

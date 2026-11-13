@@ -80,3 +80,9 @@ STATUS: COMPLETE - OPENING-ONLY SCREEN-SPEED CORRECTION, BYTE COMPARISON AND LIV
 - Added for the flight only: corridor near wall, ceiling and door-wall lining, hidden from global frame 1260. Entrance leaves open at 38.1-39.1 s.
 - `campath.py`: no new speed swing, no new yaw reversal (`route_v97_campath.txt`). Geometry, door and clearance QA pass (`route_v97_geometry_qa.json`, nearest new object 0.33 m). Timeline QA passes (`route_v97_integration_qa.json`). Live starts offscreen with `--quit-after 180`, exit 0; the whole route played once without script errors. Full notes: `NOTES-97.md`.
 STATUS: COMPLETE - V97 SCENES, CORRIDOR ROUTE, QA AND OFFSCREEN LIVE START PASS; OWNER REVIEW IN THE LIVE VIEWER PENDING; STOP.
+
+## 13 Nov 2026 - Version 97b: hall pan and hall brightness (owner feedback on the first capture)
+- Owner: 43-49 s showed the same piece of screen; pan right to the audience first, then to the screen, then zoom out; and the hall was almost black. `route_v97.py`: between global 1272 and 1472 the look direction pans right to 110 degrees (peak 45.4 s, lens 7 degrees lower), then one left turn runs into the approved pull-back. Positions, speed, lens, length (1,600 frames) and part A are unchanged. Exposure stays +1.0 stop from the door to 48.0 s and is 0 by 49.7 s.
+- `cinema_timeline_v97.gd`: one even, shadowless hall fill and the row fills at 0.08, tuned to the plate at the end pose (walls 25 against 24 of 255, seats 23-30 against 25-33, slab front 21 against 21; before 8, 4-39, 11).
+- `campath.py`: still one yaw reversal in B (the pan's peak, 45.4 s), no speed swing added, turn max unchanged (65.6 deg/s, the pull-back). Geometry and timeline QA pass again. 720p capture for the owner: `concepts/fly/flythrough-v97b-godot-720p.mp4`.
+STATUS: COMPLETE - V97B HALL PAN, HALL EXPOSURE AND PLATE MATCH; QA PASS; CAPTURE DELIVERED; STOP.

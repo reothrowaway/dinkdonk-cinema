@@ -3009,3 +3009,8 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   `godot-spike/assets_v97/camera_path.json` (part A unchanged, 120 new corridor frames, 53.3 s). Added for the flight
   and waiting for the owner: corridor near wall, ceiling and door-wall lining, +1.5 stops exposure in the corridor.
   QA passes; no Cycles render, no video, no cloud, nothing committed. `NOTES-97.md`.
+- 13 Nov, afternoon (render agent, owner feedback on the v97 capture: "43 to 49 s shows the same piece of screen",
+  hall almost black): version 97b. In the hall the camera now pans right across the seat rows (42.4-45.4 s), then turns
+  left to the screen and into the unchanged zoom-out; path, speed and length (53.3 s) as before, part A untouched.
+  Hall exposure +1 stop until the zoom-out; the Godot hall got one even fill so it meets the plate (walls 25 against
+  24 of 255; were 8). QA passes. Capture: `concepts/fly/flythrough-v97b-godot-720p.mp4`. `NOTES-97.md`, section 97b.
