@@ -133,7 +133,7 @@ The header comment lists only some of these. This table is from the actual `q.ge
 
 | Option | Default | Effect | Where |
 |---|---|---|---|
-| `artdir=<name>` | `out10r` | Art pack folder under `roxy3d/` (non `[a-z0-9_-]` stripped), e.g. `out10` (the pack before Brief 95). With `manifest.brief95` the page hides what that pack bakes (`bakedBy95`) | `ART`, `bakedBy95` |
+| `artdir=<name>` | `out10s` | Art pack folder under `roxy3d/` (non `[a-z0-9_-]` stripped), e.g. `out10` (the pack before Brief 95). With `manifest.brief95` the page hides what that pack bakes (`bakedBy95`) | `ART`, `bakedBy95` |
 | `art=flat` | off | Skip the art; flat canvas blockout | `loadArt`, :3461 |
 | `marquee=0` | on | Leave out the street marquee (layer pack `roxy3d/out10m/`, 10 Nov 2026) | `MARQ_ON`, `mergeMarquee` |
 | `mqbody=0` | on | The marquee body as its 24 depth slices only. Default: the whole body picture (`out10m/body.png`) lies under the slices, so no thin lines show across the canopy roof where two slices meet at a fractional zoom (11 Nov 2026) | `mergeMarquee` |
@@ -165,6 +165,7 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | `props=0` | on | No lobby props: the "WIN A BUDDY" claw machine behind the front glass (about 1 arrival in 14 has a go, about 1 in 9 wins and carries a Buddy plush), the "JAMS" jukebox (chatters wearing a dance emote dance at its four spots, the tubes pulse) and the TV on the back bar (BREAKING NEWS on "BREAKING ..." in chat, a DinkDonk combo and every fifth minute). Art: layer pack `roxy3d/out10p/` (`props.json`, loaded after the poster pack); pieces with `anim` are lights the page dims and flashes | `mergeProps`, `stepProps`, `clawTurn`, `goDance`, `breakingNews` |
 | `clawtest=win` / `clawtest=lose` | off | Test only: every arrival without another errand plays the claw machine, with that result | `CLAW_TEST` |
 | `dancetest=1` | off | Test only: everyone who would hang out in the lobby dances at the jukebox | `DANCE_TEST` |
+| `propsdir=<folder>` | `out10ps` | Props layer pack (default `out10ps`, jukebox and TV, over art whose manifest has `claw`; else `out10p`) | `mergeProps` |
 | `fight=0` | on | No Yee vs Pepe: every 4-9 min a free chatter wearing a Yee emote and one wearing a Pepe emote meet on the open lobby floor, square off and trade insults, then disappear into a Sims-style dust ball (fists, feet, stars and swear symbols fly out; bystanders watch and cheer) with the director zoomed in; the winner flexes, the loser lies flat seeing stars and gets up humiliated; "YEE WINS!" or "PEPE WINS!" stays 5.5 s (`window.__fight.start()`, `.start(true)`, `.free()` for tests) | `stepFight`, `startFight` |
 | `lobbylife=0` | on | No lobby-interior batch: the turtle crossing, the nothing burger, quickdraw between two chatters, the wet-floor sign (`window.__lobbyLife`) | `stepLobbyLife` |
 | `layout=<n>` | manifest `layout`, else 1 | Force a queue/staff layout (1, 2, 3). Layout 3 setup (`setupLayout3`) still only runs when the manifest says `layout: 3` | :3718 |

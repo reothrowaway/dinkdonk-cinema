@@ -2906,3 +2906,25 @@ control-qa, shared/core.js, shared/room.js as they were).
   pack95 byte-exact 250/250), out10r3 1,277 checks; wet_glass_left max step 1.25 -> 0.12. 103 files copied into the
   live out10r/ (backup `backups/2026-11-12-r95/out10r.before-r3/`); live lobby loads it. Not checked by eye: the two
   time-average targets (glass_left 0.33, front_solid_wall 0.83).
+- 12 Nov ~22:15, Brief 96 stage 2 (NOTES-96.md): blockout v2 (play side to the lower left, player (12.32, 8.5) seen
+  through the last glass pane) and draft 33 `qa10/draft33-claw.png` (cabinet off, claw machine in its place, body
+  mirrored so its glass faces the camera). Owner: keep its lower body dark ("2"). Real cause of the Brief 95 flicker:
+  89 light-linking combinations needed, Blender has 64; objects past the limit fall back per process. Stage 3 started:
+  repair to <=56, per-item state, two-worker smoke test, then a ~288-item RunPod bundle (staged pack out10s).
+- 13 Nov (after midnight), Brief 96 stage 3 done (NOTES-96.md): light linking 89 -> 54 combinations (four processes
+  render the same picture), per-item state reset, per-worker probe, two-worker smoke passed; check still
+  qa10/draft34-check.png; bundle rerender96/roxy-cloud-bundle-96.tar.gz, 316 items (indoor pieces with rare
+  combinations re-rendered too); home step pack96.py -> out10s + out10ps. RunPod final started with the retry loop:
+  5 pods, GPUs 4090/A6000/A40/3090 only, MAX_HOURS=1 (worst 5 x 1 h x $0.89 = $4.45; with Brief 95's ~$3 under the
+  owner's $8). Separate canary skipped to save money (each worker's probe stops it if lighting differs).
+- 13 Nov 00:34-01:25, Brief 96 RunPod final: 5 A40 (CA-MTL-1, $0.59/h), 316 items done 01:22, 756 MB result checked,
+  all pods and the volume deleted (lists empty). This run cost $2.16 (balance before/after); Briefs 95+96 together about
+  $5.3 of the owner's $8. pack96.py built out10s (864 files, 1,076 checks passed) and out10ps (jukebox + TV). Light loop
+  out10s vs out10r: roof mean 0.32/max 0.40 (was 0.34/0.72, spikes gone), whole 0.34/0.49. Page wiring of the 17
+  page_must points into lobby-qa.html handed to an Opus agent.
+- 13 Nov ~02:00, Brief 96 page (Opus agent): lobby-qa.html takes out10s + out10ps by default (all 17 page_must
+  points; arcade gone, its 7% now play the claw machine; gnome spot (11.6, 7.6) dropped; FIGHT_AT moved to (10.75, 5.0)
+  because the machine hid the cloud; marquee pieces drawn on the old cabinet/claw left out over out10s; ?propsdir=).
+  Checked with real chat, no page errors. Promoted to lobby.html (backup backups/2026-11-13-b96/lobby.before.html);
+  .gitignore, package/art.js, docs take out10s/out10ps. Open: talk ring's right place 89% hidden; no marquee light on
+  the new claw machine; OBS not checked.

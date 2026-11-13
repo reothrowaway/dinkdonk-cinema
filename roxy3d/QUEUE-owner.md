@@ -457,3 +457,5 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     roof frame-to-frame change 0.86 vs 0.05 before). Fix without a new render (loop rebuilt from the phases, staged as
     out10r2, Opus agent). Also: "yes render them" (the leftover page items, NOTES-95 point 7) and "replace the arcade
     machine with the claw machine" (Brief 96, Fable 5.2 high: blockout first).
+77. Owner 12 Nov 2026 (~22:20): draft 33's dark claw machine: keep it dark ("2"). Hosted deploy of the flicker fixes:
+    "Deploy after the final render" -> one hosted deploy after the Brief 96 render is live locally.

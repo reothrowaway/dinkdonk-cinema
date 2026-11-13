@@ -4,8 +4,8 @@
 cloud, no page, pack or existing .blend touched.
 
 **Updated the same evening.** The owner on the first blockout: "it should be facing to the lower left". The image is
-now version 2 (play side toward the storefront glass, player between machine and glass), and stage 2 (draft 33) is
-done: see the two sections at the end. The stage 1 text below is corrected where it named the direction or the
+now version 2 (play side toward the storefront glass, player between machine and glass), stage 2 (draft 33) is
+done, and the cause of the Brief 95 loop flicker is found: see the three sections at the end. The stage 1 text below is corrected where it named the direction or the
 player spot; everything else in it stands.
 
 ![Blockout: the claw machine in the arcade cabinet's place](qa10/blockout96.png)
@@ -39,7 +39,9 @@ removed or old place, dashed box = a chatter at the player spot. I looked at the
   lifted for two glass layers, no light pieces above the glass, no teal line across the player. The 14% at the
   glass's east end get one ordinary layer of glass, like the cabinet's edge today.
 - **Leftover page items: 7 render items** (91 small captures) that become 28 small page pictures.
-- **Stage 3 job: about 86 items, 1.1-1.5 GPU-hours** on a 4090-class card (50 of them are the background phases).
+- **Stage 3 job: about 86 items, 1.1-1.5 GPU-hours** on a 4090-class card (50 of them are the background phases)
+  for the corner alone. **Revised at the end:** the light-linking repair (the cause of the Brief 95 flicker, found
+  during stage 2) makes it about 288 items, 1.7-2.3 GPU-hours.
 
 ## What I found
 
@@ -295,3 +297,468 @@ by version 2: same style, same crop, the "today" panel kept. I looked at the fin
 
 Runs for version 2: one Blender run (measurements and two Workbench frames, 3-4 s each); the runner waited for the
 other agent's Blender first. Temp frames deleted.
+
+---
+
+## Stage 2 (12 Nov 2026): draft 33, the claw machine in the cabinet's place
+
+![Draft 33](qa10/draft33-claw.png)
+
+`qa10/draft33-claw.png`: one still, 1280 x 720, fixed camera, weather frame 0, the draft settings of drafts 27-32
+(256 max / 64 min samples, threshold 0.01, seed 1701, OptiX denoiser, Blackman-Harris 1.5 px, the scene's glare and
+AgX look); marquee sample text and TV sample picture laid on in 2D as before. No critique (coordinator). I looked at
+the final image and at an enlarged crop of the corner.
+
+Scene: `rerender96/lobby_draft33.blend` (22.9 MB), built by `rerender96/build_draft33.py` from
+`rerender95/lobby_draft32.blend` (opened read-only, hash unchanged). Numbers: `rerender96/build33.json`,
+`render33.json`.
+
+- **Cabinet out:** the 41 objects of group `arcade` and the light `Arcade screen spill` are switched off (not deleted).
+- **Claw machine in:** its 45 objects now fill u 11.95-12.70, v 7.50-8.25. 11 header objects (box, two lit faces,
+  WIN A, BUDDY, Buddy sign, stars, four bulb groups) are moved only; 33 body objects are mirrored across the
+  machine's diagonal; the Buddy side art is turned onto its new face. After the move: controls at u 12.09-12.56 on
+  the +v ledge, coin door and prize door on the +v face, glass on the +v and +u sides, closed walls on the two
+  hidden sides. No material, light value or size changed.
+- **What the picture shows:** WIN A on the lower-left header face and BUDDY with the stars on the lower-right one,
+  as approved; the lit box with the plush behind glass on both visible sides; the control ledge with the stick and
+  the red coin light on the lower-left (play) side; the teal line round both. The storefront's last post crosses
+  the machine's left edge, as in the blockout.
+- **Weak point: the machine's lower body is nearly black here.** At its old place the base was lit from the street
+  through the glass; here that light does not reach, and the cabinet that stood here had its own pink edge tubes.
+  The Buddy art on the lower-right side is in the picture but cannot be made out. I added no light (nothing was to
+  be restyled). If the base should read, a small fill or lit art is a styling decision for the owner.
+- **The old place** behind the glass is plain carpet; the cabinet's pink reflections in the wet ground are gone and
+  the machine's header shows there instead.
+
+### Region check
+
+Draft 33 against draft 32 is not a fair comparison: draft 32 itself was one random lighting state (next section).
+So the unchanged source scene was rendered once more the same way (outside the project, deleted) and draft 33
+compared with that. Largest channel difference per pixel, 0-255:
+
+| | Outside the corner (846,600 px) | Corner (draft px x 640-940, y 470-720) |
+|---|---|---|
+| Draft 33 against the unchanged scene, same process steps | mean 0.51, p99 4, 1,193 px over 24 | mean 11.4, p99 176 |
+| The unchanged scene against the draft 32 picture | mean 2.52, p99 44, 32,530 px over 24 | mean 1.04 |
+
+Outside the corner draft 33 differs from the unchanged scene in two places only: the wet ground and roof east of
+the lobby that mirror the machine (expected), and the left block's brick band with three vents and a roof edge
+(more than 2,000 px over 8/255, not expected: the random lighting state again, see below). The lobby interior, the sign, the
+marquee, the poster, jukebox and TV are equal within render noise.
+The machine itself is stable: the corner rendered in three separate Blender processes differs in 6 of the machine's
+5,520 px; what differs there between processes is outdoors (a sidewalk strip, the alley's wet ground, the annex roof).
+
+### Runs (local RTX 3050, one Blender job at a time)
+
+Files added in `rerender96/`: `build_draft33.py`, `run33.ps1` (runner; waits while another Blender runs),
+`lobby_draft33.blend`, `build33.json`, `render33.json`, `runtime33/` (the draft runner's copy and caches, 52 MB),
+`linktest96.py`, `linkcount96.py` and their logs (next section).
+
+Final still: **64.3 s beauty + 9.1 s weather**, 90 s for the run. Before it one coarse crop of the corner (9 s) to
+check the mirrored body; after it the comparison render of the unchanged scene (73 s). All crops and the comparison
+picture were outside the project and are deleted. `build_draft33.py` got its check-only option `--reference` after
+the draft was rendered; the part that builds and renders the draft is unchanged. The runner waited for the other
+agent's Blender jobs each time; that agent's jobs twice started while mine was running (they do not wait).
+
+---
+
+## Why the Brief 95 loop flickered: light linking past Blender's limit (found 12 Nov 2026)
+
+Asked by the coordinator after NOTES-95b: find why whole surfaces had a light on in some workers' renders and off in
+others. **Found and reproduced locally. It is my Brief 95 scene, not the cloud helper.**
+
+- **Cause.** Blender gives every object a "light set": the combination of light-linking lists that include it. A
+  scene has room for **64** distinct combinations. The Brief 95 scene needs **89** (`rerender96/linkcount96.py`):
+  the draft 31 scene had 8 receiver lists and 17 combinations; Brief 95 added 15 lists (7 roof reflection lists, 7
+  wall reflection lists, 1 wet ground list) and their members cross with the old lists. The frozen production scene
+  of Brief 95 needs 88. Objects whose combination gets no number fall back to the default set: they lose the linked
+  lights meant for them and receive linked lights not meant for them. Blender says so in every log ("Maximum number
+  of light linking sets (64) exceeded", 8 times in `rerender95/draft32.log`, 43 times in the Brief 95 smoke log).
+  **I did not notice that line in Brief 95.**
+- **Why it differs per worker.** The numbers are handed out in an order that changes from one Blender process to
+  the next, so different objects fall back each time. Combinations shared by thousands of objects (the lobby
+  interior) always get a number; the small ones (a wall's pieces, roof pieces, the NEXT SHOWING board, the WC signs,
+  the paste-wall posters) are the ones that switch. That is the list in NOTES-95b.
+- **Proof** (`rerender96/linktest96.py`: the same coarse crop of the left block's brick band and the corridor's
+  left end, each run a new Blender process on the same file; `linktest_*.log`):
+  - five processes, unchanged scene: at least three clearly different pictures. Two runs with identical steps
+    differ in 13.8% of the crop's pixels by more than a quarter of their brightness; two others happened to match
+    (0.08%). So it is the process, not what was rendered before it.
+  - three processes with the count brought under the limit (trial, in memory: the seven wall lists merged into one
+    and the seven roof lists into one, 89 -> 55 combinations), after different preceding captures: **0 pixels**
+    differ by that measure, mean difference 0.02-0.04% of the level. The warning appears once, when the file is
+    loaded, and not again after the merge (4-6 times in the unchanged runs).
+- **What it means for the pictures made so far.** Draft 32 was one random state (posters on the paste wall yellow,
+  board text amber; both live packs show them white). Every Brief 95 item was rendered in its worker's random state:
+  the 48 background phases (repaired at the pack step in `out10r2`), and also the occluder pictures and their wet
+  loops of the outdoor pieces (NOTES-95b saw it in `wet_glass_left_00-05`). Draft 33 above is one random state too,
+  outdoors; its lobby interior is not affected.
+- **The trial merge is not the fix.** It proves the mechanism, but it lets every wall card show in every wall and
+  every roof's city copy in every roof, which changes the look (seen in the alley's wet ground and the annex roof).
+
+### The repair (before the Brief 96 bundle is built)
+
+1. **Scene.** Bring the count from 89 to at most 56 while each reflection card keeps its own surface: cut each of
+   the 15 Brief 95 lists down to the surfaces that carry the reflection (the small detail objects with their odd
+   old memberships are what multiplies the count), and where that is not enough, give a card a distance window
+   instead of a list. `linkcount96.py` is the gate: the bundle builder refuses a scene over 60, and an item fails
+   if Blender prints the warning.
+2. **Run script.** Every item sets its whole state from the frozen plan at its start (visibility, holdout,
+   switched-off objects, phase, material states, chase bulbs, light-linking lists by name) and takes nothing from
+   the item before it. With the count under the limit the order of items no longer matters; this is the second lock.
+3. **Smoke test, local and as the first items of the paid run.** The same background phase crop and one outdoor
+   occluder capture are rendered in two separate worker processes after different preceding items and compared:
+   0 pixels over a quarter of their brightness and a mean difference under 1% of the level, or the run stops.
+4. **Look check.** With every link honored the outdoor wet surfaces show the designed state for the first time in
+   one picture. Where `out10r2` settled on the other state, the new base will differ from it. One check still of
+   the repaired scene belongs before the paid render (the owner's eye, his call whether as a draft).
+5. **More to render.** Brief 95 pictures of outdoor pieces cannot be mixed with a repaired base. Besides the 50
+   background phases, `claw`, `bench`, mist, chase lights and L1-L7, the outdoor depth pieces are rendered again:
+   `street_lamp`, `bus_stop`, `glass_left`, `glass_right`, `entrance_post_1`, `entrance_post_2`, `entrance_header`,
+   `entrance_neon`, `front_solid_wall` (25 phases each), `paste_wall`, `bridge_board`: 227 captures. The exact list
+   comes from the scene (every piece that holds an object of a small combination). **Stage 3 then has about 288
+   items, 1.7-2.3 GPU-hours on a 4090-class card, about $2-3** at the Brief 95 run's rates (not a current quote).
+   Rain frames, doors, the restroom light and the indoor pieces are still taken from `rerender95/result95/`.
+
+Not done here: the repair itself (it changes the scene behind the outdoor look and needs its own check still), the
+exact list of pieces, a test on Linux or on a pod. Not checked: whether Blender's order also changes inside one
+process when objects are hidden between captures (the three trial runs say it does not matter once the count fits).
+
+Runs for this section: 12 short test renders (7-9 s each, coarse, crops only, written outside the project and
+deleted) and one count run without rendering. Logs: `rerender96/linktest_*.log`, `linkcount.log`.
+
+STATUS: STAGE 2 COMPLETE - BLOCKOUT VERSION 2 (qa10/blockout96.png: PLAY SIDE TO THE LOWER LEFT, PLAYER AT (12.32, 8.5) BETWEEN MACHINE AND GLASS, SEEN THROUGH THE LAST GLASS PANE) AND DRAFT 33 (qa10/draft33-claw.png FROM rerender96/lobby_draft33.blend: CABINET OFF, CLAW MACHINE IN ITS PLACE, BODY MIRRORED SO THE GLASS FACES THE CAMERA, LETTERING AS APPROVED) DELIVERED; THE MACHINE'S LOWER BODY IS NEARLY BLACK AT THIS PLACE (NO LIGHT ADDED); CAUSE OF THE BRIEF 95 FLICKER FOUND AND REPRODUCED: THE SCENE NEEDS 89 LIGHT-LINKING COMBINATIONS, BLENDER HAS 64, AND WHICH OBJECTS FALL BACK CHANGES PER PROCESS; REPAIR PLANNED FOR THE START OF STAGE 3, NOT DONE; STAGE 3 THEN ABOUT 288 ITEMS, 1.7-2.3 GPU-HOURS; NO CRITIQUE, NO PRODUCTION RENDER, NO CLOUD, NO LIVE PACK OR PAGE CHANGED; WAITING FOR THE OWNER ON DRAFT 33; STOP.
+
+---
+
+## Stage 3 (12-13 Nov 2026): light-linking repair, check still, production bundle
+
+Owner through the coordinator: draft 33 and the layout are accepted, the machine's lower body stays dark as rendered;
+go on without another stop. No cloud was contacted, nothing was committed, `out10r/` and `out10p/` were not written.
+
+![Check still of the repaired scene](qa10/draft34-check.png)
+
+### 1. Light-linking repair
+
+`rerender96/relink96.py` made `lobby_draft34.blend` from `lobby_draft33.blend`: **89 -> 54 receiver combinations**
+(Blender numbers 64). The production scene needs 53, counted with every leftover-item object switched on at once.
+
+- Every Brief 95 reflection card keeps its own surface list. Objects left the lists in stages, smallest first, until
+  the count fitted: small detail (under 0.1 m2) out of the Brief 95 lists: 1746 objects, 81 combinations left; flat object out of the wall lists: 141 objects, 72 combinations left; upright object out of the roof lists: 49 objects, 69 combinations left; detail under 0.5 m2 out of the Brief 95 lists: 503 objects, 58 combinations left; piece under 1.5 m2 out of the Brief 95 lists: 124 objects, 54 combinations left.
+- "Flat object out of the wall lists" is a correction, not a loss: my Brief 95 lists were filled by position and had
+  caught roof slabs and standing water in the wall lists. A wall card is for a wall.
+- Water always stays in its roof or ground list. The 2,533 objects that left keep all their old lists (lit as in draft 31); they only
+  stop mirroring the reflection-only cards.
+
+| Brief 95 list | Objects before | Objects now |
+|---|---:|---:|
+| roof list: alley | 451 | 15 |
+| roof list: annex roof | 54 | 9 |
+| roof list: far roofs | 256 | 44 |
+| roof list: left apartment roof | 182 | 13 |
+| roof list: multiplex roof | 710 | 84 |
+| roof list: record shop roof | 27 | 4 |
+| roof list: right apartment roof | 90 | 17 |
+| wall list: alley back wall | 46 | 5 |
+| wall list: cinema front wall | 100 | 9 |
+| wall list: left block side wall | 140 | 9 |
+| wall list: left block street front | 186 | 6 |
+| wall list: multiplex band over the corridor | 42 | 3 |
+| wall list: record shop front | 21 | 2 |
+| wall list: right block street front | 159 | 1 |
+| wet ground | 495 | 121 |
+
+**Gate:** `linkcount96.py` counts; `make_prod_scene96.py` refuses a scene over 60; `job96.py` counts again when a worker
+opens the scene and stops over 60.
+**Test (`linktest96.py`, the repaired scene, four separate Blender processes, different preceding captures: none, a
+rain capture, the bench piece, the right glass):** 0 pixels differ by a quarter of their brightness, mean difference
+0.03% of the level, no light-set warning in any log. Before the repair the same test gave three different pictures.
+
+### 2. Check still
+
+`qa10/draft34-check.png`, rendered by `rerender96/check34.py` exactly like draft 33 (63 s + 7 s weather). I looked at
+it. It is the first picture in which every linked reflection is on at once: the roofs show their standing water and
+ripples in all four corners, the brick bands carry their sheen, the NEXT SHOWING board and the paste-wall posters are
+white (as in both live packs). Against draft 33 (one random state): outside the claw corner mean 2.532/255,
+27,939 px over 24; inside the corner mean 1.621 (the wet ground east of the lobby). The lobby interior and
+the claw machine are unchanged. No owner stop was asked for; the image is there to be looked at.
+
+### 3. Every item sets its whole state; every worker proves its lighting
+
+`job96.py` (the Brief 95 job, changed):
+- **`reset_state()` at the start and the end of every item:** visibility, switched-off objects, materials, light
+  energies, object positions, emission strengths, the steam clock, phase and visibility caches are put back to the
+  state the scene was opened in, and every emitter's receiver list is checked against the frozen plan
+  (401 emitters, in `production.json`). An item takes nothing from the item before it.
+- **Probe:** each worker process renders one crop of the surfaces that switched in Brief 95 (left block's brick band,
+  corridor band, NEXT SHOWING board; stage px 345, 135, 810 x 300) before its first item and compares it with
+  `probe_reference.npz` in the bundle (rendered here at production settings, 26 s). More than 1% of the 16 px blocks
+  off by a quarter, or a mean difference over 4%, and the worker stops with an error instead of rendering. Every
+  receipt carries its worker's probe numbers; the helper's finalize and `pack96.py` refuse items of a failed probe.
+- With the count under the limit the probe cannot fail for that reason any more; it is the second lock.
+
+### 4. The bundle
+
+- **`rerender96/roxy-cloud-bundle-96.tar.gz`**, **23,200,144 bytes (22.1 MiB)**, 32 members, all under `bundle/`,
+  SHA-256 `2c9293f1b5a03ce64eb16479c0e593322362adb5c43ee426306cce1b3c67fb93` (also in the `.sha256` file beside it). The helper's own `validate_archive` accepts it.
+- **316 independent items:** 49 background phases (48 + the wrap proof), 1 dry fallback, 257 depth-piece captures, 1 mist item, 1 chase-light
+  item, 7 leftover-item render items. **Items 1-13 are one of each kind.**
+- Depth pieces (257): `claw` 1 (new, with positions), `bench` 1; outdoors `street_lamp`, `bus_stop`, `glass_left`,
+  `glass_right`, `entrance_post_1`, `entrance_post_2`, `entrance_header`, `entrance_neon`, `front_solid_wall` at 25
+  phases each, `paste_wall` 1, `bridge_board` 1 (227); and four indoor pieces that hold objects of a rare combination
+  and so could have rendered in a wrong state in Brief 95 (`risky96.py`): `partition_left` 25, `palm` 1,
+  `restroom_side_wall` 1, `restroom_stall_4` 1 (28). That is 28 more than the 288 planned.
+- Not rendered again, taken from the live pack: rain frames and video, the 48 door poses (their leaves hold no object
+  of a rare combination), the restroom light, the other indoor pieces, vehicles, umbrellas, cat, janitor, items.
+- Scene `pipe/scene.blend` (21.7 MB, 7,860 objects): `lobby_draft34.blend` made ready by `make_prod_scene96.py`: rain
+  streaks removed, marquee, poster, jukebox and TV off (layer packs), **claw machine on as group `claw` with its four
+  bulb groups dark**, arcade cabinet and its light off, 190 small objects of the leftover items built in and switched off.
+
+Commands for Claude, from `roxy3d/` in Git Bash, **only with the owner's spend approval**; neither was run. GPUs:
+4090-class or cheaper. `MAX_HOURS` is the money limit (hours per pod); the scripts refuse to start without it.
+
+```bash
+MAX_HOURS=0.5 bash rerender96/run96-test.sh      # one pod, items 1-13 at full quality
+MAX_HOURS=1.25 bash rerender96/run96-final.sh    # five pods, all 316 items
+```
+
+The final one in full:
+
+```bash
+GPUS='NVIDIA GeForce RTX 4090,NVIDIA RTX 6000 Ada Generation,NVIDIA L40S,NVIDIA RTX A6000,NVIDIA A40,NVIDIA GeForce RTX 3090' \
+PODS=5 WORKERS=auto MAX_WORKERS=4 FRAMES= FLY_MODE=final CHUNK=4 MAX_HOURS=<limit> BOOT_MIN=10 ESTIMATE_HOURS=0.7 \
+ARCHIVE="$PWD/rerender96/roxy-cloud-bundle-96.tar.gz" MULTI_STATE="$PWD/cloud/cloud-state-96-final.json" \
+OUTDIR="$PWD/rerender96/result96" bash cloud/cloud-render.sh multi
+```
+
+Then the pack, at home, no GPU (`roxy3d/out10s` and `roxy3d/out10ps` must not exist; `out10r_work/products` is needed
+for one rain frame of the full still):
+
+```bash
+../tools/blender-5.2.3-windows-x64/blender.exe -b --factory-startup --python-exit-code 1 \
+  --python rerender96/pack96.py -- rerender96/result96
+```
+
+### GPU time (RTX 4090 class; from the measured times of Briefs 56, 94 and 95, not a new benchmark)
+
+| Item | Count | Seconds each | Note |
+|---|---:|---:|---|
+| Background phase, dry fallback | 50 | 60-85 | |
+| Depth-piece capture | 257 | 11-15 | |
+| Mist (both passes) | 1 | 60-100 | |
+| Chase lights | 1 | 40-60 | 6 crops |
+| L3 the block across the street | 1 | 150-210 | 14 crops |
+| L5 steam | 1 | 200-340 | 48 volume frames |
+| L1, L2, L4, L6, L7 | 5 | 15-100 | 3, 2, 6, 14 and 5 captures |
+| Probe, once per worker process | 10-20 | about 10 | |
+
+Sum: **about 2.0-2.6 GPU-hours** on one 4090 worker (the planned 1.7-2.3 plus the 28 indoor captures and the item
+overheads). The only production-settings times measured for this job are the five items of section 5 on the RTX 3050. With five pods and several workers per GPU about 40-50 minutes of wall time including start-up; about
+$2-3 at the Brief 95 run's rates (5 A40 for 55 min were about $2.5-3 for 502 items; not a current quote).
+
+### 5. Local smoke (RTX 3050, one Blender job at a time)
+
+`rerender96/local_check96.sh` runs the whole chain: scene, probe reference, seal, extract, smoke, compare, the
+helper's checks, pack (`SKIP_SCENE=1` starts at the seal; the last seal was made that way, because only `job96.py`
+and `pack96.py` had changed and the scene and its probe reference had not). The numbers below are from the last
+seal. The smoke goes through the helper's real worker (`cloud/multi_blender.py`) on the extracted
+copy of the sealed archive, `FRAMES=1-13`, `B96_SMOKE=1` (8 samples, same 4K grid, 4 of the 48 steam frames).
+
+| Item | Render s | Whole item s |
+|---|---:|---:|
+| 1 background 000 | 23.8 | 51.1 |
+| 2 fg claw 000 | 4.8 | 14.6 |
+| 3 chase | 29.6 | 72.0 |
+| 4 fg glass left 000 | 5.1 | 13.8 |
+| 5 fg bench 000 | 4.6 | 12.6 |
+| 6 item sign | 14.3 | 34.7 |
+| 7 item carried | 9.1 | 30.0 |
+| 8 item street | 93.8 | 219.4 |
+| 9 item police | 30.3 | 91.6 |
+| 10 item steam | 18.1 | 49.8 |
+| 11 item splash | 63.3 | 169.7 |
+| 12 item umbrella | 22.2 | 71.9 |
+| 13 mist | 105.9 | 106.0 |
+
+937 s for the thirteen items; exit 0. Worker 1's probe: 0.39% of the blocks off by a quarter, mean difference 3.1% (8 samples against the
+256-sample reference; limits for a smoke 3% and 10%). The helper's own `verify_unpack` accepts the result archive.
+
+**Two-worker test** (`compare_smoke96.py`): a second worker process rendered items 4 and 5 again as its first items
+(worker 1 had rendered the background, the claw piece and the chase lights before them). Both probes passed.
+
+| Item | Product | Mean difference /255 | p99 | Pixels off by a quarter |
+|---|---|---:|---:|---:|
+| fg bench 000 | fg/bench/f000.png | 0.046 | 1 | 0.000% |
+| fg bench 000 | fg/bench/f000@2x.png | 0.056 | 1 | 0.000% |
+| fg glass left 000 | fg/glass_left/f000.png | 0.037 | 1 | 0.000% |
+| fg glass left 000 | fg/glass_left/f000@2x.png | 0.047 | 1 | 0.000% |
+
+`glass_left` is one of the pieces whose wet loop switched in Brief 95.
+
+**Five items at production settings** (256 samples, `smoke96.ps1 -Full`, same worker, same sealed archive; three more
+worker processes):
+
+| Item | Render s (RTX 3050) | Whole item s |
+|---|---:|---:|
+| 3 chase | 110 | 188 |
+| 6 item sign | 18 | 72 |
+| 7 item carried | 10 | 31 |
+| 8 item street | 804 | 963 |
+| 9 item police | 88 | 150 |
+
+- Each of the three processes rendered the probe before its first item: **0 blocks off, mean difference at most
+  0.005%** against the reference a fourth process had rendered. At equal settings the lighting state is the
+  same in every process, to the last digit that matters. Before the repair this crop was the one that switched.
+- I looked at all pictures of these items at production quality: the chase pieces are four small sets of bulbs
+  (95 x 166, 90 x 44, 44 x 38, 68 x 41 px; all four added to the dark state against the direct capture of all four:
+  mean 0.14/255); the sign has a clean contact shadow; the street patches lie on the
+  new background without a visible edge; noise outside a patch's own area is 0.02-1.5/255 on average, so the
+  production thresholds (12 and 3) hold.
+- This run found a mistake of mine that the 8-sample smoke had hidden: the street states and the police road light
+  were captured with the depth pieces in view, so at production thresholds the pink-neon patch grew over the bus
+  shelter and its post, and the road pieces carried the lamp post and the lens. They are now captured as the
+  background is (depth pieces out of the camera's sight, still shading and reflecting), sealed again, and the smoke
+  chain and these runs were repeated with that seal.
+
+### 6. Home pack step on the smoke result
+
+`pack96.py --partial` built a test pack from the thirteen items (910 checks, failures: 0; it is in
+`rerender96/smoke96/pack/`, not a pack to promote):
+- `claw`: alpha from the render, one slice `claw_00` at z 3020; chase pieces at z 3021: `claw_chase_0` 122 x 166 at (1119, 860), `claw_chase_1` 136 x 166 at (1114, 860), `claw_chase_2` 114 x 165 at (1124, 861), `claw_chase_3` 153 x 165 at (1124, 861).
+- `arcade`, its slice, `arcade_attract`, `arcade_play`, `arcade_hiscore` and the baked-sign entry are gone from the
+  manifest and the folder.
+- `out10ps/`: the props pack without the claw machine, 10 layers, byte for byte the Brief 94 files.
+- The leftover items' pictures and manifest blocks (below).
+The full pack needs the full render: base, loop, the 25-phase pieces, videos and full stills ran only as code taken
+from `pack95.py`.
+
+### 7. The leftover page items as built
+
+| # | What came out | Pictures |
+|---|---|---|
+| L1 | `manifest.wet_floor_sign`: yellow A-frame with "!" and its contact shadow, 80 x 72 at stage (1088, 796), anchor [40.0, 52.0], z 2660 | 1 |
+| L2 | `manifest.items.buddy` (18 x 18, the claw machine's plush: blue blob, darker cap, eyes, cheeks) and `.clipboard` (14 x 18), anchors as popcorn and soda | 2 |
+| L3 | `manifest.street_states.overlays` (table below) | 13 |
+| L4 | `manifest.police_bar.pieces` (table below); one bar for both sedans, placed by `dx, dy` from the road point under the car's centre | 5 |
+| L5 | `manifest.steam`: 48-frame loop sheet 8 x 6, cell 64 x 96, anchor [32.0, 90.98916354320318] = the plume's foot, additive, 12 fps (4 s) | 1 |
+| L6 | `manifest.puddle_splash`: 14-frame one-shot sheet 7 x 2, cell 160 x 112, anchor [40.0, 92.5] = the curb point, additive, 24 fps | 1 |
+| L7 | `manifest.umbrella.inside_out[red, blue, yellow, black]`: same 88 x 80 cell and grip anchor as `open` | 4 |
+
+That is 27 pictures (each at 1x and 2x) instead of the 28 planned: the police bar is one bar with two light frames each
+for road and lens (5, not 6), the rest as planned.
+
+Street overlays (places and sizes from the production-settings run):
+
+| Name | Stage x, y | Size | Blend | What |
+|---|---|---|---|---|
+| `window_1_dark` | 178, 295 | 49 x 68 | source-over | apartment window 1 dark (the base shows it lit) |
+| `window_2_dark` | 228, 321 | 50 x 67 | source-over | apartment window 2 dark (the base shows it lit) |
+| `window_3_dark` | 115, 325 | 61 x 67 | source-over | apartment window 3 dark (the base shows it lit) |
+| `window_4_lit` | 115, 270 | 61 x 67 | source-over | apartment window 4 lit (the base shows it dark) |
+| `window_5_lit` | 178, 350 | 49 x 67 | source-over | apartment window 5 lit (the base shows it dark) |
+| `window_6_lit` | 177, 405 | 55 x 65 | source-over | apartment window 6 lit (the base shows it dark) |
+| `neon_pink_off` | 234, 365 | 186 x 310 | source-over | the pink script neon dark, with its light on the wall and the wet ground gone |
+| `neon_video_off` | 60, 408 | 201 x 326 | source-over | the VIDEO RENTAL sign and its green tube dark, with their light on the sidewalk gone |
+| `door_cabge_open` | 212, 501 | 127 x 164 | source-over | the greengrocer (CABGE) door open: lit doorway and warm light on the sidewalk |
+| `door_noodles_open` | 289, 540 | 108 x 162 | source-over | the noodle shop door open: lit doorway and warm light on the sidewalk |
+| `dog_up` | 239, 459 | 27 x 25 | source-over | the dog's head on the sill of the blue (TV) window |
+| `snarkers_up` | 232, 399 | 39 x 39 | source-over | two figures with binoculars at the dark window above the blue one |
+| `snarkers_glint` | 231, 403 | 35 x 34 | plus-lighter | the glints of the two binoculars (blink it over snarkers_up) |
+
+Police pieces (sizes from the production-settings run):
+
+| Name | Size | Blend | Layer | What |
+|---|---|---|---|---|
+| `bar` | 41 x 27 | source-over | above the sedan | the light bar on the roof, lenses dark |
+| `red_road` | 300 x 174 | plus-lighter | under the sedan | light of the red lens on the wet road |
+| `red_lens` | 56 x 51 | plus-lighter | above the sedan and the bar | the red lens lit, with its glow |
+| `blue_road` | 291 x 151 | plus-lighter | under the sedan | light of the blue lens on the wet road |
+| `blue_lens` | 56 x 53 | plus-lighter | above the sedan and the bar | the blue lens lit, with its glow |
+
+How they are made: a state is rendered on its own in the same crop and the same way as the background (no depth
+pieces in view), and its patch starts from clear changes inside the state's own area and grows through weaker change
+that touches them, so render noise elsewhere never gets into a patch. Light pieces (chase, lens, road, glints) keep only what a 3 x 3 mean of the difference
+confirms. Sprites (sign, plush, clipboard, bar, umbrellas) are rendered alone with nothing else in the camera's
+sight. The umbrellas are brought to the mean color of the pack's open umbrella of the same color (gains of 0.64-0.90 per
+channel, in the pack's `validation.json`); a normal red umbrella rendered beside them covers the pack's `red_open` silhouette to 99.5%.
+
+Things to know:
+- **The bus shelter stands in front of the noodle shop's door.** Its patch holds the lit doorway and the light on
+  the sidewalk; on the page the shelter piece is drawn over it, so mostly the sidewalk light shows. The
+  greengrocer's doorway is in the open.
+- `neon_pink_off` holds the whole pink sign (blade, brackets, tubes dark), because that sign is the depth piece
+  `entrance_neon`: the page hides that piece and its wet loops while the patch shows. The other depth pieces there
+  (bus shelter) keep their pink tint for the length of the dip.
+- A lit window that goes dark takes the lamp behind it with it.
+- The police lamps sit over the two ends of the bar; from the middle of the roof the roof itself would shade the
+  road for 1.5 m around the car. **`blue_road` has a bright glint** (peak 243/255, about 15 x 25 px): the blue lamp
+  mirrored in the standing water in front of the car. `red_road` has none (peak 142). On the page the glint
+  travels with the car. If it looks wrong there, the cure is a lower lamp or a cap in `item_police`; I left it as
+  rendered.
+- Steam and splash glow by themselves (no scene light), so they look the same at every spot.
+
+### 8. What the page must do (complete list; also in `manifest.brief96.page_must`)
+
+Packs:
+1. Main art `out10s` (with its mist maps: `?artdir=out10s&mistdir=out10s`); props pack `out10ps` instead of `out10p`
+   (jukebox and TV, 10 layers, no claw layers and no `props.claw`); `out10m` and `out10l` as they are.
+
+Claw machine and arcade:
+2. `claw` is an ordinary occluder with one slice. Push `manifest.claw.chase_layers` (4 pieces, plus-lighter, z just
+   above the claw piece) into the occluder stack; drive them as `chase_0..3` as before (`manifest.claw.animated`).
+3. Player spot from `manifest.claw.standing_spots_uv`: **(12.32, 8.5)**, depth 3082. Way in from
+   `manifest.claw.way_in_uv`: the old first legs, then (12.95, 7.0), (12.95, 8.5), the spot; back the same way. The
+   player faces the machine (up and to the right). `mergeProps` no longer finds a claw spot in the props pack.
+4. Gone: occluder `arcade`, prop loops `arcade_attract`, `arcade_play`, `arcade_hiscore`, the `ARCADE` spot
+   (12.95, 7.85), `arcadeBusy`, the arcade detour (whether those 7% of arrivals now play the claw machine is the
+   page's call), `arcadeFlash` and `.arcadeglow`, the screen-loop switching, the HIGH SCORE and GAME OVER marks.
+5. Gone: the glass rules for the claw machine (body below z 3000, light at z 3190) and the cat/gnome cut around the
+   old place (10.9, 8.3); cat spot (10.5, 7.9) and gnome spot (10.55, 8.45) are in view again. Gnome spot
+   (11.6, 7.6) is behind the machine: drop or move it. The cut around the jukebox stays.
+6. Worth a look with real chat: the Yee vs Pepe spot (45% hidden) and the talk ring's right place (89%).
+
+Leftover items (each replaces a page drawing; clocks, cues and positions stay the page's):
+7. Wet-floor sign: `manifest.wet_floor_sign` at its `x, y` with its `z_index`, faded as now, instead of `.wetsign`.
+8. Buddy plush and clipboard: `manifest.items.buddy` and `.clipboard` through the item placing, instead of `.buddy`
+   and `.clip`.
+9. Apartment windows: `window_1_dark` .. `window_3_dark` for the three lit windows, `window_4_lit` .. `window_6_lit`
+   for the three dark ones, shown with the 1.8 s fade, instead of the `.lwin` gradients.
+10. Neon dips: `neon_pink_off` and `neon_video_off` flashed with the dip timing, instead of the `.ldip` patches. For
+    the pink one also hide the `entrance_neon` piece and its wet loops while it shows (the patch holds the dark sign).
+11. Shop doors: `door_cabge_open`, `door_noodles_open` on the canvasser's cue, instead of `.doorlight`.
+12. Dog: `dog_up` while a bus is near, instead of `.wdog`. Snarkers: `snarkers_up` hidden for 15 s of every 50,
+    `snarkers_glint` (plus-lighter) blinking over it, instead of `.snark`.
+13. All street overlays go in the ground layer: above the background and its light loop, below walkers and depth
+    pieces (`manifest.street_states.layer`). They are pictures of the ground layer only, like the background.
+14. Police light bar: `bar` above the sedan at P(car u, lane) + (dx, dy); `red_road` / `blue_road` (plus-lighter)
+    in the ground layer under the sedan; `red_lens` / `blue_lens` (plus-lighter) above the bar; red and blue alternate every 0.25 s;
+    instead of `.sirenbar`.
+15. Steam: `manifest.steam` at the five spots (foot at the anchor), scaled 0.5-1.1, out of phase, 12 fps, instead of
+    the 15 `.puff` divs.
+16. Puddle splash: `manifest.puddle_splash` once per splash at P(u, 10.85), 24 fps, instead of the ten `.drop` divs
+    and the ring.
+17. Umbrellas in a gust: `manifest.umbrella.inside_out[color]` for 1.3 s instead of the CSS flip.
+
+### Not verified
+
+- A run under Linux and on a pod; several workers sharing one GPU with this scene.
+- At production quality only the probe and five items were rendered (chase, sign, carried, street, police; items 3,
+  6-9). Not at production quality: background, depth pieces, mist, steam, splash, umbrellas (8 samples only).
+- The home step end to end (background, loop, 25-phase pieces, videos, full stills).
+- The repaired look beyond the one check still: other loop phases, 4K.
+- The page with any of this; how the patches meet the moving loop under them (they are phase 0); the pieces'
+  brightness in OBS; the blue glint travelling with the police car.
+- The mist height map still takes its roof list from the Brief 50 inventory (the annex roof 1.2 m too long, unseen).
+
+### Files added in `rerender96/` for stage 3
+
+`relink96.py` (+ `relink96.json`), `lobby_draft34.blend`, `check34.py` (+ `check34.json`), `risky96.py`
+(+ `risky_groups96.json`), `probe96.py` (+ `probe96.json`), `make_prod_scene96.py` (+ `prod_scene96.json`),
+`build_bundle96.py` (+ `bundle96.json`), `bundle96/bundle/` (the bundle's source: `job96.py`, `pipeline.py`,
+`render67.py`, `run.sh`, `pack96.py`, `probe_reference.npz`, `pipe/`, `cache/`, `live/`), `pack96.py`,
+`smoke96.ps1`, `compare_smoke96.py`, `local_check96.sh`, `run96-test.sh`, `run96-final.sh`, `smoke96/` (the smoke:
+extracted bundle, the runs, unpacked results, test pack, logs, `compare96.json`, `full96.json`),
+`roxy-cloud-bundle-96.tar.gz` and its `.sha256`.
+`PROGRESS.md` is not in the write list and is unchanged.
+
+STATUS: STAGE 3 COMPLETE - LIGHT LINKING REPAIRED (89 -> 54 COMBINATIONS, FOUR PROCESSES RENDER THE SAME PICTURE); CHECK STILL qa10/draft34-check.png; BUNDLE rerender96/roxy-cloud-bundle-96.tar.gz (22.1 MiB, 316 ITEMS) FITS THE MULTI-POD HELPER; EVERY ITEM RESETS ITS STATE AND EVERY WORKER PROVES ITS LIGHTING WITH A PROBE; THIRTEEN-ITEM LOCAL SMOKE THROUGH THE HELPER'S WORKER PASSED, TWO-WORKER TEST PASSED, FIVE ITEMS ALSO RENDERED AT PRODUCTION SETTINGS (PROBE IDENTICAL IN FOUR PROCESSES), HOME PACK STEP pack96.py RUN ON THE SMOKE RESULT (STAGES out10s/ AND out10ps/, NEVER out10r/); ABOUT 2.0-2.6 GPU-HOURS; LINUX, THE REST AT PRODUCTION QUALITY AND THE FULL HOME STEP NOT VERIFIED; NO FULL RENDER STARTED, NO CLOUD; STOP.

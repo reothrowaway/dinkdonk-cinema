@@ -162,8 +162,6 @@
   .doorglow { position: absolute; left: 0; top: 0; width: 150px; height: 96px; margin: -48px 0 0 -75px; pointer-events: none;
     border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 196, 120, .55), rgba(255, 150, 80, .18) 55%, rgba(0,0,0,0));
     mix-blend-mode: plus-lighter; }
-  .doorglow.arcadeglow { width: 70px; height: 56px; margin: -28px 0 0 -35px;
-    background: radial-gradient(closest-side, rgba(120, 170, 255, .8), rgba(80, 120, 255, 0)); }
   .sheet { position: absolute; left: 0; top: 0; pointer-events: none; background-repeat: no-repeat; }
   .fxsheet { mix-blend-mode: plus-lighter; }
   .mqtext { position: absolute; left: 0; top: 0; width: 640px; height: 116px; transform-origin: 0 0; pointer-events: none;
@@ -204,6 +202,17 @@
   .snark i { position: absolute; background: #2c3650; border-radius: 50% 50% 38% 38%; }
   .snark b { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #dff4ff; box-shadow: 0 0 3px 1px rgba(190, 235, 255, .9); opacity: 0; animation: sglint 5.3s steps(1) infinite; }
   @keyframes sglint { 0% { opacity: 1; } 5% { opacity: 0; } 46% { opacity: .8; } 49% { opacity: 0; } }
+  /* Brief 96 (out10s): the street's windows, neon dips, shop doors, dog and snarkers are rendered patches of the
+     ground layer (manifest street_states); the page drawings above become those pictures, same clocks and classes */
+  .artov { left: 0; top: 0; transform: none !important; background: none !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  .artov > img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .wdog.artov { opacity: 0; transition: opacity .7s ease-in-out; }
+  .wdog.artov.up { opacity: 1; }
+  .snark.artov { opacity: 1; transition: opacity .5s ease-in; }
+  .snark.artov.down { opacity: 0; }
+  .snark.artov > img.glint { mix-blend-mode: plus-lighter; opacity: 0; animation: sglint 5.3s steps(1) infinite; }
+  .umbio { position: absolute; display: none; pointer-events: none; }
+  .w.out .umbio { display: block; }
   .puff { left: -20px; top: -20px; width: 40px; height: 40px; border-radius: 50%; opacity: 0; will-change: transform, opacity;
     background: radial-gradient(closest-side, rgba(233, 238, 245, .55), rgba(233, 238, 245, .22) 55%, rgba(233, 238, 245, 0));
     animation: puff 7s linear infinite; }
@@ -530,7 +539,10 @@
   // out10 = final render of approved draft 13 (layout 3, cloud run 03 Nov 2026); ?artdir=out8b for the previous pack
   // out10r = the Brief 95 re-render (12 Nov 2026: wet reflections on walls and roofs, the DELIVERIES gate moved to the
   // alley, no ABSOLUTE CINEMA lettering, wall tops in the wall pictures, page-drawn bits baked); ?artdir=out10 = before
-  const ART = `roxy3d/${(q.get('artdir') || 'out10r').replace(/[^a-z0-9_-]/gi, '')}/`;
+  // out10s = Brief 96 (13 Nov 2026: the claw machine as a depth piece where the arcade cabinet stood, the cabinet gone,
+  // light linking repaired, the leftover page items as pictures; manifest brief96); ?artdir=out10r = the previous art
+  const ART_DIR = (q.get('artdir') || 'out10s').replace(/[^a-z0-9_-]/gi, '');
+  const ART = `roxy3d/${ART_DIR}/`;
   // L1 street marquee layer pack (roxy3d/out10m, mergeMarquee in the art section); ?marquee=0 leaves it out
   const MARQ_ON = q.get('marquee') !== '0';
   // auto = what the board writes by itself (screen 1's film); custom = the panel's / URL's own lines
@@ -907,7 +919,7 @@
     });
     // bench against the partition
     addProp(6.4, 3.25, 7.9, 3.75, 18, (ctx) => box(ctx, 6.4, 3.25, 7.9, 3.75, 0, 16, '#5a4a7a', '#2a2040', '#33284d'));
-    // arcade cabinet
+    // the claw machine's place (Brief 96; the arcade cabinet's box as a stand-in in this flat fallback)
     addProp(12.0, 7.5, 12.7, 8.2, 82, (ctx) => {
       box(ctx, 12.0, 7.5, 12.7, 8.2, 0, 82, '#2b2b4a', '#1c1c33', '#23233e');
       faceV(ctx, 12.7, 7.6, 8.1, 44, 70, '#4b6bff');
@@ -1229,17 +1241,17 @@
   }
   const fx = $('fx');
   let wcBusy = null;
-  let arcadeBusy = null;
   // lobby props (queue 64: L18 TV, L23 jukebox, L24 claw machine): state; the block itself is further down ("lobby props")
+  // on: the props pack (jukebox, TV) is in; clawOn: the claw machine can be played (from the main art since Brief 96,
+  // manifest.claw, or from an older props pack). clawWay: the way in from the lane's end to the spot (and back);
+  // clawAt: the machine's middle (the player faces it).
   const PROPS_ON = q.get('props') !== '0';
   const CLAW_TEST = q.get('clawtest');   // test only: win | lose
   const DANCE_TEST = q.get('dancetest') === '1';   // test only: everyone who would hang out in the lobby dances
-  const PROPS = { on: false, els: {}, clawSpot: [11.76, 8.5], clawBusy: null, clawWinT: 0, chase: -1,
+  const PROPS = { on: false, els: {}, clawOn: false, clawSpot: [11.76, 8.5], clawWay: null, clawAt: [11.18, 8.5], clawBusy: null, clawWinT: 0, chase: -1,
     jukeSpots: [[11.97, 4.14], [12.36, 4.26], [12.76, 4.5], [12.93, 4.18]], jukeFront: [11.93, 3.88], dance: [null, null, null, null], beat: -2, noteT: 0,
     quad: null, tv: null, tvZ: 2045, tvPos: [1038, 545], tvAt: -1e9, tvUntil: 0, tvLive: false, tvSlot: -1, glow: -1 };
-  let arcadeHiUntil = 0;
   const arrivals = {};               // side -> recent arrival times (staggering)
-  const ARCADE = [12.95, 7.85];      // player spot in front of the cabinet's screen
   // shared room (web/PLAN-shared-rooms.md, shared/room.js): the server decides who walks in, every screen draws it
   const inRoom = () => !!Cinema.room?.page && Cinema.room.live;
   // a walker's later coin flips (bench, quitting the line, stopping to talk, soda): drawn once from the room's seed at
@@ -1650,21 +1662,7 @@
       return;
     }
     let pre;
-    if (w.detour === 'arcade' && !arcadeBusy && !w.hurry) {
-      // a quick round on the cabinet before the film, routed behind the cabinet with clearance
-      arcadeBusy = w;
-      // (with the rope lane: out past its west end and along below the back rope)
-      const there = L.lane ? [[5.2, 6.6], [8.2, 6.6], [12.95, 7.0]] : [[8.2, 7.0], [12.95, 7.0]];
-      pre = [...there.map((to) => ({ to })), { to: ARCADE },
-        { wait: rand(3, 6), end: () => {
-          if (arcadeBusy === w) arcadeBusy = null;
-          arcadeFlash();
-          const r = Math.random();
-          // a new high score stays on the cabinet's screen for a moment (when the art has that screen)
-          if (r < 0.15) { floatAt(w, '★ NEW HIGH SCORE ★', '#9fd8ff'); arcadeHiUntil = performance.now() + 3500; } else if (r < 0.5) floatAt(w, 'GAME OVER', '#9fd8ff');
-        } },
-        { to: [12.95, 7.0] }, { to: [8.0, 6.6] }];
-    } else if (w.detour === 'claw' && PROPS.on && !PROPS.clawBusy && !w.hurry) {
+    if (w.detour === 'claw' && PROPS.clawOn && !PROPS.clawBusy && !w.hurry) {
       pre = clawTurn(w);   // a go on the claw machine before the film (lobby props)
     } else {
       pre = L.toGate.map((to) => ({ to }));
@@ -1911,7 +1909,8 @@
     w.room = wi.roomIndex;
     // with the real restroom (layout 3) about one in five drops by before the film (chat already sends ~5 %)
     const r = rr();
-    w.detour = wi.detour || (RESTROOM && r < 0.16 ? 'bathroom' : r > 0.93 ? 'arcade' : r > 0.86 || CLAW_TEST ? 'claw' : null);
+    // (Brief 96: the arcade cabinet is gone; the 7 % who played it have a go on the claw machine instead, 14 % in all)
+    w.detour = wi.detour || (RESTROOM && r < 0.16 ? 'bathroom' : r > 0.86 || CLAW_TEST ? 'claw' : null);
     const pick = { umb: rr(), lane: rs(9.78, 10.05), dx: [rs(-0.4, 0.4), rs(-0.3, 0.3), rs(-0.6, 0.6)],
       left: rr() < 0.5, jay: rr(), jayV: rs(-0.1, 0.1), jayX: rs(-0.4, 0.4), at: rr() };
     if (wi.room) w.rolls = { bench: rr(), quit: rr(), quitAt: rr(), outside: rr(), lobby: rr(), hall: rr(), soda: rr(), umb: rr() };
@@ -2068,7 +2067,6 @@
   function removeWalker(w) {
     if (w.inQueue) leaveQueue(w);
     if (wcBusy === w) { wcBusy = null; setWC(false); }
-    if (arcadeBusy === w) arcadeBusy = null;
     if (PROPS.clawBusy === w) PROPS.clawBusy = null;
     if (benchBusy === w) benchBusy = null;
     if (w.stall) {
@@ -2122,15 +2120,47 @@
   function callSiren(tries = 0) {
     const v = addVehicle(Math.random() < 0.5 ? 'sedan_a' : 'sedan_b', '+u', { cruise: 6.4 });
     if (!v) { if (tries < 6) setTimeout(() => callSiren(tries + 1), 1500); return; }
+    if (POLICE) {
+      // the rendered light bar (manifest.police_bar, Brief 96): the bar above the sedan, the red and blue light on the
+      // wet road under it (ground layer), the lit lenses above the bar
+      const pcs = POLICE.map((p) => {
+        const im = h('img', 'veh');
+        im.alt = '';
+        Object.assign(im.style, { width: `${p.w}px`, height: `${p.h}px`, zIndex: '4' });
+        world.append(im);
+        if (p.blend === 'plus-lighter') { im.style.mixBlendMode = 'plus-lighter'; addLight(im); }
+        setImg(im, p.file, p.file_2x, dpr() > 1.3, () => { im.style.display = 'none'; });
+        return { im, p };
+      });
+      sirens.push({ v, pcs });
+      return;
+    }
     const el = h('div', 'sirenbar');
     el.append(h('i'), h('i'));
     world.append(el);
     sirens.push({ v, el });
   }
   function stepSirens() {
+    const red = Math.floor(performance.now() / 250) % 2 === 0;   // red and blue take turns every 0.25 s
     for (let i = sirens.length - 1; i >= 0; i--) {
       const s = sirens[i];
-      if (s.v.gone) { s.el.remove(); sirens.splice(i, 1); continue; }
+      if (s.v.gone) { s.el?.remove(); s.pcs?.forEach(({ im }) => { im._add?.remove(); im.remove(); }); sirens.splice(i, 1); continue; }
+      if (s.pcs) {
+        const [x, y] = P(s.v.u, s.v.lane);   // the road under the sedan's centre
+        const zTop = Math.max(0, ...(s.v.parts || []).map(({ el }) => Number(el.style.zIndex) || 0));
+        for (const { im, p } of s.pcs) {
+          const road = /_road$/.test(p.name), lens = /_lens$/.test(p.name);
+          const tr = `translate(${(x + p.dx).toFixed(1)}px, ${(y + p.dy).toFixed(1)}px)`;
+          const z = String(road ? 4 : lens ? zTop + 3 : zTop + 2);
+          const o = road || lens ? (/^red/.test(p.name) === red ? '1' : '0') : '1';
+          for (const el of im._add ? [im, im._add] : [im]) {
+            if (el.style.transform !== tr) el.style.transform = tr;
+            if (el.style.zIndex !== z) el.style.zIndex = z;
+            if (el.style.opacity !== o) el.style.opacity = o;
+          }
+        }
+        continue;
+      }
       const [x, y] = P(s.v.u, s.v.lane, 30);
       s.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
       s.el.style.zIndex = String(depth(s.v.u + 1.2, s.v.lane) + 2);
@@ -2591,7 +2621,7 @@
   const CAT_SPOTS = [   // spot + its route to the hub
     { at: [11.9, 4.35], route: [[11.9, 5.6], [8.6, 5.6]] },   // by the palm, end of the snack bar
     { at: [6.2, 8.45], route: [[6.2, 6.6]] },                 // by the front glass
-    { at: [12.55, 6.85], route: [[12.55, 6.6]] },             // between bench and arcade
+    { at: [12.55, 6.85], route: [[12.55, 6.6]] },             // between bench and claw machine
     { at: [10.5, 7.9], route: [[10.5, 6.6]] },                // near the entrance
   ];
   let cat = null;
@@ -3198,7 +3228,7 @@
   //         3 lamp-lit mist (soft drifting mist that glows under lamps and neon), 4 wind sheets (gusts sweep across).
   let MIST = clamp(Math.round(Number(q.get('mist')) || 0), 0, 4);   // off: style 2 live looked like water boiling off the edges (owner, 04 Nov)
   let MIST_GAIN = clamp(Number(q.get('mistgain')) || 1, 0.1, 4);
-  const MIST_DIR = `roxy3d/${(q.get('mistdir') || (q.get('artdir') && q.get('artdir') !== 'out10r' ? 'out10mist' : 'out10r')).replace(/[^a-z0-9_-]/gi, '')}/`;   // out10r carries its own mist maps
+  const MIST_DIR = `roxy3d/${(q.get('mistdir') || (['out10s', 'out10r'].includes(ART_DIR) ? ART_DIR : 'out10mist')).replace(/[^a-z0-9_-]/gi, '')}/`;   // out10s and out10r carry their own mist maps
 
   // ---------- chatters take the scene's light (L6) and leave a wet reflection (L7), queue 63 ----------
   // Picked by the owner from the 9 Nov drafts (concepts/improve2/drafts/L6.png, L7.png).
@@ -3291,7 +3321,9 @@
     const w = makeFigure('canvasser', SB.emotes?.names?.has('dggL') ? 'dggL' : 'PEPE', '#9fd0ff', false);
     w.npc = true;
     w.key = '#canvasser';
-    w.bod.append(h('div', 'clip'));
+    // the rendered clipboard (manifest.items.clipboard, Brief 96) held like popcorn; older art: the page's CSS board
+    // (as w.carry, so it is placed again when the emote's size is known)
+    if (ITEMS?.clipboard) { w.carry = itemEl('clipboard', 'clip', HELD.carry); w.bod.append(w.carry); placeItem(w, w.carry, 'carry'); } else w.bod.append(h('div', 'clip'));
     [w.u, w.v] = [-6.6, 9.55];
     w.nameT = 6;
     giveUmbrella(w, 0.3);
@@ -3387,7 +3419,9 @@
   // L40 the gnome: a garden gnome that stands somewhere else every time the camera comes back from a close-up (and
   // after five minutes at the wide shot it moves anyway). The spot comes from the wall clock, so screens agree.
   // ?gnome=0: none.
-  const GNOME_SPOTS = [[12.2, 6.1], [10.55, 8.45], [10.6, 5.6], [12.6, 4.35], [9.2, 5.6], [11.6, 7.6], [8.0, 1.2]];   // (the second one peeks through the glass front; none under the marquee's roof)
+  // (the second one peeks through the glass front; none under the marquee's roof; (11.6, 7.6) is behind the claw machine
+  // of Brief 96 and goes with that art, merge96)
+  const GNOME_SPOTS = [[12.2, 6.1], [10.55, 8.45], [10.6, 5.6], [12.6, 4.35], [9.2, 5.6], [11.6, 7.6], [8.0, 1.2]];
   let gnome = null;
   if (q.get('gnome') !== '0') {
     gnome = { el: h('div', 'gnome'), at: -1, since: performance.now(), wasClose: false };
@@ -3501,7 +3535,14 @@
     lobbyLife.wet = lobbyLife.wet.filter((t) => now - t < 40000);
     if (lobbyLife.wet.length >= 5) lobbyLife.signUntil = now + 90000;
     const want = now < lobbyLife.signUntil;
-    if (want && !lobbyLife.sign) {
+    if (want && !lobbyLife.sign && WET_SIGN) {
+      // the rendered sign with its contact shadow (manifest.wet_floor_sign, Brief 96) at its spot and depth
+      const s = WET_SIGN, el = lobbyLife.sign = h('img', 'wetsign');
+      el.alt = '';
+      setImg(el, s.file, s.file_2x, dpr() > 1.3, () => { el.style.display = 'none'; });
+      Object.assign(el.style, { width: `${s.w}px`, height: `${s.h}px`, transform: `translate(${s.x}px, ${s.y}px)`, zIndex: String(s.z_index ?? depth(10.2, 6.4)) });
+      world.append(el);
+    } else if (want && !lobbyLife.sign) {
       const el = lobbyLife.sign = h('div', 'wetsign');
       el.append(h('i'));
       const [x, y] = P(10.2, 6.4);
@@ -3514,10 +3555,11 @@
   window.__lobbyLife = { sendTurtle, nothingBurger, quickdraw, state: lobbyLife };   // test hooks
 
   // ---------- lobby props (queue 64: L18 breaking-news TV, L23 jukebox, L24 claw machine; Briefs 89-94) ----------
-  // Three rendered props from the layer pack roxy3d/out10p (mergeProps in the art section). Without the pack, or with
-  // ?props=0, none of this runs and the lobby is as before.
-  // L24 "WIN A BUDDY": about one arrival in 14 has a go on the claw machine behind the front glass before the gate
-  //     (one player at a time, like the arcade). Most lose; about 1 in 9 wins and carries a Buddy plush from then on
+  // Three rendered props: jukebox and TV from the layer pack roxy3d/out10ps (mergeProps in the art section), the claw
+  // machine from the main art since Brief 96 (merge96; out10r with roxy3d/out10p: the machine behind the front glass).
+  // Without the pack, or with ?props=0, none of this runs and the lobby is as before (the claw machine stands lit).
+  // L24 "WIN A BUDDY": about one arrival in 7 (Brief 96: the arcade cabinet's 1 in 14 too) has a go on the claw
+  //     machine before the gate (one player at a time). Most lose; about 1 in 9 wins and carries a Buddy plush from then on
   //     (the result comes from the nick and the half hour, so screens agree). The header's four bulb groups chase:
   //     slowly on their own, quickly during a go, all flashing on a win.
   // L23 "JAMS": a chatter wearing a dance emote (GAITS .dance) dances at one of four spots in front of the jukebox
@@ -3536,20 +3578,24 @@
   function clawTurn(w) {
     PROPS.clawBusy = w;
     const [cu, cv] = PROPS.clawSpot;
-    // (with the rope lane: out past its west end and along below the back rope, as to the arcade)
-    const there = L.lane ? [[5.2, 6.6], [8.2, 6.6], [cu, 7.0]] : [[8.2, 7.0], [cu, 7.0]];
+    // (with the rope lane: out past its west end and along below the back rope; then the machine's own way in, Brief
+    // 96: (12.95, 7.0), (12.95, 8.5) round its east side to the spot in front of its play side; back the same way)
+    const way = PROPS.clawWay?.length ? PROPS.clawWay : [[cu, 7.0]];
+    const there = [...(L.lane ? [[5.2, 6.6], [8.2, 6.6]] : [[8.2, 7.0]]), ...way];
+    const face = (PROPS.clawAt[0] - cu) - (PROPS.clawAt[1] - cv);   // towards the machine
     return [...there.map((to) => ({ to })), { to: [cu, cv] },
-      { wait: rand(3.5, 6), start: () => SB.faceEmote(w.em, w.emName, -1), end: () => {
+      { wait: rand(3.5, 6), start: () => SB.faceEmote(w.em, w.emName, face), end: () => {
         if (PROPS.clawBusy === w) PROPS.clawBusy = null;
         const win = CLAW_TEST ? CLAW_TEST === 'win' : SB.hashHue(`${w.key}:buddy:${Math.floor(Date.now() / 1800000)}`) % 9 === 0;
         if (win) {
           PROPS.clawWinT = performance.now() + 2600;
           w.bounce = 1;
           floatAt(w, '\u{1F9F8} WON A BUDDY!', '#9fd4ff');
-          if (!w.carry) { w.carry = h('div', 'buddy'); w.bod.append(w.carry); placeItem(w, w.carry, 'carry'); }
+          // the rendered plush (manifest.items.buddy, Brief 96) held like popcorn; older art: the page's CSS plush
+          if (!w.carry) { w.carry = ITEMS?.buddy ? itemEl('buddy', 'buddy', HELD.carry) : h('div', 'buddy'); w.bod.append(w.carry); placeItem(w, w.carry, 'carry'); }
         } else if (Math.random() < 0.8) floatAt(w, CLAW_LOST[Math.floor(Math.random() * CLAW_LOST.length)], '#9fd4ff');
       } },
-      { to: [cu, 7.0] }, { to: [8.0, 6.6] }];
+      ...way.slice().reverse().map((to) => ({ to })), { to: [8.0, 6.6] }];
   }
   function goDance(w) {
     const i = PROPS.dance.findIndex((d) => !d || d.gone || d.removing);
@@ -3592,16 +3638,18 @@
     PROPS.tvPos = [(TL[0] + TR[0]) / 2, Math.min(TL[1], TR[1])];
   }
   function stepProps(dt, now) {
-    if (!PROPS.on) return;
-    // claw machine header
-    const cb = PROPS.clawBusy;
-    const playing = !!cb && !cb.gone && Math.hypot(cb.u - PROPS.clawSpot[0], cb.v - PROPS.clawSpot[1]) < 0.1;
-    const winning = now < PROPS.clawWinT;
-    const step = Math.floor(now / (winning ? 140 : playing ? 110 : 420));
-    if (step !== PROPS.chase) {
-      PROPS.chase = step;
-      for (let i = 0; i < 4; i++) setAnim(`chase_${i}`, winning ? (step % 2 ? 1 : 0.15) : (step + i) % 4 ? 1 : 0.2);
+    // claw machine header (its chase pieces come from the main art since Brief 96, from the props pack before)
+    if (PROPS.clawOn) {
+      const cb = PROPS.clawBusy;
+      const playing = !!cb && !cb.gone && Math.hypot(cb.u - PROPS.clawSpot[0], cb.v - PROPS.clawSpot[1]) < 0.1;
+      const winning = now < PROPS.clawWinT;
+      const step = Math.floor(now / (winning ? 140 : playing ? 110 : 420));
+      if (step !== PROPS.chase) {
+        PROPS.chase = step;
+        for (let i = 0; i < 4; i++) setAnim(`chase_${i}`, winning ? (step % 2 ? 1 : 0.15) : (step + i) % 4 ? 1 : 0.2);
+      }
     }
+    if (!PROPS.on) return;
     // jukebox
     let n = 0;
     PROPS.dance.forEach((d, i) => {
@@ -3649,7 +3697,11 @@
   const STREET2_ON = q.get('street2') !== '0';
   const street2 = { gustT: 0, paperAt: 0, busStopped: false, pigeons: [], dog: null, late: null };
   function puddleSplash(u) {
-    for (let i = 0; i < 10; i++) {
+    if (SPLASH96) {
+      // the rendered splash (manifest.puddle_splash, Brief 96): drops and the ring, once, curb point at the anchor
+      const [x, y] = P(u, 10.85);
+      sheetShot(SPLASH96, x - SPLASH96.anchor[0], y - SPLASH96.anchor[1], depth(u, 10.7) + 1, true);
+    } else for (let i = 0; i < 10; i++) {
       const el = h('div', 'drop');
       const [x0, y0] = P(u + rand(-0.5, 0.5), 10.85);
       const [x1, y1] = P(u + rand(-0.3, 0.6), 10.85 - rand(0.5, 1.2));
@@ -3660,7 +3712,7 @@
         { transform: `translate(${(x0 + x1) / 2}px, ${(y0 + y1) / 2 - hgt}px)`, opacity: 0.9, offset: 0.5 },
         { transform: `translate(${x1}px, ${y1}px)`, opacity: 0 }], { duration: 480 + i * 22, easing: 'linear' }).onfinish = () => el.remove();
     }
-    splash(u, 10.35);
+    if (!SPLASH96) splash(u, 10.35);
     let n = 0;
     for (const w of figures) {
       if (n >= 3) break;
@@ -3706,6 +3758,32 @@
     $('lifefx').append(d);
     street2.dog = d;
   }
+  // an umbrella blown inside out for 1.3 s: the rendered inside-out sprite of its colour (manifest
+  // umbrella.inside_out, Brief 96, same cell and grip as the open one) stands in for it; older art: the CSS flip
+  function blowUmbrella(w) {
+    const u = w.umb, io = w.umbColor && UMB?.inside_out?.[w.umbColor];
+    if (!u) return;
+    if (!(io?.file && Array.isArray(io.anchor) && [io.w, io.h, ...io.anchor].every(Number.isFinite))) {
+      u.classList.add('blown');
+      setTimeout(() => u.classList.remove('blown'), 1300);
+      return;
+    }
+    if (w.umbIo) return;
+    const im = w.umbIo = h('img', 'umbio');
+    im.alt = '';
+    setImg(im, io.file, io.file_2x, dpr() > 1.3, () => { im.remove(); u.style.visibility = ''; });
+    Object.assign(im.style, { width: `${io.w}px`, height: `${io.h}px`, left: `${UMB_GRIP[0] - io.anchor[0]}px`, top: `${UMB_GRIP[1] - io.anchor[1]}px` });
+    w.bod.append(im);
+    u.style.visibility = 'hidden';
+    setTimeout(() => { im.remove(); u.style.visibility = ''; w.umbIo = null; }, 1300);
+  }
+  // (test hook __street2.gust(): one umbrella outside blown inside out now; returns where, stage px)
+  function street2Gust() {
+    const w = [...figures].find((x) => x.out && x.umb && !x.ride && x.alpha > 0.9 && !x.removing && x.x > 100 && x.x < 1820);
+    if (!w) return null;
+    blowUmbrella(w);
+    return { x: w.x, y: w.y - 40 };
+  }
   function stepStreet2(dt) {
     if (!STREET2_ON) return;
     const now = performance.now();
@@ -3741,7 +3819,7 @@
         street2.gustT = rand(5, 11);
         const out = [...figures].filter((w) => w.out && w.umb && !w.ride && w.alpha > 0.9 && !w.removing);
         const w = out[Math.floor(Math.random() * out.length)];
-        if (w) { const u = w.umb; u.classList.add('blown'); floatAt(w, '\u{1F4A8}', '#dfe9ff'); setTimeout(() => u.classList.remove('blown'), 1300); }
+        if (w) { blowUmbrella(w); floatAt(w, '\u{1F4A8}', '#dfe9ff'); }
       }
       if (now > street2.paperAt) {
         street2.paperAt = now + rand(9000, 20000);
@@ -3757,7 +3835,7 @@
       }
     }
   }
-  window.__street2 = { puddleSplash, lateForBus };   // test hooks
+  window.__street2 = { puddleSplash, lateForBus, gust: street2Gust };   // test hooks (gust: see blowUmbrella)
 
   function lookAt(w) {
     if (w.staff || w.jan) return null;
@@ -4347,14 +4425,6 @@ void main() {
       { transform: `translate(${x}px, ${y}px) scale(1.1)`, opacity: 0 },
     ], { duration: 1400, easing: 'ease-out' }).onfinish = () => el.remove();
   }
-  function arcadeFlash() {
-    const [x, y] = P(12.7, 7.85, 57);
-    const el = h('div', 'doorglow arcadeglow');
-    el.style.zIndex = '3';
-    $('cam').append(el);
-    el.animate([{ transform: `translate(${x}px, ${y}px)`, opacity: 1 }, { transform: `translate(${x}px, ${y}px)`, opacity: 0 }],
-      { duration: 900, easing: 'ease-out', iterations: 2 }).onfinish = () => el.remove();
-  }
 
   // ---------- conversations: speech only happens in groups (owner, 02 Nov) ----------
   // A chatter's messages are saved (latest two). After tickets / popcorn, instead of heading straight for the
@@ -4623,7 +4693,7 @@ void main() {
   let gagNext = performance.now() + rand(300, 1200) * 1000;
   function gagFree(w) {
     return !!w && !w.gone && !w.removing && !w.entering && !w.ride && !w.inQueue && !w.snack && !w.staff && !w.jan
-      && !w.doorBound && !w.hurry && !w.stall && wcBusy !== w && wcWait !== w && arcadeBusy !== w && benchBusy !== w && PROPS.clawBusy !== w && !w.dancing
+      && !w.doorBound && !w.hurry && !w.stall && wcBusy !== w && wcWait !== w && benchBusy !== w && PROPS.clawBusy !== w && !w.dancing
       && !gateLine.includes(w) && !windows.some((x) => x.cur === w) && w.alpha > 0.9 && w.v < 8.9 && !w.fighting;
   }
   function startGag(a, b) {
@@ -4731,7 +4801,10 @@ void main() {
   const YEE_FIGHTERS = new Set(['YEE', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE', 'KYEK', 'YEEHAW']);
   const isYee = (n) => !!n && (YEE_FIGHTERS.has(n) || /^yee/i.test(n));
   const isPepe = (n) => !!n && /^pep[eo]|pepe/i.test(n) && n !== 'PepoTurtle';
-  const FIGHT_AT = [10.95, 6.35];   // open floor between the two talk spots, clear of the ropes, the bench and the snack lines
+  // open floor in front of the snack counter's east end, clear of the ropes, the bench and the snack lines. (Brief 96:
+  // it was (10.95, 6.35), between the two talk spots, where the claw machine now hides the lower half of the cloud;
+  // here the whole cloud stands above the machine's top)
+  const FIGHT_AT = [10.75, 5.0];
   let fight = null;
   let fightNext = performance.now() + rand(240, 540) * 1000;
   // like a gag's pick, but someone on their way to a door still counts while they are in the lobby (when the doors are
@@ -5018,7 +5091,6 @@ void main() {
     if (w.snack) return 'snack bar';
     if (gateLine.includes(w)) return 'usher gate';
     if (wcBusy === w || wcWait === w || w.stall) return 'restroom';
-    if (arcadeBusy === w) return 'arcade';
     if (PROPS.clawBusy === w) return 'claw machine';
     if (w.dancing) return 'jukebox';
     if (benchBusy === w) return 'bench';
@@ -5114,7 +5186,7 @@ void main() {
     for (const win of windows) { win.cur = null; win.t = 0; }
     for (const s of snackSpots) { s.line = []; s.t = 0; }
     groups.length = 0;
-    wcBusy = wcWait = arcadeBusy = benchBusy = null;
+    wcBusy = wcWait = benchBusy = null;
     PROPS.clawBusy = null;
     PROPS.dance.fill(null);
     setWC(restroomFull());
@@ -5168,7 +5240,7 @@ void main() {
       // in the lobby (they stay to talk: the lobby flip is set), then on to the gate and their door
       giveStub(w);
       inLobby();
-      if (w.detour === 'popcorn' || w.detour === 'arcade' || w.detour === 'claw') w.detour = null;
+      if (w.detour === 'popcorn' || w.detour === 'claw') w.detour = null;
       w.rolls.lobby = 0;
       afterTicket(w);
       w.plan.unshift({ call: hangOut });
@@ -5327,6 +5399,9 @@ void main() {
   // ---------- art: pre-rendered layers from roxy3d/out (Blender), flat canvas art as fallback ----------
   let art = null;
   const artImgs = [];
+  // Brief 96 leftover items (set in bakedBy96 when the art has them; null: the page draws them as before)
+  let WET_SIGN = null, POLICE = null, SPLASH96 = null;
+  const NEON_PINK = [];   // the entrance_neon pictures and its wet loop: dark while the pink neon's dip patch shows
   // L1 street marquee (owner 8-9 Nov 2026, Brief 83): its own rendered layer pack in roxy3d/out10m/ over the live
   // pack. Body + black shadow slices (source-over) and receiver light slices (plus-lighter) join the occluder stack
   // at their own depth, the 48-cell bulb chase joins the prop loops. The boards are rendered blank; the page writes
@@ -5372,6 +5447,9 @@ void main() {
       }
       for (const l of merged || []) {
         if (!l || typeof l.file !== 'string' || ![l.x, l.y, l.w, l.h].every(Number.isFinite)) continue;
+        // (art with the Brief 96 claw machine has neither the arcade cabinet nor the old machine behind the glass:
+        // the marquee's shadow and light on those two stay out)
+        if (m.claw && /^(arcade|claw_body)/.test(l.on || '')) continue;
         if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
         else m.occluders.push({ ...l, file: rel(l.file), file_2x: rel(l.file_2x) });
       }
@@ -5404,39 +5482,78 @@ void main() {
       leaderEl = null;
     } catch { /* no pack: the placeholder stays */ }
   }
-  // Lobby props (queue 64: L18 TV, L23 jukebox, L24 claw machine; Briefs 89-94): a rendered layer pack in
-  // roxy3d/out10p/, loaded after the marquee and the poster. Pieces marked "under" join the ground layers under all
-  // walkers, the others the occluder stack at their own depth. Pieces with "anim" (chase_0..3, tube_pink, tube_teal,
-  // tv_glow) are additive lights the page dims and flashes (stepProps); all of them at full is the approved still.
-  // The cat and the gnome give up the spots the props and the dancers take. ?props=0: no pack.
+  // Lobby props (queue 64: L18 TV, L23 jukebox, L24 claw machine; Briefs 89-94): a rendered layer pack, loaded after
+  // the marquee and the poster. Pieces marked "under" join the ground layers under all walkers, the others the
+  // occluder stack at their own depth. Pieces with "anim" (chase_0..3, tube_pink, tube_teal, tv_glow) are additive
+  // lights the page dims and flashes (stepProps); all of them at full is the approved still.
+  // The pack: roxy3d/out10ps/ (Brief 96: jukebox and TV only; the claw machine is in the main art) when the main art
+  // has the claw machine (manifest.claw), else roxy3d/out10p/ (Brief 94: claw machine behind the glass, jukebox, TV),
+  // so ?artdir=out10r is the previous lobby as it was. ?propsdir= picks the pack (claw pieces of an older pack are left
+  // out over art that has its own machine). The cat and the gnome give up the spots the props and the dancers take.
+  // ?props=0: no pack (and nobody plays the claw machine).
   async function mergeProps(m) {
     if (!PROPS_ON) return;
     try {
-      const res = await fetch('roxy3d/out10p/props.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      const dir = (q.get('propsdir') || (m.claw ? 'out10ps' : 'out10p')).replace(/[^a-z0-9_-]/gi, '');
+      const res = await fetch(`roxy3d/${dir}/props.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
       const f = res.ok ? await res.json() : null;
       if (!f || !Array.isArray(f.render_layers) || !f.render_layers.length) return;
-      const rel = (x) => (typeof x === 'string' ? `../out10p/${x}` : x);
+      const rel = (x) => (typeof x === 'string' ? `../${dir}/${x}` : x);
       for (const l of f.render_layers) {
         if (!l || typeof l.file !== 'string' || ![l.x, l.y, l.w, l.h].every(Number.isFinite)) continue;
+        if (m.claw && /^claw/.test(l.name || '')) continue;
         if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
         else m.occluders.push({ ...l, file: rel(l.file), file_2x: rel(l.file_2x) });
       }
       const pt = (a) => Array.isArray(a) && a.length >= 2 && a.slice(0, 2).every(Number.isFinite);
       const spots = (x) => (Array.isArray(x) ? x.filter(pt).map((a) => a.slice(0, 2)) : []);
       const cs = spots(f.props?.claw?.standing_spots_uv), js = spots(f.props?.jukebox?.standing_spots_uv);
-      if (cs.length) PROPS.clawSpot = cs[0];
+      if (cs.length && !m.claw) { PROPS.clawSpot = cs[0]; PROPS.clawOn = true; }
       if (js.length) { PROPS.jukeSpots = js.slice(0, 4); PROPS.dance = PROPS.jukeSpots.map(() => null); }
       const quad = f.props?.tv?.screen_quad || f.tv?.screen_quad;
       if (Array.isArray(quad) && quad.length === 4 && quad.every(pt)) PROPS.quad = quad;
       if (Number.isFinite(f.props?.tv?.screen_z_index)) PROPS.tvZ = f.props.tv.screen_z_index;
+      // round the jukebox; and round the old claw machine's place (10.9, 8.3) only while that machine is in the lobby
+      const oldClaw = !m.claw && cs.length;
       for (const [arr, at] of [[CAT_SPOTS, (c) => c.at], [GNOME_SPOTS, (c) => c]]) {
         for (let i = arr.length - 1; i >= 0; i--) {
           const [u, v] = at(arr[i]);
-          if ((Math.abs(u - 12.3) < 0.75 && Math.abs(v - 4.3) < 0.4) || (Math.abs(u - 10.9) < 0.9 && Math.abs(v - 8.3) < 0.6)) arr.splice(i, 1);
+          if ((Math.abs(u - 12.3) < 0.75 && Math.abs(v - 4.3) < 0.4) || (oldClaw && Math.abs(u - 10.9) < 0.9 && Math.abs(v - 8.3) < 0.6)) arr.splice(i, 1);
         }
       }
       PROPS.on = true;
     } catch { /* no pack: the lobby without the props */ }
+  }
+  // Brief 96 (out10s, 13 Nov 2026), before the pack's pictures go into the page:
+  // - the claw machine is an ordinary depth piece ("claw") where the arcade cabinet stood; its four chase-light pieces
+  //   (manifest.claw.chase_layers, plus-lighter, just above it) join the occluder stack and are driven as chase_0..3 by
+  //   stepProps. Its player spot and the way in round the east side come from manifest.claw.
+  // - the gnome's spot behind the machine (11.6, 7.6) goes.
+  // - steam (manifest.steam): one rendered 48-frame plume, played as a prop loop at the five steam spots the page
+  //   drew puffs at, foot on the spot, scaled as they were, out of step (the puffs go in bakedBy96). ?life=0: none.
+  const STEAM_AT = [[636, 188, 1, 0], [206, 191, 0.55, 1.7], [329, 520, 0.5, 0.6], [150, 964, 1, 2.9], [1650, 905, 1.1, 2.2]];   // x, y, scale, phase (s)
+  function merge96(m) {
+    const c = m.claw;
+    if (c && typeof c === 'object') {
+      for (const l of Array.isArray(c.chase_layers) ? c.chase_layers : []) {
+        if (l && typeof l.file === 'string' && [l.x, l.y, l.w, l.h].every(Number.isFinite)) m.occluders.push({ ...l, depth_slices: undefined });
+      }
+      const pt = (a) => Array.isArray(a) && a.length >= 2 && a.slice(0, 2).every(Number.isFinite);
+      const spot = Array.isArray(c.standing_spots_uv) ? c.standing_spots_uv.find(pt) : null;
+      if (spot) PROPS.clawSpot = spot.slice(0, 2);
+      PROPS.clawWay = Array.isArray(c.way_in_uv) ? c.way_in_uv.filter(pt).map((a) => a.slice(0, 2)) : null;
+      const b = c.box_page_uvz;
+      if (pt(b?.u) && pt(b?.v)) PROPS.clawAt = [(b.u[0] + b.u[1]) / 2, (b.v[0] + b.v[1]) / 2];
+      PROPS.clawOn = PROPS_ON && !!spot;
+      for (let i = GNOME_SPOTS.length - 1; i >= 0; i--) if (Math.hypot(GNOME_SPOTS[i][0] - 11.6, GNOME_SPOTS[i][1] - 7.6) < 0.05) GNOME_SPOTS.splice(i, 1);
+      if (gnome) gnome.at = -1;   // placed again from the new list
+    }
+    const st = m.steam;
+    if (q.get('life') !== '0' && validSheet(st) && Array.isArray(m.prop_loops)) {
+      STEAM_AT.forEach(([x, y, k, ph], i) => m.prop_loops.push({ name: `steam_${i}`, file: st.file, file_2x: st.file_2x, frames: st.frames, columns: st.columns,
+        fps: st.fps || 12, phase: ph, blend: 'plus-lighter', z_index: 3, w: st.frame_width * k, h: st.frame_height * k,
+        x: x - st.anchor[0] * k, y: y - st.anchor[1] * k }));
+    }
   }
   // Brief 95 (out10r, 12 Nov 2026) bakes some things the page drew (manifest brief95.page_must): the sidewalk's purple
   // light and the puddle streaks (#wetfx), the skyline and the aircraft lamp, the Dogtober poster, the poll projector's
@@ -5466,6 +5583,68 @@ void main() {
         if (glow && !glow.classList.contains('sbeam')) glow.style.display = 'none';
       });
     }
+  }
+  // Brief 96 (out10s, 13 Nov 2026) renders the leftover page drawings (manifest brief96.page_must, 7-17). Each picture
+  // takes the place of its page drawing; clocks, cues and positions stay the page's:
+  // - street_states.overlays: patches of the ground layer (rendered as the background is, phase 0), so they go where
+  //   the page drew its versions, in #lifefx (over the background and the light loop, under walkers and depth
+  //   pieces). The page elements keep their classes and clocks (windows .lwin with the 1.8 s fade, dips .ldip with
+  //   the dip timing, the canvasser's door lights, the dog while a bus is near, the snarkers 15 s down in every 50);
+  //   only their drawing becomes the picture. While the pink neon's dip patch shows (it holds the dark sign) the
+  //   entrance_neon piece and its wet loop fade out with it.
+  // - the steam puffs go (the plumes are prop loops, merge96); the wet-floor sign, the police bar and the puddle
+  //   splash are picked up where the page makes them (WET_SIGN, POLICE, SPLASH96); the Buddy plush, the clipboard and
+  //   the inside-out umbrellas come from manifest.items / manifest.umbrella where they are used.
+  function bakedBy96(m) {
+    const okPic = (o) => !!o && typeof o.file === 'string' && [o.x, o.y, o.w, o.h].every(Number.isFinite);
+    if (okPic(m.wet_floor_sign)) WET_SIGN = m.wet_floor_sign;
+    const pcs = Array.isArray(m.police_bar?.pieces) ? m.police_bar.pieces.filter((p) => p && typeof p.file === 'string' && typeof p.name === 'string'
+      && [p.w, p.h, p.dx, p.dy].every(Number.isFinite)) : [];
+    if (['bar', 'red_road', 'red_lens', 'blue_road', 'blue_lens'].every((n) => pcs.some((p) => p.name === n))) POLICE = pcs;
+    if (validSheet(m.puddle_splash)) SPLASH96 = m.puddle_splash;
+    if (validSheet(m.steam) && q.get('life') !== '0') document.querySelectorAll('#lifefx .puff').forEach((p) => { p.parentElement.style.display = 'none'; });
+    const ov = Array.isArray(m.street_states?.overlays) ? m.street_states.overlays.filter(okPic) : [];
+    if (!ov.length) return;
+    const by = new Map(ov.map((o) => [o.name, o]));
+    // the page element becomes the first picture's box; any further pictures sit in it at their own places
+    const put = (el, names) => {
+      const o0 = by.get(names[0]);
+      if (!el || !o0) return false;
+      el.classList.add('artov');
+      el.replaceChildren();
+      Object.assign(el.style, { left: `${o0.x}px`, top: `${o0.y}px`, width: `${o0.w}px`, height: `${o0.h}px` });
+      for (const n of names) {
+        const o = by.get(n);
+        if (!o) continue;
+        const im = h('img', /glint/.test(n) ? 'glint' : '');
+        im.alt = '';
+        im.decoding = 'async';
+        Object.assign(im.style, { left: `${o.x - o0.x}px`, top: `${o.y - o0.y}px`, width: `${o.w}px`, height: `${o.h}px` });
+        el.append(im);
+        artImgs.push([im, o.file]);
+      }
+      return true;
+    };
+    // apartment windows: the page's six in its own order are windows 1-6 of the render
+    document.querySelectorAll('#lifefx .lwin').forEach((el, i) => {
+      const o = ov.find((x) => x.kind === 'window' && x.window === i + 1);
+      if (o) put(el, [o.name]);
+    });
+    // neon dips: the page's first dip is the pink script neon, the second the VIDEO RENTAL sign
+    const [pink, video] = document.querySelectorAll('#lifefx .ldip');
+    put(video, ['neon_video_off']);
+    if (put(pink, ['neon_pink_off'])) {
+      // the patch's own opacity steps (@keyframes ldip, 0.95 s), mirrored on the lit sign
+      const K = [[0, 0.9], [0.08, 0], [0.16, 0.7], [0.24, 0], [0.46, 0.95], [0.78, 0.3], [0.88, 0], [1, 0]];
+      const inv = K.map(([offset, o]) => ({ offset, opacity: 1 - o, easing: 'steps(1, end)' }));
+      pink.addEventListener('animationstart', () => {
+        for (const p of NEON_PINK) for (const el of p._add ? [p, p._add] : [p]) el.animate(inv, { duration: 950 });
+      });
+    }
+    put(document.querySelector('#lifefx .snark'), ['snarkers_up', 'snarkers_glint']);
+    put(street2.dog, ['dog_up']);
+    put(DOORLIGHTS[1], ['door_cabge_open']);
+    put(DOORLIGHTS[2], ['door_noodles_open']);
   }
   // The street letterboard text, split into the same 0.25-tile depth bands as the body slices so a walker in front
   // of one end of the board covers it there and not at the other end. The face is a parallelogram (TL TR BR BL).
@@ -5551,6 +5730,7 @@ void main() {
       if (!(m && (m.bg || m.base) && Array.isArray(m.occluders))) return null;
       await mergeMarquee(m);
       await mergeLeader(m);
+      merge96(m);
       await mergeProps(m);
       return m;
     } catch { return null; }
@@ -5703,6 +5883,7 @@ void main() {
         world.append(im);
         artImgs.push([im, s.file]);
         if (s.anim) (PROPS.els[s.anim] ||= []).push(im);   // lobby props: lights the page animates
+        if (o.name === 'entrance_neon') NEON_PINK.push(im);   // the pink script neon: dark while its patch shows (Brief 96)
       }
     }
     // the marquee's ground shadow, then its ground light (merged.json "under" layers): over the background, the light
@@ -5734,11 +5915,14 @@ void main() {
       if (leds.length) signs.forEach((sg) => { sg.el.style.display = 'none'; });
     }
     if (m.wc_indicator?.vacant?.file && m.wc_indicator?.occupied?.file) { makeWcLights(m.wc_indicator); wcWrap.style.display = 'none'; setWC(!!wcBusy); }
-    // small pre-rendered prop loops (popcorn popping, arcade attract mode, buzzing boards): additive
+    // small pre-rendered prop loops (popcorn popping, buzzing boards, wet highlights, the steam plumes): additive
     // sprite sheets sitting just above their prop, stepped by the frame loop
+    // (older art, out10r and before, still has the arcade cabinet: nobody plays it since Brief 96, so of its three
+    // screen loops only the attract mode runs)
     if (Array.isArray(m.prop_loops)) {
       for (const p of m.prop_loops) {
         if (!p || typeof p.file !== 'string' || ![p.x, p.y, p.w, p.h, p.frames, p.columns].every(Number.isFinite)) continue;
+        if (/arcade.*(play|hiscore|high)/i.test(p.name || '')) continue;
         const el = h(LOOPCV === 1 ? 'canvas' : 'div', 'proploop');
         if (p.blend === 'source-over') el.style.mixBlendMode = 'normal';   // straight-RGBA water on the glass (pass 8)
         Object.assign(el.style, { left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`, zIndex: String(p.z_index ?? 3) });
@@ -5757,6 +5941,7 @@ void main() {
         world.append(el);
         const br = LOOPCV === 2 && ADDGL && p.blend !== 'source-over' ? sheet.getContext('bitmaprenderer') : null;
         propLoops.push({ el, p, frame: -1, g: LOOPCV === 1 ? el.getContext('2d') : LOOPCV === 2 && !br ? sheet.getContext('2d') : null, br, sheet, bmp: null });
+        if (/^wet_entrance_neon/.test(p.name || '')) NEON_PINK.push(el);   // dark while the pink neon dips (Brief 96)
       }
     }
     // marquee boxes and poster frames as rendered (pass 6 moved them apart); the DOM text/posters follow
@@ -5824,6 +6009,7 @@ void main() {
     const [x, y] = P(0, WC_V, 108);
     wcWrap.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
     setWC(!!wcBusy);
+    if (m.brief96) bakedBy96(m);   // (after the occluders and prop loops: it needs the entrance_neon pictures)
   }
   let loopSwap = null;   // set in setupArt: switches the light loop between 1080p and 4K with the base art
   // ---------- added light without a blending pass (perf, 11 Nov 2026; ?addgl=0 = as before) ----------
@@ -5891,13 +6077,7 @@ void main() {
   const propLoops = [];
   // see loopSheet(): 0 = background-position on a div (old), 1 = one frame drawn per step, 2 = whole sheet drawn once
   const LOOPCV = typeof createImageBitmap !== 'function' ? 0 : q.has('loopcv') ? clamp(Math.round(Number(q.get('loopcv')) || 0), 0, 2) : 2;
-  const arcadeKind = (name) => (/arcade/i.test(name || '') ? (/play/i.test(name) ? 'play' : /hiscore|high/i.test(name) ? 'hiscore' : 'attract') : null);
   function stepPropLoops(t) {
-    // the cabinet's screen: attract mode, a game while someone actually plays, the hi-score screen after a
-    // new high score (older art without those screens: the attract loop just goes dark during a game)
-    const playing = !!arcadeBusy && Math.hypot(arcadeBusy.u - ARCADE[0], arcadeBusy.v - ARCADE[1]) < 0.1;
-    const kinds = new Set(propLoops.map((l) => arcadeKind(l.p.name)));
-    const mode = playing ? 'play' : performance.now() < arcadeHiUntil && kinds.has('hiscore') ? 'hiscore' : 'attract';
     const now = performance.now();
     if (now > nextChase) { chaseUntil[1 + Math.floor(Math.random() * signs.length)] = now + 3500; nextChase = now + rand(20000, 45000); }
     for (const l of propLoops) {
@@ -5907,12 +6087,7 @@ void main() {
         const o = (bk[2].toLowerCase() === 'chase') === chasing ? '' : '0';
         if (l.el.style.opacity !== o) l.el.style.opacity = o;
       }
-      const kind = arcadeKind(l.p.name);
-      if (kind) {
-        const o = kind === mode ? '' : '0';
-        if (l.el.style.opacity !== o) l.el.style.opacity = o;
-      }
-      const f = Math.floor((t / 1000) * (l.p.fps || 24)) % l.p.frames;
+      const f = Math.floor((t / 1000 + (l.p.phase || 0)) * (l.p.fps || 24)) % l.p.frames;   // (phase: the steam plumes, out of step)
       if (f === l.frame) continue;
       if (l.sheet) {
         if (!l.bmp) continue;

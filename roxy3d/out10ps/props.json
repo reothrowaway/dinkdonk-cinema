@@ -1,0 +1,672 @@
+{
+  "schema": "dinkdonk.props.layers.v1",
+  "brief": 94,
+  "date": "11 Nov 2026",
+  "stage_size": [
+    1920,
+    1080
+  ],
+  "scale2x": true,
+  "asset_root": "roxy3d/out10ps/",
+  "projection": {
+    "origin": [
+      900,
+      350
+    ],
+    "tile_x": [
+      60,
+      30
+    ],
+    "tile_y": [
+      -60,
+      30
+    ],
+    "vertical_px_per_blender_unit": 73.48469228349535
+  },
+  "source_blend_sha256": "09868390fa69940797ed7f49b7455a0e263cbeb7222991f73d73a54fe706b72d",
+  "source_blend": "props/props_draft93.blend (draft 31); captures from its packed copy props/layer94/scene94.blend",
+  "tv": {
+    "screen_quad": [
+      [
+        1010.8799743652344,
+        551.3215398788452
+      ],
+      [
+        1040.8799743652344,
+        566.3215148448944
+      ],
+      [
+        1040.8799743652344,
+        592.7760243415833
+      ],
+      [
+        1010.8799743652344,
+        577.7760171890259
+      ]
+    ],
+    "screen_quad_order": [
+      "TL",
+      "TR",
+      "BR",
+      "BL"
+    ]
+  },
+  "render_layers": [
+    {
+      "name": "tv_body",
+      "prop": "tv",
+      "file": "tv_body.png",
+      "file_2x": "tv_body@2x.png",
+      "x": 945,
+      "y": 538,
+      "w": 140,
+      "h": 106,
+      "z_index": 1904,
+      "blend": "source-over",
+      "kind": "body_with_contact_shadow",
+      "under": false,
+      "occluder": "occ_partition_right.png",
+      "occluder_slice": "partition_right_01",
+      "occluder_slice_file": "slices/occ_partition_right_01.png",
+      "occluder_slice_z_index": 1903,
+      "drawn_over_it": [
+        {
+          "name": "partition_right_02",
+          "z_index": 1999,
+          "shared_px": 3
+        },
+        {
+          "name": "snack_00",
+          "z_index": 2041,
+          "shared_px": 167
+        }
+      ]
+    },
+    {
+      "name": "tv_light",
+      "prop": "tv",
+      "file": "tv_light.png",
+      "file_2x": "tv_light@2x.png",
+      "x": 958,
+      "y": 511,
+      "w": 123,
+      "h": 113,
+      "z_index": 2044,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_snack.png",
+      "occluder_slice": "snack_00",
+      "occluder_slice_file": "slices/occ_snack_00.png",
+      "occluder_slice_z_index": 2041
+    },
+    {
+      "name": "tv_glow",
+      "prop": "tv",
+      "file": "tv_glow.png",
+      "file_2x": "tv_glow@2x.png",
+      "x": 936,
+      "y": 549,
+      "w": 108,
+      "h": 105,
+      "z_index": 2044,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tv_glow",
+      "occluder": "occ_snack.png",
+      "occluder_slice": "snack_00",
+      "occluder_slice_file": "slices/occ_snack_00.png",
+      "occluder_slice_z_index": 2041
+    },
+    {
+      "name": "jukebox_body",
+      "prop": "jukebox",
+      "file": "jukebox_body.png",
+      "file_2x": "jukebox_body@2x.png",
+      "x": 1330,
+      "y": 737,
+      "w": 174,
+      "h": 175,
+      "z_index": 2542,
+      "blend": "source-over",
+      "kind": "body_with_contact_shadow",
+      "under": false,
+      "occluder": "occ_partition_right.png",
+      "occluder_slice": "partition_right_07",
+      "occluder_slice_file": "slices/occ_partition_right_07.png",
+      "occluder_slice_z_index": 2477,
+      "drawn_over_it": [
+        {
+          "name": "partition_right_08",
+          "z_index": 2572,
+          "shared_px": 40
+        },
+        {
+          "name": "palm_00",
+          "z_index": 2594,
+          "shared_px": 698
+        },
+        {
+          "name": "palm_01",
+          "z_index": 2646,
+          "shared_px": 35
+        },
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 28
+        }
+      ]
+    },
+    {
+      "name": "jukebox_light",
+      "prop": "jukebox",
+      "file": "jukebox_light.png",
+      "file_2x": "jukebox_light@2x.png",
+      "x": 1312,
+      "y": 728,
+      "w": 183,
+      "h": 200,
+      "z_index": 2595,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_00",
+      "occluder_slice_file": "slices/occ_palm_00.png",
+      "occluder_slice_z_index": 2594,
+      "drawn_over_it": [
+        {
+          "name": "palm_01",
+          "z_index": 2646,
+          "shared_px": 4
+        },
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 12
+        }
+      ]
+    },
+    {
+      "name": "jukebox_tube_pink",
+      "prop": "jukebox",
+      "file": "jukebox_tube_pink.png",
+      "file_2x": "jukebox_tube_pink@2x.png",
+      "x": 1310,
+      "y": 746,
+      "w": 170,
+      "h": 183,
+      "z_index": 2595,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_pink",
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_00",
+      "occluder_slice_file": "slices/occ_palm_00.png",
+      "occluder_slice_z_index": 2594,
+      "drawn_over_it": [
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 65
+        }
+      ]
+    },
+    {
+      "name": "jukebox_tube_teal",
+      "prop": "jukebox",
+      "file": "jukebox_tube_teal.png",
+      "file_2x": "jukebox_tube_teal@2x.png",
+      "x": 1314,
+      "y": 746,
+      "w": 123,
+      "h": 178,
+      "z_index": 2595,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_teal",
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_00",
+      "occluder_slice_file": "slices/occ_palm_00.png",
+      "occluder_slice_z_index": 2594,
+      "drawn_over_it": [
+        {
+          "name": "standee_1_00",
+          "z_index": 2744,
+          "shared_px": 2
+        }
+      ]
+    },
+    {
+      "name": "jukebox_shadow_over",
+      "prop": "jukebox",
+      "file": "jukebox_shadow_over.png",
+      "file_2x": "jukebox_shadow_over@2x.png",
+      "x": 1393,
+      "y": 739,
+      "w": 102,
+      "h": 104,
+      "z_index": 2647,
+      "blend": "source-over",
+      "kind": "shadow",
+      "under": false,
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_01",
+      "occluder_slice_file": "slices/occ_palm_01.png",
+      "occluder_slice_z_index": 2646
+    },
+    {
+      "name": "jukebox_light_front",
+      "prop": "jukebox",
+      "file": "jukebox_light_front.png",
+      "file_2x": "jukebox_light_front@2x.png",
+      "x": 1397,
+      "y": 740,
+      "w": 87,
+      "h": 99,
+      "z_index": 2647,
+      "blend": "plus-lighter",
+      "kind": "light",
+      "under": false,
+      "occluder": "occ_palm.png",
+      "occluder_slice": "palm_01",
+      "occluder_slice_file": "slices/occ_palm_01.png",
+      "occluder_slice_z_index": 2646
+    },
+    {
+      "name": "jukebox_tube_pink_front",
+      "prop": "jukebox",
+      "file": "jukebox_tube_pink_front.png",
+      "file_2x": "jukebox_tube_pink_front@2x.png",
+      "x": 1315,
+      "y": 758,
+      "w": 122,
+      "h": 119,
+      "z_index": 2765,
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_pink",
+      "occluder": "occ_standee_1.png",
+      "occluder_slice": "standee_1_00",
+      "occluder_slice_file": "slices/occ_standee_1_00.png",
+      "occluder_slice_z_index": 2744
+    }
+  ],
+  "parents": {},
+  "image_element_count": 10,
+  "image_elements_per_prop": {
+    "jukebox": 7,
+    "tv": 3
+  },
+  "props": {
+    "jukebox": {
+      "label": "jukebox \"JAMS\"",
+      "box_page_uvz": {
+        "u": [
+          11.68,
+          12.18
+        ],
+        "v": [
+          3.4,
+          3.88
+        ],
+        "z_m": [
+          0.0,
+          0.93
+        ],
+        "z_px": [
+          0.0,
+          68.341
+        ]
+      },
+      "footprint_uv": [
+        [
+          11.68,
+          3.4
+        ],
+        [
+          12.18,
+          3.4
+        ],
+        [
+          12.18,
+          3.88
+        ],
+        [
+          11.68,
+          3.88
+        ]
+      ],
+      "front_faces": "+v",
+      "standing_spots_uv": [
+        [
+          11.97,
+          4.14
+        ],
+        [
+          12.36,
+          4.26
+        ],
+        [
+          12.76,
+          4.5
+        ],
+        [
+          12.93,
+          4.18
+        ]
+      ],
+      "standing_spots_stage_px": [
+        [
+          1369.8000000000002,
+          833.3
+        ],
+        [
+          1386.0,
+          848.5999999999999
+        ],
+        [
+          1395.6,
+          867.8
+        ],
+        [
+          1425.0,
+          863.3
+        ]
+      ],
+      "front_depth": 2581,
+      "depth": {
+        "formula": "1000 + round((u + v) * 100)",
+        "front_face_centre_uv": [
+          11.93,
+          3.88
+        ],
+        "front_face_centre": 2581,
+        "nearest_corner_uv": [
+          12.18,
+          3.88
+        ],
+        "nearest_corner": 2606,
+        "farthest_corner": 2508
+      },
+      "body_z_index": 2542,
+      "light_z_index": 2595,
+      "image_elements": 7,
+      "layers": [
+        "jukebox_body",
+        "jukebox_light",
+        "jukebox_tube_pink",
+        "jukebox_tube_teal",
+        "jukebox_shadow_over",
+        "jukebox_light_front",
+        "jukebox_tube_pink_front"
+      ],
+      "animated": {
+        "tube_pink": [
+          "jukebox_tube_pink",
+          "jukebox_tube_pink_front"
+        ],
+        "tube_teal": [
+          "jukebox_tube_teal"
+        ]
+      },
+      "capture_rect_stage_px": [
+        1220,
+        660,
+        320,
+        320
+      ]
+    },
+    "tv": {
+      "label": "breaking-news TV",
+      "box_page_uvz": {
+        "u": [
+          5.34,
+          5.96
+        ],
+        "v": [
+          3.13,
+          3.55
+        ],
+        "z_m": [
+          0.5,
+          0.97
+        ],
+        "z_px": [
+          36.742,
+          71.28
+        ]
+      },
+      "footprint_uv": [
+        [
+          5.34,
+          3.13
+        ],
+        [
+          5.96,
+          3.13
+        ],
+        [
+          5.96,
+          3.55
+        ],
+        [
+          5.34,
+          3.55
+        ]
+      ],
+      "front_faces": "+v",
+      "standing_spots_uv": [],
+      "standing_spots_stage_px": [],
+      "front_depth": 1920,
+      "depth": {
+        "formula": "1000 + round((u + v) * 100)",
+        "front_face_centre_uv": [
+          5.65,
+          3.55
+        ],
+        "front_face_centre": 1920,
+        "nearest_corner_uv": [
+          5.96,
+          3.55
+        ],
+        "nearest_corner": 1951,
+        "farthest_corner": 1847
+      },
+      "body_z_index": 1904,
+      "light_z_index": 2044,
+      "image_elements": 3,
+      "layers": [
+        "tv_body",
+        "tv_light",
+        "tv_glow"
+      ],
+      "animated": {
+        "tv_glow": [
+          "tv_glow"
+        ]
+      },
+      "capture_rect_stage_px": [
+        900,
+        500,
+        260,
+        190
+      ],
+      "screen_quad": [
+        [
+          1010.8799743652344,
+          551.3215398788452
+        ],
+        [
+          1040.8799743652344,
+          566.3215148448944
+        ],
+        [
+          1040.8799743652344,
+          592.7760243415833
+        ],
+        [
+          1010.8799743652344,
+          577.7760171890259
+        ]
+      ],
+      "screen_quad_order": [
+        "TL",
+        "TR",
+        "BR",
+        "BL"
+      ],
+      "screen_depth": [
+        1895,
+        1945
+      ],
+      "shelf_box_page_uvz": {
+        "u": [
+          5.32,
+          5.98
+        ],
+        "v": [
+          3.13,
+          3.57
+        ],
+        "z": [
+          0.47,
+          0.5
+        ]
+      }
+    }
+  },
+  "animation": {
+    "rule": "Each animated piece is plus-lighter on top of the always-on pieces. All on = draft 31. All off = the prop with only its always-on emitters. Fade a piece with opacity (0..1).",
+    "pieces": {
+      "tube_pink": "jukebox pink arch tube and its pink pool on the carpet (and on bar end, standee foot, pot); off = tube dark, no pool",
+      "tube_teal": "jukebox teal arch tube, what it adds on top of the pink tube; off = tube dark",
+      "tv_glow": "TV screen glow: the faint blue of the picture tube inside the screen quad and its light on shelf, worktop and wall; off = dead screen"
+    },
+    "stacking_order_used": {
+      "jukebox": [
+        "tube_pink",
+        "tube_teal"
+      ],
+      "tv": [
+        "tv_glow"
+      ]
+    },
+    "always_on_base_contains_no_animated_light": true
+  },
+  "dropped_noise": [
+    {
+      "kind": "shadow on sprites in front of the body / darkness the page stack cannot show",
+      "prop": "tv",
+      "separate_image_allowed": true,
+      "stage_px_darker_than_2": 135,
+      "stage_px_darker_than_8": 0,
+      "darkest": -5.97
+    }
+  ],
+  "shadow_required": true,
+  "integration_status": "Staging only; no page or live pack changed.",
+  "draw_notes": [
+    "All coordinates and z are logical stage units at either resolution. Resolve files against roxy3d/out10p/.",
+    "No layer is \"under\": push every render_layer into the occluder stack (img.prop) at its z_index, AFTER out10, out10m and out10l, so that at equal z it is later in the document.",
+    "Bodies are straight-alpha source-over and carry the contact shadow (black with alpha) outside the silhouette. Light pieces are RGB on black, plus-lighter.",
+    "tv_body carries the popcorn machine pixels in front of the TV (same pack slice as the worktop). Draw the TV picture into props.tv.screen_quad above tv_body.",
+    "Animated pieces: layers with \"anim\". Everything else is always on.",
+    "parents is empty: no piece is split into slices."
+  ],
+  "light_over_walkers_at_standing_spots": {
+    "jukebox": [
+      {
+        "uv": [
+          11.97,
+          4.14
+        ],
+        "walker_z": 2611,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1348,
+          769,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 13.0,
+        "px_over_8": 2
+      },
+      {
+        "uv": [
+          12.36,
+          4.26
+        ],
+        "walker_z": 2662,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1364,
+          785,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 0.0,
+        "px_over_8": 0
+      },
+      {
+        "uv": [
+          12.76,
+          4.5
+        ],
+        "walker_z": 2726,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1374,
+          804,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 7.0,
+        "px_over_8": 0
+      },
+      {
+        "uv": [
+          12.93,
+          4.18
+        ],
+        "walker_z": 2711,
+        "light_z": 2595,
+        "sprite_rect_assumed_44x64": [
+          1403,
+          799,
+          44,
+          64
+        ],
+        "added_light_mean_rgb": [
+          0.1,
+          0.0,
+          0.0
+        ],
+        "added_light_max": 7.0,
+        "px_over_8": 0
+      }
+    ],
+    "tv": []
+  },
+  "brief96": "The claw machine left this pack: it is a depth piece of the main pack now (manifest.claw). Jukebox and TV pieces are the Brief 94 files, byte for byte."
+}

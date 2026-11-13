@@ -10,7 +10,7 @@ runs) a DinkDonk movie night. People in Destiny.gg (DGG) chat become small walke
 
 | Scene | File | Art |
 |---|---|---|
-| Lobby (main screen): a pre-rendered isometric late-90s cinema on a rainy night | `lobby.html` | `roxy3d/out10r/` (base and mist, Brief 95 re-render, 12 Nov 2026; `?artdir=out10` = the one before), `roxy3d/out10mist/`, `roxy3d/out10m/` (street marquee), `roxy3d/out10l/` ("Dear Leader" poster), `roxy3d/out10p/` (claw machine, jukebox, TV) |
+| Lobby (main screen): a pre-rendered isometric late-90s cinema on a rainy night | `lobby.html` | `roxy3d/out10s/` (base and mist, Brief 96, 13 Nov 2026: claw machine in the arcade's place; `?artdir=out10r` = the one before) with props pack `roxy3d/out10ps/` (jukebox, TV), `roxy3d/out10mist/`, `roxy3d/out10m/` (street marquee), `roxy3d/out10l/` ("Dear Leader" poster), `roxy3d/out10p/` (claw machine, jukebox, TV) |
 | Auditorium: seats, lights down and up, the film pinned onto the big screen | `auditorium.html` | `roxy3d/qa11/` (draft 14 = draft 13 + the entrance corridor) |
 
 `roxy.html` and `roxy-qa.html` are **redirect stubs** left over from the old name. Never edit them, and never put
