@@ -3003,3 +3003,9 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   after 16 s (DGG's runs 6 times, 10.5 s). A broken string in core.js was live for about a minute at 08:37 and was
   fixed; shared files are now edited on a copy and checked before they replace the live one. Not measured: CPU cost
   of more animations running (the performance session's area).
+- 13 Nov (render agent, Brief 97, Godot stage of the fly-through redo): `godot-spike/run-live.bat` now opens version
+  97 = today's lobby (marquee, poster, props, claw machine, gate, wet walls) and the draft-14 auditorium entered down
+  its corridor; the 7 Nov version is `run-live-7nov.bat`. New scenes `fly/v9/production_{A,B}.blend`, new route
+  `godot-spike/assets_v97/camera_path.json` (part A unchanged, 120 new corridor frames, 53.3 s). Added for the flight
+  and waiting for the owner: corridor near wall, ceiling and door-wall lining, +1.5 stops exposure in the corridor.
+  QA passes; no Cycles render, no video, no cloud, nothing committed. `NOTES-97.md`.

@@ -73,3 +73,10 @@ speed turns (surge <-> brake) at frames: none
   frame  199 ( 6.60 s):  10.59 px/f  PERSP
 ```
 STATUS: COMPLETE - OPENING-ONLY SCREEN-SPEED CORRECTION, BYTE COMPARISON AND LIVE STARTUP PASS; STOP.
+
+## 13 Nov 2026 - Version 97: current lobby and auditorium (Brief 97)
+- `run-live.bat` opens `main_v97.tscn`; the 7 Nov version is `run-live-7nov.bat` and none of its files changed. New scenes `fly/v9/production_{A,B}.blend` (v7 fly scenes + what the art changed since: marquee, poster, props, claw machine, gate, wet-wall materials; draft-14 corridor), exported to `assets_v97_A/`, `assets_v97_B/`.
+- Route `assets_v97/camera_path.json` (`route_v97.py`): part A row for row the approved one; part B gets 120 new frames down the corridor and through the door, then the old B25-B404 96 frames later. 1,600 frames / 53.333 s. Exposure +1.5 stops in the corridor.
+- Added for the flight only: corridor near wall, ceiling and door-wall lining, hidden from global frame 1260. Entrance leaves open at 38.1-39.1 s.
+- `campath.py`: no new speed swing, no new yaw reversal (`route_v97_campath.txt`). Geometry, door and clearance QA pass (`route_v97_geometry_qa.json`, nearest new object 0.33 m). Timeline QA passes (`route_v97_integration_qa.json`). Live starts offscreen with `--quit-after 180`, exit 0; the whole route played once without script errors. Full notes: `NOTES-97.md`.
+STATUS: COMPLETE - V97 SCENES, CORRIDOR ROUTE, QA AND OFFSCREEN LIVE START PASS; OWNER REVIEW IN THE LIVE VIEWER PENDING; STOP.
