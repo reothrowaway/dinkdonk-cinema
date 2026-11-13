@@ -3014,3 +3014,31 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   left to the screen and into the unchanged zoom-out; path, speed and length (53.3 s) as before, part A untouched.
   Hall exposure +1 stop until the zoom-out; the Godot hall got one even fill so it meets the plate (walls 25 against
   24 of 255; were 8). QA passes. Capture: `concepts/fly/flythrough-v97b-godot-720p.mp4`. `NOTES-97.md`, section 97b.
+- 13 Nov, evening (render agent, Brief 97 Cycles stage; owner: route 97b good, keep shell and corridor lift, boards
+  "DINK DONK CINEMAS" / "MOVIE NIGHT", final 1080p30): `fly/v10/` = fly/v9 + route 97b ported as Brief 76 did, with
+  marquee text (Bahnschrift standing in for Oswald, which is not on this PC), no rain under the canopy, plates composed
+  from the live packs. Bundle `fly/v10/roxy-cloud-bundle-97.tar.gz` (33.4 MiB, draft and final, 1,600 frames) for
+  `cloud/cloud-render.sh multi`; Brief 96 lessons built in (54 / 16 light-linking combinations, whole state per render,
+  probe per worker, two-worker match test passed). The final also writes the chatters' opaque depth. Local smoke of
+  both modes and four real final frames through the helper's worker passed. No cloud run, no commit. Estimate: draft
+  0.6-1.0 GPU-h, final 2.5-3.5 GPU-h. `NOTES-97.md`, section "Cycles stage".
+- 13 Nov 16:25-17:30, fly-through draft on RunPod (owner limit $8 for draft + final): 2 A40 (CA-MTL-1), 3-4 workers each,
+  GPU 45-86%; 555/800 frames when the pods hit MAX_HOURS 0.6 at 17:02; pods deleted, volume toqdekqj9e kept with the
+  frames. The MULTI_RESUME run created nothing in 23 min (it waits for a status-reader pod first and none could be made
+  in CA-MTL-1; nothing billed); stopped by Ctrl-C. Spent $0.74 (balance 12.72 -> 11.98). Measured speed: the full draft
+  ~1.25 A40-h; local per-frame ratio final/draft ~4.5x and 2x the frames -> final ~11 A40-hours (~$6.5-8), far over
+  Brief 97's 2.5-3.5 4090-h estimate, so the $8 limit no longer covers draft + final. Asked the owner.
+- 13 Nov 18:38-19:06, fresh draft (limit raised to $12 by the owner): 1 then 2 RTX 4090 (EU-RO-1), 800/800 frames at
+  19:02, result home 19:05, pods and that volume deleted. Balance 11.31 (draft runs together ~$1.41). The first draft's
+  volume toqdekqj9e still exists (555 frames, waiting for the owner's OK to delete). Checks: campath one yaw reversal in
+  B at 45.4 s (the pan), no staircase; flash.py: no brightness jump > 0.06, near-black only at the planned cut
+  (1073-1121), grey = the screen filling the frame at 46-47 s; biggest change 21.8 s (fast motion through the door).
+  Looked at frames 655, 1175, 1335. Video: concepts/fly/flythrough-v10-cycles-draft-540p.webm (540p 15 fps).
+- 13 Nov 19:27-20:22, fly-through FINAL on RunPod: 5 x RTX 4090 (EU-RO-1; 1 pod at first, all 5 by 19:36), GPU 88-95%,
+  1600/1600 frames at 20:12, result home 20:22 (3.5 GB), pods and volume deleted. Cost $3.06 (balance 11.31 -> 8.25);
+  drafts + final together $4.47 of the owner's $12. flash.py on the 1,600 final frames: no brightness jump > 0.05;
+  biggest change 21.8 s (the door). build_transition97.py -> fly/transition97/ (59 MB VP9, camera file 1,600 frames).
+  Played in lobby-qa.html with real chat: chatters drawn in (A 20/22 cards, B 135/135), no page errors. Promoted: the
+  new transition.webm + transition-camera.json copied into fly/transition/ (the 7 Nov pair kept in fly/transition-7nov/,
+  ?flydir=old in the QA player). Live lobby plays it (checked to 52 s), no page errors. Not checked: the real OBS cut
+  through obs-bridge at the new 53.3 s length. The first draft's volume toqdekqj9e still on RunPod (owner's OK pending).

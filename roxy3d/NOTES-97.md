@@ -181,3 +181,135 @@ and the length (53.3 s) are as before, and the end is the same exact draft-14 po
 - The 7 Nov version and `assets_v2/` are untouched.
 
 STATUS: 97B COMPLETE - HALL PAN (RIGHT ACROSS THE SEAT ROWS 42.4-45.4 S, ONE LEFT TURN TO THE SCREEN AND INTO THE UNCHANGED ZOOM-OUT, END POSE AND PLATE EXACT), HALL EXPOSURE +1.0 STOP UNTIL 48.0 S, GODOT HALL FILL TUNED TO THE PLATE (WALLS 25 AGAINST 24, WERE 8); LENGTH STILL 1,600 FRAMES / 53.3 S, PART A UNCHANGED; CAMERA-PATH, GEOMETRY AND TIMELINE QA PASS; CAPTURE `concepts/fly/flythrough-v97b-godot-720p.mp4`; CORRIDOR SHELL AND CORRIDOR LIFT AS BEFORE (OWNER UNDECIDED); NO CYCLES RENDER, NO CLOUD, NO COMMIT; STOP.
+
+## Cycles stage (13 Nov 2026, evening): port, bundle, local smoke. No cloud run.
+
+Owner, 13 Nov 2026: route 97b "Looks good"; corridor shell and corridor exposure lift "Keep both"; marquee boards
+"DINK DONK CINEMAS" / "MOVIE NIGHT"; final 1080p, 30 fps. Everything below is in `fly/v10/`. Nothing was rented, nothing
+committed; `fly/v9/`, `fly/v8/`, `cloud/`, live packs, pages and `fly/transition/` are untouched.
+
+### The bundle
+
+- **`fly/v10/roxy-cloud-bundle-97.tar.gz`**, 35,019,071 bytes (33.4 MiB), 22 members, SHA-256
+  `587e24c32631d62e6e6c126077cdeb99753ab54b7fe0ce5a686ed4143098c4a7`. The helper's own `validate_archive` accepts it.
+- **1,600 frames**, 30 fps, 53.3 s. A 1-1100, B 1101-1600, last 30 = the draft-14 plate.
+- Two modes, one bundle:
+
+| | Draft | Final |
+|---|---|---|
+| Size | 960 x 540 | 1920 x 1080 |
+| Frames | every other one (800), 15 fps video | all 1,600, 30 fps video |
+| Samples | 24 max / 8 min | the scenes' own: 64 max / 16 min |
+| Shutter (motion blur) | 1.25 frames | 1.25 frames |
+| Depth | first hit of the color render | opaque depth for the chatters (second 1-sample pass) |
+
+Same scenes, lights, materials and denoiser in both: the draft shows the real look.
+
+### Commands (from `roxy3d/` in Git Bash, only with the owner's spend approval; neither was run)
+
+```bash
+MAX_HOURS=0.6 bash fly/v10/run97-draft.sh    # 2 pods, result in fly/v10/cloud-draft-result/
+MAX_HOURS=1   bash fly/v10/run97-final.sh    # 5 pods, result in fly/v10/cloud-final-result/
+```
+
+In full (final; the draft differs in `PODS=2 FLY_MODE=draft ESTIMATE_HOURS=0.5`, state and output names):
+
+```bash
+GPUS='NVIDIA GeForce RTX 4090,NVIDIA RTX A6000,NVIDIA A40,NVIDIA GeForce RTX 3090' \
+PODS=5 WORKERS=auto MAX_WORKERS=4 FRAMES= FLY_MODE=final CHUNK=8 MAX_HOURS=<limit> BOOT_MIN=10 ESTIMATE_HOURS=0.75 \
+ARCHIVE="$PWD/fly/v10/roxy-cloud-bundle-97.tar.gz" MULTI_STATE="$PWD/cloud/cloud-state-97-final.json" \
+OUTDIR="$PWD/fly/v10/cloud-final-result" bash cloud/cloud-render.sh multi
+```
+
+`MAX_HOURS` is the money limit (hours per pod); the scripts refuse to start without it. The helper also wants a
+balance of at least $5 (draft) or $6.36 (final) before it starts; that is a reserve, not a charge.
+After the final, at home, no GPU:
+`../tools/blender-5.2.3-windows-x64/5.2/python/bin/python.exe fly/v10/build_transition97.py` writes
+`fly/transition97/transition.webm` and `transition-camera.json` (staging; same format as `fly/transition/`).
+
+### GPU time and money (estimates, not quotes)
+
+Basis: the v8 final (1,504 frames at these samples on five 4090s) cost about $2.20, and its receipts hold every
+frame's time. v10 has 6% more frames, 5% more objects and the depth pass (about a fifth on top, measured here).
+
+| | GPU-hours (4090 class) | At $0.6-0.9 per GPU-hour | Wall time |
+|---|---|---|---|
+| Draft, 2 pods | 0.6-1.0 | $0.4-0.9 | 20-30 min |
+| Final, 5 pods | 2.5-3.5 | $1.5-3.2 | 35-50 min |
+
+Worst case by the limits above: draft 2 x 0.6 h, final 5 x 1 h. Pod start-up, probe, encode and download are in the
+numbers; the draft is mostly that overhead.
+
+### What the port did (`build_port97.py`, as Brief 76 did for v8)
+
+- Camera, bus and car paths: byte copies of the approved Godot inputs. `campath.py` on `fly/v10/camera_path.json`
+  (`fly/v10/campath.txt`): as the 97b check (three intended reversals in A, one in B at 45.4 s, no new speed swing).
+- Every animation on the route's clock; exposure keyed: corridor +1.5 stops, hall +1.0 stop, 0 before the end pose.
+- Corridor shell with its hide time (B 160) and the entrance leaves come from `fly/v9`; checked in Cycles stills.
+- The two frozen splash objects removed, sky-dome fix, bus, blue sedan: as in v8.
+- **Marquee text:** two letter meshes on the street board, laid out as the page does (line 1 on the middle track,
+  44 px against 30 px, the page's two ink colors). The page's font, Oswald, is not on this PC and I may not download
+  it; the letters are Bahnschrift (Windows), thickened and fitted to Oswald's line widths and cap heights. See below.
+- **No rain under the canopy:** drops and ground impacts inside the canopy's footprint get scale 0 (nothing is
+  deleted, so the rain keeps its motion blur).
+- **Hall fill: not needed.** In Cycles the hall has its real lights; with the +1.0 stop the seats read well in the
+  pan (I looked at five stills). The Godot-only fill was not ported.
+- **First plate, how:** `out10s/full.png`, then every piece of the marquee, poster and props packs
+  (`out10m`, `out10l`, `out10ps`: 308 pieces) at its place, depth and blend as their manifests say; after each piece
+  the base pack's own depth slices that stand in front of it are drawn again, as the page stacks them. The board text
+  is laid on in the page's colors with the letter shapes of the scene's text, so frame 1 and frame 2 agree. Not in the
+  plate: what the page animates or writes live (chase bulbs, light loop, rain video, TV picture, LED signs).
+- **End plate:** `qa11/cinema_draft_14.png`, byte copy. The depth of the first frame and the last 30 is rendered.
+- **Depth for the chatters:** the final writes, for every frame, the depth of the opaque surfaces at the central
+  pose without shutter, with glass, rain, water and transparent layers left out (the Brief 78 policy; before, this
+  was a separate 3-hour job at home). `build_transition97.py` packs it into the page's two depth tiles; tried on four
+  real final frames: 1920 x 1620 VP9, camera file with 1,600 entries and the same fields as the live one.
+
+### Brief 96 lessons, as built
+
+1. **Light linking:** lobby 54 combinations, auditorium 16 (limit 64). Every worker counts again when it opens a
+   scene and stops over 60.
+2. **Whole state per render:** size, samples, bounces, shutter, which objects the camera sees, camera, animated
+   lights and tube circuits are written for every render; nothing is taken from the frame before.
+3. **Probe:** every worker process renders one 320 x 180 picture of the whole scene before its first frame (lobby:
+   first pose; auditorium: end pose) and compares it block by block with the reference in the bundle. A worker that
+   differs stops. Packaging refuses a frame whose worker has no passed probe.
+4. **Two-worker match test** (`match97.json`): frames A560 and B262 at final settings from two separate processes,
+   one of them after another frame with both passes. Color differs by 0.013 and 0.003 of 255 on average (largest 2),
+   no pixel by a quarter of its brightness; the depth is identical.
+
+### Local checks (RTX 3050, one job at a time)
+
+- Smoke through the helper's own supervisor and worker code, two workers, eight tiny frames, both modes
+  (`smoke97.json`): pass. Both workers rendered both scenes, four probes passed each time, plates on frames 1, 1571
+  and 1600, the video decodes, a second start changes nothing.
+- Four frames (1360-1363) at the real final settings through the same worker code with the helper's `FRAMES` test
+  contract (`test_range97-1360-1363.json`): pass.
+- 15 look stills at draft settings and 6 at final settings (two of those are the plates) (`fly/v10/lookcheck/`): first pose, street with the
+  marquee text, under the canopy, bus, sedan, poster, Screen 1 doors, corridor, entrance door, hall pan, end pose.
+- Times here: draft 8.2-8.7 s per lobby frame and 2.3-2.7 s per auditorium frame; final 31 s + 6 s depth and
+  6-9 s + 2 s.
+
+### Not verified
+
+- **No Linux or cloud run of this bundle.** The probe reference was made on the RTX 3050. Another GPU model should
+  give the same picture within the limits (2% of blocks, 6% mean), as it did in Brief 96, but that is not tested. If
+  it fails, every worker stops in its first minute, so it costs pod start-up only.
+- The whole length was not rendered anywhere, so `flash.py` has nothing to scan yet: run it on the draft.
+- The page side (a 53.3 s video, new camera file) is not touched.
+
+### Needs the owner
+
+1. The go for the draft and for the final, each with its `MAX_HOURS`.
+2. **Board font.** Bahnschrift stands in for Oswald. If that is fine, nothing to do. If it should be Oswald, I need
+   your OK to download the font (free license); then the port, plates and bundle are rebuilt in about 15 minutes.
+3. Marquee and claw-machine bulbs stand still in the video (the page chases them). Say if they should chase.
+
+### Left in `fly/v10/` that can be deleted
+
+A safety check stopped my clean-up, so these are still there: `smoke97/` (164 MB of unpacked test copies),
+`match_a/`, `match_b/`, the contact sheets in `lookcheck/`, the stray empty folder `cache$v`, and in
+`fly/transition97/` a 4-frame test video with a test camera file (the script overwrites the camera file after the
+final).
+
+STATUS: CYCLES STAGE READY, NOT RENDERED - fly/v10 PORTED FROM fly/v9 + ROUTE 97B (PATHS BYTE-IDENTICAL, EXPOSURE CURVE, SHELL, DOORS, MARQUEE TEXT, DRY CANOPY, SPLASH AND SKY FIXES); BUNDLE fly/v10/roxy-cloud-bundle-97.tar.gz (33.4 MiB, SHA-256 587e24c3...98c4a7, 1,600 FRAMES, DRAFT AND FINAL) FITS THE MULTI-POD HELPER; LIGHT LINKING 54 / 16 OF 64, WHOLE STATE PER RENDER, PROBE PER WORKER, TWO-WORKER MATCH TEST PASSED; LOCAL SMOKE OF BOTH MODES AND FOUR REAL FINAL FRAMES THROUGH THE HELPER'S WORKER PASSED; FINAL ALSO WRITES THE CHATTERS' DEPTH; ESTIMATE DRAFT 0.6-1.0 GPU-H ($0.4-0.9), FINAL 2.5-3.5 GPU-H ($1.5-3.2); HALL FILL NOT NEEDED IN CYCLES; BOARD FONT IS A STAND-IN (OSWALD NOT ON THIS PC); NO LINUX OR CLOUD RUN, NO FULL-LENGTH RENDER; NO COMMIT; WAITING FOR THE OWNER'S SPEND APPROVAL; STOP.

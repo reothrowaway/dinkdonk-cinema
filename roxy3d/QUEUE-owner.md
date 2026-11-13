@@ -467,3 +467,15 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     anything" on zoom/loop quality for now.
 79. Owner 13 Nov 2026: "we're not even gonna do the fly-through, so don't think about that" (the fly-through
     refresh is off the list for now). coMMMMfy Halloween version: done in shared/core.js (EMOTE_OVERRIDES).
+80. Owner 13 Nov 2026, fly-through redo: "first start with the Godot stage so I can see it" (Brief 97, Fable 5.2 high);
+    on the 720p capture: pan right across the audience before the screen (97b); then "Looks good" on 97b. Still open:
+    corridor shell + corridor exposure lift (agent's additions), marquee board text, the Cycles port and RunPod render
+    (needs a money limit).
+    + 13 Nov, owner on the corridor shell and corridor exposure lift: "Keep both".
+    + 13 Nov, marquee boards in the fly-through: "DINK DONK CINEMAS" (line 1; line 2 the lobby's default "MOVIE NIGHT").
+    + 13 Nov, final fly-through resolution: "1080p". Cycles port and RunPod bundle (draft + final) started; the money
+      limit is asked once the estimate is in.
+    + 13 Nov, RunPod for the fly-through draft + final: "Max $8" (balance $12.72 before).
+    + 13 Nov ~18:35, the final turned out ~$6.5-8 (measured), so $8 can't cover draft + final; owner: "Go ahead" on my
+      recommended option: limit raised to $12 total, finish the draft (fresh run, MAX_HOURS 1.0), then the final.
+    + 13 Nov ~19:15, owner after the Cycles draft: "Render the final" (1080p, 5 pods, MAX_HOURS 2.3, inside the $12).

@@ -18,7 +18,7 @@
 (() => {
   'use strict';
   const q = new URLSearchParams(location.search);
-  const BASE = 'roxy3d/fly/transition/';
+  const BASE = q.get('flydir') === 'old' ? 'roxy3d/fly/transition-7nov/' : 'roxy3d/fly/transition/';   // 13 Nov 2026: the re-render (Brief 97) is in fly/transition/; ?flydir=old = the 7 Nov one (local only)
   const ZPP = 73.48469228349535;            // page z px per world unit (mapping.json)
   // Each chatter is one upright quad CARD_W x CARD_H world units: the emote stands at the bottom centre at its lobby size
   // (page px -> world: width / XPP, height / ZPP, so frame 1 matches the lobby sprite), the name label above the head.
