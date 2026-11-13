@@ -171,7 +171,8 @@
   .mqtext .mq1 { font-size: 44px; letter-spacing: 4px; }
   .mqtext .mq2 { font-size: 30px; letter-spacing: 5px; color: #3a2a20; }
   .proploop { position: absolute; pointer-events: none; mix-blend-mode: plus-lighter; background-repeat: no-repeat; }
-  /* the street marquee's canopy, board text and bulbs: see-through while the camera is zoomed in (--mqa, stepCam) */
+  /* the street marquee's canopy, board text and bulbs, and the front glass: see-through while the camera is zoomed in
+     (--mqa, stepCam) */
   .mqfade { opacity: var(--mqa, 1); }
   /* premiere-night sky (L3) and wet-street light (L4), queue 61: over the background, under #world's walkers and props */
   .fxl { width: 1920px; height: 1080px; z-index: 3; overflow: hidden; }
@@ -583,6 +584,10 @@
   // through the gap between the restroom corner (u 3.1, v 3.1) and the snack partition (u 4.4) before turning to J:
   // the straight line G -> J ran over the corner, so walkers clipped through the restroom wall (owner, 05 Nov)
   const GATE_OUT = [3.75, 2.45];
+  // Past the usher, the corridor is entered straight ahead (owner, 13 Nov 2026: walkers went all the way back to the
+  // junction J by the restroom door and then turned round towards the screens, an unnatural V). Only those going to
+  // the restroom still go via J; everyone else walks up into the corridor here and on along it to their door.
+  const CORR_IN = [4.4, 1.4];
   const DOORS = [             // screens 1-5 -> room index 0-4
     { wall: 'u', at: 6.4 },   // left wing, wall u = 0, at v (screen 1 is the left-most)
     { wall: 'u', at: 4.0 },
@@ -1585,7 +1590,9 @@
     const d = DOORS[w.doorRoom];
     const steps = pollWatchSteps(w);   // the poll screen is down: most stop and look at it for a bit first
     if (d.wall === 'u') steps.push({ to: [J[0], d.at] }, { to: [0.55, d.at] }, { call: startEnter }, { to: [0.1, d.at], slow: true }, { alpha: 0 }, { call: finishEnter });
-    else steps.push({ to: J }, { to: [d.at, J[1]] }, { to: [d.at, 0.55] }, { call: startEnter }, { to: [d.at, 0.1], slow: true }, { alpha: 0 }, { call: finishEnter });
+    // (into the corridor's walking line where they are, not back to the junction first: only from the restroom side
+    // is that the junction itself)
+    else steps.push({ to: [clamp(w.u, J[0], Math.max(J[0], d.at)), J[1]] }, { to: [d.at, J[1]] }, { to: [d.at, 0.55] }, { call: startEnter }, { to: [d.at, 0.1], slow: true }, { alpha: 0 }, { call: finishEnter });
     return steps;
   }
   function startEnter(w) { w.entering = true; w.alphaT = 0; dropBubble(w); playDoor(w.doorRoom + 1); }
@@ -1641,7 +1648,7 @@
 
   function afterTicket(w) {
     // past the usher: maybe a chat in the corridor first, then the restroom, then their door
-    const past = [{ to: GATE_OUT }, { to: J }, { call: hangHall }];
+    const past = [{ to: GATE_OUT }, { to: w.detour === 'bathroom' ? J : CORR_IN }, { call: hangHall }];
     if (w.detour === 'bathroom') past.push(...(RESTROOM ? [{ call: tryRestroom }] : [{ to: [J[0], WC_V - 0.8] }, { call: tryWC }]));
     past.push({ call: (x) => { x.plan.unshift(...doorSteps(x)); } });
     let rest;
@@ -1695,7 +1702,7 @@
     gateT = 0;
     gateLine.shift();
     head.gi = -1;
-    head.plan = head.afterGate || [{ to: GATE_OUT }, { to: J }, { call: (x) => { x.plan.unshift(...doorSteps(x)); } }];
+    head.plan = head.afterGate || [{ to: GATE_OUT }, { to: CORR_IN }, { call: (x) => { x.plan.unshift(...doorSteps(x)); } }];
     head.afterGate = null;
   }
 
@@ -5030,7 +5037,7 @@ void main() {
   // The wide shot's own zoom (owner, 11 Nov 2026): 1 = the whole scene, more = the wide shot sits that much closer,
   // on the same centre. ?widezoom=<1-1.6>, live from the panel ("Wide shot zoom").
   let WIDE_Z = clamp(Number(q.get('widezoom')) || 1, 1, 1.6);
-  const MQ_FADE = q.get('mqfade') === '0' ? 0 : q.has('mqfade') ? clamp(Number(q.get('mqfade')) || 0.75, 0, 1) : 0.75;
+  let MQ_FADE = q.get('mqfade') === '0' ? 0 : q.has('mqfade') ? clamp(Number(q.get('mqfade')) || 0.75, 0, 1) : 0.75;
   function stepCamera(dt) {
     const now = performance.now();
     const f = director.follow;
@@ -5082,11 +5089,12 @@ void main() {
     if (![cam.x, cam.y, cam.z].every(Number.isFinite)) { Object.assign(cam, { x: 960, y: 540, z: 1, vx: 0, vy: 0, vz: 0 }); endFollow(); }
     const key = `translate(${(960 - cam.x * cam.z).toFixed(2)}px, ${(540 - cam.y * cam.z).toFixed(2)}px) scale(${cam.z.toFixed(4)})`;
     if (key !== cam.key) { cam.key = key; camEl.style.transform = key; }
-    // The street marquee goes see-through while zoomed in (owner, 13 Nov 2026: "around 75% transparent"), so close-ups
-    // under and behind the canopy aren't blocked: its canopy, board text and bulbs fade with the zoom to 25% and come
-    // back at the wide shot. Its light and shadow on the street and walls stay. ?mqfade=0: off; ?mqfade=<0..1> how
-    // see-through (default 0.75).
-    if (MQ_FADE > 0) {
+    // The street marquee and the front glass go see-through while zoomed in (owner, 13 Nov 2026: "around 75%
+    // transparent"; the glass the same day), so close-ups under the canopy and behind the glass aren't blocked: the
+    // canopy, board text and bulbs, the glass panes and their rain sheets fade with the zoom and come back at the wide
+    // shot. The marquee's light and shadow on the street stay. How see-through: the panel's "See-through when zoomed
+    // in" (0 = solid), or ?mqfade=<0..1> (default 0.75).
+    {
       const a = Math.round((1 - MQ_FADE * clamp((cam.z - WIDE_Z - 0.08) / 0.45, 0, 1)) * 50) / 50;
       if (a !== cam.mqa) { cam.mqa = a; camEl.style.setProperty('--mqa', String(a)); }
     }
@@ -5136,6 +5144,7 @@ void main() {
     mist: { get: () => MIST, set: (v) => setMist(v) },
     mistgain: { get: () => MIST_GAIN, set: (v) => setMist(undefined, v) },
     widezoom: { get: () => WIDE_Z, set: (v) => { WIDE_Z = clamp(Number(v) || 1, 1, 1.6); } },
+    seethru: { get: () => MQ_FADE, set: (v) => { MQ_FADE = clamp(Number(v), 0, 1); if (!Number.isFinite(MQ_FADE)) MQ_FADE = 0.75; } },
     marquee1: { get: () => MARQ.custom[0], set: (v) => { MARQ.custom[0] = mqClean(v); showMarquee(); } },
     marquee2: { get: () => MARQ.custom[1], set: (v) => { MARQ.custom[1] = mqClean(v); showMarquee(); } },
   };
@@ -5899,7 +5908,7 @@ void main() {
         // restroom one carries a black strip (its shaded face) that lands on the ticket wall as a black bar beside
         // the box office; only its lit top cap is kept
         if (/occ_restroom_side_wall_01\.png$/.test(s.file) && s.w === 159 && s.h === 99) im.style.clipPath = 'polygon(0 0, 159px 0, 159px 10px, 143px 10px, 143px 99px, 0 99px)';
-        if (s.mqfade) im.classList.add('mqfade');   // the marquee's canopy (see-through when zoomed in)
+        if (s.mqfade || /^glass_(left|right)/.test(o.name || '')) im.classList.add('mqfade');   // the marquee's canopy and the front glass (see-through when zoomed in)
         world.append(im);
         artImgs.push([im, s.file]);
         if (s.anim) (PROPS.els[s.anim] ||= []).push(im);   // lobby props: lights the page animates
@@ -5943,7 +5952,7 @@ void main() {
       for (const p of m.prop_loops) {
         if (!p || typeof p.file !== 'string' || ![p.x, p.y, p.w, p.h, p.frames, p.columns].every(Number.isFinite)) continue;
         if (/arcade.*(play|hiscore|high)/i.test(p.name || '')) continue;
-        const el = h(LOOPCV === 1 ? 'canvas' : 'div', p.mqfade ? 'proploop mqfade' : 'proploop');
+        const el = h(LOOPCV === 1 ? 'canvas' : 'div', p.mqfade || /^wet_glass_/.test(p.name || '') ? 'proploop mqfade' : 'proploop');
         if (p.blend === 'source-over') el.style.mixBlendMode = 'normal';   // straight-RGBA water on the glass (pass 8)
         Object.assign(el.style, { left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`, zIndex: String(p.z_index ?? 3) });
         const rows = Math.ceil(p.frames / p.columns);

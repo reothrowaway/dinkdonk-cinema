@@ -33,6 +33,7 @@ const SCHEMA = {
     BUBSTYLE,
     num('bubbles', 'Bubbles on screen at most', 2, 14, 1, 8, 'Look', 'the oldest fades for a new one'),
     WIDEZOOM,
+    num('seethru', 'See-through when zoomed in', 0, 1, 0.05, 0.75, 'Look', 'street marquee and front glass; 0 = solid, 1 = gone'),
     bool('pollscreen', 'Poll screen on the back wall', true, 'Look', 'off hides it (the Poll screen card still rolls it up/down)'),
     num('crowd', 'Crowd before new chatters are thinned', 0, 60, 1, 14, 'People', 'people outside or in line; 0 = never thin'),
     num('quit', 'Chance to give up in the ticket line', 0, 1, 0.01, 0.06, 'People', '0-1, for people joining the line'),

@@ -2991,3 +2991,9 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   `.mqfade`, `--mqa` on #cam from cam.z; its light/shadow on the street stay; `?mqfade=`). The gnome got its body back
   (blue coat, belt, boots) under the NiceMeMe head. Checked at 1440p zoomed (opacity 0.26) and a gnome close-up; live,
   pushed, deployed, zipped.
+- 13 Nov ~09:30 (owner): (1) past the usher, walkers enter the corridor straight ahead (CORR_IN (4.4, 1.4)) instead of
+  going back to the junction by the restroom door first; only restroom-goers still use J; doorSteps joins the
+  corridor line where the walker is. Real chat, 150 s: new 8 of 27 via J (all 8 restroom), old 27 of 27. (2) the front
+  glass (glass_left/right and their wet sheets) goes see-through with the marquee when zoomed in; panel setting "See-
+  through when zoomed in" (seethru, 0-1, default 0.75; shared/settings.js, server restarted). (3) Askers faces right
+  (shared/emote-facing.json). Live, pushed, deployed, zipped.
