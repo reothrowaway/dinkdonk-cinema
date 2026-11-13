@@ -2928,3 +2928,8 @@ control-qa, shared/core.js, shared/room.js as they were).
   Checked with real chat, no page errors. Promoted to lobby.html (backup backups/2026-11-13-b96/lobby.before.html);
   .gitignore, package/art.js, docs take out10s/out10ps. Open: talk ring's right place 89% hidden; no marquee light on
   the new claw machine; OBS not checked.
+- 13 Nov ~04:00, coMMMMfy Halloween version (owner): found in the web archive: r2cdn.destiny.gg/emotes/emotes.json of
+  24 Oct 2026 lists coMMMMfy (theme 3, DGG's October theme) as 66fbbbad234ed.png (34x32, 2-frame bounce, more of the
+  orange costume; today's is 624e76368b3a9.png, 33x28, still). The file is still on DGG's CDN. shared/core.js
+  EMOTE_OVERRIDES draws coMMMMfy with it everywhere (live at once: shared file). Checked in the page (34x32, the
+  October picture). Not committed, pushed or deployed yet.

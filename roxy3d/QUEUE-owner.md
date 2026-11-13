@@ -459,3 +459,11 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     machine with the claw machine" (Brief 96, Fable 5.2 high: blockout first).
 77. Owner 12 Nov 2026 (~22:20): draft 33's dark claw machine: keep it dark ("2"). Hosted deploy of the flicker fixes:
     "Deploy after the final render" -> one hosted deploy after the Brief 96 render is live locally.
+78. Owner 13 Nov 2026, idea for later (no action now): zoomed in, the lobby interior looks samey and washed because
+    it is lit evenly and brightly by design, while the street has reflections and drops. The restroom looks better: more
+    darkness and a few light spots. Future lighting pass for the lobby: darker overall, light from specific sources
+    (pools under lamps, sign and neon glow, the snack bar), more contrast. Also noted: at 1440p the 4K art is pixel-sharp
+    up to a 1.5x zoom (director default 1.85x); the light loop video softens most when zoomed. Owner: "I don't do
+    anything" on zoom/loop quality for now.
+79. Owner 13 Nov 2026: "we're not even gonna do the fly-through, so don't think about that" (the fly-through
+    refresh is off the list for now). coMMMMfy Halloween version: done in shared/core.js (EMOTE_OVERRIDES).

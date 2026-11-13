@@ -92,13 +92,19 @@
   // called the emote), so "Add a chatter" can dress someone in it and chat that types it gets it too. Drawn like a DGG
   // emote: a .emote.<name> class, here from a small stylesheet of our own.
   const LOCAL_EMOTES = { MOPPING: { url: 'assets/cpMOP.webp', w: 36, h: 32 } };
+  // DGG emotes shown in another version than DGG serves today (owner, 13 Nov 2026): coMMMMfy in its Halloween version,
+  // the bouncing picture DGG served in October 2026 (DGG's emotes.json of 24 Oct 2026 in the web archive; the file is
+  // still on DGG's CDN). Applies wherever the emote is drawn: walkers, speech bubbles, the panel.
+  const EMOTE_OVERRIDES = { coMMMMfy: { url: 'https://cdn.destiny.gg/emotes/66fbbbad234ed.png', w: 34, h: 32 } };
   function addLocalEmotes() {
     for (const n of Object.keys(LOCAL_EMOTES)) emotes.names.add(n);
     if (document.getElementById('sb-local-emotes')) return;
     const st = document.createElement('style');
     st.id = 'sb-local-emotes';
     st.textContent = Object.entries(LOCAL_EMOTES).map(([n, e]) => `.emote.${n} { display: inline-block; width: ${e.w}px; height: ${e.h}px; `
-      + `background: url("${e.url}") no-repeat 0 0 / ${e.w}px ${e.h}px; }`).join(' ');
+      + `background: url("${e.url}") no-repeat 0 0 / ${e.w}px ${e.h}px; }`).join(' ')
+      + Object.entries(EMOTE_OVERRIDES).map(([n, e]) => ` .emote.${n} { width: ${e.w}px !important; height: ${e.h}px !important; `
+      + `background: url("${e.url}") no-repeat 0 0 / ${e.w}px ${e.h}px !important; }`).join('');
     document.head.append(st);
   }
   let measureBox = null;

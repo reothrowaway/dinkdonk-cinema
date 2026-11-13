@@ -144,6 +144,9 @@ changes, one draft, full render only on the owner's word).
   emotes behind a wall show over its top. The page now covers the thin walls' tops with a piece of the background
   (`walltops`, 11 Nov), but not the snack bar's back wall (`partition_right`, its footprint holds signs and boards).
   A re-render with the tops in the occluders fixes all of them.
+- **Lobby lighting with contrast** (owner, 13 Nov 2026, later): the interior is lit evenly and brightly, so zoomed in it
+  looks samey next to the reflective street. Darker overall, light from specific sources (lamp pools, sign and neon
+  glow, the snack bar), like the restroom's darker look with a few light spots.
 - **Claw machine behind the glass** (props pack `out10p`, NOTES-94): its darkest parts come out a little too light
   under the page's two glass layers, and its light pieces sit above the glass (a chatter at the machine gets its teal
   line across them). Fix when the glass is re-rendered.
