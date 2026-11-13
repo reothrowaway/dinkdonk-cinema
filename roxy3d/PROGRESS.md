@@ -2933,3 +2933,61 @@ control-qa, shared/core.js, shared/room.js as they were).
   orange costume; today's is 624e76368b3a9.png, 33x28, still). The file is still on DGG's CDN. shared/core.js
   EMOTE_OVERRIDES draws coMMMMfy with it everywhere (live at once: shared file). Checked in the page (34x32, the
   October picture). Not committed, pushed or deployed yet.
+
+### 13 Nov 2026 (04:05-08:30) - perf pass: frame times and CPU/GPU after Briefs 95/96 and Yee vs Pepe; no page changed (Claude, perf)
+
+Asked by the owner ("another performance pass ... keep checking status, but also GPU and CPU usage, to lower that
+with no compromises"; then "keep going until 8:30"). Test server 18771 + portable OBS, real chat (relay up),
+2560x1440, no Blender. Live server 18770 untouched. New tools in `qa-night/tools`: `threadcost.mjs` (CPU per thread
+and task from an OBS trace), `tilewho.mjs` (raster tiles per layer), `obspaints.mjs` (repaints per layer),
+`fighttime.mjs` (frame times during a Yee vs Pepe fight), `roxy3d/qa-night/tools/loopstats.mjs` (how much light each
+loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
+
+**Status (stutter)**
+- Lobby (live file, out10s) at 30: 1.27 cores, 12.6 W, 30 fps, 0 frames over 40 ms. At 60: 59.9-60 fps, worst 33 ms
+  once, 1.4-1.8 cores. (The very first run of the day said 48 fps at 60: the known first-run-after-OBS-start effect,
+  not repeated in four later runs.)
+- Auditorium at 30: 0.37 cores, 4% GPU, clean; at 60: 0.66 cores, 60 fps, worst 16.8 ms.
+- Recorded runs on the live files (`res/run_status_13nov.txt`):
+  - lobby camera steps at 30: 12 steps, 0 gaps, worst 36 ms; at 60: 3 steps with 2-6 page frames a frame late
+    (worst 33 ms) and one step with 5 late frames in the recording (worst 34 ms): 10 of ~5,400 frames (11 Nov: 0).
+  - auditorium fades at 30: 12 fades (up/down, still/follow), 0 gaps, worst 36 ms. At 60: 16 fades, most with a few
+    late frames (up to 16 per fade in the recording, worst 41-57 ms; the page's own clock once 83 ms). The page's
+    code barely changed since 11 Nov (purple Cabge only); a trace of one lights-down shows no long task (nothing over
+    25 ms on the page or the GPU process), ~680 image decodes spread over workers, and the browser often presenting
+    frames without the page's newest update ("partial", 461 of ~1,000), with the seat-row layers re-rastered ~420
+    tiles/s while the crowd's brightness steps down. This is the open 60 fps fade item from 10-11 Nov (owner: "not
+    now"); at 30 it is clean. Not changed.
+  - Yee vs Pepe fight (`fighttime.mjs`, director zoomed in at 1.85): at 30, 479 frames, 0 late; at 60, two fights,
+    959 frames each, 0 late (worst 16.8 ms). (The first start found no free Yee + Pepe; the others used the test
+    hook that dresses two free walkers as YEE / PEPE in the test room.)
+
+**Where the lobby's CPU goes (30 fps, ~1.0-1.1 cores in OBS's browser; GPU only ~1.5 W over idle)**
+- Trace: GPU process ~330-430 ms/s (raster of ~1,500 tiles/s: ~800 from layers that are made and dropped again,
+  ~700 from the walkers' layers; drawing the frame ~75), page main thread ~300 (layer list ~63, style ~50, script
+  ~45, layout ~35), compositor thread ~250 (bookkeeping for ~600 layers), display compositor ~100.
+- On one page load, switched off one at a time (noise about +-0.08 core; two identical do-nothing states differ that
+  much): every single part is worth 0.1 core or less - light loops ~0.1, bubbles ~0.06, umbrellas, vehicles, LED
+  signs, marquee text, filters, name shadows, wet footprints, splashes ~0. The cost is the sum of many parts.
+- Tried and NOT kept (each measured, no saving or too small):
+  - walker bodies or bubbles or static props on their own layers (raster churn -85%, CPU unchanged; props +0.06-0.11);
+  - walkers without their own layer (0);
+  - walker depth changed less often (`?zq=` test: layer churn halved, CPU unchanged);
+  - light-loop sheets stepped by the compositor (Web Animations, frames checked exact): the browser still restyles
+    every animated sheet on the main thread each frame, no saving;
+  - marquee shadows folded into the wall pictures they lie on (31 of 95 qualify with identical pixels; the rest have a
+    wet loop or another picture in between): -0.03 core, not worth the code.
+  `lobby-qa.html` is as before (backup of the morning's state: `backups/2026-11-13-perf/`).
+- The one sizeable lever is the art (upper bound, one page load, against two do-nothing controls): without the 54 wet
+  loops + 95 marquee shadow pieces + 87 marquee light pieces the lobby needs 0.21 core less at 30 fps (~19%); each
+  group alone ~0.12-0.17. That is what rendering the marquee light and shadow into the wall pictures (Brief 95 notes:
+  "not in this pack") and dropping or flattening the wet loops would save. Wet loops of out10s (`loopstats.mjs`): 10
+  never add more than 2/255 anywhere (invisible), most others peak at 3-8/255 on a few pixels; 5 have small glints
+  (9-117). This is point 6 ("lighter lobby") of the render agent's plan in `NOTES-95.md`, left out of Briefs 95 and
+  96. Owner's call; not started.
+- Camera layer without its zoom-scale hint (test only): no change. Test OBS and test server closed by exact PIDs;
+  18770 and the chat relay untouched.
+- 13 Nov ~08:40 (owner): the street marquee goes 75% see-through while zoomed in (canopy, board text, chase bulbs:
+  `.mqfade`, `--mqa` on #cam from cam.z; its light/shadow on the street stay; `?mqfade=`). The gnome got its body back
+  (blue coat, belt, boots) under the NiceMeMe head. Checked at 1440p zoomed (opacity 0.26) and a gnome close-up; live,
+  pushed, deployed, zipped.
