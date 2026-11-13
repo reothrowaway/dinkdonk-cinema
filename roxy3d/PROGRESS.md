@@ -3042,3 +3042,4 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   new transition.webm + transition-camera.json copied into fly/transition/ (the 7 Nov pair kept in fly/transition-7nov/,
   ?flydir=old in the QA player). Live lobby plays it (checked to 52 s), no page errors. Not checked: the real OBS cut
   through obs-bridge at the new 53.3 s length. The first draft's volume toqdekqj9e still on RunPod (owner's OK pending).
+- 13 Nov ~20:40, owner: "Yes, delete it": the first draft's volume toqdekqj9e deleted; RunPod has no pods and no volumes.
