@@ -744,6 +744,7 @@
     if (cutMode && !cutSent) { cutSent = true; askCut(); }   // (ended before the last frames were seen)
     setTimeout(() => {
       playing = false;
+      window.DD_FLY?.hold?.(false);   // the usher lets the line move again
       canvas.style.transform = '';
       canvas.style.display = hud.style.display = video.style.display = 'none';
       showBubbles(true);
@@ -771,6 +772,7 @@
       }
       if (!gl && !setup()) return;
       window.DD_FLY?.wide?.();
+      window.DD_FLY?.hold?.(true);   // 14 Nov 2026: the usher pauses the line while the camera flies down it
       await new Promise((r) => setTimeout(r, 1200));   // let the lobby camera settle on the wide shot (frame 1 = it)
       cards = await gatherCards();
       lastStep = 0;
@@ -791,6 +793,7 @@
     } catch (err) {
       console.error('[fly]', err);
       playing = false;
+      window.DD_FLY?.hold?.(false);
       if (video) video.style.display = 'none';
     }
   }

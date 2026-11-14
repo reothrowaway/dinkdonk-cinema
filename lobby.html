@@ -1682,6 +1682,10 @@
   // usher gate: the head of the line steps up, gets the stub torn and a point to their wing, then goes on
   const gateLine = [];
   let gateT = 0;
+  // 14 Nov 2026 (owner): while the fly-through plays, the usher pauses the line (DD_FLY.hold): the camera flies down
+  // this queue from behind and a moving line read as everyone pushing inside. Waiting people keep their spots; the
+  // line moves on after the flight. Expires by itself after 90 s in case the player never says it is done.
+  let gateHoldUntil = 0;
   function joinGate(w) { gateLine.push(w); w.gi = -1; w.plan = []; }
   function serveGate(dt) {
     for (let i = gateLine.length - 1; i >= 0; i--) if (gateLine[i].gone) gateLine.splice(i, 1);
@@ -1695,7 +1699,7 @@
       w.plan = [...via, { to: i === 0 ? G : slots[i - 1] }];
     });
     const head = gateLine[0];
-    if (!head || head.plan.length || head.removing) { gateT = 0; return; }
+    if (!head || head.plan.length || head.removing || performance.now() < gateHoldUntil) { gateT = 0; return; }
     if (!gateT) { bounceStaff('usher'); takeStub(head); usherPoints(head); if (LEADER_ON && SB.hashHue(head.nick) % 4 === 0) floatAt(head, 'o7', '#ffe2a8'); }
     gateT += dt;
     if (gateT < (head.hurry ? 0.2 : 0.7)) return;
@@ -6711,6 +6715,8 @@ void main() {
       em: w.emName, emW: Number(w.em?.dataset.w) || 0, emH: parseFloat(w.em?.style.height) || 0,
       flip: w.em?.dataset.flip === 'true', rainbow: !!w.nm?.classList.contains('rbt') })),
     wide: () => { director.wantNext = false; director.spot = null; endFollow(); },
+    hold: (on) => { gateHoldUntil = on ? performance.now() + 90000 : 0; },   // the usher pauses the line (flight)
+    held: () => performance.now() < gateHoldUntil,
     camera: () => ({ zoom: director.zoom, spot: director.spot && { ...director.spot } }),   // QA: what the camera aims at
   };
 })();

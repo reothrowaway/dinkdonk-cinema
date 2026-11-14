@@ -3064,3 +3064,10 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   13 Nov one kept locally in fly/transition-13nov/). Also: coMMMMfy's Halloween picture (core.js EMOTE_OVERRIDES) showed
   as a text pill in the flight (not in DGG's current list, the emote proxy only takes versioned paths); the player now
   borrows the list's version for such pictures. QA player: ?flydir=98 = the staged pack.
+- 14 Nov, usher pauses the line during the fly-through (owner: emotes looked like "bunching up to go inside of the
+  cinema" once the flight started). Measured with real chat: the lobby drains into the cinema at the same rate with
+  or without a flight, and the step-aside moves at most 4 chatters; the camera's route from ~25 to 31 s runs straight
+  down the usher-gate queue from behind, so a moving queue read as a crowd pushing in. Owner chose: the usher pauses
+  the line while the flight plays (DD_FLY.hold in lobby.html, called by the player at start, released at the end or on
+  an error, expires by itself after 90 s). Checked QA and live: nobody passes the gate during the flight (the line
+  grows, e.g. 14 -> 24), it moves again right after; no page errors. The waiting line still overlaps from behind.
