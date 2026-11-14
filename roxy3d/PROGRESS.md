@@ -3053,3 +3053,14 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   spare server (18771, real chat): about half the lobby cards moving at every sample, leave rate the same as the lobby
   without a flight (17 vs 15 of ~60 in 30 s), no page errors, QA and live pages. New arrivals during the flight are
   not added (their emote pictures are drawn once at the start). Backups: backups/2026-11-14-flylive/.
+- 14 Nov, fly-through opening (owner: "on the first seconds of the video, all emotes disappear, they only show up after
+  the bus part"): in global frames 1-87 the camera is outside the sky dome; the colour saw through the dome's outside
+  face but the depth pass did not, so the depth tiles were a flat surface ~140 units in front of the lobby and hid every
+  chatter. Brief 98 (Opus 5.5 high render agent; the owner stopped a Fable start: technical render fixes go to Opus):
+  depth of frames 1-87 re-rendered locally with the dome left out (1,061 s), video repacked (`fly/transition98/`,
+  colour sources byte-identical, frames 181-1600 bit-identical, camera file unchanged). Checks in NOTES-98.md (87->88
+  join median 0.005 units; frame 1 foot spots on the floor). Held frames 20/45/70/80 in QA and live: chatters show from
+  the first frame; full play with real chat, no page errors. Promoted: fly/transition/transition.webm replaced (the
+  13 Nov one kept locally in fly/transition-13nov/). Also: coMMMMfy's Halloween picture (core.js EMOTE_OVERRIDES) showed
+  as a text pill in the flight (not in DGG's current list, the emote proxy only takes versioned paths); the player now
+  borrows the list's version for such pictures. QA player: ?flydir=98 = the staged pack.

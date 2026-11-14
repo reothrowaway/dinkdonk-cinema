@@ -299,8 +299,16 @@
   async function proxied(url) {
     const abs = new URL(url, location.href);
     if (abs.origin === location.origin) return abs.href;
-    const v = (await versioned()).get(abs.pathname.split('/').pop());
-    return v ? `/dgg/emote-img?u=${encodeURIComponent(v)}` : null;
+    const map = await versioned();
+    const v = map.get(abs.pathname.split('/').pop());
+    if (v) return `/dgg/emote-img?u=${encodeURIComponent(v)}`;
+    // 14 Nov 2026: an emote picture that is no longer in DGG's list (core.js EMOTE_OVERRIDES: coMMMMfy's Halloween
+    // picture) is still on the CDN; the proxy only takes versioned paths, so borrow the current list's version
+    if (abs.hostname === 'cdn.destiny.gg' && /^\/emotes\/[\w-]+\.(png|gif|webp|avif)$/.test(abs.pathname)) {
+      const ver = /cdn\.destiny\.gg\/([0-9.]+)\//.exec(map.values().next().value || '')?.[1];
+      if (ver) return `/dgg/emote-img?u=${encodeURIComponent(`https://cdn.destiny.gg/${ver}${abs.pathname}`)}`;
+    }
+    return null;
   }
   const imgCache = new Map();
   function loadImg(url) {

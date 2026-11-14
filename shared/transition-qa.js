@@ -21,7 +21,9 @@
 (() => {
   'use strict';
   const q = new URLSearchParams(location.search);
-  const BASE = q.get('flydir') === 'old' ? 'roxy3d/fly/transition-7nov/' : 'roxy3d/fly/transition/';   // 13 Nov 2026: the re-render (Brief 97) is in fly/transition/; ?flydir=old = the 7 Nov one (local only)
+  // 13 Nov 2026: the re-render (Brief 97) is in fly/transition/; QA only: ?flydir=old = the 7 Nov one, ?flydir=98 = a staged
+  // pack in fly/transition98/ (Brief 98: depth of the opening fixed), both local only
+  const BASE = { old: 'roxy3d/fly/transition-7nov/', 98: 'roxy3d/fly/transition98/' }[q.get('flydir')] || 'roxy3d/fly/transition/';
   const ZPP = 73.48469228349535;            // page z px per world unit (mapping.json)
   // Each chatter is one upright quad CARD_W x CARD_H world units: the emote stands at the bottom centre at its lobby size
   // (page px -> world: width / XPP, height / ZPP, so frame 1 matches the lobby sprite), the name label above the head.
@@ -298,8 +300,16 @@
   async function proxied(url) {
     const abs = new URL(url, location.href);
     if (abs.origin === location.origin) return abs.href;
-    const v = (await versioned()).get(abs.pathname.split('/').pop());
-    return v ? `/dgg/emote-img?u=${encodeURIComponent(v)}` : null;
+    const map = await versioned();
+    const v = map.get(abs.pathname.split('/').pop());
+    if (v) return `/dgg/emote-img?u=${encodeURIComponent(v)}`;
+    // 14 Nov 2026: an emote picture that is no longer in DGG's list (core.js EMOTE_OVERRIDES: coMMMMfy's Halloween
+    // picture) is still on the CDN; the proxy only takes versioned paths, so borrow the current list's version
+    if (abs.hostname === 'cdn.destiny.gg' && /^\/emotes\/[\w-]+\.(png|gif|webp|avif)$/.test(abs.pathname)) {
+      const ver = /cdn\.destiny\.gg\/([0-9.]+)\//.exec(map.values().next().value || '')?.[1];
+      if (ver) return `/dgg/emote-img?u=${encodeURIComponent(`https://cdn.destiny.gg/${ver}${abs.pathname}`)}`;
+    }
+    return null;
   }
   const imgCache = new Map();
   function loadImg(url) {
