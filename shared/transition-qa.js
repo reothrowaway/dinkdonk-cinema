@@ -744,7 +744,6 @@
     if (cutMode && !cutSent) { cutSent = true; askCut(); }   // (ended before the last frames were seen)
     setTimeout(() => {
       playing = false;
-      window.DD_FLY?.hold?.(false);   // the usher lets the line move again
       canvas.style.transform = '';
       canvas.style.display = hud.style.display = video.style.display = 'none';
       showBubbles(true);
@@ -772,7 +771,6 @@
       }
       if (!gl && !setup()) return;
       window.DD_FLY?.wide?.();
-      window.DD_FLY?.hold?.(true);   // 14 Nov 2026: the usher pauses the line while the camera flies down it
       await new Promise((r) => setTimeout(r, 1200));   // let the lobby camera settle on the wide shot (frame 1 = it)
       cards = await gatherCards();
       lastStep = 0;
@@ -793,7 +791,6 @@
     } catch (err) {
       console.error('[fly]', err);
       playing = false;
-      window.DD_FLY?.hold?.(false);
       if (video) video.style.display = 'none';
     }
   }
@@ -804,7 +801,8 @@
   window.DD_FLY_ANIMATED = () => cards.filter((c) => (emoteInfo.get(c.em || '?')?.frames.length || 0) > 1).map((c) => ({ nick: c.nick, part: c.part, em: c.em, frames: emoteInfo.get(c.em).frames.length, ms: Math.round(emoteInfo.get(c.em).total) }));
   // QA: where each card is now (live part A: lobby spot + step-aside, visibility, hop)
   window.DD_FLY_CARDS = () => cards.map((c) => ({ id: c.id, nick: c.nick, part: c.part, p: c.p.map((x) => +x.toFixed(3)),
-    pv: c.pv && c.pv.map((x) => +x.toFixed(3)), vis: c.vis ?? 1, hop: +(c.hopZ || 0).toFixed(3) }));
+    pv: c.pv && c.pv.map((x) => +x.toFixed(3)), vis: c.vis ?? 1, hop: +(c.hopZ || 0).toFixed(3),
+    em: c.em, drawable: !!emoteInfo.get(c.em || '?')?.frames.length }));
   // QA: hold one frame (video paused) - DD_FLY_SEEK(g); play() starts over
   window.DD_FLY_SEEK = (g) => new Promise((res) => {
     if (!playing) return res(false);

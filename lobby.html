@@ -1682,10 +1682,6 @@
   // usher gate: the head of the line steps up, gets the stub torn and a point to their wing, then goes on
   const gateLine = [];
   let gateT = 0;
-  // 14 Nov 2026 (owner): while the fly-through plays, the usher pauses the line (DD_FLY.hold): the camera flies down
-  // this queue from behind and a moving line read as everyone pushing inside. Waiting people keep their spots; the
-  // line moves on after the flight. Expires by itself after 90 s in case the player never says it is done.
-  let gateHoldUntil = 0;
   function joinGate(w) { gateLine.push(w); w.gi = -1; w.plan = []; }
   function serveGate(dt) {
     for (let i = gateLine.length - 1; i >= 0; i--) if (gateLine[i].gone) gateLine.splice(i, 1);
@@ -1699,7 +1695,7 @@
       w.plan = [...via, { to: i === 0 ? G : slots[i - 1] }];
     });
     const head = gateLine[0];
-    if (!head || head.plan.length || head.removing || performance.now() < gateHoldUntil) { gateT = 0; return; }
+    if (!head || head.plan.length || head.removing) { gateT = 0; return; }
     if (!gateT) { bounceStaff('usher'); takeStub(head); usherPoints(head); if (LEADER_ON && SB.hashHue(head.nick) % 4 === 0) floatAt(head, 'o7', '#ffe2a8'); }
     gateT += dt;
     if (gateT < (head.hurry ? 0.2 : 0.7)) return;
@@ -5268,14 +5264,37 @@ void main() {
         joinSnack(w);
       } else inLobby();
     } else {
-      // anywhere else inside (lobby, gate, corridor, restroom, arcade, bench) or not seen by a screen yet: hanging out
-      // in the lobby (they stay to talk: the lobby flip is set), then on to the gate and their door
+      // anywhere else inside (lobby, gate, corridor, restroom, arcade, bench) or not seen by a screen yet.
+      // 14 Nov 2026 (owner): this used to put them all on the lobby floor and send them on at once, so a screen opening
+      // on a full room had nearly everyone in the usher's line within a minute and nobody outside, at the jukebox or
+      // talking. Now each spends their own while first (seeded: the same on every screen; most a short one, a few up to
+      // ~3 min) under the marquee out front, at the jukebox, at the claw machine or around a talk spot, then goes on to
+      // the gate and their door as usual. Someone who was already in the usher's line only waits a little.
       giveStub(w);
-      inLobby();
       if (w.detour === 'popcorn' || w.detour === 'claw') w.detour = null;
       w.rolls.lobby = 0;
+      const rr = wi.room ? rng((wi.seed ^ 0x5bd1e995) >>> 0) : Math.random;
+      const stay = (place === 'usher gate' ? 0.3 : 1) * (6 + 170 * rr() ** 1.6);
+      const r = rr(), a = rr() * 2 * Math.PI, d = 0.3 + rr() * 0.4, k = rr(), x = rr();
       afterTicket(w);
-      w.plan.unshift({ call: hangOut });
+      const onward = w.plan;
+      if (r < 0.22) {
+        // out front, dry under the marquee canopy (u 7.2-11.8, v 9.0-10.2), then in through the doors with their stub
+        [w.u, w.v] = [7.7 + 3.6 * k, 9.25 + 0.3 * x];
+        w.plan = [{ wait: stay }, { to: [9.5 + pick.dx[1], 9.45] }, { to: [9.5 + pick.dx[2], 8.6] }, ...onward];
+      } else if (r < 0.34 && PROPS.on && PROPS.dance?.length) {
+        inLobby();
+        w.plan = [{ wait: Math.min(stay, 8) }, ...onward];
+        if (!goDance(w)) w.plan.unshift({ wait: stay });
+      } else if (r < 0.42 && PROPS.clawOn && !PROPS.clawBusy) {
+        inLobby();
+        w.plan = [...clawTurn(w), { wait: stay * 0.5 }, ...onward];
+      } else {
+        // around one of the talk spots (not on it: the groups stand there), a while, then maybe a talk on the way
+        const s = SPOTS.lobby[Math.floor(k * SPOTS.lobby.length)];
+        [w.u, w.v] = [s.c[0] + Math.cos(a) * d, s.c[1] + Math.sin(a) * d * 0.7];
+        w.plan = [{ wait: stay }, { call: hangOut }, ...onward];
+      }
     }
     w.nameT = 4;
   }
@@ -6715,8 +6734,6 @@ void main() {
       em: w.emName, emW: Number(w.em?.dataset.w) || 0, emH: parseFloat(w.em?.style.height) || 0,
       flip: w.em?.dataset.flip === 'true', rainbow: !!w.nm?.classList.contains('rbt') })),
     wide: () => { director.wantNext = false; director.spot = null; endFollow(); },
-    hold: (on) => { gateHoldUntil = on ? performance.now() + 90000 : 0; },   // the usher pauses the line (flight)
-    held: () => performance.now() < gateHoldUntil,
     camera: () => ({ zoom: director.zoom, spot: director.spot && { ...director.spot } }),   // QA: what the camera aims at
   };
 })();

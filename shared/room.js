@@ -30,6 +30,10 @@ const path = require('node:path');
 
 const LOBBY = { CAP: 40, HARD_CAP: 55, CROWD: 14 };              // lobby.html CAP, HARD_CAP, CROWD
 const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.html MAX_QUEUE, QUEUE_QUIET_MS
+// 14 Nov 2026 (owner): with no lobby screen open nobody in the lobby moves, so the room kept 40 chatters "at the
+// usher gate" for up to 73 min (crowd thinning held new arrivals back meanwhile) and the next screen to open sent
+// them all to the usher at once. While no lobby screen is open, a chatter quiet for this long has gone inside.
+const LOBBY_STALE_MS = 10 * 60000;
 const LITTER_FULL = 0.6;                                           // auditorium litter: its clock starts at 60% seated
 const SCREENS = ['auto', 'upnext', 'loading', 'audience', 'film'];  // what the cinema screen shows (panel picker)
 const AVATAR_BLOCK = new Set(['JARVIS']);                          // shared/cinema.js AVATAR_BLOCK
@@ -576,6 +580,11 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     checkFull();
     if (subs.lobby.size && !stallGag()) peek();   // (only while a lobby screen is watching: nobody would see it otherwise)
     for (const e of [...A.roster]) if (!e.seat && Date.now() - e.last > AUD.QUEUE_QUIET_MS) removeEntry('auditorium', e.key, 'quiet');
+    if (!subs.lobby.size) {
+      for (const e of [...state.pages.lobby.roster]) {
+        if (Date.now() - Math.max(e.last || 0, e.at || 0) > LOBBY_STALE_MS) removeEntry('lobby', e.key, 'left');
+      }
+    }
   }, 1000);
   timer.unref?.();
 

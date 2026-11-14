@@ -3071,3 +3071,16 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   the line while the flight plays (DD_FLY.hold in lobby.html, called by the player at start, released at the end or on
   an error, expires by itself after 90 s). Checked QA and live: nobody passes the gate during the flight (the line
   grows, e.g. 14 -> 24), it moves again right after; no page errors. The waiting line still overlaps from behind.
+- 14 Nov, lobby crowd (owner: "why does nobody show on the outside ... next to the entrance ... the music machine?"):
+  my earlier answer (flight = normal lobby, add an usher pause) was wrong. Measured: the flight draws every chatter
+  (32/32 in the gate line seen), but the lobby itself had 32 of 44 at the usher gate; the room's record had 35 of 40
+  "at the usher gate", half there over 27 min (up to 73 min). Causes: (1) with no lobby screen open nobody moves, so
+  the room kept stale chatters and, at 40 (CAP), crowd thinning let only ~1 in 5 new chatters in; (2) a screen opening
+  on that room put everyone restored on the lobby floor and sent them on at once (placeChatter), so the usher's line
+  took nearly everyone. Fixes: room.js: while no lobby screen is open, a lobby chatter quiet for 10 min has gone
+  inside (removed, why 'left'); lobby placeChatter: each restored chatter first spends a seeded while (6 s to ~3 min,
+  same on every screen) under the marquee out front, at the jukebox, the claw machine or around a talk spot, then goes
+  on as usual. The usher pause (DD_FLY.hold) is undone. Checked on a spare server with real chat: stale room of 29
+  cleared on start; opening on a room of 25: the usher line never over 5 in 3 min, 2-8 people outside at every
+  sample, talk groups, jukebox, claw, bench; QA and live pages, flight, no page errors. room.js takes effect when the
+  local server restarts (18770 was down at the time, not stopped by me).
