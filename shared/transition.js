@@ -4,8 +4,11 @@
  *
  * Plays roxy3d/fly/transition/transition.webm (colour on top, two depth tiles below; see build_transition.py) in a
  * WebGL canvas over the stage. Every chatter is their (animated) emote standing at their real 3D spot:
- *   part A (lobby, street, hallway): where they stood in the lobby when the transition started (frozen);
- *   part B (auditorium): the seated people at their seats (from the shared room's auditorium roster).
+ *   part A (lobby, street, hallway): the lobby keeps running underneath, so every frame each chatter is where the
+ *     lobby has them right now (walking, queueing, hopping, turning); anyone who leaves the lobby fades out (13 Nov 2026,
+ *     owner: "they should basically keep working and do the same things"; ?flylive=0 = frozen at the start, as before);
+ *   part B (auditorium): the seated people at their seats (from the shared room's auditorium roster); a seated
+ *     chatter who types in chat gives a little hop, as in the auditorium.
  * Sprites are upright and turn with the camera; the per-frame depth hides them behind walls, counters and seat backs.
  *
  * Start: key T on the lobby page, or ?fly=N (first play N s after load, then again N s after each one ends), or the
@@ -40,6 +43,9 @@
   const GHOST = q.get('flyghost') === '1';
   const HOLD = Number(q.get('flyhold') ?? 4) * 1000;
   const FADE_NEAR = 0.35, FADE_LEN = 0.9;   // world units from the camera: fade out before the lens goes through someone
+  const LIVE = q.get('flylive') !== '0';    // part A follows the running lobby (default) or stays frozen at the start
+  const LEAVE_FADE = 0.5, PUSH_RATE = 2.5;  // s to fade someone who left the lobby; max step-aside speed, units/s
+  const HOP_PX = 12;                        // a seated chatter's hop when they type (page px, as the lobby's talk hop)
 
   let meta = null, layout = null, gl = null, prog = null, bgProg = null, videoTex = null, atlasTex = null, labelTex = null;
   let canvas = null, hud = null, video = null, playing = false, cards = [], buf = null, bgBuf = null;
@@ -174,7 +180,7 @@
     } catch { /* no room: no names */ }
     for (const f of window.DD_FLY?.figures?.() || []) {
       if (f.ride || f.alpha < 0.3) continue;
-      out.push({ part: 'A', nick: f.nick, color: f.color, tag: f.staff ? 'staff' : f.status,
+      out.push({ part: 'A', id: f.id, nick: f.nick, color: f.color, tag: f.staff ? 'staff' : f.status,
         p: [f.u, -f.v, (f.zpx || 0) / ZPP], em: f.em, emW: f.emW, emH: f.emH, flip: f.flip, rainbow: f.rainbow,
         age: lobbyAge.get(String(f.nick).toLowerCase()) ?? Infinity });
     }
@@ -224,6 +230,54 @@
     const k = x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
     return [cd.p[0] + cd.push.dx * k, cd.p[1] + cd.push.dy * k, cd.p[2]];
   }
+
+  // Live part A (13 Nov 2026): each frame the card takes the chatter's current lobby spot, facing and hop (DD_FLY.live),
+  // and the step-aside is worked out from there: over the low camera's samples from AFTER frames back to
+  // DONE_BEFORE + STEP_FRAMES frames ahead, the push that keeps CLEAR units from its line, weighted 1 up to DONE_BEFORE
+  // frames ahead and easing to 0 STEP_FRAMES further out. The biggest wins; the card slides towards it at most
+  // PUSH_RATE units/s, so nobody jumps. Once the camera is past, they walk on. Someone who left fades out.
+  const AFTER = 20;
+  let lowByG = null, lastStep = 0;
+  function liveStep(cd, g, dt, live) {
+    const f = live.get(cd.id);
+    if (f) { cd.p = [f.u, -f.v, (f.zpx || 0) / ZPP]; cd.flip = f.flip; cd.hopZ = (f.lift || 0) / ZPP; }
+    const want = f && !f.ride ? Math.min(1, Math.max(0, f.alpha ?? 1)) : 0;
+    cd.vis = cd.vis === undefined ? want : cd.vis + Math.max(-dt / LEAVE_FADE, Math.min(dt / LEAVE_FADE, want - cd.vis));
+    if (!lowByG) {
+      lowByG = [];
+      for (const c of meta.cam) if (c.part === 'A' && c.eye[2] < 3) lowByG[c.g] = c;
+    }
+    let tx = 0, ty = 0, need = 0;
+    for (let gg = Math.max(1, g - AFTER); gg <= g + DONE_BEFORE + STEP_FRAMES; gg += 2) {
+      const t = lowByG[gg];
+      if (!t) continue;
+      const ahead = gg - g;
+      const x = ahead <= DONE_BEFORE ? 1 : 1 - (ahead - DONE_BEFORE) / STEP_FRAMES;
+      const n = (CLEAR - Math.hypot(cd.p[0] - t.eye[0], cd.p[1] - t.eye[1])) * x * x * (3 - 2 * x);
+      if (n <= need) continue;
+      let dx = cd.p[0] - t.eye[0], dy = cd.p[1] - t.eye[1];
+      if (Math.hypot(dx, dy) < 1e-3) {   // dead on the line: to the left
+        const nx = lowByG[gg + 1] || t, px = lowByG[gg - 1] || t;
+        dx = -(nx.eye[1] - px.eye[1]); dy = nx.eye[0] - px.eye[0];
+      }
+      const l = Math.hypot(dx, dy) || 1;
+      need = n; tx = (dx / l) * n; ty = (dy / l) * n;
+    }
+    if (!cd.pv) cd.pv = [0, 0];
+    const ex = tx - cd.pv[0], ey = ty - cd.pv[1], el = Math.hypot(ex, ey), mx = PUSH_RATE * dt;
+    if (el > mx) { cd.pv[0] += (ex / el) * mx; cd.pv[1] += (ey / el) * mx; } else cd.pv = [tx, ty];
+  }
+  // part B: a seated chatter who types hops once (the lobby's talk hop: 0.4 s, HOP_PX high)
+  function seatHop(cd, dt) {
+    if (!(cd.bounce > 0)) { cd.hopZ = 0; return; }
+    cd.bounce = Math.max(0, cd.bounce - dt * 2.4);
+    cd.hopZ = (Math.sin(cd.bounce * Math.PI) * HOP_PX) / ZPP;
+  }
+  window.SB?.on?.('msg', (m) => {
+    if (!playing || !m?.nick) return;
+    const n = String(m.nick).toLowerCase();
+    for (const cd of cards) if (cd.part === 'B' && String(cd.nick).toLowerCase() === n && !(cd.bounce > 0)) cd.bounce = 1;
+  });
 
   // ---------- sprites: every frame of each emote, from DGG's CSS (served same-origin through the emote proxy) ----------
   // An emote is a box of DGG's sprite CSS. Animated ones move background-position in steps (sprite sheets), animate
@@ -322,7 +376,40 @@
     } finally { el.remove(); }
   }
   // all frames of one emote as draw jobs: [{ src, sx, sy, sw, sh, tf, op, ms }]
+  // our own pictures, not DGG CSS (13 Nov 2026): the mop gag's cpMOP penguin (lobby emName 'cpMOP') and the MOPPING
+  // emote are assets/cpMOP.webp (animated). Before this they showed as a "cpMOP" text pill in the flight.
+  const LOCAL_IMG = { cpMOP: 'assets/cpMOP.webp', MOPPING: 'assets/cpMOP.webp' };
+  async function localFrames(url) {
+    let frames = null;
+    if (typeof ImageDecoder !== 'undefined') {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+        const dec = new ImageDecoder({ data: await res.arrayBuffer(), type: 'image/webp' });
+        await dec.tracks.ready;
+        const count = dec.tracks.selectedTrack.frameCount;
+        const step = Math.ceil(count / MAX_FRAMES);
+        frames = [];
+        for (let i = 0; i < count; i += step) {
+          const { image } = await dec.decode({ frameIndex: i });
+          const c = document.createElement('canvas');
+          c.width = image.displayWidth; c.height = image.displayHeight;
+          c.getContext('2d').drawImage(image, 0, 0);
+          frames.push({ src: c, ms: Math.max(20, ((image.duration || 100000) / 1000) * step) });
+          image.close();
+        }
+        dec.close();
+      } catch { frames = null; }
+    }
+    if (!frames?.length) {
+      const img = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = url; });
+      if (!img) return null;
+      frames = [{ src: img, ms: 1000 }];
+    }
+    const w = frames[0].src.naturalWidth || frames[0].src.width, h = frames[0].src.naturalHeight || frames[0].src.height;
+    return { w, h, origin: [w / 2, h / 2], frames: frames.map((f) => ({ src: f.src, sx: 0, sy: 0, sw: w, sh: h, tf: 'none', op: 1, ms: f.ms })) };
+  }
   async function emoteFrames(name) {
+    if (LOCAL_IMG[name]) return localFrames(LOCAL_IMG[name]);
     const s = await sampleEmote(name);
     if (!s) return null;
     const gif = s.samples.length === 1 ? await gifFrames(s.url) : null;
@@ -469,15 +556,21 @@
     const rl = Math.hypot(rx, ry) || 1;
     rx /= rl; ry /= rl;
     const lift = 0.02, now = performance.now();
+    const sdt = lastStep ? Math.min(0.25, Math.max(0, (now - lastStep) / 1000)) : 0;
+    lastStep = now;
+    const live = LIVE && cam.part === 'A' ? window.DD_FLY?.live?.() : null;
     const quads = [];
     cards.forEach((cd, i) => {
       if (cd.part !== cam.part) return;
       const info = emoteInfo.get(cd.em || '?');
       if (!info) return;
+      if (live) liveStep(cd, g, sdt, live); else if (cd.part === 'B') seatHop(cd, sdt);
+      if ((cd.vis ?? 1) <= 0.01) return;
       const hw = info.cellW / EPXU / 2, H = info.cellH / EPXU;   // quad = the emote's atlas cell, feet at the bottom
-      const [bx, by, bz] = cardPos(cd, g);
+      const [bx, by, bz] = live ? [cd.p[0] + cd.pv[0], cd.p[1] + cd.pv[1], cd.p[2]] : cardPos(cd, g);
+      const hop = cd.hopZ || 0;   // the label stays at standing height, as in the lobby
       const corners = [[-hw, 0], [hw, 0], [-hw, H], [hw, H]].map(([s, h]) => {
-        const wx = bx + rx * s, wy = by + ry * s, wz = bz + lift + h;
+        const wx = bx + rx * s, wy = by + ry * s, wz = bz + lift + hop + h;
         const pc = mul(V, wx, wy, wz);
         const clip = mul(Pm, pc[0], pc[1], pc[2]);
         return { clip, z: -pc[2] };
@@ -488,7 +581,7 @@
       const uv = [[ua, fr.v1], [ub, fr.v1], [ua, fr.v0], [ub, fr.v0]];
       // fade people the camera is about to pass through (fully gone within FADE_NEAR units of the lens)
       const zc = (corners[0].z + corners[1].z) / 2;
-      const alpha = Math.min(1, Math.max(0, (zc - FADE_NEAR) / FADE_LEN));
+      const alpha = Math.min(1, Math.max(0, (zc - FADE_NEAR) / FADE_LEN)) * (cd.vis ?? 1);
       if (alpha <= 0.01) return;
       let label = null;
       if (cd.label) {
@@ -671,6 +764,7 @@
       window.DD_FLY?.wide?.();
       await new Promise((r) => setTimeout(r, 1200));   // let the lobby camera settle on the wide shot (frame 1 = it)
       cards = await gatherCards();
+      lastStep = 0;
       await drawAtlas(cards);
       console.log(`[fly] ${cards.filter((c) => c.part === 'A').length} lobby + ${cards.filter((c) => c.part === 'B').length} seated cards`);
       video.currentTime = 0;
@@ -696,6 +790,9 @@
   window.DD_FLY_PLAY = play;
   // QA: which chatters have animated emotes, and how many frames
   window.DD_FLY_ANIMATED = () => cards.filter((c) => (emoteInfo.get(c.em || '?')?.frames.length || 0) > 1).map((c) => ({ nick: c.nick, part: c.part, em: c.em, frames: emoteInfo.get(c.em).frames.length, ms: Math.round(emoteInfo.get(c.em).total) }));
+  // QA: where each card is now (live part A: lobby spot + step-aside, visibility, hop)
+  window.DD_FLY_CARDS = () => cards.map((c) => ({ id: c.id, nick: c.nick, part: c.part, p: c.p.map((x) => +x.toFixed(3)),
+    pv: c.pv && c.pv.map((x) => +x.toFixed(3)), vis: c.vis ?? 1, hop: +(c.hopZ || 0).toFixed(3) }));
   // QA: hold one frame (video paused) - DD_FLY_SEEK(g); play() starts over
   window.DD_FLY_SEEK = (g) => new Promise((res) => {
     if (!playing) return res(false);

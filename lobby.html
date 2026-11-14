@@ -6690,9 +6690,23 @@ void main() {
   })();
 
   // fly-through blockout (shared/transition.js): where everyone stands right now, and a way to force the wide shot
+  // live (13 Nov 2026): during the flight the lobby keeps running underneath; the player asks each frame where everyone
+  // is now (id = the same walker as in figures()), so the chatters keep walking, hopping and turning in the flight
+  const flyIds = new WeakMap();
+  let flyNext = 1;
+  const flyId = (w) => { if (!flyIds.has(w)) flyIds.set(w, flyNext++); return flyIds.get(w); };
   window.DD_FLY = {
+    live: () => {
+      const m = new Map();
+      for (const w of new Set([...figures, ...Object.values(staff)])) {
+        if (w.gone || w.removing || !flyIds.has(w)) continue;
+        m.set(flyIds.get(w), { u: w.u, v: w.v, zpx: w.stand || 0, lift: w.lift || 0, ride: !!w.ride, alpha: w.alpha ?? 1,
+          flip: w.em?.dataset.flip === 'true' });
+      }
+      return m;
+    },
     figures: () => [...new Set([...figures, ...Object.values(staff)])].filter((w) => !w.gone && !w.removing).map((w) => ({
-      nick: w.nick, u: w.u, v: w.v, zpx: w.stand || 0, color: w.nm?.style.color || null, staff: !!w.staff,
+      id: flyId(w), nick: w.nick, u: w.u, v: w.v, zpx: w.stand || 0, color: w.nm?.style.color || null, staff: !!w.staff,
       ride: !!w.ride, alpha: w.alpha ?? 1, status: w.staff ? 'staff' : statusOf(w),
       em: w.emName, emW: Number(w.em?.dataset.w) || 0, emH: parseFloat(w.em?.style.height) || 0,
       flip: w.em?.dataset.flip === 'true', rainbow: !!w.nm?.classList.contains('rbt') })),

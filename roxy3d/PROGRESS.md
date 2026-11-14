@@ -3043,3 +3043,13 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   ?flydir=old in the QA player). Live lobby plays it (checked to 52 s), no page errors. Not checked: the real OBS cut
   through obs-bridge at the new 53.3 s length. The first draft's volume toqdekqj9e still on RunPod (owner's OK pending).
 - 13 Nov ~20:40, owner: "Yes, delete it": the first draft's volume toqdekqj9e deleted; RunPod has no pods and no volumes.
+- 14 Nov, fly-through chatters keep moving (owner: "they should basically keep working and do the same things that they
+  would do during a normal lobby"): part A no longer freezes everyone at the start. The lobby keeps running under the
+  flight; each frame the player asks `DD_FLY.live()` (new in lobby.html: id -> spot, hop, facing, opacity) and moves each
+  card there, with its hop and facing; the step-aside is worked out per frame from the live spot (slides at most
+  2.5 units/s); someone who leaves the lobby (usher gate, corridor, street, a ride) fades out in 0.5 s. Part B: a seated
+  chatter who types hops once. `?flylive=0` = the old frozen behaviour. Also fixed: the mop gag's cpMOP penguin (and the
+  MOPPING emote) showed as a "cpMOP" text box in the flight; now the animated assets/cpMOP.webp. Checked headless on a
+  spare server (18771, real chat): about half the lobby cards moving at every sample, leave rate the same as the lobby
+  without a flight (17 vs 15 of ~60 in 30 s), no page errors, QA and live pages. New arrivals during the flight are
+  not added (their emote pictures are drawn once at the start). Backups: backups/2026-11-14-flylive/.
