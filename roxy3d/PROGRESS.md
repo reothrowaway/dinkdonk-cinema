@@ -3084,3 +3084,14 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   cleared on start; opening on a room of 25: the usher line never over 5 in 3 min, 2-8 people outside at every
   sample, talk groups, jukebox, claw, bench; QA and live pages, flight, no page errors. room.js takes effect when the
   local server restarts (18770 was down at the time, not stopped by me).
+
+- 14 Nov 2026 (Claude): auditorium stage cove strip (the blue light line under the screen) had dark notches all
+  along it with the lights down, worst zoomed in on the screen (owner video 14 Nov). Cause: the strip was one element
+  depth-sorted at its left end, so every depth slice along the stage with a higher depth drew over it. Fix
+  (aisleStrip takes the depth point and a depth offset): the cove sorts at its right end, 0.75 deeper; 0.65 was the
+  most a slice holding the render's stage edge lay beyond the line (measured pixel by pixel). Now no slice, shown or
+  hidden, covers the line; the nearest emote top (front row) sits 47 px below it, the glow reaches 22. Tried and
+  dropped: short pieces each sorted at its own end (faint tick marks at the joins). QA then live (backup
+  backups/auditorium-2026-11-14-pre-cove.html), checked on 18771 with real chat: wide and push-in, no page errors.
+  Emote flicker in the same video (an emote vanishing for one stream frame while the camera moves, e.g. 0:05) did
+  not show in the page's own state (every chatter and depth piece sampled through a 25 s follow): still open.

@@ -3064,12 +3064,13 @@
   // at each raised row's aisle end, a cool cove strip along the stage edge and halos round the two EXIT signs. All from
   // the layout JSON (stairs, rows, aisles), depth-sorted with the walkers, fading in with lights down. ?aisle=0: off.
   const AISLE_ON = q.get('aisle') !== '0';
-  function aisleStrip(cls, u0, u1, v, z, extra) {
-    // a strip lying along u on the floor or a tread: screen direction of +u is (60K, 30K) per tile
+  function aisleStrip(cls, u0, u1, v, z, extra, zu = u0, zdv = 0) {
+    // a strip lying along u on the floor or a tread: screen direction of +u is (60K, 30K) per tile.
+    // zu: where along it the depth is taken (default its left end); zdv: added to v for the depth only
     const [x0, y0] = P(u0, v, z), [x1, y1] = P(u1, v, z);
     const el = h('div', `alamp ${cls}`);
     Object.assign(el.style, { left: `${x0.toFixed(1)}px`, top: `${y0.toFixed(1)}px`, width: `${Math.hypot(x1 - x0, y1 - y0).toFixed(1)}px`,
-      transform: `rotate(${(Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI).toFixed(2)}deg)`, zIndex: String(layers ? depthZ(u0, v, z) : Math.round((u0 + v) * 100) + 5) }, extra || {});
+      transform: `rotate(${(Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI).toFixed(2)}deg)`, zIndex: String(layers ? depthZ(zu, v + zdv, z) : Math.round((zu + v + zdv) * 100) + 5) }, extra || {});
     world.append(el);
   }
   function placeAisleLights() {
@@ -3090,7 +3091,12 @@
     }
     // the stage edge (the render's own little stage lights sit at about v 0.3, floor height 24)
     const su = L.screen?.u || [4.9, 13.9];
-    aisleStrip('cove', su[0] - 0.6, su[1] + 0.6, 0.3, 26);
+    // Depth-sorted at its right end, 0.75 deeper. At its left end (as before 14 Nov 2026) every depth slice along the
+    // stage with a higher depth drew over it: dark notches all along the line, worst zoomed in on the screen (owner
+    // video 14 Nov). Even per short piece at its own right end it lost to the slice holding the render's stage edge
+    // there, up to 0.65 deeper (measured); with 0.75 no slice covers it anywhere (checked pixel by pixel). Nothing that
+    // moves comes close on screen: the nearest emote top (front row) sat 47 px below the line, the glow reaches 22.
+    aisleStrip('cove', su[0] - 0.6, su[1] + 0.6, 0.3, 26, null, su[1] + 0.6, 0.75);
     // EXIT halos at the two signs of draft 13 (world px)
     for (const [x, y, c] of [[826, 286, '255, 60, 50'], [646, 513, '60, 255, 120']]) {
       const el = h('div', 'alamp halo');
