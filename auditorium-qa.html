@@ -2016,7 +2016,18 @@
     t.texting = false;
     floatAt(t, text, '#ff6b6b');
   }
-  // gets up and walks out the way they came in
+  // The way out for good (owner 15 Nov 2026): the middle block splits at its centre - the left half goes down the left
+  // stair aisle as before, the right half down the right stairs and along the cross-aisle to the exit - instead of the
+  // whole middle block filing out down the left aisle. Coming in is unchanged (the middle block uses the left aisle).
+  let mainMid = null;
+  function exitRoute(seat) {
+    if (seat.block === 'main') {
+      if (mainMid == null) { const us = seats.filter((s) => s.block === 'main').map((s) => s.u); mainMid = (Math.min(...us) + Math.max(...us)) / 2; }
+      if (seat.u > mainMid + 0.01) return routeTo({ ...seat, block: 'right' }).reverse();
+    }
+    return routeTo(seat).reverse();
+  }
+  // gets up and walks out (the way they came in, but see exitRoute)
   function standUp(t) {
     const seat = t.seat;
     t.sitting = false;
@@ -2025,7 +2036,7 @@
     t.lookT = 0;
     t.pos = [seat.u, seat.v - LEG_DV, seat.z];
     placeItem(t);
-    const exit = routeTo(seat).reverse();
+    const exit = exitRoute(seat);
     goOut(t, exit, removeWalker);
     return exit;
   }

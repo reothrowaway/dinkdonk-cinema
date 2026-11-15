@@ -458,7 +458,7 @@ every emote is allowed.
 | Member | Meaning |
 |---|---|
 | `Cinema.onWalkIn(fn)` | `fn({ nick, emote, tokens, text, color, rainbow, sub, ts, roomIndex, detour, features })` for each walk-in. `roomIndex` 0-4 (regulars mostly keep theirs), `detour` `null`, `'popcorn'` (12%) or `'bathroom'` (5%). |
-| `Cinema.defaultEmote(nick)` | a stable emote for a nick from a pool of common emotes that exist on DGG (minus boxy ones) |
+| `Cinema.defaultEmote(nick)` | a stable emote for a nick from a pool of common emotes that exist on DGG (minus boxy ones). No Yee emote is ever in that pool, and a room walker's other emotes are used only if they aren't Yee (15 Nov 2026, audit F6): the room seats the front row by the chatter's own emote, so a Yee look must mean a Yee seat. FeelsOkayMan took YEE's place in the list, so everyone else kept their look. |
 | `Cinema.onRooms(fn)` | `fn(rooms, data)` now and after every feed refresh (`/dd/data.json`, every 2 minutes). `rooms`: the last five films shown, `{ title, year, poster, rating, votes, watchedTs, conductor, method }`, padded with placeholders. `data`: the raw feed. |
 | `Cinema.onCombo(fn)`, `Cinema.onPurge(fn)` | shortcuts for `SB.on('combo')` / `SB.on('purge')` |
 | `Cinema.showtimes(data)` | upcoming sessions `[{ start, end, live }]` |

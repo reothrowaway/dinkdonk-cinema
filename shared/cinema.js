@@ -26,7 +26,13 @@
   'use strict';
 
   const q = new URLSearchParams(location.search);
-  const DEFAULT_POOL = ['PEPE', 'YEE', 'AYAYA', 'FeelsGoodMan', 'Wowee', 'NOBULLY', 'Klappa', 'PepeLaugh',
+  // No Yee look unless the chatter is Yee to the room (owner 15 Nov 2026, audit F6): the front row is only for Yee, and
+  // the room decides that from the chatter's own emote, so a YEE drawn at random (or from their other emotes) sat in
+  // the back and "Yee to the front" skipped them. Same list as room.js / auditorium.html YEE_EMOTES.
+  const YEE_LOOKS = new Set(['YEE', 'diNoThanks', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE',
+    'diNOWAY', 'YEEHAW', 'FeelsPeekMan', 'KYEK', 'YAM']);
+  // (FeelsOkayMan took YEE's place in the list, so everyone else keeps the look they had: the pick is a hash of the name)
+  const DEFAULT_POOL = ['PEPE', 'FeelsOkayMan', 'AYAYA', 'FeelsGoodMan', 'Wowee', 'NOBULLY', 'Klappa', 'PepeLaugh',
     'WEOW', 'GIMI', 'monkaS', 'SoSad', 'AngelThump', 'DuckerZ', 'BINGQILIN', 'AlienPls'];
   const PLACEHOLDER = ['Feature Presentation', 'Midnight Matinee', 'Coming Soon', 'Double Feature', 'Sneak Preview']
     .map((title) => ({ title, year: '', poster: null, rating: null, votes: null, watchedTs: null, conductor: '', method: '' }));
@@ -48,7 +54,7 @@
 
   SB.on('emotes', () => {
     const have = DEFAULT_POOL.filter((e) => SB.emotes.names.has(e));
-    pool = have.length >= 4 ? have : [...SB.emotes.names].slice(0, 24);
+    pool = have.length >= 4 ? have : [...SB.emotes.names].filter((e) => !YEE_LOOKS.has(e)).slice(0, 24);
     if (!pool.length) pool = DEFAULT_POOL;
     if (SB.emotes.css) boxyCheck = findBoxyEmotes();
   });
@@ -156,7 +162,8 @@
   // a room entry (shared/room.js) as the walk-in object pages already take from onWalkIn
   function fromEntry(e, ev = {}) {
     const m = SB.parseMessage(e.d || { nick: e.nick, data: '' });
-    const emote = [e.emote, ...(e.alt || [])].filter(Boolean).find(okAvatar) || defaultEmote(e.nick);
+    // (F6) the room's own emote first; their other emotes only if not Yee, since the room seats by e.emote alone
+    const emote = [e.emote, ...(e.alt || []).filter((a) => !YEE_LOOKS.has(a))].filter(Boolean).find(okAvatar) || defaultEmote(e.nick);
     return { nick: e.nick, emote, tokens: m.tokens, text: m.text, color: m.color, rainbow: m.rainbow, sub: m.sub,
       ts: e.last || Date.now(), roomIndex: e.roomIndex ?? 0, detour: e.detour ?? null, features: m.features,
       seed: e.seed >>> 0, seat: e.seat ?? null, place: e.place ?? null, at: e.at, follow: !!ev.follow,

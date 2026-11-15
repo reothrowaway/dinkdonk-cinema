@@ -355,7 +355,10 @@ the time (`kick`) they are walked out. Shushes go to the usher when no janny is 
 anyone and leaves when the lights come up. The beam is an SVG in `#names` (`updateBeam()`).
 
 **Everyone leaves** (`stepHouseOut()`). Seated guests stand up one at a time (every 0.35-0.9 s) and walk out the way
-they came. Staff are left alone. New arrivals wait until the next Seating or a reset.
+they came, except that the middle block splits at its centre (`exitRoute()`, owner 15 Nov 2026): its left half goes
+down the left stair aisle, its right half down the right stairs and along the cross-aisle to the exit. That holds for
+everyone who leaves for good from a seat (`standUp()`: bans, mutes, the usher's kicks, dozers going home); coming in,
+the middle block still uses the left aisle. Staff are left alone. New arrivals wait until the next Seating or a reset.
 
 ## The film screen and OBS
 

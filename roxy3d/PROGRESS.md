@@ -3175,3 +3175,15 @@ New standalone prop on the owner's request ("small recirculating water fountain 
   (Yee look vs Yee seat) waits for the owner's choice; F10 is by design. Checked with scratch tests (stand-in OBS for
   the bridge, proxy and server checks, double Fly on lobby-qa and lobby on 18771, unit checks for saving); the old
   bridge/proxy fail the same tests.
+- 15 Nov 2026 (Claude, owner: "A"): F6 - no Yee look unless the chatter is Yee to the room: YEE out of cinema.js's random
+  pool (FeelsOkayMan in its slot, so everyone else keeps their look; only names that drew YEE change), the fallback
+  pool skips Yee emotes, and a room walker's other emotes are used only if not Yee. Checked on 18771: 4 Yee looks, all
+  Yee to the room; 0 Yee in 3000 default looks; 0 other looks changed in 5000 names.
+- 15 Nov 2026 (Claude, owner): Everyone leaves splits the middle block at its centre - left half down the left aisle,
+  right half down the right stairs and along the cross-aisle to the exit (auditorium.html/-qa exitRoute(), used by
+  standUp(), so bans/kicks/dozers too; coming in unchanged). Backup backups/promote-walkout-15nov/. Checked on 18771
+  with real chat: QA 71/71 and live 82/82 took their side's aisle (old code: 37/37 left). Clip for the owner:
+  concepts/walkout/walkout-split-15nov.mp4.
+- 15 Nov 2026 (Claude, Opus agent, owner: "make it better organized and better looking"): control panel redesign in
+  control-qa.html only (status strip, show controls in show order, people list in its own box, rare settings folded);
+  screenshots concepts/control-panel/. Waiting for the owner's OK before it replaces control.html.
