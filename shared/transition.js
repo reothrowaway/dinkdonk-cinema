@@ -10,6 +10,8 @@
  *   part B (auditorium): the seated people at their seats (from the shared room's auditorium roster); a seated
  *     chatter who types in chat gives a little hop, as in the auditorium.
  * Sprites are upright and turn with the camera; the per-frame depth hides them behind walls, counters and seat backs.
+ * The cinema screen (part B) shows the auditorium's pre-show slides, projected with the video's camera (15 Nov 2026; see
+ * "the cinema screen" below; ?flyscreen=0 = off).
  *
  * Start: key T on the lobby page, or ?fly=N (first play N s after load, then again N s after each one ends), or the
  * control panel's "Fly to the auditorium" (cmd 'fly' = cut mode): the auditorium is put in its wide shot, the picture
@@ -139,6 +141,8 @@
     if (!gl) { console.warn('[fly] no WebGL2'); return false; }
     prog = compile(VS, FS);
     bgProg = compile(BG_VS, BG_FS);
+    scrProg = compile(SCR_VS, SCR_FS);
+    scrBuf = gl.createBuffer();
     videoTex = tex();
     atlasTex = tex();
     labelTex = tex();
@@ -555,6 +559,360 @@
     return info.frames[info.frames.length - 1];
   }
 
+  // ---------- the cinema screen: the auditorium's pre-show slides (15 Nov 2026, owner: the screen was blank) ----------
+  // The auditorium draws a 960x540 "projector" page (#preshow) affine-mapped onto the screen; three slides (Up next /
+  // Now loading / In the audience) rotate every 8 s with a 0.8 s cross-fade (?slidefade=seq: out 0.4 s, then in). Here
+  // each slide is drawn once per flight into its own transparent 960x540 canvas -> texture (the audience credits roll
+  // as one tall strip, scrolled in the shader), and part B draws the screen as one quad projected with the video's own
+  // camera per frame: screen.corners_wall of the auditorium layout (page u, v, zpx -> world [u, -v, zpx/ZPP]). The
+  // #preshow look (background, vignette, inset shadow, brightness .85 sepia .13) is done in the shader, so the last frame
+  // matches the auditorium's own screen. The video's depth hides it where something stands in front.
+  // What shows: the room's auditorium state (/ctl/room-state: phase + the panel's screen picker; the OBS auditorium
+  // screen's /ctl/state report: download, slide fade). Film on screen -> nothing (the screen stays as the video has it).
+  // The auditorium does not report which slide it is on: if a report ever carries preshow.slide + preshow.slideAt
+  // (epoch ms of that slide's start) the flight follows it; otherwise part B starts 2 s into "Now loading".
+  // ?flyscreen=0 = off.
+  const SCREEN_ON = q.get('flyscreen') !== '0';
+  const SW = 960, SH = 540, SLIDE_S = 8, SLIDES = ['upnext', 'loading', 'audience'];
+  const SCREEN_TOL = Number(q.get('flyscreentol') ?? 1.2);   // depth steps: the screen is itself in the depth picture
+  const ROLL = { top: 154.5, h: 280 };                       // the credits window on the audience slide (slide px)
+  let scrProg = null, scrBuf = null, slideTex = {}, rollTex = null, scr = null, ddData = null;
+  try { window.Cinema?.onRooms?.((rooms, data) => { ddData = data; }); } catch { /* no dinkdonk data */ }
+  const SCR_VS = `#version 300 es
+    in vec4 aClip; in vec2 aUv; in float aZ; out vec2 vUv; out float vZ;
+    void main() { gl_Position = aClip; vUv = aUv; vZ = aZ; }`;
+  const SCR_FS = `#version 300 es
+    precision highp float;
+    uniform sampler2D uVid; uniform sampler2D uA; uniform sampler2D uB; uniform sampler2D uRoll;
+    uniform vec2 uCanvas; uniform float uNear, uFar, uPeriod, uTol, uGhost, uKA, uKB, uRollH, uRollY;
+    uniform vec2 uRollOn;   // x: slide A is the audience slide, y: slide B is
+    in vec2 vUv; in float vZ; out vec4 o;
+    float sceneQ(ivec2 t) {
+      float c = texelFetch(uVid, t, 0).r * 255.0;
+      if (c > 254.5) return 1e9;
+      float f = texelFetch(uVid, t + ivec2(960, 0), 0).r;
+      float k0 = floor(c / uPeriod), best = 1e9;
+      for (int dk = -1; dk <= 1; dk++) {
+        float k = k0 + float(dk);
+        float a = (k + f * 0.5) * uPeriod, b = (k + 1.0 - f * 0.5) * uPeriod;
+        if (abs(a - c) < abs(best - c)) best = a;
+        if (abs(b - c) < abs(best - c)) best = b;
+      }
+      return best;
+    }
+    vec4 slide(sampler2D t, float roll, vec2 p) {
+      vec4 c = texture(t, vUv);
+      if (roll > 0.5 && p.y >= ${ROLL.top.toFixed(1)} && p.y < ${(ROLL.top + ROLL.h).toFixed(1)}) {
+        float sy = p.y - ${ROLL.top.toFixed(1)} - uRollY;   // uRollY = the credits' translateY (px)
+        if (sy >= 0.0 && sy < uRollH) { vec4 s = texture(uRoll, vec2(vUv.x, sy / uRollH)); c = s + c * (1.0 - s.a); }
+      }
+      return c;
+    }
+    void main() {
+      vec2 p = vUv * vec2(${SW}.0, ${SH}.0);
+      vec3 col = vec3(40.0, 34.0, 36.0) / 255.0;                       // #preshow background #282224
+      vec4 a = slide(uA, uRollOn.x, p) * uKA, b = slide(uB, uRollOn.y, p) * uKB;
+      col = col * (1.0 - a.a) + a.rgb;
+      col = col * (1.0 - b.a) + b.rgb;
+      // ::after: radial-gradient(ellipse, transparent 25%, rgba(8,5,6,.56)) + inset 0 0 38px #171315
+      float r = length((p - vec2(480.0, 270.0)) / (vec2(480.0, 270.0) * 1.41421356));
+      col = mix(col, vec3(8.0, 5.0, 6.0) / 255.0, clamp((r - 0.25) / 0.75, 0.0, 1.0) * 0.56);
+      float e = min(min(p.x, ${SW}.0 - p.x), min(p.y, ${SH}.0 - p.y));
+      col = mix(col, vec3(23.0, 19.0, 21.0) / 255.0, 0.55 * exp(-e * e / 361.0));
+      // filter: brightness(.85) sepia(.13)
+      col *= 0.85;
+      const float s = 0.13;
+      col = vec3(dot(col, vec3(1.0 - 0.607 * s, 0.769 * s, 0.189 * s)), dot(col, vec3(0.349 * s, 1.0 - 0.314 * s, 0.168 * s)),
+        dot(col, vec3(0.272 * s, 0.534 * s, 1.0 - 0.869 * s)));
+      // the depth is half resolution and the video's edges are motion-blurred: the screen's cover is the share of the
+      // 3x3 depth texels around this pixel where it is in front (tent weights), so edges blend instead of letting
+      // single screen pixels (or the video's grey screen) through along rails and seat backs
+      vec2 px = vec2(gl_FragCoord.x, uCanvas.y - gl_FragCoord.y) / uCanvas * vec2(1920.0, 1080.0);
+      ivec2 tc = ivec2(clamp(floor(px * 0.5), vec2(1.0), vec2(958.0, 538.0))) + ivec2(0, 1080);
+      float myQ = log(max(vZ, uNear) / uNear) / log(uFar / uNear) * 254.0, vis = 0.0;
+      for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+        float w = (dx == 0 ? 2.0 : 1.0) * (dy == 0 ? 2.0 : 1.0);
+        vis += w * (sceneQ(tc + ivec2(dx, dy)) < myQ - uTol ? 0.0 : 1.0);
+      }
+      vis /= 16.0;
+      float al = mix(uGhost, 1.0, vis);
+      if (al < 0.01) discard;
+      o = vec4(clamp(col, 0.0, 1.0) * al, al);
+    }`;
+
+  // the auditorium's helpers, condensed: the film coming up (newest film poll's winner, unless played) and a release
+  // name's title (parseRelease)
+  const titleKey = (t) => String(t || '').replace(/\s*\(\d{4}\)\s*$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  function upcomingFilm(data) {
+    const ended = (p) => data?.details?.polls?.[p.id]?.endedAt || 0;
+    const polls = (data?.polls || []).map((p, i) => ({ p, i, w: p.winners?.[0] }))
+      .filter(({ w }) => w && (w.poster || /\(\d{4}\)\s*$/.test(w.title || '')))
+      .sort((a, b) => ended(b.p) - ended(a.p) || a.i - b.i);
+    const latest = polls[0];
+    if (!latest) return null;
+    const key = titleKey(latest.w.title);
+    const rated = [...(data?.ratings || []), ...Object.values(data?.details?.ratings || {})].some((r) => titleKey(r.title) === key);
+    const played = (data?.history || []).some((hh) => hh.polls?.includes(latest.p.id) || (titleKey(hh.title) === key && hh.watchedTs >= ended(latest.p)));
+    return rated || played ? null : latest.w.title.replace(/\s*\(\d{4}\)\s*$/, '');
+  }
+  function releaseTitle(name) {
+    const s = String(name || '');
+    if (s.includes(' / ')) {
+      const parts = s.split(/\s[[(]/)[0].split(' / ').map((x) => x.trim()).filter(Boolean);
+      return parts.find((x) => /[a-z]/i.test(x) && !/[а-яё]/i.test(x)) || parts[0] || s;
+    }
+    const clean = s.replace(/\.(mkv|mp4|avi|m4v|ts)$/i, '').replace(/[._]+/g, ' ');
+    const cut = clean.search(/\b(S\d{1,2}(E\d{1,3})?|(19|20)\d\d|\d{3,4}p|BluRay|BDRip|BRRip|WEB|WEBRip|HDTV|DVDRip|REMUX|x26[45]|HEVC|UHD|4K)\b/i);
+    return (cut > 0 ? clean.slice(0, cut) : clean).replace(/[\s([-]+$/, '').trim() || s;
+  }
+  const MEMES = [['WWWWaiting', 'Feature in 5™'], ['Hmm', 'The slow blade penetrates the shield.'], ['DinkDonk', 'BREAKING NEWS: still loading'],
+    ['NOTHINGBURGER', 'Nothing ever happens.'], ['YesHoney', 'YES OR NO: is it done yet?'], ['Clueless', 'Seeding after the movie, right?'],
+    ['CINEMA', 'Absolute cinema. Soon.'], ['glorp', 'It came from the chat.']];
+  const etaText = (sec) => {
+    if (!Number.isFinite(sec) || sec < 0) return '';
+    if (sec < 60) return 'Less than a minute';
+    const mins = Math.ceil(sec / 60);
+    return mins < 60 ? `About ${mins} min` : `About ${Math.floor(mins / 60)} h ${mins % 60} min`;
+  };
+
+  // canvas text in the #preshow style (Oswald, #eadbb9, faint glow); returns the lines (wrapped to maxW, at most maxL)
+  function wrap(x, text, maxW, maxL) {
+    const words = String(text).split(/\s+/).filter(Boolean), lines = [];
+    let cur = '';
+    for (const w of words) {
+      const t = cur ? `${cur} ${w}` : w;
+      if (x.measureText(t).width <= maxW || !cur) cur = t; else { lines.push(cur); cur = w; }
+    }
+    if (cur) lines.push(cur);
+    if (lines.length > maxL) { lines.length = maxL; lines[maxL - 1] = `${lines[maxL - 1].replace(/\s*\S*$/, '')}…`; }
+    return lines;
+  }
+  function slideCanvas() {
+    const c = document.createElement('canvas');
+    c.width = SW; c.height = SH;
+    const x = c.getContext('2d');
+    x.fillStyle = '#eadbb9'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.shadowColor = '#d8c39444'; x.shadowBlur = 3;
+    return [c, x];
+  }
+  const FONT = "Oswald, 'Arial Narrow', Arial, sans-serif";
+  const small = (x, text, y, size = 26) => {
+    x.font = `400 ${size}px ${FONT}`; x.letterSpacing = '0.16em';
+    x.fillText(String(text).toUpperCase(), SW / 2, y); x.letterSpacing = '0px';
+  };
+  // a block stack centred like the slides' flex column (gap 18 px): items [{ h, draw(y0) }]
+  const stack = (items, gap = 18) => {
+    const total = items.reduce((s, it) => s + it.h, 0) + gap * (items.length - 1);
+    let y = (SH - total) / 2;
+    for (const it of items) { it.draw(y); y += it.h + gap; }
+    return (SH - total) / 2;
+  };
+  async function emoteFirst(name, maxH, maxW) {
+    try {
+      const j = await Promise.race([emoteFrames(name), new Promise((r) => setTimeout(() => r(null), 3000))]);
+      const fr = j?.frames?.[0];
+      if (!fr) return null;
+      const hh = Math.min(maxH, (maxW * j.h) / j.w);
+      return { draw: (x, cx, by) => {   // bottom-centre at (cx, by)
+        const ww = (hh * j.w) / j.h;
+        x.save(); x.shadowBlur = 0;
+        x.drawImage(fr.src, fr.sx, fr.sy, fr.sw, fr.sh, cx - ww / 2, by - hh, ww, hh);
+        x.restore();
+      }, h: hh };
+    } catch { return null; }
+  }
+  async function drawSlides(st) {
+    const out = {};
+    // 1. Up next
+    {
+      const [c, x] = slideCanvas();
+      const poll = upcomingFilm(ddData);
+      const dl = st.download?.available ? releaseTitle(st.download.name) : '';
+      const kicker = poll ? 'Up next · chat voted for' : dl ? 'Up next' : 'DINK DONK cinema';
+      const title = poll || dl || 'Next movie coming up';
+      x.font = `500 54px ${FONT}`;
+      const lines = wrap(x, title, SW - 128, 4);
+      const featH = Math.max(220, lines.length * 54 * 1.08);
+      stack([
+        { h: 31, draw: (y) => small(x, kicker, y + 15.5) },
+        { h: featH, draw: (y) => { x.font = `500 54px ${FONT}`; lines.forEach((l, i) => x.fillText(l, SW / 2, y + featH / 2 + (i - (lines.length - 1) / 2) * 58.3)); } },
+        { h: 42.5, draw: (y) => { x.font = `400 34px ${FONT}`; x.fillText('Moobies starting soon, take a seat...', SW / 2, y + 21); } },
+      ]);
+      out.upnext = c;
+    }
+    // 2. Now loading (no download: "The feature will begin shortly" / THANK YOU FOR YOUR PATIENCE)
+    {
+      const [c, x] = slideCanvas();
+      const d = st.download || {};
+      if (!d.available) {
+        stack([
+          { h: 42.5, draw: (y) => { x.font = `400 34px ${FONT}`; x.fillText('The feature will begin shortly', SW / 2, y + 21); } },
+          { h: 31, draw: (y) => small(x, 'Thank you for your patience', y + 15.5) },
+        ]);
+      } else {
+        // a meme whose emote picture can't be had in time gives way to the next one
+        let k = Math.floor(Math.random() * MEMES.length), meme = null, cap = '';
+        for (let tries = 0; tries < 3 && !meme; tries++, k++) { cap = MEMES[k % MEMES.length][1]; meme = await emoteFirst(MEMES[k % MEMES.length][0], 96, 170); }
+        x.font = `500 42px ${FONT}`;
+        const tl = wrap(x, releaseTitle(d.name), 340, 2);
+        const pct = `${d.completed ? 100 : Math.min(99, Math.floor((d.progress || 0) * 100))}%`;
+        const eta = d.completed ? 'The feature is ready. Settle in...' : etaText(d.eta_s);
+        // column (x centre 480 - 108 with the meme on the right: 340 + 36 + 180 wide row)
+        const colX = SW / 2 - 108, memeX = SW / 2 + 188;   // row: column 340 + gap 36 + meme 180, centred
+        const colH = 42.5 + 14 + tl.length * 45.4 + 14 + 80 + 26 + 12 + 26 + 35;
+        const top = stack([
+          { h: colH, draw: (y) => {
+            let yy = y;
+            x.font = `400 34px ${FONT}`; x.fillText('Now loading', colX, yy + 21); yy += 42.5 + 14;
+            x.font = `500 42px ${FONT}`; tl.forEach((l) => { x.fillText(l, colX, yy + 22.7); yy += 45.4; }); yy += 14;
+            x.font = `400 80px ${FONT}`; x.fillText(pct, colX, yy + 40); yy += 80 + 26;
+            x.save(); x.shadowBlur = 0; x.fillStyle = '#a798752b'; x.fillRect(colX - 170, yy, 340, 12);
+            x.fillStyle = '#c7b585'; x.fillRect(colX - 170, yy, 340 * Math.min(1, d.progress || 0), 12); x.restore();
+            yy += 12 + 26;
+            x.font = `400 28px ${FONT}`; x.fillText(eta, colX, yy + 17);
+          } },
+          { h: 31, draw: (y) => small(x, 'Thank you for your patience', y + 15.5) },
+        ]);
+        const midY = top + colH / 2;
+        if (meme) meme.draw(x, memeX, midY - 10);
+        x.font = `italic 400 27px ${FONT}`;
+        wrap(x, cap, 180, 3).forEach((l, i) => x.fillText(l, memeX, midY + 6 + 16 + i * 32.4));
+      }
+      out.loading = c;
+    }
+    // 3. In the audience: the heading here, the names as a strip that rolls in the shader
+    {
+      const [c, x] = slideCanvas();
+      small(x, 'In the audience', ROLL.top - 18 - 15.5);
+      out.audience = c;
+    }
+    return out;
+  }
+  // the credits: everyone seated (the auditorium roster), in their chat colours, 38 px, line-height 1.6
+  function drawRoll(list) {
+    const LH = 60.8, max = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), 16384);
+    const names = list.slice(0, Math.floor(max / LH));
+    const c = document.createElement('canvas');
+    c.width = SW; c.height = Math.max(2, Math.ceil(names.length * LH));
+    const x = c.getContext('2d');
+    x.font = `400 38px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.shadowColor = '#d8c39444'; x.shadowBlur = 3;
+    names.forEach((cd, i) => {
+      const y = i * LH + LH / 2;
+      if (cd.rainbow) {
+        const tw = x.measureText(cd.nick).width, g = x.createLinearGradient(SW / 2 - tw / 2, 0, SW / 2 + tw / 2, 0);
+        ['#ff6b6b', '#ffd93d', '#6bff95', '#67d8ff', '#b28dff', '#ff78c6'].forEach((cc, k) => g.addColorStop(k / 5, cc));
+        x.fillStyle = g;
+      } else x.fillStyle = cd.color || (window.SB?.nickColor ? SB.nickColor(cd.nick) : '#eadbb9');
+      x.fillText(cd.nick, SW / 2, y, SW - 128);
+    });
+    return { c, n: names.length, h: c.height };
+  }
+  function upload(t, src) {
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  }
+  // once per flight: what the auditorium's screen shows, and the slide textures
+  async function prepScreen(list) {
+    scr = null;
+    if (!SCREEN_ON) return;
+    const get = (u) => fetch(u, { cache: 'no-store', signal: AbortSignal.timeout(2500) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const [rs, cs, qb] = await Promise.all([get('/ctl/room-state'), get('/ctl/state'), get('/qb/progress')]);
+    const auds = (cs?.screens || []).filter((s) => s.page === 'auditorium' && s.preshow);
+    const rep = auds.find((s) => s.obs) || auds[0] || null;   // the OBS auditorium first
+    const show = rs?.auditorium?.show || rep?.preshow || {};
+    const phase = show.phase || 'seating', pick = show.screen || 'auto';
+    const download = qb?.available ? qb : rep?.preshow?.download || { available: false };
+    const film = pick === 'film' || (pick === 'auto' && phase === 'film') || rep?.preshow?.alwaysGreen;
+    scr = { phase, pick, film: !!film, seq: rep?.settings?.slidefade === 'seq', download,
+      slide: Number.isInteger(rep?.preshow?.slide) ? rep.preshow.slide : null, slideAt: Number(rep?.preshow?.slideAt) || 0 };
+    if (scr.film) return;
+    await document.fonts?.load?.(`400 34px Oswald`).catch(() => {});
+    await document.fonts?.load?.(`500 54px Oswald`).catch(() => {});
+    const canv = await drawSlides(scr);
+    for (const k of SLIDES) { slideTex[k] ||= tex(); upload(slideTex[k], canv[k]); }
+    const roll = drawRoll(list.filter((cd) => cd.part === 'B'));
+    rollTex ||= tex();
+    upload(rollTex, roll.c);
+    scr.rollH = roll.h; scr.rollN = roll.n;
+    scr.canvases = canv;   // (QA: DD_FLY_SCREEN)
+  }
+  // which slides show at frame g, with their opacities: [prev, cur, kPrev, kCur], and the credits' translateY
+  function slideState(g) {
+    const fps = meta.fps, b0 = meta.parts.B[0];
+    let cur, into;
+    const fixed = SLIDES.indexOf(scr.pick);
+    if (fixed >= 0) { cur = fixed; into = 99; }
+    else {
+      let i0, e;
+      if (scr.slide !== null && scr.slideAt) { i0 = scr.slide; e = Math.max(0, (Date.now() - scr.slideAt) / 1000); }
+      else { i0 = 1; e = 2 + (g - b0) / fps; }   // part B starts 2 s into "Now loading"
+      const n = Math.floor(e / SLIDE_S);
+      cur = (i0 + n) % 3; into = e - n * SLIDE_S;
+    }
+    const ease = (v) => { v = Math.min(1, Math.max(0, v)); return v * v * (3 - 2 * v); };
+    const kCur = scr.seq ? ease((into - 0.4) / 0.4) : ease(into / 0.8);
+    const kPrev = scr.seq ? 1 - ease(into / 0.4) : 1 - ease(into / 0.8);
+    // credits: translateY from 280 to -height over max(24, n * 1.6) s; part B starts with the first name at the top
+    const T = Math.max(24, scr.rollN * 1.6), span = ROLL.h + scr.rollH;
+    const t0 = (ROLL.h / span) * T, tt = (t0 + (g - b0) / fps) % T;
+    const rollY = ROLL.h - span * (tt / T);
+    return { prev: (cur + 2) % 3, cur, kPrev, kCur, rollY };
+  }
+  function drawScreen(cam) {
+    if (!scr || scr.film || cam.part !== 'B' || !slideTex.loading) return;
+    const W = layout?.screen?.corners_wall;
+    if (!W) return;
+    const V = cam.view, Pm = cam.proj, ortho = cam.type === 'ORTHO';
+    // TL TR BL BR -> uv; clip z = 2 * near - d keeps only the near-plane clip (perspective: w = d)
+    const pts = [['TL', 0, 0], ['TR', 1, 0], ['BL', 0, 1], ['BR', 1, 1]].map(([k, u, v]) => {
+      const [pu, pv, pz] = W[k];
+      const pc = mul(V, pu, -pv, pz / ZPP);
+      const cl = mul(Pm, pc[0], pc[1], pc[2]);
+      const d = -pc[2];
+      return [cl[0], cl[1], ortho ? 0 : 2 * cam.near - d, cl[3], u, v, d];
+    });
+    if (pts.every((p) => p[3] <= 0)) return;
+    const data = [];
+    for (const k of [0, 1, 2, 2, 1, 3]) data.push(...pts[k]);
+    const s = slideState(cam.g);
+    gl.useProgram(scrProg);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.bindBuffer(gl.ARRAY_BUFFER, scrBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STREAM_DRAW);
+    for (const [name, size, off] of [['aClip', 4, 0], ['aUv', 2, 16], ['aZ', 1, 24]]) {
+      const l = gl.getAttribLocation(scrProg, name);
+      gl.enableVertexAttribArray(l);
+      gl.vertexAttribPointer(l, size, gl.FLOAT, false, 28, off);
+    }
+    const unit = (i, t, nm) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(gl.getUniformLocation(scrProg, nm), i); };
+    unit(3, slideTex[SLIDES[s.prev]], 'uA');
+    unit(4, slideTex[SLIDES[s.cur]], 'uB');
+    unit(5, rollTex, 'uRoll');
+    gl.activeTexture(gl.TEXTURE0);
+    const U = (nm) => gl.getUniformLocation(scrProg, nm);
+    gl.uniform1i(U('uVid'), 0);
+    gl.uniform2f(U('uCanvas'), canvas.width, canvas.height);
+    gl.uniform1f(U('uNear'), cam.near);
+    gl.uniform1f(U('uFar'), cam.far);
+    gl.uniform1f(U('uPeriod'), meta.packing.fine_period);
+    gl.uniform1f(U('uTol'), SCREEN_TOL);
+    gl.uniform1f(U('uGhost'), (window.DD_FLY_GHOST ?? GHOST) ? 0.25 : 0);
+    gl.uniform1f(U('uKA'), s.kPrev);
+    gl.uniform1f(U('uKB'), s.kCur);
+    gl.uniform1f(U('uRollH'), scr.rollH);
+    gl.uniform1f(U('uRollY'), s.rollY);
+    gl.uniform2f(U('uRollOn'), s.prev === 2 ? 1 : 0, s.cur === 2 ? 1 : 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    for (const name of ['aClip', 'aUv', 'aZ']) gl.disableVertexAttribArray(gl.getAttribLocation(scrProg, name));
+    scr.last = { g: cam.g, ...s, corners: pts.map((p) => [+(960 * (p[0] / p[3] + 1)).toFixed(1), +(540 * (1 - p[1] / p[3])).toFixed(1), +p[6].toFixed(2)]) };
+  }
+
   // ---------- per frame ----------
   function frameVerts(cam) {
     const g = cam.g;
@@ -661,6 +1019,7 @@
     gl.uniform1i(gl.getUniformLocation(bgProg, 'uVid'), 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.disableVertexAttribArray(ap);
+    drawScreen(cam);   // the pre-show slides on the cinema screen (part B), under the people
 
     const { data, labels, drawn } = frameVerts(cam);
     if (data.length) {
@@ -774,6 +1133,7 @@
       cards = await gatherCards();
       lastStep = 0;
       await drawAtlas(cards);
+      try { await prepScreen(cards); } catch (err) { scr = null; console.warn('[fly] screen slides', err); }
       console.log(`[fly] ${cards.filter((c) => c.part === 'A').length} lobby + ${cards.filter((c) => c.part === 'B').length} seated cards`);
       video.currentTime = 0;
       video.style.display = 'block';
@@ -809,6 +1169,10 @@
     video.addEventListener('seeked', () => { render(g); res(true); }, { once: true });
     video.currentTime = (g - 0.5) / meta.fps;
   });
+  // QA: what the cinema screen shows (state, last frame's slides and projected corners); { png: true } adds the slides
+  window.DD_FLY_SCREEN = (o = {}) => scr && { phase: scr.phase, pick: scr.pick, film: scr.film, seq: scr.seq, slide: scr.slide,
+    download: scr.download?.available ? { name: scr.download.name, progress: scr.download.progress } : null, rollN: scr.rollN, last: scr.last,
+    png: o.png && scr.canvases ? Object.fromEntries(Object.entries(scr.canvases).map(([k, c]) => [k, c.toDataURL()])) : undefined };
   const first = Number(q.get('fly'));
   if (first > 0) repeatTimer = setTimeout(play, first * 1000);
 })();

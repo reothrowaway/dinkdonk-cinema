@@ -151,7 +151,7 @@
   // (WooYeah: 6 runs) and keeps the endless version for :hover. Here every emote uses its :hover animation when it has
   // one, and any other animation repeats without end. Only inside our emote boxes (.sb-emote), never DGG's own chat.
   // ... except these, which play once as in DGG's chat (owner, 15 Nov 2026: GODSTINY "should not loop endlessly")
-  const PLAY_ONCE = ['GODSTINY'];
+  const PLAY_ONCE = ['GODSTINY', 'CAUGHT', 'GIGACHAD'];   // (CAUGHT, GIGACHAD: owner 15 Nov 2026)
   function loopEmotes(link) {
     let rules = [];
     try { rules = [...(link.sheet?.cssRules || [])]; } catch { /* not readable: the global rule below still applies */ }

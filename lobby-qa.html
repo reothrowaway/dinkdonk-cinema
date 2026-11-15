@@ -13,7 +13,8 @@
   keys F/R/W/D). Options: demo=1, live=1 (auto-reload on file change), wet2x=1 (4K wet loops, heavy), crowd=<n> (people outside/in line before new chatters are skipped, 14; 0 = never), mist=1-4 (splash spray samples, off by default), morerain=0 (no extra rain/weather; 1-4 = one fixed style), weather=<x> (weather clock x times faster, testing), rainfps=<n> (extra rain steps per second, 24 like the baked loops; 0 = smooth), tag= / everyone=1 (who walks in,
   see shared/cinema.js), director=0|<seconds>, zoom=<1.2-3>, ctl=0 (no control panel link), maxres=<height> (cap the art
   resolution, e.g. 1080: no 4K art or loops even at 1440p; off by default), fit=cover (fill a squarer or wider source:
-  crop the sides instead of black bars; the wide shot centres on fitx=<stage x>, 1040), rainspeed=<x> / raintune=1.
+  crop the sides instead of black bars; the wide shot centres on fitx=<stage x>, 1040), rainspeed=<x> / raintune=1,
+  frontdoors=0 (no page-drawn glass doors in the street entrance, 15 Nov 2026).
 -->
 <html lang="en">
 <head>
@@ -46,7 +47,7 @@
   .rbt { background: repeating-linear-gradient(90deg, hsl(0, 100%, 65%), hsl(45, 100%, 65%), hsl(90, 100%, 65%),
       hsl(135, 100%, 65%), hsl(180, 100%, 65%), hsl(225, 100%, 65%), hsl(270, 100%, 65%), hsl(315, 100%, 65%), hsl(360, 100%, 65%) 50%);
     background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
-    -webkit-text-fill-color: transparent; animation: rbt 3s linear infinite; }
+    -webkit-text-fill-color: transparent; animation: rbt 3s linear infinite; text-shadow: none; }
   /* (the name tag's black text-shadow showed through the see-through letters and smeared the rainbow dark, owner
      11 Nov: the outline comes from a drop-shadow instead, drawn behind the letters) */
   .w .nm .rbt { text-shadow: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .95)) drop-shadow(0 0 1.5px rgba(0, 0, 0, .8)); }
@@ -177,6 +178,8 @@
   /* the street marquee's canopy, board text and bulbs, and the front glass: see-through while the camera is zoomed in
      (--mqa, stepCam) */
   .mqfade { opacity: var(--mqa, 1); }
+  /* the page-drawn entrance doors (15 Nov 2026) fade with the front glass, but keep their frames readable when zoomed in */
+  .frontdoor { opacity: calc(.5 + .5 * var(--mqa, 1)); }
   /* premiere-night sky (L3) and wet-street light (L4), queue 61: over the background, under #world's walkers and props */
   .fxl { width: 1920px; height: 1080px; z-index: 3; overflow: hidden; }
   .fxl > div { position: absolute; pointer-events: none; }
@@ -385,6 +388,8 @@
     border-radius: 6px; outline: 2px solid #0a0d22; box-shadow: inset 0 0 0 2px #0a0d22, inset 0 0 0 3px rgba(232, 236, 255, .35), 3px 4px 0 rgba(0, 0, 0, .5);
     text-shadow: 2px 2px 0 #000; padding: 6px 12px 8px; font: 700 18px/1.28 Verdana, Tahoma, sans-serif; }
   .bs5 .bub .bn { padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1px solid rgba(232, 236, 255, .35); }
+  /* (15 Nov: the see-through rainbow letters took the bubble's hard text-shadow over them; drawn behind instead) */
+  .bs5 .bub .bn .rbt { filter: drop-shadow(2px 2px 0 #000); }
 </style>
 </head>
 <body>
@@ -1309,7 +1314,7 @@
     DITCHSTINY: { speed: 1.6 }, SLUGSTINY: { speed: 0.5, crawl: true }, PepoTurtle: { speed: 0.5, crawl: true },
     THATNINJA: { speed: 0.9, crawl: true }, CHILLS: { shiver: true },
     pepeJAM: { dance: true }, JAMSTINY: { dance: true }, YAM: { dance: true }, RaveDoge: { dance: true }, AlienPls: { dance: true },
-    GatoPls: { dance: true }, RainbowPls: { dance: true }, PoroPls: { dance: true } };
+    GatoPls: { dance: true }, RainbowPls: { dance: true }, PoroPls: { dance: true }, catJAM: { dance: true } };
 
   // Golden WEOW (queue 65, L50; owner 9 Nov 2026): like the rare gold WEOW in DGG chat, a chatter wearing WEOW walks in
   // golden 1 time in 20, whether they typed the emote or got it from the default pool. One roll per visit (from the
@@ -1548,7 +1553,7 @@
   const onScreen = (w) => {
     const [x, y] = toScreen(w.x, w.y);
     const [x0, y0, x1, y1] = view();
-    return w.alpha > 0.6 && x > x0 + 20 && x < x1 - 20 && y > y0 && y < y1 - 5;
+    return w.alpha > 0.6 && !w.inDoor && x > x0 + 20 && x < x1 - 20 && y > y0 && y < y1 - 5;
   };
   // speech of someone not visible yet (still off screen, in the restroom) waits, so it can't push a
   // readable bubble out of the allowance (MAX_BUB on screen, ?bubbles=N; the oldest fades out for a new one)
@@ -1597,10 +1602,22 @@
     if (d.wall === 'u') steps.push({ to: [J[0], d.at] }, { to: [0.55, d.at] }, { call: startEnter }, { to: [0.1, d.at], slow: true }, { alpha: 0 }, { call: finishEnter });
     // (into the corridor's walking line where they are, not back to the junction first: only from the restroom side
     // is that the junction itself)
-    else steps.push({ to: [clamp(w.u, J[0], Math.max(J[0], d.at)), J[1]] }, { to: [d.at, J[1]] }, { to: [d.at, 0.55] }, { call: startEnter }, { to: [d.at, 0.1], slow: true }, { alpha: 0 }, { call: finishEnter });
+    else {
+      steps.push({ to: [clamp(w.u, J[0], Math.max(J[0], d.at)), J[1]] }, { to: [d.at, J[1]] }, { to: [d.at, 0.55] }, { call: startEnter });
+      // the door opens and they walk on through it into the dark corridor behind (owner, 15 Nov 2026; stepThru); a door
+      // without its sheet's opening in the art: fade on the threshold as before
+      const t = thruOf(w.doorRoom + 1);
+      if (t) steps.push({ wait: 0.2 }, { to: t.through(-0.1) }, { to: t.through(0.75), slow: true }, { call: finishEnter });
+      else steps.push({ to: [d.at, 0.1], slow: true }, { alpha: 0 }, { call: finishEnter });
+    }
     return steps;
   }
-  function startEnter(w) { w.entering = true; w.alphaT = 0; dropBubble(w); playDoor(w.doorRoom + 1); }
+  function startEnter(w) {
+    w.entering = true;
+    dropBubble(w);
+    playDoor(w.doorRoom + 1);
+    if (!throughDoor(w, w.doorRoom + 1, 0.6)) w.alphaT = 0;
+  }
   function finishEnter(w) {
     const s = signs[w.doorRoom];
     if (s) {
@@ -2562,6 +2579,175 @@
     }
     doorBusy[key] = sheetShot(d, d.x, d.y, d.z_index ?? 900, false, () => { doorBusy[key] = null; }) || null;
   }
+
+  // ---------- walking through a door (owner, 15 Nov 2026) ----------
+  // A chatter going in at a screen door or into a restroom stall used to fade out in front of it, in full view (and
+  // fade back in to come out). Now the door opens, they walk on through the doorway and the door closes behind them.
+  // Behind the wall they are cut to the opening as the fixed camera sees it (a clip-path in their own px: the frame
+  // and the wall hide the rest, at any zoom), drawn just above the door's sheet (its open frames are opaque), and at a
+  // screen door they go dark as they walk on into the corridor behind it (an imaginary hallway: nothing is drawn
+  // there). The door is held open while they are in the doorway. Once it swings shut in front of them they are gone at
+  // once: that is the closed leaf, not a fade. Coming out of a stall is the same backwards. Geometry: the sheet's
+  // opening_world in the manifest (u, v, z px). Only walkers with w.thru do any of this, so nothing runs while nobody
+  // uses a door.
+  const thruSpec = {};
+  function thruOf(key) {
+    if (thruSpec[key]) return thruSpec[key];
+    const d = doorAnims[key];
+    const o = d?.opening_world;
+    if (!Array.isArray(o) || o.length !== 4 || !o.every((p) => Array.isArray(p) && p.length >= 3 && p.every(Number.isFinite))) return null;
+    const byV = o.every((p) => Math.abs(p[1] - o[0][1]) < 1e-3);   // in a wall of constant v (screens, restroom entry)
+    const byU = o.every((p) => Math.abs(p[0] - o[0][0]) < 1e-3);   // ... or of constant u (stalls)
+    if (!byV && !byU) return null;
+    const at = byV ? o[0][1] : o[0][0];
+    const mid = byV ? (o[0][0] + o[1][0]) / 2 : (o[0][1] + o[1][1]) / 2;
+    return (thruSpec[key] = { key, z: (d.z_index ?? 900) + 1, quad: o.map(([u, v, z]) => P(u, v, z)),
+      // tiles in front of the wall (the camera's side; < 0 = in the doorway's far side)
+      side: byV ? (u, v) => v - at : (u, v) => u - at,
+      // a point on the floor through the middle of the opening, `d` tiles behind the wall
+      through: (dd) => (byV ? [mid, at - dd] : [at - dd, mid]) });
+  }
+  // dark: tiles behind the wall at which they are black (0 = they stay lit, a stall)
+  function throughDoor(w, key, dark = 0) {
+    const t = thruOf(key);
+    if (!t) return false;
+    w.thru = { ...t, dark };
+    w.thruHold = true;
+    dropBubble(w);
+    return true;
+  }
+  // per frame, before drawFigure, only for walkers in a doorway
+  function stepThru(w) {
+    const d = w.thru;
+    const s = d.side(w.u, w.v);
+    const shot = doorBusy[d.key];
+    if (w.thruHold && (w.thruOut ? s < 0.35 : true)) playDoor(d.key);   // held open (wound back to its hold) while in it
+    const n = shot ? shot.spec.frames : 16;
+    const f = shot ? Math.floor(shot.t * (shot.spec.fps || 18)) : -1;
+    const open = f >= Math.round(n * 0.2) && f < Math.round(n * 0.75);
+    const behind = s < 0.04;
+    w.inDoor = behind;
+    // past the wall with the door shut in front of them: hidden at once (no fade); out again the moment it opens
+    const a = behind && !open ? 0 : 1;
+    if (!w.removing && (w.alpha !== a || w.alphaT !== a)) w.alpha = w.alphaT = a;   // (taken out meanwhile: their fade runs)
+    const [x, y] = P(w.u, w.v, w.stand || 0);
+    const clip = behind ? `polygon(${d.quad.map(([qx, qy]) => `${(qx - x).toFixed(1)}px ${(qy - y).toFixed(1)}px`).join(', ')})` : '';
+    if (clip !== w.thruClip) { w.thruClip = clip; w.el.style.clipPath = clip; }
+    w.thruZ = behind ? d.z : Math.max(d.z, depth(w.u, frontV(w.u, w.v)));
+    const k = behind && d.dark ? clamp(1 + s / d.dark, 0, 1) ** 1.5 : 1;
+    const fl = k < 1 ? `brightness(${k.toFixed(2)})` : '';
+    if (fl !== w.thruF) { w.thruF = fl; w.bod.style.filter = fl; w.sh.style.visibility = k < 0.5 ? 'hidden' : ''; }
+    // out and clear of it, and the door done: an ordinary walker again
+    if (w.thruOut && s > 0.3 && !shot) endThru(w);
+  }
+  function endThru(w) {
+    w.thru = null; w.thruHold = false; w.thruOut = false; w.inDoor = false; w.thruZ = 0;
+    w.thruClip = ''; w.el.style.clipPath = '';
+    w.thruF = ''; w.bod.style.filter = ''; w.sh.style.visibility = '';
+  }
+  // Glass doors at the street entrance (owner, 15 Nov 2026). The render has an open doorway in the glass front between
+  // the two lit posts (u 8.4 and 10.6, v 9; measured on the render), with no doors in it. The owner asked for a door
+  // that opens as people go through: two glass leaves drawn by the page (no new art), hinged on the posts and swinging
+  // into the lobby. They open while someone walks through the doorway and close again after them. Each leaf is a small
+  // SVG in #world sorted at its middle like everything there, so someone going through passes in front of the far
+  // (left) leaf and behind the near one; the SVG is only rewritten while a leaf moves. When the camera is zoomed in they
+  // go half see-through with the front glass (.frontdoor: down to 50%, so the door still reads). ?frontdoors=0: none
+  // (the open doorway of the render).
+  const FRONT = { on: q.get('frontdoors') !== '0', p: 0, want: 0, leaves: [], hold: 0 };
+  const FRONT_V = 9.0, FRONT_Z = 140, FRONT_LEAF = 0.87, FRONT_MAX = 82 * Math.PI / 180;
+  const FRONT_BOX = [820, 680, 270, 300];   // stage px the leaves can reach (x, y, w, h), the SVGs' viewBox
+  function buildFrontDoors() {
+    if (!FRONT.on || FRONT.leaves.length) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    for (const [hinge, dir] of [[8.63, 1], [10.37, -1]]) {
+      const s = document.createElementNS(NS, 'svg');
+      s.setAttribute('class', 'frontdoor');
+      s.setAttribute('viewBox', FRONT_BOX.join(' '));
+      Object.assign(s.style, { position: 'absolute', left: `${FRONT_BOX[0]}px`, top: `${FRONT_BOX[1]}px`, width: `${FRONT_BOX[2]}px`,
+        height: `${FRONT_BOX[3]}px`, overflow: 'visible', pointerEvents: 'none' });
+      // glass (faint blue tint), kick plate, push bar, a glint, the aluminium frame on top
+      const glass = document.createElementNS(NS, 'path'); glass.setAttribute('fill', 'rgba(150,182,220,0.13)');
+      const kick = document.createElementNS(NS, 'path'); kick.setAttribute('fill', 'rgba(22,24,32,0.9)');
+      const glint = document.createElementNS(NS, 'path'); glint.setAttribute('stroke', 'rgba(215,232,255,0.22)'); glint.setAttribute('stroke-width', '2'); glint.setAttribute('fill', 'none');
+      const bar = document.createElementNS(NS, 'path'); bar.setAttribute('stroke', 'rgba(200,204,214,0.9)'); bar.setAttribute('stroke-width', '2.4'); bar.setAttribute('stroke-linecap', 'round');
+      const frame = document.createElementNS(NS, 'path'); frame.setAttribute('fill', 'none'); frame.setAttribute('stroke', 'rgba(18,20,27,0.95)');
+      frame.setAttribute('stroke-width', '3.2'); frame.setAttribute('stroke-linejoin', 'round');
+      s.append(glass, kick, glint, bar, frame);
+      world.append(s);
+      FRONT.leaves.push({ hinge, dir, s, glass, kick, glint, bar, frame, key: '' });
+    }
+    drawFrontDoors();
+  }
+  function drawFrontDoors() {
+    const a = FRONT_MAX * (FRONT.p * FRONT.p * (3 - 2 * FRONT.p));   // smoothstep: eases in and out
+    for (const L0 of FRONT.leaves) {
+      const eu = L0.hinge + L0.dir * FRONT_LEAF * Math.cos(a), ev = FRONT_V - FRONT_LEAF * Math.sin(a);
+      const at = (k, z) => P(L0.hinge + (eu - L0.hinge) * k, FRONT_V + (ev - FRONT_V) * k, z);
+      const pt = (p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+      const quad = (k0, k1, z0, z1) => `M${pt(at(k0, z0))}L${pt(at(k1, z0))}L${pt(at(k1, z1))}L${pt(at(k0, z1))}Z`;
+      L0.glass.setAttribute('d', quad(0, 1, 0, FRONT_Z));
+      L0.kick.setAttribute('d', quad(0, 1, 0, 13));
+      L0.frame.setAttribute('d', quad(0, 1, 0, FRONT_Z));
+      L0.bar.setAttribute('d', `M${pt(at(0.12, 64))}L${pt(at(0.88, 64))}`);
+      L0.glint.setAttribute('d', `M${pt(at(0.25, 120))}L${pt(at(0.62, 32))}`);
+      const z = String(depth((L0.hinge + eu) / 2, (FRONT_V + ev) / 2));
+      if (z !== L0.key) { L0.key = z; L0.s.style.zIndex = z; }
+    }
+  }
+  function stepFrontDoors(dt) {
+    if (!FRONT.leaves.length) return;
+    // someone walking through the doorway (standing there under the marquee doesn't hold it open)
+    let near = false;
+    for (const w of figures) if (w.moving && !w.gone && w.u > 8.3 && w.u < 10.7 && w.v > 8.3 && w.v < 9.75) { near = true; break; }
+    FRONT.hold = near ? 0.7 : Math.max(0, FRONT.hold - dt);
+    const want = FRONT.hold > 0 ? 1 : 0;
+    if (want === FRONT.p) return;
+    FRONT.p = want ? Math.min(1, FRONT.p + dt / 0.4) : Math.max(0, FRONT.p - dt / 0.75);
+    drawFrontDoors();
+  }
+
+  // into a restroom stall through its door, and out again (the stall's door sheet; without it: the old fade)
+  function stallInSteps(w, stall, also) {
+    const t = thruOf(stall.key);
+    if (!t) return [{ call: () => { playDoor(stall.key); w.alphaT = 0; dropBubble(w); also?.(); } }, { alpha: 0 }];
+    return [{ call: () => { throughDoor(w, stall.key); playDoor(stall.key); also?.(); } }, { wait: 0.25 },
+      { to: t.through(0.32), slow: true }, { call: () => { w.thruHold = false; } }, { until: () => w.alpha === 0 || !w.thru }];
+  }
+  function stallOutSteps(w, stall) {
+    if (!thruOf(stall.key)) return [{ call: () => { playDoor(stall.key); w.alphaT = 1; } }, { alpha: 1 }];
+    // (decided when they come out: the plan is built before they go in)
+    return [{ call: () => { playDoor(stall.key); if (w.thru) { w.thruOut = true; w.thruHold = true; } else w.alphaT = 1; } },
+      { until: () => w.alpha > 0.98 }, { to: stall.spot }];
+  }
+  // test hooks: a free chatter is put in the corridor and goes through screen door n now / into the restroom now;
+  // look(x, y, z): hold the camera on a stage point for a minute (screenshots)
+  function doorTestOne() {
+    const w = [...figures].find((x) => gagFree(x) && !x.group) || [...figures].find(gagFree);
+    if (!w) return null;
+    if (w.group) { w.group.members = w.group.members.filter((m) => m !== w); w.group = null; w.arrived = false; }
+    return w;
+  }
+  window.__doors = {
+    screen(n = 1) {
+      const w = doorTestOne();
+      if (!w || !DOORS[n - 1]) return null;
+      w.doorBound = true; w.doorRoom = n - 1;
+      [w.u, w.v] = [DOORS[n - 1].at + 0.6, 1.4];
+      w.plan = doorSteps(w).filter((s) => !s.wait || s.start == null);
+      return w.nick;
+    },
+    stall() {
+      const w = doorTestOne();
+      if (!w || !RESTROOM) return null;
+      [w.u, w.v] = RESTROOM.inside;
+      w.plan = [];
+      tryRestroom(w);
+      return w.stall ? w.nick : null;
+    },
+    look(x, y, z = 2.5) { director.spot = { x, y, z, peek: 'test', until: performance.now() + 60000 }; },
+    front(p) { if (p != null && FRONT.leaves.length) { FRONT.p = p; FRONT.hold = p ? 30 : 0; drawFrontDoors(); } return FRONT.p; },   // (p: open it that far now; it then opens fully)
+    walker: (nick) => { const w = walkers.get(String(nick).toLowerCase()); return w && { u: w.u, v: w.v, a: w.alpha, thru: !!w.thru, key: w.thru?.key, out: w.thruOut, hold: w.thruHold, busy: Object.keys(doorBusy).filter((k) => doorBusy[k]), z: w.el.style.zIndex, clip: w.el.style.clipPath, f: w.bod.style.filter, gone: !!w.gone }; },
+  };
   // umbrellas: a pre-rendered sprite held over the emote outside; folded with a short one-shot at the door
   let UMB = null;
   const UMB_GRIP = [10, -40];   // grip point relative to the walker's feet
@@ -2998,7 +3184,7 @@
       w.nameWant = (w.nameT > 0 || w.jan || w.alwaysName || director.follow?.w === w) && !w.bub && w.alpha > 0.3;
     }
     // vehicles are depth-sliced along their length, so plain depth sorting is right beside them too
-    const z = depth(w.u, frontV(w.u, w.v));
+    const z = w.thruZ || depth(w.u, frontV(w.u, w.v));   // (in a doorway: stepThru says)
     if (z !== w.z) { w.z = z; w.el.style.zIndex = String(z); }
     const out = w.v > 9.1;
     if (out !== w.out) {
@@ -3368,6 +3554,38 @@
     SB.on('emotes', face);
     face();
   }
+  // Shouts at the poster (owner, 15 Nov 2026): a chatter walking past Dear Leader sometimes shouts a line at it (a float,
+  // like "much better"). Not every time, so a busy lobby isn't all shouting: 35% of the walks past, at most one line
+  // every 8 s in the whole lobby, and each chatter at most once in 4 minutes. Staff, jannies and the page's own figures
+  // (canvasser, turtle, the runner) never do. "Past the poster" = walking within a tile of the floor in front of it
+  // (the middle of its light on the floor, u 3.58 v 3.39 from out10l: by the usher's gate). Checked 4 times a second.
+  const LEADER_LINES = ['GLORIOUS DAY, DEAR LEADER!', 'LONG LIVE DEAR LEADER!', 'ETERNAL GLORY TO DEAR LEADER', 'DEAR LEADER SEES ALL',
+    'THANK YOU, DEAR LEADER', '10,000 YEARS TO DEAR LEADER!'];
+  const LEADER_SPOT = [3.58, 3.39];
+  const LEADER_P = 0.35, LEADER_GAP = 8000, LEADER_EACH = 240000;
+  const leaderSaid = new Map();   // chatter key -> when they last shouted
+  let leaderNext = 0, leaderLine = -1, leaderLast = null;
+  function stepLeaderShouts() {
+    if (!LEADER_ON) return;
+    const now = performance.now();
+    for (const w of figures) {
+      const near = Math.hypot(w.u - LEADER_SPOT[0], w.v - LEADER_SPOT[1]) < 1.0;
+      if (!near) { w.leaderPass = false; continue; }
+      if (w.leaderPass || !w.moving) continue;
+      w.leaderPass = true;   // one roll per walk past
+      if (w.staff || w.jan || w.npc || w.gone || w.removing || w.entering || !w.key || w.key[0] === '#' || w.alpha < 0.9) continue;
+      if (now < leaderNext || now - (leaderSaid.get(w.key) ?? -LEADER_EACH) < LEADER_EACH || Math.random() >= LEADER_P) continue;
+      leaderNext = now + LEADER_GAP;
+      leaderSaid.set(w.key, now);
+      leaderLine = (leaderLine + 1 + Math.floor(Math.random() * (LEADER_LINES.length - 1))) % LEADER_LINES.length;   // never the same twice running
+      w.bounce = 1;
+      floatAt(w, LEADER_LINES[leaderLine], '#ffd27a');
+      leaderLast = { nick: w.nick, line: LEADER_LINES[leaderLine], t: now, x: w.x, y: w.y };
+    }
+    for (const [k, t] of leaderSaid) if (now - t > LEADER_EACH) leaderSaid.delete(k);
+  }
+  setInterval(stepLeaderShouts, 250);
+  window.__leader = { last: () => leaderLast, spot: LEADER_SPOT };   // test read-out
   // L44 and L51: two posters on the frames at the corridor's left end (over the render's filler posters "Night Ferry"
   // and "The Blue Hour"). The left one hangs half behind the poll projector, so its text sits in the lower half.
   // L44 "The J6 Video": coming soon for years; the release date is a stack of stickers, and a new one is pasted on
@@ -4636,9 +4854,9 @@ void main() {
     w.plan.unshift(
       ...go([R.outside]), { call: () => playDoor('wc') }, ...go([R.door, R.inside]),
       ...go([...stall.route, stall.spot]),
-      { call: () => { playDoor(stall.key); w.alphaT = 0; dropBubble(w); } }, { alpha: 0 },
+      ...stallInSteps(w, stall),   // in through the stall door, which shuts behind them (15 Nov 2026)
       { wait: rand(3, 6) },
-      { call: () => { playDoor(stall.key); w.alphaT = 1; } }, { alpha: 1 },
+      ...stallOutSteps(w, stall),
       { call: () => { if (stall.busy === w) stall.busy = null; w.stall = null; setWC(restroomFull()); } },
       ...go([...[...stall.route].reverse()]),
       ...(sink ? [{ to: sink }, { wait: rand(1.4, 2.4) }] : []),
@@ -4746,12 +4964,12 @@ void main() {
         ...(first ? [] : [{ wait: 0.7 }]),
         ...go([R.outside]), ...(first ? [{ call: () => playDoor('wc') }] : []), ...go([R.door, R.inside]),
         ...go([...stall.route, stall.spot]),
-        { call: () => { playDoor(stall.key); w.alphaT = 0; dropBubble(w); } }, { alpha: 0 },
+        ...stallInSteps(w, stall),
         { call: () => { g.inside++; } },
         // the hearts (stepGag), then out: the first one, a moment later the second
         { until: () => g.out || performance.now() - g.t0 > GAG_LEN - 6000 },
         { wait: first ? 0.01 : 1.2 },
-        { call: () => { playDoor(stall.key); w.alphaT = 1; } }, { alpha: 1 },
+        ...stallOutSteps(w, stall),
         { call: () => floatAt(w, first ? '😳' : '😌', '#ffb3d9') },
         ...go([...[...stall.route].reverse()]),
         { to: R.inside }, ...(first ? [] : [{ call: () => playDoor('wc') }]),
@@ -5397,6 +5615,7 @@ void main() {
       if (w.gone) continue;
       w.moving = stepPlan(w, dt);
       if (w.gone) continue;
+      if (w.thru) stepThru(w);   // walking through a door (15 Nov 2026)
       drawFigure(w, dt, t);
       stepLight(w, dt);
       if (w.pending && onScreen(w)) say(w, w.pending);
@@ -5414,6 +5633,7 @@ void main() {
       s.el.style.boxShadow = s.pulse ? `0 0 ${Math.round(30 * s.pulse)}px rgba(255,95,176,${(0.9 * s.pulse).toFixed(2)}), inset 0 0 ${Math.round(24 * s.pulse)}px rgba(255,95,176,${(0.6 * s.pulse).toFixed(2)})` : '';
     }
     stepCanvasser();
+    stepFrontDoors(dt);
     stepGnome();
     stepSirens();
     stepStreet2(dt);
@@ -6069,6 +6289,7 @@ void main() {
     wcWrap.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
     setWC(!!wcBusy);
     if (m.brief96) bakedBy96(m);   // (after the occluders and prop loops: it needs the entrance_neon pictures)
+    if (m.layout === 3) buildFrontDoors();   // glass doors in the entrance (15 Nov 2026; the layout-3 glass front)
   }
   let loopSwap = null;   // set in setupArt: switches the light loop between 1080p and 4K with the base art
   // ---------- added light without a blending pass (perf, 11 Nov 2026; ?addgl=0 = as before) ----------
