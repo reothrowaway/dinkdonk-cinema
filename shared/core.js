@@ -333,6 +333,115 @@
     if (el.dataset.flip !== String(flip)) { el.dataset.flip = String(flip); el.style.transform = flip ? 'scaleX(-1)' : ''; }
   }
 
+  // ---------- sleeping emotes (owner, 15 Nov 2026): eyes closed, no animation ----------
+  // shared/emote-sleep.json (tools/emote-sleep-build.mjs): per emote the open eyes of its still frame, in native px of
+  // the emote's own box, each [x, y, rx, ry, rot, lid colour, line colour]; emotes without open eyes have { kind } only;
+  // `bg` = a background-position for the still frame when DGG's resting one is off the sprite sheet.
+  // sleepEmote(box, name, on) works on an emoteEl box: CSS animations stop (the emote shows DGG's still frame), an
+  // animated GIF / WebP / AVIF is frozen on its first frame (a canvas over it), and each open eye gets a lid in the
+  // skin colour above it with a closed-eye arc across. Mirroring the box mirrors all of it. Off puts it all back.
+  const CORE_SRC = document.currentScript?.src || location.href;
+  let sleepData = {};
+  let sleepCss = false;
+  async function loadSleep() {
+    try { sleepData = await (await fetch(new URL('emote-sleep.json', CORE_SRC), { cache: 'no-store', signal: AbortSignal.timeout(8000) })).json(); } catch { sleepData = {}; }
+  }
+  const sleepInfo = (name) => sleepData[name] || null;
+  const ANIM_IMG = /\.(gif|webp|avif)(\?|$)/i;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  // where a CSS background lands in a lw x lh box (background-size / -position as computed)
+  function bgRect(cs, lw, lh, nw, nh) {
+    const sz = cs.backgroundSize.split(' ');
+    let dw = nw, dh = nh;
+    if (sz[0] === 'contain' || sz[0] === 'cover') {
+      const s = (sz[0] === 'contain' ? Math.min : Math.max)(lw / nw, lh / nh);
+      dw = nw * s; dh = nh * s;
+    } else {
+      const len = (v, box) => (v == null || v === 'auto' ? null : v.endsWith('%') ? box * parseFloat(v) / 100 : parseFloat(v));
+      const a = len(sz[0], lw), b = len(sz[1], lh);
+      if (a != null && b != null) { dw = a; dh = b; } else if (a != null) { dw = a; dh = a * nh / nw; } else if (b != null) { dh = b; dw = b * nw / nh; }
+    }
+    const pos = cs.backgroundPosition.split(',')[0].trim().split(' ');
+    const off = (v, free) => (v?.endsWith('%') ? free * parseFloat(v) / 100 : parseFloat(v) || 0);
+    return [off(pos[0], lw - dw), off(pos[1] ?? '50%', lh - dh), dw, dh];
+  }
+  function frozenFrame(inner, lw, lh, ox, oy) {
+    const cs = getComputedStyle(inner);
+    const src = cs.backgroundImage.match(/^url\(["']?(.*?)["']?\)$/)?.[1];
+    if (!src || !ANIM_IMG.test(src)) return null;
+    const R = 3;   // drawn at 3x, so director zoom-ins stay sharp
+    const cv = document.createElement('canvas');
+    cv.className = 'sb-still';
+    cv.width = Math.round(lw * R); cv.height = Math.round(lh * R);
+    cv.style.cssText = `position:absolute;left:${ox}px;top:${oy}px;width:${lw}px;height:${lh}px;transform:${inner.style.transform || 'none'};transform-origin:0 0`;
+    const im = new Image();
+    im.onload = () => {
+      // canvas drawImage of an animated image paints its first frame (HTML spec), whatever the page shows right now
+      const [x, y, dw, dh] = bgRect(cs, lw, lh, im.naturalWidth, im.naturalHeight);
+      const g = cv.getContext('2d');
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(im, x * R, y * R, dw * R, dh * R);
+      if (cv.isConnected) inner.style.visibility = 'hidden';
+    };
+    im.src = src;
+    return cv;
+  }
+  function sleepEmote(box, name, on, opts = {}) {
+    if (!box) return;
+    if (!sleepCss) {
+      sleepCss = true;
+      const st = document.createElement('style');
+      // (stronger than the endless-loop rules of loopEmotes and DGG's own)
+      st.textContent = '.sb-emote.sb-asleep.sb-asleep > .emote.emote, .sb-emote.sb-asleep.sb-asleep > .emote.emote::before, '
+        + '.sb-emote.sb-asleep.sb-asleep > .emote.emote::after { animation: none !important; transition: none !important; }'
+        + ' .sb-emote > .sb-lids { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; transform-origin: 0 0; }';
+      document.head.append(st);
+    }
+    const inner = box.querySelector(':scope > .emote');
+    box.classList.toggle('sb-asleep', !!on);
+    box.querySelectorAll(':scope > .sb-lids, :scope > .sb-still').forEach((n) => n.remove());
+    if (!inner) return;
+    const info = sleepData[name];
+    inner.style.visibility = '';
+    inner.style.transformOrigin = on ? '0 0' : '';   // (some DGG emotes scale about their centre: one frame for all)
+    if (inner.dataset.sleepBg != null) { inner.style.backgroundPosition = inner.dataset.sleepBg; delete inner.dataset.sleepBg; }
+    if (!on) return;
+    if (info?.bg) { inner.dataset.sleepBg = inner.style.backgroundPosition; inner.style.backgroundPosition = info.bg; }
+    // the emote's own box (DGG's size, before any scaling) and the page's scale of it
+    const fb = emoteSize(name);
+    const lw = inner.offsetWidth || fb.w, lh = inner.offsetHeight || fb.h;
+    const k = Number(/scale\(([\d.e+-]+)\)/.exec(inner.style.transform)?.[1]) || 1;
+    // (where the emote itself sits in its box: a few DGG emotes carry a margin, e.g. GODSTINY -4 px)
+    const ox = inner.offsetLeft || 0, oy = inner.offsetTop || 0;
+    const still = frozenFrame(inner, lw, lh, ox, oy);
+    if (still) inner.after(still);
+    const eyes = opts.lids === false ? null : info?.eyes;
+    if (!eyes?.length) return;
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('class', 'sb-lids');
+    svg.setAttribute('viewBox', `0 0 ${lw} ${lh}`);
+    svg.setAttribute('width', String(lw));
+    svg.setAttribute('height', String(lh));
+    svg.style.transform = `scale(${k})`;
+    svg.style.left = `${ox}px`;
+    svg.style.top = `${oy}px`;
+    for (const [x, y, rx, ry, rot, lid, line] of eyes) {
+      const g = document.createElementNS(SVGNS, 'g');
+      if (rot) g.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+      const el = document.createElementNS(SVGNS, 'ellipse');
+      for (const [a, v] of [['cx', x], ['cy', y], ['rx', rx + 0.35], ['ry', ry + 0.35], ['fill', lid]]) el.setAttribute(a, String(v));
+      // the closed eye: a soft downward arc (a sleepy "u") across the lid, a little below its middle
+      const p = document.createElementNS(SVGNS, 'path');
+      const sw = Math.max(0.7, Math.min(1.4, Math.min(rx, ry * 1.6) * 0.45));
+      const yy = y + ry * 0.15, dip = Math.max(0.5, Math.min(ry * 0.7, rx * 0.32));   // (big eyes: a flatter arc)
+      p.setAttribute('d', `M${x - rx * 0.95} ${yy} Q${x} ${yy + dip * 2} ${x + rx * 0.95} ${yy}`);
+      for (const [a, v] of [['fill', 'none'], ['stroke', line], ['stroke-width', sw], ['stroke-linecap', 'round']]) p.setAttribute(a, String(v));
+      g.append(el, p);
+      svg.append(g);
+    }
+    box.append(svg);
+  }
+
   async function loadFlairs() {
     try {
       const res = await fetch('/dgg/flairs.json', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
@@ -612,7 +721,7 @@
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   function start() {
-    Promise.all([loadEmotes(), loadFlairs(), loadFacing()]).then(() => {
+    Promise.all([loadEmotes(), loadFlairs(), loadFacing(), loadSleep()]).then(() => {
       if (cfg.demo) startDemo();
       else connect();
     });
@@ -620,7 +729,7 @@
 
   window.SB = {
     cfg, on, emit, start, mountStage, fitCanvas, mountChat, command, stats, ...api,
-    emoteEl, emoteSize, emoteFacing, faceEmote, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
+    emoteEl, emoteSize, emoteFacing, faceEmote, loadSleep, sleepInfo, sleepEmote, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
     rand, pick, get status() { return status; }, get emotes() { return emotes; }, get view() { return stage.view; }, W, H,
     // For testing from the console: SB.say('someone', '!claw')
     say: (nick, data, features = []) => handleFrame(`MSG ${JSON.stringify({ nick, data, features })}`),

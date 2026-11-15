@@ -1,0 +1,161 @@
+<!doctype html>
+<!--
+  Tool (15 Nov 2026): sleeping emotes, closed eyes drawn over each DGG emote (shared/emote-sleep.json).
+  ?mode=cap    one emote at a time, still (no animation), pixel-exact, for tools/emote-sleep-build.mjs:
+               window.show(name, scale, grid) places it and returns its box; grid=1 draws native-pixel rulers.
+  ?mode=sheet  review contact sheet: each emote awake (left) and asleep (right). &page=0.. &per=24 &names=A,B
+               &only=eyes|none|all (default all)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Emote sleep</title>
+<link rel="stylesheet" href="/shared/base.css">
+<style>
+  html, body { margin: 0; background: #808080; overflow: hidden; }
+  body.cap .emote, body.cap .emote::before, body.cap .emote::after { animation: none !important; }
+  body.cap.px .emote, body.cap.px .emote::before, body.cap.px .emote::after, body.cap.px .sb-still { image-rendering: pixelated; }
+  #holder { position: absolute; left: 0; top: 0; }
+  #holder > .emote { position: absolute; transform-origin: 0 0; }
+  #grid { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #sheet { display: grid; grid-template-columns: repeat(4, 480px); grid-auto-rows: 270px; width: 1920px; }
+  .cell { position: relative; border: 1px solid #666; display: flex; align-items: center; justify-content: space-evenly; overflow: hidden; }
+  .cell .n { position: absolute; left: 4px; bottom: 3px; right: 4px; font: 700 15px/1 Verdana, sans-serif; color: #000;
+    background: #fff; padding: 2px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cell .i { position: absolute; left: 4px; top: 3px; font: 700 13px/1 Verdana, sans-serif; color: #fff; }
+  .cell .k { position: absolute; right: 4px; top: 3px; font: 700 13px/1 Verdana, sans-serif; color: #000; background: #ffd23f; padding: 2px 4px; }
+</style>
+</head>
+<body>
+<div id="holder"></div>
+<canvas id="grid"></canvas>
+<div id="sheet"></div>
+<script src="/shared/core.js"></script>
+<script>
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const mode = q.get('mode') || 'sheet';
+  const list = await (await fetch('/dgg/emotes.json')).json();
+  const names = list.map((e) => e.prefix).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  await new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/dgg/emotes.css';
+    link.onload = resolve;
+    link.onerror = resolve;
+    document.head.append(link);
+  });
+  SB.emotes.css = true;
+  names.forEach((n) => SB.emotes.names.add(n));
+  window.NAMES = names;
+
+  // does the emote (or an image pseudo-element of it) move in DGG's chat or ours?
+  window.animated = (name) => {
+    const el = document.createElement('span');
+    el.className = `emote ${name}`;
+    el.style.cssText = 'position:absolute;left:-999px;top:0';
+    document.body.append(el);
+    const has = (pe) => { const s = getComputedStyle(el, pe); return s.animationName && s.animationName !== 'none'; };
+    let hover = false;
+    for (const sh of document.styleSheets) {
+      let rules = [];
+      try { rules = [...sh.cssRules]; } catch { continue; }
+      for (const r of rules) if (r.selectorText === `.emote.${name}:hover` && r.style?.animationName && r.style.animationName !== 'none') hover = true;
+    }
+    const out = has(null) || has('::before') || has('::after') || hover;
+    el.remove();
+    return out;
+  };
+
+  if (mode === 'cap') {
+    document.body.classList.add('cap');
+    await SB.loadSleep();
+    const M = 40;   // margin around the emote box (image pseudo-elements may stick out)
+    window.show = async (name, scale = 1, grid = 0, lids = 0) => {
+      document.body.classList.toggle('px', scale > 1);
+      const holder = document.getElementById('holder');
+      holder.replaceChildren();
+      const { h: bh } = SB.emoteSize(name);
+      // exactly as a sleeping walker shows it, minus the lids: still frame, GIFs frozen on their first frame
+      const wrap = SB.emoteEl(name, bh * scale);   // (inner scale = scale)
+      wrap.style.position = 'absolute';
+      wrap.style.left = `${M * scale}px`;
+      wrap.style.top = `${M * scale}px`;
+      holder.append(wrap);
+      SB.sleepEmote(wrap, name, true, { lids: !!lids });
+      // the emote's own box (native px, the frame the eye labels use)
+      const w = wrap.firstElementChild.offsetWidth, h = wrap.firstElementChild.offsetHeight;
+      const offX = wrap.firstElementChild.offsetLeft, offY = wrap.firstElementChild.offsetTop;   // (DGG margins, unscaled)
+      // every picture of the emote (and its pseudo-elements) loaded and decoded before anyone takes a shot
+      const sp0 = wrap.querySelector(':scope > .emote');
+      const urls = [null, '::before', '::after'].map((pe) => getComputedStyle(sp0, pe).backgroundImage)
+        .flatMap((b) => [...String(b).matchAll(/url\(["']?(.*?)["']?\)/g)].map((m) => m[1]));
+      await Promise.all(urls.map((u) => { const im = new Image(); im.src = u; return im.decode().catch(() => null); }));
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const cv = document.getElementById('grid');
+      cv.width = (w + 2 * M) * scale; cv.height = (h + 2 * M) * scale;
+      const g = cv.getContext('2d');
+      g.clearRect(0, 0, cv.width, cv.height);
+      if (grid) {
+        const ox = M * scale + offX, oy = M * scale + offY;
+        g.lineWidth = 1;
+        for (let x = -6; x <= w + 6; x++) {
+          g.strokeStyle = x % 4 === 0 ? 'rgba(0,255,255,0.55)' : 'rgba(0,255,255,0.18)';
+          g.beginPath(); g.moveTo(ox + x * scale + 0.5, oy - 6 * scale); g.lineTo(ox + x * scale + 0.5, oy + (h + 6) * scale); g.stroke();
+        }
+        for (let y = -6; y <= h + 6; y++) {
+          g.strokeStyle = y % 4 === 0 ? 'rgba(0,255,255,0.55)' : 'rgba(0,255,255,0.18)';
+          g.beginPath(); g.moveTo(ox - 6 * scale, oy + y * scale + 0.5); g.lineTo(ox + (w + 6) * scale, oy + y * scale + 0.5); g.stroke();
+        }
+        g.strokeStyle = '#ff00ff'; g.lineWidth = 2;
+        g.strokeRect(ox, oy, w * scale, h * scale);
+        g.font = `700 ${Math.max(11, Math.min(16, scale * 1.6))}px Verdana`;
+        g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 3;
+        const lab = (t, x, y) => { g.strokeText(t, x, y); g.fillText(t, x, y); };
+        g.textAlign = 'center';
+        for (let x = 0; x <= w; x += 4) { lab(String(x), ox + x * scale, oy - 8 * scale > 14 ? oy - 7 * scale : 14); lab(String(x), ox + x * scale, oy + (h + 8) * scale); }
+        g.textAlign = 'right';
+        for (let y = 0; y <= h; y += 4) lab(String(y), ox - 7 * scale, oy + y * scale + 5);
+        g.textAlign = 'left';
+        lab(`${name}  ${w}x${h}${window.animated(name) ? '  (animated: still frame)' : ''}`, 6, cv.height - 8);
+      }
+      const sp = wrap.querySelector(':scope > .emote');
+      if (wrap.querySelector('.sb-still')) for (let i = 0; i < 80 && sp.style.visibility !== 'hidden'; i++) await new Promise((r) => setTimeout(r, 50));
+      return { x: M * scale + offX, y: M * scale + offY, w, h, W: cv.width, H: cv.height, scale, animated: window.animated(name) };
+    };
+    window.READY = true;
+    return;
+  }
+
+  // ---------- review sheet ----------
+  await SB.loadSleep?.();
+  const only = q.get('only') || 'all';
+  let pick = q.get('names') ? q.get('names').split(',') : names;
+  if (only !== 'all') pick = pick.filter((n) => (only === 'eyes') === !!SB.sleepInfo?.(n)?.eyes?.length);
+  const per = Number(q.get('per') || 16), page = Number(q.get('page') || 0);
+  const sheet = document.getElementById('sheet');
+  document.getElementById('grid').remove();
+  pick.slice(page * per, page * per + per).forEach((n, i) => {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    const { w, h } = SB.emoteSize(n);
+    const H = Math.min(200, (210 * h) / w);
+    const a = SB.emoteEl(n, H), b = SB.emoteEl(n, H);
+    SB.sleepEmote(b, n, true);
+    c.append(a, b);
+    const lab = document.createElement('div'); lab.className = 'n'; lab.textContent = n;
+    const idx = document.createElement('div'); idx.className = 'i'; idx.textContent = String(page * per + i + 1);
+    c.append(lab, idx);
+    const info = SB.sleepInfo?.(n);
+    const k = document.createElement('div'); k.className = 'k';
+    k.textContent = info?.eyes?.length ? `${info.eyes.length} eye${info.eyes.length > 1 ? 's' : ''}` : (info?.kind || '?');
+    if (window.animated(n)) k.textContent += ' · anim';
+    c.append(k);
+    sheet.append(c);
+  });
+  document.title = `Emote sleep ${page} (${pick.length})`;
+  window.READY = true;
+})();
+</script>
+</body>
+</html>

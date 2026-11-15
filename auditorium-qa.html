@@ -1876,6 +1876,7 @@
   function doze(w, on) {
     if (!!w.dozing === on) return;
     w.dozing = on;
+    SB.sleepEmote(w.em, w.emName, on);   // eyes closed, emote animation stopped (owner, 15 Nov 2026)
     if (on) {
       if (w.phone) { w.phone.classList.remove('on'); w.texting = false; }
       if (zzCount < ZZ_MAX) {

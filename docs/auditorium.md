@@ -241,6 +241,11 @@ hide but keep their clock. A seated speaker bounces and their neighbours turn to
 
 **Dozing** (`doze()`): seated chatters quiet for `doze` × 0.8-1.6 nod off (lean, sink, slow breathing, z's on up to
 12 sleepers). Any chat message from them, tagged or not, wakes them (`noteMessage()`).
+Their emote sleeps too (`SB.sleepEmote()` in shared/core.js, 15 Nov 2026): its animation stops (CSS animations off,
+animated GIF / WebP / AVIF frozen on the first frame in a canvas) and each open eye gets a lid in the skin colour
+around it with a closed-eye arc. The eyes come from `shared/emote-sleep.json`, made with
+`node tools/emote-sleep-build.mjs capture|bake|sheets` and checked on `tools/emote-sleep.html` (awake | asleep
+sheets). A new DGG emote that is not in the file still stops animating, it just keeps its eyes open until it is added.
 
 ## Pre-show phases and lights
 
