@@ -2724,7 +2724,11 @@
     w.seen = !inTunnel;
     // (someone leaving fades out over the last 2.5 m of the corridor)
     const farK = w.exiting && CORRIDOR.length && v > CORRIDOR[0][1] - 2.5 ? Math.max(0, (CORRIDOR[0][1] - v) / 2.5) : 1;
-    w.alpha += ((w.seen || layers ? farK : 0) - w.alpha) * Math.min(1, dt * 8);
+    // Deep in the tunnel the depth slices hide them, except for thin gaps: the closed door's edges and the wall beside it
+    // let bits of an emote through (owner, 15 Nov 2026). So past the mouth they fade out, and near the door they show
+    // only while it swings open for someone.
+    const behindDoor = inTunnel && v > 10.2 && !(doorShot && v > 13.2);
+    w.alpha += ((w.seen || (layers && !behindDoor) ? farK : 0) - w.alpha) * Math.min(1, dt * (behindDoor ? 30 : 8));   // (gone at once as the door shuts)
     // saved messages come out one by one while they can be seen
     w.sayNext = (w.sayNext || 0) - dt;
     if (w.pending.length && w.seen && w.sayNext <= 0) {
@@ -2813,6 +2817,7 @@
     const tmp = (v + o * ch) * dt;
     return [target + (ch + tmp) * e, (v - o * tmp) * e];
   }
+  const MANUAL_HOLD = clamp(Number(q.get('followhold')) || 15, 3, 120) * 1000;   // ?followhold=<s>: a hand-picked follow on a seated chatter
   function startFollow(w, manual = true) {
     if (!w || !walkers.has(w.key)) return;
     director.follow = { w, manual, since: performance.now(), lx: null, ly: null, ax: 0, ay: 0, tx: null, ty: null, endAt: 0 };
@@ -2869,7 +2874,9 @@
     if (f && !f.manual && onScreen(now)) endFollow();
     else if (f) {
       const w = f.w;
-      if (!f.endAt && (w.sitting || !walkers.has(w.key) || now - f.since > 150000)) f.endAt = now + (w.sitting ? 3200 : 0);
+      // a seated chatter: the director's own follow lets go after 3 s; one asked for by hand (a name in the panel, "follow
+      // someone") stays on them a while, also when they were already sitting (owner, 15 Nov 2026)
+      if (!f.endAt && (w.sitting || !walkers.has(w.key) || now - f.since > 150000)) f.endAt = now + (w.sitting ? (f.manual ? MANUAL_HOLD : 3200) : 0);
       if (f.endAt && now >= f.endAt) endFollow();
       else {
         const pos = w.seen === false ? [2.1, 9.4, 8] : w.pos;

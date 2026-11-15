@@ -161,6 +161,28 @@
       if (!m || !r.style?.animationName || r.style.animationName === 'none') continue;
       out.push(`.sb-emote > .emote.${m[1]} { animation: ${r.style.animation} !important; animation-iteration-count: infinite !important; }`);
     }
+    // Animations that move the emote itself with `transform` (gachiGASM's shake, pulses, swings) replace the page's own
+    // scale(k) while they run, so the emote snapped to its tiny chat size every few frames (owner, 15 Nov 2026: gachiGASM
+    // "buggy" in the lobby). Those keyframes are declared again here (the later @keyframes of a name wins) with the
+    // page's scale in front: scale(var(--sb-k)) <their transform>; emoteEl sets --sb-k. Keyframes that pseudo-elements
+    // use are left alone (they sit inside the scaled emote already).
+    const mainAnims = new Set(), pseudoAnims = new Set();
+    for (const r of rules) {
+      if (!r.selectorText || !r.style?.animationName) continue;
+      const set = /::?(before|after)/.test(r.selectorText) ? pseudoAnims : mainAnims;
+      for (const n of r.style.animationName.split(',')) if (n.trim() && n.trim() !== 'none') set.add(n.trim());
+    }
+    for (const kf of rules) {
+      if (kf.type !== 7 || !mainAnims.has(kf.name) || pseudoAnims.has(kf.name)) continue;   // 7 = CSSKeyframesRule
+      const frames = [...kf.cssRules];
+      if (!frames.some((fr) => fr.style.transform)) continue;
+      out.push(`@keyframes ${kf.name} { ${frames.map((fr) => {
+        const t = fr.style.transform;
+        if (!t) return `${fr.keyText} { ${fr.style.cssText} }`;
+        const rest = fr.style.cssText.replace(/(^|;)\s*transform\s*:[^;]*;?/, '$1');
+        return `${fr.keyText} { ${rest} transform: scale(var(--sb-k, 1)) ${t === 'none' ? '' : t}; }`;
+      }).join(' ')} }`);
+    }
     for (const n of PLAY_ONCE) out.push(`.sb-emote > .emote.${n}, .sb-emote > .emote.${n}::before, .sb-emote > .emote.${n}::after { animation-iteration-count: 1 !important; }`);
     let st = document.getElementById('sb-emote-loop');
     if (!st) { st = document.createElement('style'); st.id = 'sb-emote-loop'; }
@@ -240,6 +262,7 @@
       if (deco.before) inner.classList.add('sb-nob');
       if (deco.after) inner.classList.add('sb-noa');
       inner.style.transform = `scale(${k})`;
+      inner.style.setProperty('--sb-k', String(k));   // (for emote animations that move it: loopEmotes)
     } else {
       inner.className = 'sb-emote-text';
       inner.textContent = name;

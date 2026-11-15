@@ -3623,7 +3623,8 @@
     PROPS.dance[i] = w;
     w.afterHang = w.plan;
     w.plan = [...via.map((to) => ({ to })), { to: [u, v] },
-      { wait: rand(14, 26), start: (x) => { x.dancing = true; SB.faceEmote(x.em, x.emName, (PROPS.jukeFront[0] - u) - (PROPS.jukeFront[1] - v)); },
+      // they dance for good (owner, 15 Nov 2026), until they wear a non-dance emote or the film starts (stepProps)
+      { wait: Infinity, dance: true, start: (x) => { x.dancing = true; SB.faceEmote(x.em, x.emName, (PROPS.jukeFront[0] - u) - (PROPS.jukeFront[1] - v)); },
         end: (x) => { x.dancing = false; if (PROPS.dance[i] === x) PROPS.dance[i] = null; } },
       ...via.slice().reverse().map((to) => ({ to })), { call: (x) => { x.plan = x.afterHang || []; x.afterHang = null; } }];
     return true;
@@ -3676,6 +3677,7 @@
       const [u, v] = PROPS.jukeSpots[i];
       if (Math.hypot(d.u - u, d.v - v) > 0.3) { d.dancing = false; PROPS.dance[i] = null; return; }   // (sent elsewhere meanwhile)
       if (d.hurry && d.plan[0]?.wait > 0.2) d.plan[0].wait = 0.2;   // the film is starting
+      if (d.plan[0]?.dance && !(d.gait?.dance || DANCE_TEST)) d.plan[0].wait = 0;   // switched to an emote that doesn't dance
       n++;
     });
     const beat = n ? Math.floor(now / 250) % 4 : -1;
