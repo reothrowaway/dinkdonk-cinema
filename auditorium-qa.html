@@ -1684,6 +1684,13 @@
   function stepDuty(now) {
     if (now < dutyCheck) return;
     dutyCheck = now + 1000;
+    // a "Yee to the front" move that came while they were walking or on a snack run: now that they sit, they go
+    for (const w of walkers.values()) {
+      if (!w.pendingSeat || !w.sitting || hall.snacker === w) continue;
+      const s = w.pendingSeat;
+      w.pendingSeat = null;
+      if (s !== w.seat && !s.taken) moveSeat(w, s);
+    }
     const on = dutyActive();
     if (on !== dutyWas) {
       dutyWas = on;
@@ -3071,7 +3078,12 @@
       case 'seat': {
         const a = arrivals.find((x) => x.nick.toLowerCase() === key);
         if (a) a.seat = ev.seat;
-        else if (ev.move && walkers.has(key)) moveSeat(walkers.get(key), seatById(ev.seat));   // "Yee to the front"
+        else if (ev.move && walkers.has(key)) {   // "Yee to the front"
+          // someone still walking to their seat or out on a snack run moves once they are back in it (owner, 15 Nov:
+          // before, the room moved them and this screen left them in the old seat)
+          const w = walkers.get(key), s = seatById(ev.seat);
+          if (!moveSeat(w, s) && s && !w.leaving && !w.out) w.pendingSeat = s;
+        }
         break;
       }
       case 'follow': followSomeone(key); break;
@@ -3120,6 +3132,11 @@
   // ---------- screen shots (Brief 102, QA): what shared/aud-shots-qa.js reads from and asks of this page ----------
   window.DD_AUD = {
     K: () => K,
+    // QA test read-out: who walks or sits where, the free front seats
+    walkState: () => [...walkers.values()].filter((w) => !w.jan && !w.usher && !w.crew).map((w) => ({ nick: w.nick, sitting: !!w.sitting,
+      seat: w.seat ? `${w.seat.row.name}:${w.seat.block}:${w.seat.u}` : null, pending: w.pendingSeat ? `${w.pendingSeat.row.name}:${w.pendingSeat.block}:${w.pendingSeat.u}` : null,
+      leaving: !!w.leaving, out: !!w.out })),
+    freeFront: () => seats.filter((s) => s.row === rows[0] && !s.taken).map((s) => `${s.row.name}:${s.block}:${s.u}`),
     // QA: the jannies and the screen duty (where they are on the page, in stage px, and on screen)
     jan: () => ({ duty: dutyActive(), spots: screenSpots().map(([u, v]) => [u, v, ...P(u, v, rows[0]?.z ?? 24).map(Math.round)]),
       cam: [Math.round(cam.x), Math.round(cam.y), +cam.z.toFixed(3)],

@@ -1675,6 +1675,13 @@
   function stepDuty(now) {
     if (now < dutyCheck) return;
     dutyCheck = now + 1000;
+    // a "Yee to the front" move that came while they were walking or on a snack run: now that they sit, they go
+    for (const w of walkers.values()) {
+      if (!w.pendingSeat || !w.sitting || hall.snacker === w) continue;
+      const s = w.pendingSeat;
+      w.pendingSeat = null;
+      if (s !== w.seat && !s.taken) moveSeat(w, s);
+    }
     const on = dutyActive();
     if (on !== dutyWas) {
       dutyWas = on;
@@ -3062,7 +3069,12 @@
       case 'seat': {
         const a = arrivals.find((x) => x.nick.toLowerCase() === key);
         if (a) a.seat = ev.seat;
-        else if (ev.move && walkers.has(key)) moveSeat(walkers.get(key), seatById(ev.seat));   // "Yee to the front"
+        else if (ev.move && walkers.has(key)) {   // "Yee to the front"
+          // someone still walking to their seat or out on a snack run moves once they are back in it (owner, 15 Nov:
+          // before, the room moved them and this screen left them in the old seat)
+          const w = walkers.get(key), s = seatById(ev.seat);
+          if (!moveSeat(w, s) && s && !w.leaving && !w.out) w.pendingSeat = s;
+        }
         break;
       }
       case 'follow': followSomeone(key); break;
