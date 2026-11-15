@@ -9,6 +9,7 @@ const http = require('node:http');
 const path = require('node:path');
 const dinkdonk = require('./dinkdonk');
 const pollDraft = require('./poll-draft');
+const { createMovieSuggest } = require('./movie-suggest');
 const { createRoom } = require('./shared/room');
 const { createSettings } = require('./shared/settings');
 
@@ -178,6 +179,13 @@ const room = ROOM_ON ? createRoom({
   crowd: () => settings.get('lobby').crowd,   // the panel's lobby crowd setting (undefined: the room's own 14)
   log: (m) => console.log(m),
 }) : null;
+// chat movie suggestions -> the dinkdonk poll builder (movie-suggest.js, docs/movie-suggestions-plan.md); reads the
+// same relay connection, only while the owner has suggestions open
+const movieSuggest = createMovieSuggest({
+  file: path.join(ROOT, 'cache', PORT === 18770 ? 'movie-suggest.json' : `movie-suggest-${PORT}.json`),
+  historySearch: (t) => dinkdonk.search(String(t).slice(0, 60)).then((r) => r.entries || []),
+  log: (m) => console.log(m),
+});
 function roomChat() {
   let retry = 0;
   const connect = () => {
@@ -186,7 +194,12 @@ function roomChat() {
     let lastFrame = Date.now();
     const watch = setInterval(() => { if (ws.readyState === 1 && Date.now() - lastFrame > 180_000) ws.close(); }, 15_000);
     ws.onopen = () => { if (retry) console.log('Room: chat relay connected'); retry = 0; lastFrame = Date.now(); };
-    ws.onmessage = (ev) => { lastFrame = Date.now(); try { room.chatFrame(String(ev.data)); } catch (e) { console.error('Room:', e); } };
+    ws.onmessage = (ev) => {
+      lastFrame = Date.now();
+      const frame = String(ev.data);
+      if (room) try { room.chatFrame(frame); } catch (e) { console.error('Room:', e); }
+      try { movieSuggest.chatFrame(frame); } catch (e) { console.error('Movie suggestions:', e); }
+    };
     ws.onclose = () => { clearInterval(watch); setTimeout(connect, Math.min(30_000, 1000 * 2 ** retry++)); };
     ws.onerror = () => {};
   };
@@ -195,9 +208,9 @@ function roomChat() {
 if (room) {
   refreshEmoteNames();
   setInterval(refreshEmoteNames, CACHE_MS).unref();
-  roomChat();
-  for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { room.close(); process.exit(0); });
 }
+roomChat();   // (also without the room: movie suggestions read chat from it)
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { room?.close(); movieSuggest.flush(); process.exit(0); });
 
 // Control panel (control.html) <-> the screens: commands go to the selected scene as server-sent events;
 // each screen posts its state (chatters, director) back so the panel can list them. 127.0.0.1 only.
@@ -323,7 +336,39 @@ const server = http.createServer(async (req, res) => {
         send(res, 403, 'text/plain', 'Forbidden');
         return;
       }
-      send(res, 200, TYPES['.json'], JSON.stringify({ draft: pollDraft.set(await readJson(req)) }));
+      const draft = pollDraft.set(await readJson(req));
+      if (draft?.state === 'building') movieSuggest.syncBuilder(draft.options);   // films the owner took out
+      send(res, 200, TYPES['.json'], JSON.stringify({ draft }));
+      return;
+    }
+    // movie suggestions: the dinkdonk tab's userscript (same header rule as /dd/draft) ...
+    if (url.pathname === '/ms/work' || url.pathname === '/ms/lookup' || url.pathname === '/ms/added' || url.pathname === '/ms/removed') {
+      if (req.headers['x-dd-draft'] !== '1' || (req.method === 'POST' && !/^application\/json\b/.test(req.headers['content-type'] || ''))) {
+        send(res, 403, 'text/plain', 'Forbidden');
+        return;
+      }
+      let out;
+      if (url.pathname === '/ms/work' && req.method === 'GET') out = movieSuggest.work();
+      else if (url.pathname === '/ms/lookup' && req.method === 'POST') out = await movieSuggest.lookupResult(await readJson(req));
+      else if (url.pathname === '/ms/added' && req.method === 'POST') out = movieSuggest.added(await readJson(req));
+      else if (url.pathname === '/ms/removed' && req.method === 'POST') out = movieSuggest.unadded(await readJson(req));
+      else { send(res, 405, 'text/plain', 'Method not allowed'); return; }
+      send(res, 200, TYPES['.json'], JSON.stringify(out));
+      return;
+    }
+    // ... and the control panel (same-origin JSON only, like /ctl/cmd)
+    if (url.pathname === '/ms/cmd' && req.method === 'POST') {
+      const origin = req.headers.origin;
+      if ((origin && origin !== `http://${HOST}:${PORT}` && origin !== `http://localhost:${PORT}`) || !/^application\/json\b/.test(req.headers['content-type'] || '')) {
+        send(res, 403, 'text/plain', 'Forbidden');
+        return;
+      }
+      const out = movieSuggest.command(await readJson(req));
+      send(res, out.ok ? 200 : 400, TYPES['.json'], JSON.stringify(out));
+      return;
+    }
+    if (url.pathname === '/ms/state.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+      send(res, 200, TYPES['.json'], JSON.stringify(url.searchParams.get('lite') === '1' ? movieSuggest.lite() : movieSuggest.snapshot()));
       return;
     }
     if (url.pathname === '/dd/poll-script.user.js' && req.method === 'GET') {   // the control panel's Install your poll script
@@ -376,7 +421,7 @@ const server = http.createServer(async (req, res) => {
     const type = TYPES[path.extname(file).toLowerCase()];
     // (case-insensitive: Windows serves /Standby-Server.js for standby-server.js; QA 05 Nov)
     const lower = file.toLowerCase();
-    if (!file.startsWith(ROOT + path.sep) || !type || ['standby-server.js', 'dinkdonk.js', 'lan-proxy.js', 'poll-draft.js'].includes(path.basename(lower)) ||
+    if (!file.startsWith(ROOT + path.sep) || !type || ['standby-server.js', 'dinkdonk.js', 'lan-proxy.js', 'poll-draft.js', 'movie-suggest.js', 'movie-test-list.js'].includes(path.basename(lower)) ||
         lower.startsWith(path.join(ROOT, 'cache').toLowerCase())) {
       send(res, 404, 'text/plain', 'Not found');
       return;

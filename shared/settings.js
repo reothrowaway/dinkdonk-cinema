@@ -35,6 +35,8 @@ const SCHEMA = {
     WIDEZOOM,
     num('seethru', 'See-through when zoomed in', 0, 1, 0.05, 0.75, 'Look', 'street marquee and front glass; 0 = solid, 1 = gone'),
     bool('pollscreen', 'Poll screen on the back wall', true, 'Look', 'off hides it (the Poll screen card still rolls it up/down)'),
+    // owner, 15 Nov 2026: "zoom in into the poll screen a little bit more" (lobby-qa.html pollZoom; 1 = as before)
+    num('pollzoomx', 'Poll screen zoom', 0.5, 2.5, 0.05, 1, 'Look', 'Zoom to the poll, on top of the Zoom slider: 1 = as before, 2 = twice as close'),
     num('crowd', 'Crowd before new chatters are thinned', 0, 60, 1, 14, 'People', 'people outside or in line; 0 = never thin'),
     num('quit', 'Chance to give up in the ticket line', 0, 1, 0.01, 0.06, 'People', '0-1, for people joining the line'),
     pick('janitor', 'Janitor', [['none', "Only mods' jannies"], ['always', 'cpMOP penguin always'], ['3d', 'Rendered 3D janitor']], 'none', 'People'),

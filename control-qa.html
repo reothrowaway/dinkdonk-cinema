@@ -45,6 +45,20 @@
   .sets input[type=number] { width: 110px; }
   .sets input[type=text] { width: 260px; max-width: 60vw; }
   .sets button.undo { padding: 2px 8px; font-size: 13px; margin-left: 6px; }
+  /* movie suggestions card (movie-suggest.js) */
+  #mscard .ms-list td { vertical-align: middle; }
+  #mscard .ms-list img { width: 28px; height: 42px; object-fit: cover; border-radius: 3px; display: block; background: #262a35; }
+  #mscard .ms-list button { padding: 2px 9px; font-size: 13px; }
+  #mscard .st { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #262a35; color: var(--dim); }
+  #mscard .st.added { background: #1e4d2f; color: #8ff0b0; }
+  #mscard .st.approved, #mscard .st.adding, #mscard .st.dry { background: #1c3b52; color: #9fd6ff; }
+  #mscard .st.bench { background: #4a3d16; color: #ffd36b; }
+  #mscard .st.rejected, #mscard .st.removed { background: #4a1c1c; color: #ff9a9a; }
+  #mscard .meta { color: var(--dim); font-size: 13px; }
+  #mscard details { margin-top: 12px; }
+  #mscard summary { cursor: pointer; color: var(--dim); }
+  #mscard textarea { background: #10121a; color: var(--text); border: 1px solid #3a3f4d; border-radius: 7px; padding: 7px 10px; font: inherit; width: 260px; max-width: 60vw; height: 70px; }
+  #mscard .filter button { padding: 3px 10px; font-size: 13px; }
   kbd { background: #262a35; border: 1px solid #3a3f4d; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 13px; }
 </style>
 </head>
@@ -108,6 +122,24 @@
       title="Needs Tampermonkey or Violentmonkey in your browser. Then build your poll on dinkdonk.mov as usual: the movies show up on your lobby's poll screen as you add them">Install your poll script</a>
   </div>
   <div class="state" id="pollstate"></div>
+</div>
+
+<!-- movie suggestions from chat (movie-suggest.js, docs/movie-suggestions-plan.md): open/close, the list, the rules -->
+<div class="card" id="mscard" hidden>
+  <h2>Movie suggestions (chat)</h2>
+  <div class="row">
+    <button id="msopen" title="Chat can suggest films now (!rqmovie Title, or the tag name first). Approved films go into your dinkdonk poll builder tab (poll script 0.4) one by one">Open suggestions</button>
+    <button id="msround" title="Start over: a new round with an empty list and everyone's entries back (the builder on dinkdonk is not touched)">New round</button>
+    <span class="state" id="msstate"></span>
+  </div>
+  <div class="row filter" id="msfilter">
+    <button data-f="all" class="on">All</button><button data-f="in">In the builder</button><button data-f="bench">Bench</button><button data-f="rejected">Rejected</button>
+  </div>
+  <table class="ms-list"><thead><tr><th></th><th>Film</th><th>By</th><th>Status</th><th>Score</th><th></th></tr></thead><tbody id="mslist"></tbody></table>
+  <div class="empty" id="msempty">No suggestions in this round yet.</div>
+  <details id="msrules"><summary>Rules</summary><div class="sets" id="mssets" style="margin-top:10px"></div>
+    <div class="row" style="margin:12px 0 0"><button id="msreset" class="danger" title="Every rule back to its default">Reset rules</button></div>
+  </details>
 </div>
 
 <div class="card">
@@ -517,6 +549,123 @@
   setInterval(refreshPoll, 2000);
   refreshSettings();
   setInterval(refreshSettings, 2000);
+})();
+</script>
+<script>
+// Movie suggestions card: reads /ms/state.json every 2 s, sends /ms/cmd. Hidden on servers without it.
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const STATUS = { pending: 'looking up', lookup: 'looking up', approved: 'adding', adding: 'adding', added: 'in builder', bench: 'bench', dry: 'would add', rejected: 'rejected', removed: 'removed' };
+  const GROUPS = { in: ['approved', 'adding', 'added', 'dry'], bench: ['bench'], rejected: ['rejected', 'removed'] };
+  const HINTS = { minScore: '30 = TMDB 3.0', watchedDays: 'from dinkdonk\'s "last watched"', tag: 'a message starting with this name is a suggestion', dryRun: 'nothing goes into the builder', testFeed: 'real chatters, swapped message (only here; the lobby shows the real one)', testEvery: '8 = about every 8th chat message' };
+  let st = null;
+  let lastRev = -1;
+  let filter = 'all';
+  let built = false;
+  const cmd = (body) => fetch('/ms/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(3500) })
+    .then((r) => r.json()).catch(() => ({ ok: false })).then((j) => { refresh(true); return j; });
+  const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+  const ago = (t) => { const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `${s}s` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`; };
+
+  $('msopen').onclick = () => cmd({ cmd: st?.open ? 'close' : 'open' });
+  $('msround').onclick = () => { if (confirm('Start a new round? The list empties and everyone gets their entries back.')) cmd({ cmd: 'newRound' }); };
+  $('msreset').onclick = () => cmd({ cmd: 'settingsReset' });
+  for (const b of $('msfilter').querySelectorAll('button')) b.onclick = () => {
+    filter = b.dataset.f;
+    for (const o of $('msfilter').querySelectorAll('button')) o.classList.toggle('on', o === b);
+    lastRev = -1; render();
+  };
+
+  function buildRules() {
+    const box = $('mssets');
+    box.replaceChildren();
+    for (const [key, d] of Object.entries(st.schema)) {
+      const lab = el('span', { className: 'lab', textContent: d.label });
+      let input;
+      if (d.kind === 'bool') {
+        input = el('button');
+        input.onclick = () => cmd({ cmd: 'setting', key, value: !st.settings[key] });
+      } else if (d.kind === 'num') {
+        input = el('input', { type: 'number', min: d.min, max: d.max });
+        input.onchange = () => cmd({ cmd: 'setting', key, value: Number(input.value) });
+      } else if (key === 'banTitles' || key === 'banGenres') {
+        input = el('textarea', { placeholder: key === 'banTitles' ? 'one film per line' : 'Horror, Animation' });
+        input.onchange = () => cmd({ cmd: 'setting', key, value: input.value });
+      } else {
+        input = el('input', { type: 'text', maxLength: 60 });
+        input.onchange = () => cmd({ cmd: 'setting', key, value: input.value });
+      }
+      input.dataset.key = key;
+      box.append(lab, el('span', {}, input), el('span', { className: 'note', textContent: HINTS[key] || (d.kind === 'num' ? `default ${d.def}` : '') }));
+    }
+    built = true;
+  }
+  function showRules() {
+    for (const input of $('mssets').querySelectorAll('[data-key]')) {
+      const key = input.dataset.key, v = st.settings[key], def = st.schema[key].def;
+      input.closest('span').previousElementSibling.classList.toggle('set', v !== def);
+      if (st.schema[key].kind === 'bool') { input.classList.toggle('on', !!v); input.textContent = v ? 'On' : 'Off'; }
+      else if (document.activeElement !== input) input.value = String(v);
+    }
+  }
+
+  function render() {
+    if (!st) return;
+    $('msopen').textContent = st.open ? 'Close suggestions' : 'Open suggestions';
+    $('msopen').classList.toggle('on', st.open);
+    const c = st.counts;
+    $('msstate').innerHTML = '';
+    $('msstate').append(
+      el('b', { textContent: st.open ? `Open (${ago(st.openedAt)})` : 'Closed' }),
+      ` · round ${st.round} · ${c.inBuilder}/${st.settings.cap} in the builder · ${c.bench} bench · ${c.rejected} rejected`,
+      st.settings.dryRun ? el('b', { textContent: ' · DRY RUN', style: 'color:#ffd36b' }) : '');
+    if (!built) buildRules();
+    showRules();
+    if (st.rev === lastRev) return;
+    lastRev = st.rev;
+    const rows = st.items.filter((i) => filter === 'all' || GROUPS[filter].includes(i.status)).slice().reverse();
+    $('msempty').hidden = rows.length > 0;
+    $('mslist').replaceChildren(...rows.map((i) => {
+      const f = i.film;
+      const title = f ? `${f.title}${f.year ? ` (${f.year})` : ''}` : `“${i.query}${i.year ? ` ${i.year}` : ''}”`;
+      const facts = f ? [f.runtimeMin ? `${Math.floor(f.runtimeMin / 60)}h ${String(f.runtimeMin % 60).padStart(2, '0')}m` : '', (f.genres || []).slice(0, 2).join(', ')].filter(Boolean).join(' · ') : '';
+      const act = el('td');
+      if (['pending', 'lookup', 'approved', 'adding', 'added', 'bench', 'dry'].includes(i.status)) {
+        const rm = el('button', { className: 'danger', textContent: 'Remove', title: 'Out of the list (and out of the dinkdonk builder); the person gets the entry back and the film can\'t come back this round' });
+        rm.onclick = () => cmd({ cmd: 'remove', id: i.id });
+        act.append(rm);
+      }
+      if (i.status === 'bench') {
+        const up = el('button', { textContent: 'Add now', title: 'Into the builder now, even over the cap' });
+        up.onclick = () => cmd({ cmd: 'promote', id: i.id });
+        act.prepend(up, ' ');
+      }
+      return el('tr', {},
+        el('td', {}, f?.poster ? el('img', { src: f.poster, alt: '', loading: 'lazy' }) : el('span')),
+        el('td', {}, el('div', { textContent: title }), el('div', { className: 'meta', textContent: [facts, !f && i.status !== 'rejected' ? '' : ''].join('') })),
+        el('td', {}, el('div', { textContent: i.nick + (i.test ? ' (test)' : '') }), el('div', { className: 'meta', textContent: ago(i.at) + ' ago' })),
+        el('td', {}, el('span', { className: `st ${i.status}`, textContent: i.label || STATUS[i.status] || i.status }), i.note ? el('div', { className: 'meta', textContent: i.note }) : ''),
+        el('td', { className: 'meta', textContent: f && f.scorePct != null ? `${(f.scorePct / 10).toFixed(1)} · ${Number(f.votes || 0).toLocaleString('en-US')} votes` : '' }),
+        act);
+    }));
+  }
+
+  let busy = false;
+  async function refresh(force) {
+    if (busy && !force) return;
+    busy = true;
+    try {
+      const r = await fetch('/ms/state.json', { cache: 'no-store', signal: AbortSignal.timeout(3500) });
+      if (!r.ok) throw new Error();
+      st = await r.json();
+      $('mscard').hidden = false;
+      render();
+    } catch { $('mscard').hidden = true; } finally { busy = false; }
+  }
+  refresh();
+  setInterval(refresh, 2000);
+  setInterval(() => { lastRev = -1; render(); }, 30000);   // the "… ago" times
 })();
 </script>
 </body>

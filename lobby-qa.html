@@ -689,6 +689,7 @@
   let scale = 1;
   // the zoom director magnifies the world up to ZOOM x, so the art resolution is chosen with that headroom
   const ZOOM = clamp(Number(q.get('zoom')) || 1.85, 1.2, 3);
+  let POLL_ZX = clamp(Number(q.get('pollzoomx')) || 1, 0.5, 2.5);   // "Zoom to the poll" multiplier (pollZoom, panel setting)
   // ?fit=cover: a squarer OBS source (owner, 05 Nov) is filled to its height and the sides are cropped; the wide
   // shot then centres on the lobby (stage x WIDE_X) as far as the art reaches
   const FIT_COVER = q.get('fit') === 'cover';
@@ -5357,6 +5358,7 @@ void main() {
     bubstyle: { get: () => BUB_STYLE, set: (v) => setBubStyle(v) },
     bubbles: { get: () => MAX_BUB, set: (v) => { MAX_BUB = clamp(Number(v) || 8, 2, 14); } },
     pollscreen: { get: () => POLLSCREEN, set: (v) => setPollScreenOn(v) },
+    pollzoomx: { get: () => POLL_ZX, set: (v) => { POLL_ZX = clamp(Number(v) || 1, 0.5, 2.5); rezoomPoll(); } },
     crowd: { get: () => CROWD, set: (v) => { CROWD = Number(v) === 0 ? 0 : clamp(Number(v) || 14, 4, 60); } },
     quit: { get: () => QUIT_P, set: (v) => { QUIT_P = clamp(Number(v) || 0, 0, 1); } },
     janitor: { get: () => JANITOR, set: (v) => { JANITOR = ['always', '3d'].includes(v) ? v : 'none'; applyJanitor(); } },
@@ -6515,6 +6517,9 @@ void main() {
       .pscr-clock.last small { color: #ffd0d5; }
       .pscr-clock.done b { font-size: 40px; }
       @keyframes pscr-tick { 0% { transform: scale(1.06); } 50% { transform: none; } }
+      .pscr-track { height: var(--ah); overflow: hidden; display: flex; align-items: center; }
+      .pscr-strip { display: flex; gap: var(--gap); will-change: transform; padding-top: 16px; }
+      .pscr-strip .pscr-card { flex: none; }
       .pscr-grid { display: grid; gap: var(--gap); justify-content: center; align-content: center; height: var(--ah); }
       .pscr-card { position: relative; display: flex; flex-direction: column; min-width: 0; }
       .pscr-post { width: 100%; aspect-ratio: 2 / 3; border-radius: 4px; background: #2d2346 center / cover no-repeat;
@@ -6559,7 +6564,23 @@ void main() {
       @keyframes pscr-scratch { 0% { opacity: 0; } 61% { opacity: 1; left: 23%; } 63% { left: 23.4%; } 65% { opacity: 0; }
         82% { opacity: .8; left: 71%; } 83% { left: 70.6%; } 84% { opacity: 0; } }
       .pscr-dust { background-size: 600px 400px; opacity: .5; animation: pscr-grain 1.7s steps(1) infinite reverse; }
-      .pscr-cloth { background: #ddd8cc; }`;
+      .pscr-cloth { background: #ddd8cc; }
+      /* movie suggestions from chat (movie-suggest.js, 15 Nov 2026): how to suggest, and rejected films with a stamp */
+      .pscr-ms { position: absolute; left: 34px; top: ${PS.H - 34 - 78}px; width: ${PS.W - 20 - 68}px; height: 62px;
+        display: flex; align-items: center; justify-content: center; gap: 18px; opacity: 0; transition: opacity .5s; overflow: visible; }
+      .pscr.lit .pscr-ms.on { opacity: 1; }
+      .pscr-ms-hint { font: 500 30px/1 Oswald, sans-serif; color: #c9b8ff; letter-spacing: .02em; white-space: nowrap; }
+      .pscr-ms-hint b { font-weight: 600; color: #ffd23f; }
+      .pscr-stamp { position: relative; display: flex; align-items: center; gap: 10px; max-width: 540px; padding: 6px 14px 6px 12px;
+        border-radius: 5px; background: rgba(10,6,20,.75); box-shadow: inset 0 0 0 1px rgba(201,184,255,.25); white-space: nowrap; }
+      .pscr-stamp .t { font: 500 28px/1.1 Oswald, sans-serif; color: #e8dcff; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .pscr-stamp .n { font: 400 22px/1 Oswald, sans-serif; color: #8f84b5; }
+      .pscr-stamp b { flex: none; font: 400 32px/1 'Bebas Neue', sans-serif; letter-spacing: .06em; color: #ff4d5e; padding: 3px 8px 1px;
+        border: 3px solid #ff4d5e; border-radius: 4px; transform: rotate(-6deg); text-shadow: 0 0 8px rgba(255,77,94,.5);
+        box-shadow: 0 0 10px rgba(255,77,94,.35); }
+      .pscr-stamp.new b { animation: pscr-stamp .45s cubic-bezier(.2,1.8,.4,1) both; }
+      .pscr-stamp.out { opacity: 0; transition: opacity .6s; }
+      @keyframes pscr-stamp { from { transform: rotate(-18deg) scale(2.4); opacity: 0; } to { transform: rotate(-6deg); opacity: 1; } }`;
     document.head.append(st);
     const [x0, y0] = P(PS.u0, PS.off, PS.zTop);
     const el = h('div', 'pscr');
@@ -6594,7 +6615,9 @@ void main() {
     film.append(grain, dust, h('div', 'pscr-tint'), h('div', 'pscr-vig'), h('div', 'pscr-scratch'), h('div', 'pscr-scratch b'));
     const bar = h('div', 'pscr-bar');
     bar.append(h('div', 'pscr-pull'));
-    cloth.append(img, film, bar);
+    const ms = h('div', 'pscr-ms');
+    pollScreen.ms = ms;
+    cloth.append(img, ms, film, bar);
     el.append(cloth, h('div', 'pscr-case'));
     world.append(el);
     // the cardboard standee left of screen 1 stands behind the lowered screen: its cut-out (drawn over walkers) goes
@@ -6783,19 +6806,23 @@ void main() {
     const cls = d.state === 'open' ? 'vote' : closed ? 'res' : '';
     const meta = pollMeta(d);
     let body;
-    // poster grid sized to fit every movie; past ~10 the posters get too small: a numbered list
+    // poster grid sized to fit every movie, at most POLL_MAX at once (owner, 15 Nov 2026: more were too small to read):
+    // past that one row of POLL_MAX that scrolls along (results: the best POLL_MAX, standing still)
     const AW = PS.W - 20 - 68;
-    const AH = PS.H - 34 - 42 - 52 - 74 - (pollClock(d) ? 40 : 0);   // (the countdown makes the title row taller)
+    const AH = PS.H - 34 - 42 - 52 - 74 - (pollClock(d) ? 40 : 0)   // (the countdown makes the title row taller)
+      - (msState.open && d.state === 'building' ? 68 : 0);           // (the chat suggestions strip at the bottom)
     const gap = 16;
     let best = null;
-    for (let cols = 1; cols <= Math.max(1, n); cols++) {
-      const rows = Math.ceil(n / cols);
+    const shown = Math.min(n, POLL_MAX);
+    for (let cols = 1; cols <= Math.max(1, shown); cols++) {
+      const rows = Math.ceil(shown / cols);
       const cw = Math.min((AW - gap * (cols - 1)) / cols, ((AH - gap * (rows - 1)) / rows - (votes ? 62 : 34)) / 1.5);
       if (!best || cw > best.cw) best = { cols, cw };
     }
-    if (n && best.cw >= 90) {   // (smaller posters read worse than the list)
-      body = `<div class="pscr-grid" style="--ah:${AH}px;--gap:${gap}px;--cw:${best.cw.toFixed(1)}px;grid-template-columns:repeat(${best.cols},${best.cw.toFixed(1)}px)">` +
-        opts.map((o) => {
+    const scroll = n > POLL_MAX && !closed;
+    if (n > POLL_MAX) best = { cols: POLL_MAX, cw: Math.min((AW - gap * (POLL_MAX - 1)) / POLL_MAX, (AH - (votes ? 62 : 34)) / 1.5) };
+    if (closed && n > POLL_MAX) opts = opts.slice(0, POLL_MAX);
+    const card = (o) => {
           const k = titleKey(o.title);
           const pop = pollScreen.seen && !pollScreen.seen.has(k) && !closed;
           const fresh = !closed && now - (o.addedAt || 0) < 12000;
@@ -6805,7 +6832,14 @@ void main() {
           return `<div class="pscr-card${pop ? ' new' : ''}${fresh ? ' fresh' : ''}${winners.has(k) ? ' win' : ''}">` +
             `<div class="pscr-post" ${post}>${o.poster ? '' : esc(o.title)}</div>` +
             `<div class="pscr-name">${esc(o.title)} <span class="pscr-year">${esc(o.year)}</span></div>${vote}</div>`;
-        }).join('') + '</div>';
+    };
+    if (scroll) {
+      // one row, the first POLL_MAX again at the end so the loop has no gap (pollScroll moves it)
+      body = `<div class="pscr-track" style="--ah:${AH}px;--gap:${gap}px;--cw:${best.cw.toFixed(1)}px"><div class="pscr-strip">` +
+        [...opts, ...opts.slice(0, POLL_MAX)].map((o) => card(o).replace('<div class="pscr-card', `<div style="width:${best.cw.toFixed(1)}px" class="pscr-card`)).join('') + '</div></div>';
+    } else if (n && best.cw >= 90) {   // (smaller posters read worse than the list)
+      body = `<div class="pscr-grid" style="--ah:${AH}px;--gap:${gap}px;--cw:${best.cw.toFixed(1)}px;grid-template-columns:repeat(${best.cols},${best.cw.toFixed(1)}px)">` +
+        opts.map(card).join('') + '</div>';
     } else if (n) {
       body = `<div class="pscr-list" style="--cols:${Math.min(4, Math.ceil(n / 9))}">` + opts.map((o, i) =>
         `<div class="${winners.has(titleKey(o.title)) ? 'win' : ''}">${i + 1}. ${esc(o.title)} <span class="pscr-year">${esc(o.year)}</span>` +
@@ -6820,7 +6854,34 @@ void main() {
         const title = `<div class="pscr-title">${esc(d.title || 'DinkDonk poll')}</div>`;
         return c ? `<div class="pscr-row">${title}<div class="pscr-clock ${c.cls}"><b>${c.text}</b><small>${c.label}</small></div></div>` : title;
       })() + body;
+    // the scroll: a new film jumps the row to show it; otherwise it keeps its place across re-draws
+    const grew = n > (pollScreen.scrollN || 0) && pollScreen.scrollN > 0;
+    pollScreen.scrollN = scroll ? n : 0;
+    pollScreen.scrollStep = scroll ? best.cw + gap : 0;
+    if (scroll) {
+      if (grew && d.state === 'building') pollScreen.scrollI = Math.max(0, n - POLL_MAX);
+      pollScreen.scrollI = (pollScreen.scrollI || 0) % n;
+      pollScreen.scrollHoldUntil = grew ? Date.now() + 6000 : pollScreen.scrollHoldUntil || 0;
+      placeScroll(false);
+    } else pollScreen.scrollI = 0;
   }
+  // one poster further every POLL_SCROLL_MS; after the last, back to the start without a jump (the clones)
+  const POLL_MAX = 6;
+  const POLL_SCROLL_MS = 3500;
+  function placeScroll(animate) {
+    const strip = pollScreen.img?.querySelector('.pscr-strip');
+    if (!strip) return;
+    strip.style.transition = animate ? 'transform .9s cubic-bezier(.45,.05,.3,1)' : 'none';
+    strip.style.transform = `translateX(${-pollScreen.scrollI * pollScreen.scrollStep}px)`;
+  }
+  setInterval(() => {
+    if (!pollScreen.scrollN || !pollScreen.open || Date.now() < (pollScreen.scrollHoldUntil || 0)) return;
+    pollScreen.scrollI++;
+    placeScroll(true);
+    if (pollScreen.scrollI >= pollScreen.scrollN) {
+      setTimeout(() => { if (pollScreen.scrollI >= pollScreen.scrollN) { pollScreen.scrollI = 0; placeScroll(false); } }, 1000);
+    }
+  }, POLL_SCROLL_MS);
   async function pollPollScreen() {
     try {
       const res = await fetch('/dd/draft.json', { cache: 'no-store', signal: AbortSignal.timeout(3000) });
@@ -6843,7 +6904,57 @@ void main() {
         if (m) m.textContent = pollMeta(j.draft);
       }
     } catch { /* server without /dd/draft.json (or offline): the screen stays as it is */ }
+    pollMovieSuggest();
   }
+  // movie suggestions from chat (movie-suggest.js): while open, a strip at the bottom of the poll screen says how to
+  // suggest, and a rejected film shows there for a few seconds with its stamp (TOO LONG, WATCHED NOV 2026, …).
+  // Accepted films need nothing here: they go into the dinkdonk builder and pop in above like any other.
+  const msState = { open: false, events: [], seen: new Set(), shown: new Map() };
+  const MS_SHOW_MS = 9000;
+  async function pollMovieSuggest() {
+    let j;
+    try {
+      const res = await fetch('/ms/state.json?lite=1', { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+      if (!res.ok) return;   // a server without suggestions
+      j = await res.json();
+    } catch { return; }
+    if (j.open !== msState.open) { msState.open = j.open; renderPollScreen(); }   // (the strip takes room from the posters)
+    msState.events = j.events || [];
+    msState.hint = j;
+    renderMovieStrip();
+  }
+  function renderMovieStrip() {
+    const box = pollScreen.ms;
+    if (!box) return;
+    const building = !pollScreen.draft || pollScreen.draft.state === 'building';
+    box.classList.toggle('on', msState.open && building);
+    if (!msState.open || !building) { box.replaceChildren(); msState.shown.clear(); return; }
+    const now = Date.now();
+    // the newest rejections, each for MS_SHOW_MS, at most 2 at once (a long stamp needs the room)
+    const live = msState.events.filter((e) => now - e.at < MS_SHOW_MS).slice(-2);
+    const keep = new Set(live.map((e) => e.id));
+    for (const [id, el] of msState.shown) if (!keep.has(id)) { el.remove(); msState.shown.delete(id); }
+    if (!live.length) {
+      const s = msState.hint || {};
+      const how = [s.cmdOn && s.cmd ? `<b>${String(s.cmd).replace(/[&<>"']/g, '')}</b> Title (year)` : '', s.tagOn && s.tag ? `<b>${String(s.tag).replace(/[&<>"']/g, '')}</b> Title` : ''].filter(Boolean).join(' or ');
+      const html = how ? `SUGGEST A MOVIE IN CHAT: ${how} · ${s.entries || 2} per person` : '';
+      if (box.firstElementChild?.className !== 'pscr-ms-hint' || box.firstElementChild.innerHTML !== html) {
+        box.replaceChildren();
+        if (html) { const hint = h('div', 'pscr-ms-hint'); hint.innerHTML = html; box.append(hint); }
+      }
+      return;
+    }
+    box.querySelector('.pscr-ms-hint')?.remove();
+    for (const e of live) {
+      if (msState.shown.has(e.id)) continue;
+      const el = h('div', `pscr-stamp${msState.seen.has(e.id) ? '' : ' new'}`);
+      msState.seen.add(e.id);
+      el.append(h('span', 't', `${e.title}${e.year ? ` ${e.year}` : ''}`), h('span', 'n', e.nick), h('b', '', e.label || 'NO'));
+      box.append(el);
+      msState.shown.set(e.id, el);
+    }
+  }
+  setInterval(renderMovieStrip, 1000);   // (stamps leave on time between server reads)
   // our finished poll's winner -> screen 1 + NEXT SHOWING (upcomingFilm in the rooms section)
   function setPollWinner(d) {
     const w = d?.state === 'closed' && (d.results?.winners || []).find((x) => x.label !== 'Runner-up');
@@ -6912,7 +7023,9 @@ void main() {
     director.spot = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, fit, poll: true, z: pollZoom(fit) };
   }
   // (up to 4x: the screen's text is DOM, it stays sharp)
-  const pollZoom = (fit) => clamp(fit * director.zoom / ZOOM, 1.2, 4);
+  // owner, 15 Nov 2026: closer than "fills the view" (the poll screen's text is DOM, it stays sharp; the art behind it
+  // softens past ~3x): the panel's "Poll screen zoom" (pollzoomx) multiplies, and the cap is 10 instead of 4
+  const pollZoom = (fit) => clamp(fit * director.zoom / ZOOM * POLL_ZX, 1.2, 10);
   // the Zoom amount changed while the camera is on the poll screen: follow it there too
   function rezoomPoll() { if (director.spot?.poll) director.spot.z = pollZoom(director.spot.fit); }
   // ===== end POLL SCREEN ==================================================================================

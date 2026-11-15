@@ -275,6 +275,13 @@ error }`.
   site unreachable (for example Cloudflare blocks during LaLiga matches in Spain), the route answers 502.
 - `search(q)` (`/dd/search`): `{ q, more, entries }` from the history search, cached 10 minutes, at most 200 queries.
 
+### Movie suggestions from chat (`movie-suggest.js`, 15 Nov 2026, in progress)
+
+Chat suggests films (`!movie <title> [year]`, the tag name at the start of a message, IMDb links) while the owner has
+suggestions open; the dinkdonk tab's userscript looks them up and adds approved ones to the poll builder. Routes
+`/ms/state.json`, `/ms/cmd`, `/ms/work`, `/ms/lookup`, `/ms/added`; details, filters and status in
+[movie-suggestions-plan.md](movie-suggestions-plan.md).
+
 ### Poll being built / open (`poll-draft.js`, 7 Nov 2026)
 
 dinkdonk.mov lists a poll only once it has finished, and its vote page needs a DGG login. So the person building the
