@@ -246,6 +246,8 @@ animated GIF / WebP / AVIF frozen on the first frame in a canvas) and each open 
 around it with a closed-eye arc. The eyes come from `shared/emote-sleep.json`, made with
 `node tools/emote-sleep-build.mjs capture|bake|sheets` and checked on `tools/emote-sleep.html` (awake | asleep
 sheets). A new DGG emote that is not in the file still stops animating, it just keeps its eyes open until it is added.
+The screen shots T1/T2/T3 (shared/aud-shots.js) draw dozers the same way: `figures()` reports `asleep`, and the shots
+keep a `sleep:<emote>` atlas entry with the still frame and the lids (`SB.drawSleepLids`).
 
 ## Pre-show phases and lights
 

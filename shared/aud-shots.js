@@ -317,10 +317,16 @@
       return out;
     } catch { return null; }
   }
-  async function sampleEmote(name) {
+  // still = the sleeping look (SB.sleepEmote): DGG's resting frame, no animation, no transform of its own
+  async function sampleEmote(name, still = false) {
     const el = document.createElement('span');
     el.className = `emote ${name}`;
     el.style.cssText = 'position:absolute;left:-9999px;top:0';
+    if (still) {
+      el.style.animation = 'none';
+      const bg = window.SB?.sleepInfo?.(name)?.bg;
+      if (bg) el.style.backgroundPosition = bg;
+    }
     document.body.append(el);
     try {
       const cs = getComputedStyle(el);
@@ -328,7 +334,7 @@
       const url = /url\(["']?([^"')]+)["']?\)/.exec(cs.backgroundImage)?.[1];
       if (!url || !(w > 1) || !(h > 1)) return null;
       const origin = cs.transformOrigin.split(/\s+/).map((v) => parseFloat(v) || 0);
-      const read = (ms) => ({ pos: cs.backgroundPosition, bs: cs.backgroundSize, tf: cs.transform, op: parseFloat(cs.opacity) || 1, ms });
+      const read = (ms) => ({ pos: cs.backgroundPosition, bs: cs.backgroundSize, tf: still ? 'none' : cs.transform, op: parseFloat(cs.opacity) || 1, ms });
       const anims = el.getAnimations().filter((a) => a.effect);
       let samples;
       if (anims.length) {
@@ -365,13 +371,17 @@
     const w = frames[0].src.naturalWidth || frames[0].src.width, h = frames[0].src.naturalHeight || frames[0].src.height;
     return { w, h, origin: [w / 2, h / 2], frames: frames.map((f) => ({ src: f.src, sx: 0, sy: 0, sw: w, sh: h, tf: 'none', op: 1, ms: f.ms })) };
   }
-  async function emoteFrames(name) {
-    if (LOCAL_IMG[name]) return plainFrames(LOCAL_IMG[name], 'image/webp');
-    const s = await sampleEmote(name);
+  async function emoteFrames(name, still = false) {
+    if (LOCAL_IMG[name]) {
+      const job = await plainFrames(LOCAL_IMG[name], still ? null : 'image/webp');
+      return job;
+    }
+    const s = await sampleEmote(name, still);
     if (!s) return null;
     const src = await proxied(s.url);
     if (!src) return null;
-    const gif = s.samples.length === 1 && /\.gif(\?|$)/i.test(s.url) ? await decodeFrames(src, 'image/gif') : null;
+    let gif = s.samples.length === 1 && /\.gif(\?|$)/i.test(s.url) ? await decodeFrames(src, 'image/gif') : null;
+    if (gif && still) gif = gif.slice(0, 1);   // (asleep: the first frame, as the page's frozen canvas)
     const base = gif ? null : await loadImg(src);
     if (!gif && !base) return null;
     const rect = (im, smp) => {
@@ -404,8 +414,9 @@
     if (emoteInfo.has(key)) return;
     emoteInfo.set(key, 'pending');
     const item = key.startsWith('img:');
+    const sleeper = key.startsWith('sleep:') ? key.slice(6) : null;   // a dozing chatter's emote: still, eyes closed
     const limit = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);
-    limit((item ? plainFrames(key.slice(4)) : emoteFrames(key)).catch(() => null), 6000).then((job) => {
+    limit((item ? plainFrames(key.slice(4)) : emoteFrames(sleeper || key, !!sleeper)).catch(() => null), 6000).then((job) => {
       const w = job?.w || 40, h = job?.h || 30;
       const mx = item ? 0.02 : MX, mt = item ? 0.02 : MT;
       const boxH = item ? Math.min(EBH, h * 2) : EBH, boxW = boxH * w / h;
@@ -431,13 +442,14 @@
           }
           actx.globalAlpha = fr.op;
           actx.drawImage(fr.src, fr.sx, fr.sy, fr.sw, fr.sh, 0, 0, w, h);
+          if (sleeper) window.SB?.drawSleepLids?.(actx, sleeper);   // the page's lids, same box px
         } else if (!item) {
           actx.fillStyle = 'rgba(30,26,48,.85)';
           actx.fillRect(bx, by + boxH * 0.3, boxW, boxH * 0.4);
           actx.fillStyle = '#ddd';
           actx.font = `600 ${Math.round(boxH * 0.22)}px Oswald, Arial Narrow, sans-serif`;
           actx.textAlign = 'center'; actx.textBaseline = 'middle';
-          actx.fillText(key, bx + boxW / 2, by + boxH / 2, boxW);
+          actx.fillText(sleeper || key, bx + boxW / 2, by + boxH / 2, boxW);
         }
         actx.restore();
         gl.bindTexture(gl.TEXTURE_2D, atlasTex);
@@ -453,6 +465,8 @@
       emoteInfo.set(key, info.frames.length && (job || !item) ? info : null);
     });
   }
+  // dozing chatters (the page's figures: asleep) get their own atlas entry: still frame with the lids
+  const emKey = (f) => (f.asleep ? `sleep:${f.em}` : f.em);
   function frameOf(info, phase, now) {
     if (info.frames.length === 1) return info.frames[0];
     let t = (now + phase) % info.total;
@@ -517,7 +531,7 @@
       const rot = (f.tilt || 0) * Math.PI / 180, cs = Math.cos(rot), sn = Math.sin(rot), sqx = (2 - (f.sq || 1)), sqy = f.sq || 1;
       const local = (sx, hy) => { const x = sx * sqx, y = hy * sqy; return pxToW(x * cs + y * sn, -x * sn + y * cs); };
       const [flipNow, wf] = facingOf(f, wantFlip(f, bx, by, bz), now);
-      const parts = [{ key: f.em, w: f.emW * f.grow * wf, h: f.emH * f.grow, x0: -f.emW * f.grow * wf / 2, y0: 0, flip: flipNow, back: f.back, bright: f.bright, emote: true }];
+      const parts = [{ key: emKey(f), w: f.emW * f.grow * wf, h: f.emH * f.grow, x0: -f.emW * f.grow * wf / 2, y0: 0, flip: flipNow, back: f.back, bright: f.bright, emote: true }];
       for (const it of f.items) parts.push({ key: `img:${it.src}`, w: it.w * f.grow, h: it.h * f.grow, x0: it.x * f.grow, y0: -(it.y + it.h) * f.grow, flip: false, back: null, bright: f.itemBright });
       let first = null, big = 1;
       for (const p of parts) {
@@ -811,7 +825,7 @@
       await prepare();
       P.shotsOn(true);   // glow, beam, dust (1.5 s fade) and bubbles fade out; no automatic follows
       const fadeEnd = performance.now() + 1700;
-      for (const f of P.figures()) { ensure(f.em); for (const it of f.items) ensure(`img:${it.src}`); }
+      for (const f of P.figures()) { ensure(emKey(f)); for (const it of f.items) ensure(`img:${it.src}`); }
       const until = performance.now() + 2500;
       await new Promise((r) => {
         const tick = () => {
@@ -910,6 +924,6 @@
   setInterval(() => {
     const P = page();
     if (state !== 'idle' || !P?.filmReady || P.filmReady() !== true) return;
-    prepare().then(() => { for (const f of P.figures()) { ensure(f.em); for (const it of f.items) ensure(`img:${it.src}`); } }).catch(() => {});
+    prepare().then(() => { for (const f of P.figures()) { ensure(emKey(f)); for (const it of f.items) ensure(`img:${it.src}`); } }).catch(() => {});
   }, 3000);
 })();

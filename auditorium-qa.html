@@ -3218,6 +3218,7 @@
         }
         out.push({ key: w.key, nick: w.nick, em: w.emName, emW: w.emW, emH: w.emH, grow: w.sitting ? SIT_SCALE : 1, pos: w.pos,
           lift: w.lift || 0, tilt: w.tilt || 0, sq: w.sq || 1, flip: w.em.dataset.flip === 'true', alpha: w.alpha ?? 1, seen: w.seen !== false,
+          asleep: !!w.dozing,   // (the shots draw a dozer's emote still, eyes closed, as the page does)
           back: w.sitting && w.seat ? [w.seat.v + BACK_DV, w.seat.z + BACK_Z] : null,   // their own backrest top (the page's cut)
           bright: down ? (w.rb ?? 0.5) : 1, itemBright: down ? 0.5 : 1,
           name: w.nameWant ? (parseFloat(w.nm.style.opacity) || 0) : 0, color: w.nm.style.color || '#fff', rainbow: !!w.rainbow, items });

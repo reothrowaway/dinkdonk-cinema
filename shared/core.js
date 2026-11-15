@@ -386,6 +386,30 @@
     im.src = src;
     return cv;
   }
+  // the lids of one emote, in its own box px: [{ x, y, rot, rx, ry, lid, line, sw, d }] (one source for the page's SVG
+  // and the screen shots' canvas, aud-shots.js)
+  function lidShapes(name) {
+    return (sleepData[name]?.eyes || []).map(([x, y, rx, ry, rot, lid, line]) => {
+      // the closed eye: a soft downward arc (a sleepy "u") across the lid, a little below its middle
+      const sw = Math.max(0.7, Math.min(1.4, Math.min(rx, ry * 1.6) * 0.45));
+      const yy = y + ry * 0.15, dip = Math.max(0.5, Math.min(ry * 0.7, rx * 0.32));   // (big eyes: a flatter arc)
+      return { x, y, rot, rx: rx + 0.35, ry: ry + 0.35, lid, line, sw, d: `M${x - rx * 0.95} ${yy} Q${x} ${yy + dip * 2} ${x + rx * 0.95} ${yy}` };
+    });
+  }
+  // the same lids into a 2D canvas whose units are the emote's box px
+  function drawSleepLids(ctx, name) {
+    for (const e of lidShapes(name)) {
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      if (e.rot) ctx.rotate(e.rot * Math.PI / 180);
+      ctx.translate(-e.x, -e.y);
+      ctx.beginPath(); ctx.ellipse(e.x, e.y, e.rx, e.ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = e.lid; ctx.fill();
+      ctx.lineWidth = e.sw; ctx.lineCap = 'round'; ctx.strokeStyle = e.line;
+      ctx.stroke(new Path2D(e.d));
+      ctx.restore();
+    }
+  }
   function sleepEmote(box, name, on, opts = {}) {
     if (!box) return;
     if (!sleepCss) {
@@ -425,17 +449,14 @@
     svg.style.transform = `scale(${k})`;
     svg.style.left = `${ox}px`;
     svg.style.top = `${oy}px`;
-    for (const [x, y, rx, ry, rot, lid, line] of eyes) {
+    for (const e of lidShapes(name)) {
       const g = document.createElementNS(SVGNS, 'g');
-      if (rot) g.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+      if (e.rot) g.setAttribute('transform', `rotate(${e.rot} ${e.x} ${e.y})`);
       const el = document.createElementNS(SVGNS, 'ellipse');
-      for (const [a, v] of [['cx', x], ['cy', y], ['rx', rx + 0.35], ['ry', ry + 0.35], ['fill', lid]]) el.setAttribute(a, String(v));
-      // the closed eye: a soft downward arc (a sleepy "u") across the lid, a little below its middle
+      for (const [k2, v] of [['cx', e.x], ['cy', e.y], ['rx', e.rx], ['ry', e.ry], ['fill', e.lid]]) el.setAttribute(k2, String(v));
       const p = document.createElementNS(SVGNS, 'path');
-      const sw = Math.max(0.7, Math.min(1.4, Math.min(rx, ry * 1.6) * 0.45));
-      const yy = y + ry * 0.15, dip = Math.max(0.5, Math.min(ry * 0.7, rx * 0.32));   // (big eyes: a flatter arc)
-      p.setAttribute('d', `M${x - rx * 0.95} ${yy} Q${x} ${yy + dip * 2} ${x + rx * 0.95} ${yy}`);
-      for (const [a, v] of [['fill', 'none'], ['stroke', line], ['stroke-width', sw], ['stroke-linecap', 'round']]) p.setAttribute(a, String(v));
+      p.setAttribute('d', e.d);
+      for (const [k2, v] of [['fill', 'none'], ['stroke', e.line], ['stroke-width', e.sw], ['stroke-linecap', 'round']]) p.setAttribute(k2, String(v));
       g.append(el, p);
       svg.append(g);
     }
@@ -729,7 +750,7 @@
 
   window.SB = {
     cfg, on, emit, start, mountStage, fitCanvas, mountChat, command, stats, ...api,
-    emoteEl, emoteSize, emoteFacing, faceEmote, loadSleep, sleepInfo, sleepEmote, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
+    emoteEl, emoteSize, emoteFacing, faceEmote, loadSleep, sleepInfo, sleepEmote, drawSleepLids, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
     rand, pick, get status() { return status; }, get emotes() { return emotes; }, get view() { return stage.view; }, W, H,
     // For testing from the console: SB.say('someone', '!claw')
     say: (nick, data, features = []) => handleFrame(`MSG ${JSON.stringify({ nick, data, features })}`),
