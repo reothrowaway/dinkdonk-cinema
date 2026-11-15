@@ -3140,3 +3140,5 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
 
 ## 15 Nov 2026 - Brief 103: bonsai water fountain, draft 1
 New standalone prop on the owner's request ("small recirculating water fountain bonsai tree chinese decoration piece"). Google Images search first (new rule), reference in fountain/ref-google-103.png. Fable 5.2 high built fountain/fountain103.blend (collection FOUNTAIN, real scale) and rendered fountain/draft103.png (1280x720, 192 samples, 20 s). Waiting for the owner's feedback; placement not decided.
+- 15 Nov 2026 (103): owner approved fountain draft 1 as is ("Looks good as is"). No draft 2. Placement still open.
+- 15 Nov 2026: screen shots T1/T2/T3 + jannies on screen duty PROMOTED to live (commit ea174d9): auditorium.html, control.html, obs-bridge.js, shared/aud-shots.js, start-all.bat -> "Moobies 1440p transitions"; page names hidden during shots, shot labels hide with the body; hosted deployed (SHA-256 checked), zip rebuilt and smoke-tested (18773, 135 seats).
