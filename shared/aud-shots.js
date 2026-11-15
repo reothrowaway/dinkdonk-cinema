@@ -73,7 +73,7 @@
   const meta = {}, corners = {}, videos = {};
   let hold = null;          // { cam, corners: [[x,y] x4], img, img2x }
   let state = 'idle', note = '', cur = null, curFrame = 0, holdRaf = 0, filmTimer = 0, t2Token = 0;
-  let lastQuadKey = '', cutSent = false, layerSent = false;
+  let lastQuadKey = '', cutSent = false, layerSent = false, overSent = false;
 
   // ---------- GL ----------
   // key green: inside the screen quad, a pixel that is mostly green becomes exact #00ff00; the rest, and a rim of 8 px
@@ -721,6 +721,10 @@
       // and the film vanished for 0.13 s (recording, 15 Nov).
       if (s === 'T1' && g >= 12 && !layerSent) { layerSent = true; bridgeAsk('layer-under').then((r) => console.log('[shots] film layer:', JSON.stringify(r))); }
       if (s === 'T1' && g >= meta.T1.frames && !cutSent) { cutSent = true; cutToFilm(); }
+      // T3's last second: the film back on top already (the screen is held exact green then, so on top and under look
+      // the same), so the page can take over the moment T3 ends. Waiting for the bridge's answer after the end held the
+      // still last frame for a while (owner, 15 Nov: "the transition to the actual auditorium takes a long time")
+      if (s === 'T3' && g >= meta.T3.frames - 30 && !overSent) { overSent = true; bridgeAsk('layer-over').then((r) => console.log('[shots] film layer:', JSON.stringify(r))); }
       videos[s].requestVideoFrameCallback(onFrame(s));
     };
   }
@@ -761,7 +765,8 @@
     } else if (s === 'T3') {
       cur = null;
       // the film back on top of the auditorium first (T3's last frame and the page show the same screen), then the page
-      bridgeAsk('layer-over').then((r) => { console.log('[shots] film layer:', JSON.stringify(r)); finishShots(true); });
+      if (!overSent) { overSent = true; bridgeAsk('layer-over').then((r) => console.log('[shots] film layer:', JSON.stringify(r))); }
+      finishShots(true);
     }
   }
   let holdAt = 0, holdTimer = 0;
@@ -818,7 +823,7 @@
       await P.camera('film');          // eases onto the Film framing if it is not there, then holds it exactly
       await new Promise((r) => setTimeout(r, Math.max(0, fadeEnd - performance.now())));
       if (state !== 'prep') return;
-      cutSent = false; layerSent = false;
+      cutSent = false; layerSent = false; overSent = false;
       state = 't1'; note = 'T1: into the film';
       await play('T1');
     } catch (e) {
