@@ -86,3 +86,91 @@ STATUS: COMPLETE - V97 SCENES, CORRIDOR ROUTE, QA AND OFFSCREEN LIVE START PASS;
 - `cinema_timeline_v97.gd`: one even, shadowless hall fill and the row fills at 0.08, tuned to the plate at the end pose (walls 25 against 24 of 255, seats 23-30 against 25-33, slab front 21 against 21; before 8, 4-39, 11).
 - `campath.py`: still one yaw reversal in B (the pan's peak, 45.4 s), no speed swing added, turn max unchanged (65.6 deg/s, the pull-back). Geometry and timeline QA pass again. 720p capture for the owner: `concepts/fly/flythrough-v97b-godot-720p.mp4`.
 STATUS: COMPLETE - V97B HALL PAN, HALL EXPOSURE AND PLATE MATCH; QA PASS; CAPTURE DELIVERED; STOP.
+
+## 14 Nov 2026 - Version 99: three auditorium screen shots (Brief 99)
+- New launcher `run-live-aud.bat` opens `main_aud99.tscn` (`main_aud99.gd`, `live_view_aud99.gd`, `shots_v99.gd`): the v97 auditorium with the house lights down (dim-render factors per light, tuned to `qa11/cinema_draft_14_dim.png` at the plate pose: seats 4.0-5.6 against 3.8-5.5 of 255, left wall 3.3 against 3.5, tunnel mouth 37 against 42, surround 13.8 against 13.7). `run-live.bat` and every v97 file are unchanged.
+- Shots (`assets_v99/t1|t2|t3_camera_path.json`, same format as the route): T1 4.0 s from the page's Film framing (plate zoomed 2.248) to the screen filling the frame square-on (50 mm, 12.43 m from the screen); T2 5.0 s back to the hold pose u 10.5, v 17.5, 3.75 m high, 3.6 degrees left, 1.8 down, 50 mm (`assets_v99/hold_pose.json`; P in free fly overwrites it, `hold_pose_brief99.json` is the original); T3 5.5 s out to the default plate pose. Orthographic end frames with a matched long lens next to them, as in the fly-through.
+- Keys: 1/2/3 play, Space replay, bar, Tab free fly (Z/X lens, P save hold pose), H grey audience stand-ins (75 of 135 seats). Placeholder film with a bright edge on the screen. The real dim plate shows on T1's first and T3's last frame (8-frame handover).
+- Checks (`checks_v99/`): `campath_v99.py` no yaw reversal and no speed swing in any shot, fastest turn 24.8 / 1.5 / 17.1 deg/s; T1 start 0.0003 px, T1 end corners 0.0002 px, T3 end 0.0001 px; joins identical; clearance at least 0.60 m (`qa_clearance_v99.py`); `qa_shots_v99.gd` passes; live starts offscreen with `--quit-after`, exit 0, all three shots played once. Full notes: `NOTES-99.md`.
+STATUS: COMPLETE - V99 AUDITORIUM SHOTS T1/T2/T3 IN THE LIVE VIEWER (`run-live-aud.bat`), LIGHTS DOWN, QA PASS, OFFSCREEN START EXIT 0; OWNER REVIEW IN THE VIEWER PENDING; CYCLES PORT AND PAGE WORK NOT STARTED; STOP.
+
+## 14 Nov 2026 - Brief 99b: spaceship bob (owner: "i like it, just needs a lil bit of spaceship bobbing")
+- `main_aud99.gd` / `live_view_aud99.gd` (backups `*.pre-bob.gd`): a float on top of the shot paths - heave 0.55% of
+  the frame width (~11 px), sway 0.3% (~6 px), roll 0.5 deg; periods 3.6/1.9, 6.2 and 4.8/2.3 s. Envelope: T1
+  sin^2 (still at the Film start and at the full-screen cut), T2 fades in and keeps floating at the hold, T3 fades out.
+  The bob clock runs while playing and while holding at T2's end, so T3 continues it without a jump.
+- Viewer: B bob on/off, [ / ] strength in 0.25 steps (HUD shows it); `--bob=<strength>` on the command line.
+- Checks: T1 frame 1, T1 frame 121 and T3 frame 166 byte-identical with and without bob; live autoplay of T1-T3 exit 0.
+- Not in the camera-path JSONs yet (the base paths are unchanged); bake it in for the Cycles port, and the page will
+  need the same float on the T2 hold plate.
+STATUS: COMPLETE - BOB IN THE VIEWER, PAGE-MATCHED FRAMES UNCHANGED; OWNER REVIEW PENDING; STOP.
+- 14 Nov (later): owner: 4 was the max and still too low, "something like 10". Default strength now 10 (heave ~105 px,
+  sway ~58 px, roll up to ~5 deg at the hold), keys step 1.0 up to 25; the keys work by position (two keys right of P,
+  any layout) or numpad -/+. Page-matched frames still byte-identical; live autoplay exit 0.
+
+## 14 Nov 2026 - Brief 99c: spaceship bob done properly (owner: the setting "was never intended to go that high",
+## "it kinda keeps bobbing forever, should be done properly")
+- The viewer overlay (99b) is gone (`main_aud99.bob1.gd`, `live_view_aud99.bob1.gd` keep it). The bob is now part of
+  the camera paths in `shots_v99.gd` (`apply_bob`, backup `shots_v99.pre-bob.gd`): the camera floats like a hovering
+  ship while it moves and banks into its turns, and settles when the move ends. Heave 4.5% / sway 2.2% of the frame
+  width, bank 0.22 deg per deg/s of turn, wobble 1.2 deg; envelope T1 x(1-x)^3 (calm while docking onto the full
+  screen), T2 (1-x)x^3 (calm while leaving it), T3 16x^2(1-x)^2. Strength 1 = as designed (keys 0-3, B off).
+- Baked into `assets_v99/t1|t2|t3_camera_path.json` (rows carry `brief99_bob`), so the Cycles port gets it too.
+- Checks (headless only, no window): all six start/end matrices identical to the unbobbed ones; peaks T1 63 px /
+  4.2 deg, T2 74 px / 1.1 deg, T3 67 px / 3.7 deg; campath_v99 passes as before (base path); clearance T2 0.71 m
+  seat / 0.52 m stand-in; qa_frames: the screen's edge leaves the frame by up to 36 px in 43 T1 / 19 T2 frames (the
+  Film framing already fills 94% of the frame), none at the cut itself; live autoplay of T1-T3 exit 0.
+STATUS: COMPLETE - BOB BAKED INTO THE SHOTS, SETTLES ON ARRIVAL; OWNER REVIEW PENDING; STOP.
+
+## 14 Nov 2026 - Brief 100: shots twice as slow, simulator-ride motion (owner: "the animations are not it, have them
+## be 2x slower and also actually have the effect of those old simulator attraction thingies")
+- Lengths: T1 8.0 s (241 frames), T2 10.0 s (301), T3 11.0 s (331); same eased paths (`LENGTH` in `shots_v99.gd`).
+- The 99c bob is replaced (backups `shots_v99.pre-100.gd`, `main_aud99.pre-100.gd`, `live_view_aud99.pre-100.gd`; the
+  99c shot files are in `assets_v99/pre-100/`). The camera is now a cabin on hydraulic legs with a programmed ride
+  (`RIDE` table in `shots_v99.gd`, `apply_ride`): crouch 0.3-1.0 s, launch kick, nose tips back while it speeds up
+  and dips while it brakes (mirrored in T2/T3, which travel backward), bank into the sideways sweep (T1 6.0 deg left,
+  T2 2.0 right, T3 7.0 right), 3 to 5 timed bumps per shot, arrival thud (T1 7.15 s, T2 8.95 s, T3 9.72 s) with a
+  damped bounce that settles in 0.7 s, engine rumble about 2 px from crouch to thud. Sized in frame terms (px of a
+  1920 frame -> angle by the row's lens), deterministic, baked into `matrix_world`/`matrix_view`, per row
+  `brief100_ride`. `assets_v99/unshaken/` has the same shots without it.
+- Viewer: B = ride motion on/off, the two keys right of P (by position) or numpad - / + = strength 0 to 3 in 0.25
+  steps, 1 = as designed; the HUD shows the strength and the ride's current phase. `--ride=<x>` on the command line.
+- Checks (`checks_v100/`, all `--headless`, no window, no stills): the six exact frames and both joins identical to
+  the unshaken paths (0.0) and to Brief 99's end rows; peaks T1 48 px / 6.0 deg, T2 26 px / 2.0 deg, T3 39 px / 7.0
+  deg, largest step 14 px in one frame (a kick); `campath_v99.py` passes on the base paths (12.4 / 0.8 / 8.6 deg/s);
+  clearance T2 0.73 m seat / 0.60 m stand-in; keys QA and `qa_shots_v99.gd` pass; autoplay T1-T3 exit 0. `qa_frames_v99.py`
+  exits 1 only on "the screen leaves the frame": T1 169 frames up to 53 px, T2 106 / 35 px, T3 58 / 40 px, none at
+  the T1 cut (last 3 rows exact). Full notes: `NOTES-100.md`.
+- Headless runs: `checks_v100/run-headless.sh <label> <quit-after> [args]`. Do not use `run-aud99.ps1` for checks any
+  more: it opens a window off the desktop.
+STATUS: COMPLETE - T1/T2/T3 AT 8/10/11 S WITH THE SIMULATOR-RIDE LAYER BAKED INTO THE SHOT FILES, EXACT FRAMES UNCHANGED, HEADLESS QA PASS (qa_frames: SCREEN EDGE LEAVES THE FRAME BY UP TO 53 PX, REPORTED); NOT SEEN IN A PICTURE BY THE RENDER AGENT; OWNER REVIEW IN THE VIEWER PENDING; STOP.
+
+## 14 Nov 2026 - Brief 100b: no more tremor (owner: "it looks like the cameraman has parkinsons")
+- `shots_v99.gd` (before: `shots_v99.pre-100b.gd`, files `assets_v99/pre-100b/`): engine rumble off (7-12 Hz read as a
+  shaking hand at 30 fps); jolts 1.1 Hz, damping 0.6, eased in over 0.25 s (were 2.8-3.6 Hz, damping 0.33, snapping in
+  within one frame); arrival springs 0.9-1.2 Hz, damping 0.5-0.55 (were 1.8-2.8 Hz, 0.25-0.28); the doubled and small
+  bumps dropped (T1, T2, T3 keep launch, air pocket, one bump, arrival thud). Program keyframes unchanged.
+- Measured on the picture centre: jerk 12-17 -> 1.7-2.3 px/frame^2, biggest frame step 13-15 -> 5-7 px, peak offset
+  unchanged (45 / 24 / 38 px). Ends exact; campath pass; clearance 0.74 m seat / 0.60 m stand-in; headless autoplay exit 0.
+STATUS: COMPLETE - RIDE LAYER SMOOTHED; OWNER REVIEW PENDING; STOP.
+
+## 14 Nov 2026 - Glide: the lobby's way (owner: still jerky; "how did the lobby animation do the head bobbing, do the same")
+- Cause found: the Brief 100 ride keyframes eased every axis to a full stop at each key (stop-start steps), plus
+  jolts. The lobby fly-through has no jolts or springs: turn-rate banking (14 deg * tanh(0.65 * rate / 14 deg),
+  Gaussian-smoothed, faded) and smooth swooping paths.
+- `shots_v99.gd` `apply_glide()` replaces `apply_ride()` in build_all (ride code kept; before: `shots_v99.pre-glide.gd`,
+  files `assets_v99/pre-glide/`): the lobby bank (sigma 9 frames, 0.8 s fades), one slow swoop locked on the pivot
+  (3.5% of the frame width; T1/T3 dip then rise, T2 rise then settle), nose up/down with the eased path's
+  acceleration (22 px). Strength keys and B unchanged.
+- Measured: centre jerk 1.7-2.3 -> 0.01-0.02 px/frame^2, frame step 5-7 -> 0.7-0.9 px, bank acceleration
+  97-123 -> 0-6 deg/s^2; bank T1 6.3 / T2 0.4 / T3 4.4 deg. Ends exact; campath pass; clearance 0.80 m seat /
+  0.71 m stand-in; headless autoplay exit 0.
+STATUS: COMPLETE - GLIDE LIKE THE LOBBY; OWNER REVIEW PENDING; STOP.
+
+## 14 Nov 2026 - APPROVED: glide at strength 2 (owner: "lets go with this with the bob setting on 2")
+- `RIDE_STRENGTH` default 2.0 (viewer B restores 2), baked into `assets_v99/t1|t2|t3_camera_path.json`: bank T1 12.6 /
+  T2 0.9 / T3 8.8 deg, swoop up to 0.59 / 0.54 / 1.21 m, tilt 44 px. Ends exact; campath pass; clearance 0.83 m seat /
+  0.81 m stand-in; headless autoplay exit 0. Lengths 8 / 10 / 11 s, lights down, T2 hold pose `assets_v99/hold_pose.json`.
+- Next (needs the owner's go): Blender/Cycles port of the three shots, per-frame film corners for OBS, a dim T2 hold
+  plate with depth for the chatters, then page/control buttons.
+STATUS: GODOT STAGE APPROVED; STOP.

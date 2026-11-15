@@ -318,6 +318,14 @@ in front of row B). Each mops a spot for 10-18 s and moves on (`janNext()`); the
 `janidle` (10 min) without a message they clock off back through the entrance (`janLeave()`). "🧹 janny on duty"
 floats up when they come out of the tunnel.
 
+**Screen duty** (15 Nov 2026, `dutyActive()`, `screenSpots()`, `spawnDutyMods()`, `stepDuty()`). While the house
+lights are down (Lights down / Film), the camera is pushed onto the screen, or the screen shots run, the jannies mop
+the front-floor spots that the zoomed Film shot keeps in frame (in front of the screen, off the dark corner by the
+wall). On duty they never clock off for silence and take no shush errands (the usher shushes; a ban escort still takes
+them). With no janny in the hall, two mods come in, picked at random from mods seen in chat since the page loaded
+(admins and bots left out), else `MOD_LIST`; when the duty ends they go home unless they spoke meanwhile.
+`?janduty=0` turns it off.
+
 **Bans and mutes** (`onPurge()`, `escort()`, `escortWalk()`, `leadOut()`). `core.js` sends `modAction`
 (kind, target, mod) just before `purge`. A seated target gets "🚫 banned" / "🔇 muted"; the mod who did it walks over
 if on duty, else the nearest free janny, else that mod is called in through the entrance if a spot is free, else
@@ -349,6 +357,27 @@ The page never plays the film. In the `film` phase it draws the screen quad (`#s
 
 Without the bridge (a normal browser, or OBS with the bridge down) the screen stays green during `film`, for a
 manual chroma key.
+
+### Screen shots T1 / T2 / T3 (Brief 102, 15 Nov 2026)
+
+Three rendered camera moves (Cycles, `roxy3d/aud101/page/final/`, packed by `roxy3d/aud101/build_page101.py`),
+played by `shared/aud-shots.js` over the page on a WebGL canvas, with the real chatters drawn into each frame
+(per-frame camera, depth occlusion, names, emotes animating). Panel buttons: "Into the film (T1)", "Out of the film
+(T2)", "Back to the room (T3)", "Stop shots" (command `shot` t1/t2/t3/stop).
+
+- **T1** (8 s, only in the Film phase with the lights down): from the exact Film framing into the screen until it fills
+  the frame; at the end `obs-bridge.js` cuts OBS to the "Film fullscreen" scene.
+- **T2** (10 s): OBS cuts back (after a warm-up of the hidden source) and the camera comes out low over the heads, then
+  holds there live (the 4K hold plate and its depth, chatters sitting, hopping, arriving, leaving).
+- **T3** (11 s): from the hold back to the default view; the page carries on (lights down, film on, no push).
+- Over the heads (T2, the hold) everyone faces the screen (left of it look right, right of it look left; per
+  `emote-facing.json`); in T3 they turn back one by one. A chatter whose picture grows past 295 px on screen fades
+  out (no huge blurry heads right in front of the camera). Names hide where the chatter's body is hidden.
+- **OBS (keyed setup):** collection "Moobies 1440p transitions" (`start-all.bat` loads it): a Color Key on exact
+  #00ff00 on the auditorium source, the film item under it, the "Film fullscreen" scene. The bridge keeps the film on
+  top as before outside the shots and moves it under only while a shot plays, so seat backs pass in front of it. The
+  video's screen area is exact #00ff00 (green emotes are not keyed: drawn opaque over the green).
+- QA copy: `shared/aud-shots-qa.js` in `auditorium-qa.html`. Notes: `roxy3d/NOTES-102.md`.
 
 ## Director and camera
 

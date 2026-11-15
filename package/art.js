@@ -51,6 +51,16 @@ function artFiles(standby, fail) {
     if (!fs.existsSync(path.join(standby, rel))) fail(`fly-through file missing: ${rel}`);
     files.push(rel);
   }
+  // the auditorium's screen shots T1 / T2 / T3 (Brief 102, shared/aud-shots.js): packed videos, cameras, screen corners,
+  // the T2 hold plate and its depth
+  const shots = 'roxy3d/aud101/page/final';
+  const shotFiles = ['T1.webm', 'T2.webm', 'T3.webm', 'T1-camera.json', 'T2-camera.json', 'T3-camera.json',
+    't1_screen_corners.json', 't2_screen_corners.json', 't3_screen_corners.json',
+    'hold_t2.png', 'hold_t2@2x.png', 'hold_t2.json', 'hold_t2_camera.json', 'hold_t2_depth_tiles.png'];
+  for (const f of shotFiles) {
+    if (!fs.existsSync(path.join(standby, shots, f))) fail(`screen shot file missing: ${shots}/${f}`);
+    files.push(`${shots}/${f}`);
+  }
   return { files, draft, audArt, audCount };
 }
 

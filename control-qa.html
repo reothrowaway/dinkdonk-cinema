@@ -84,6 +84,14 @@
       <option value="film">The film</option></select></label>
     <button id="litter" title="About 10 min after the hall is 60% full, popcorn, cups and wrappers pile up on the floor. Off sweeps it all up">Litter: on</button>
   </div>
+  <!-- Brief 102 (QA): the three rendered screen shots; each is enabled only when it makes sense (T2 after T1, T3 after T2) -->
+  <div class="row" id="shotrow">
+    <button id="shot1" title="From the zoomed Film shot the camera flies into the screen (8 s); OBS then cuts to the fullscreen film scene (needs obs-bridge-qa.js). Needs the Film phase with the house lights down">Into the film (T1)</button>
+    <button id="shot2" title="OBS cuts back to the auditorium and the camera comes out of the screen over the heads (10 s), then holds there with everyone live">Out of the film (T2)</button>
+    <button id="shot3" title="From the hold back to the default view of the room (11 s); the page carries on live, lights still down, film on the screen">Back to the room (T3)</button>
+    <button id="shotstop" class="danger" title="Ends whatever shot is playing or held and shows the live page again (OBS stays on the scene it is on)">Stop shots</button>
+  </div>
+  <div class="state" id="shotstate"></div>
   <div class="state" id="phasestate"></div>
   <div class="state" id="litterstate"></div>
   <div class="state" id="downloadstate"></div>
@@ -179,6 +187,12 @@
   $('reset').onclick = () => send({ cmd: 'reset' });
   $('screenpick').onchange = (e) => send({ cmd: 'screen', value: e.target.value });
   $('litter').onclick = () => send({ cmd: 'litter', on: !(preshow?.litter ?? true) });
+  // screen shots (Brief 102): every auditorium screen plays them; the one inside OBS also drives OBS through the bridge
+  $('shot1').onclick = () => send({ cmd: 'shot', value: 't1', page: 'auditorium' });
+  $('shot2').onclick = () => send({ cmd: 'shot', value: 't2', page: 'auditorium' });
+  $('shot3').onclick = () => send({ cmd: 'shot', value: 't3', page: 'auditorium' });
+  $('shotstop').onclick = () => send({ cmd: 'shot', value: 'stop', page: 'auditorium' });
+  let shotInfo = null;   // the shown screen's shot player state (Brief 102)
   // the lobby's roll-up poll screen (lobby.html "POLL SCREEN"; the server remembers up/down for every screen)
   $('pollopen').onclick = () => send({ cmd: 'pollscreen', on: true, page: 'lobby' }).then(refreshPoll);
   // this room's own poll script (hosted: the room key goes along, and only this room's poll is changed by it)
@@ -394,6 +408,18 @@
     $('housestate').hidden = page !== 'auditorium' || !house;
     $('housestate').textContent = house ? `${house.occupied}/${house.capacity} seats reserved or occupied · ${house.waiting} waiting outside (up to ${house.queueLimit}). A free seat admits the next arrival.` : '';
     preshow = s?.preshow || null;
+    // screen shots: T1 from the Film phase with the lights down, T2 once T1 has ended (film full screen), T3 from the hold
+    shotInfo = s?.shots || null;
+    const st = shotInfo?.state || '';
+    const filmOk = preshow?.phase === 'film' && !preshow.lightsOn;
+    $('shot1').disabled = blocked || st !== 'idle' || !filmOk;
+    $('shot2').disabled = blocked || st !== 'film';
+    $('shot3').disabled = blocked || st !== 'hold';
+    $('shotstop').disabled = blocked || !st || st === 'idle';
+    const shotLabel = { idle: 'ready', prep: 'getting ready for T1', t1: 'T1 playing', film: 'film full screen (T2 next)', t2wait: 'T2: OBS cuts back',
+      t2: 'T2 playing', hold: 'holding over the heads (T3 next)', t3: 'T3 playing' }[st];
+    $('shotstate').textContent = page !== 'auditorium' ? '' : !shotInfo ? 'Screen shots: this screen has no shot player (auditorium-qa.html only).'
+      : `Screen shots: ${shotLabel || st}${shotInfo.frames ? ` · frame ${shotInfo.frame}/${shotInfo.frames}` : ''}${st === 'idle' && !filmOk ? ' · T1 needs the Film phase with the house lights down' : ''}${shotInfo.note && st !== 'idle' ? ` · ${shotInfo.note}` : shotInfo.note && /failed|needs|stopped/.test(shotInfo.note) ? ` · ${shotInfo.note}` : ''}`;
     const labels = { seating: 'Seating', dim: 'Lights down', film: 'Film', up: 'Lights up' };
     // the film phase has three framings; screens without shot (older pages) count as Film
     const shot = preshow?.phase === 'film' ? preshow.shot || 'push' : '';

@@ -1,0 +1,86 @@
+{
+  "files": {
+    "hold_t2@2x.png": {
+      "path": "00542_hold_t2@2x.png",
+      "sha256": "ee861e1c98b74596a7178ed64a1037a37a0dedda76cc0b88de93682b01342a75"
+    },
+    "hold_t2.png": {
+      "path": "00542_hold_t2.png",
+      "sha256": "ba92ad8f33ce886fa617e917bdbfc4ab80077a569bfe6d063c424cd75a654c73"
+    },
+    "hold_t2_depth.png": {
+      "path": "00542_hold_t2_depth.png",
+      "sha256": "8a6e44ee9357a46d33aefe27c8b76a5286e6af4c7e9af19eedc6f94dde3a381c"
+    }
+  },
+  "global_frame": 542,
+  "color_seconds": 17.438466722145677,
+  "depth_seconds": 5.046348647214472,
+  "size_2x": [
+    3840,
+    2160
+  ],
+  "size_1x": [
+    1920,
+    1080
+  ],
+  "samples": [
+    384,
+    64,
+    0.007
+  ],
+  "shutter": "none (still)",
+  "depth": {
+    "near": 0.05000000074505806,
+    "far": 200.0,
+    "invalid": 65535,
+    "decode": "camera_z = near + value / 65534 * (far - near); 65535 = no surface",
+    "policy": "opaque surfaces, no shutter (Brief 78)"
+  },
+  "screen_corners_1x": {
+    "TL": [
+      288.251,
+      78.481
+    ],
+    "TR": [
+      1654.045,
+      66.12
+    ],
+    "BR": [
+      1647.709,
+      845.091
+    ],
+    "BL": [
+      294.19,
+      832.877
+    ]
+  },
+  "camera_matrix_world": [
+    [
+      0.9980267284282716,
+      -0.001972297881325772,
+      0.06275953619832131,
+      10.5
+    ],
+    [
+      0.06279051952931337,
+      0.03134877712019301,
+      -0.9975342624844058,
+      -17.5
+    ],
+    [
+      0.0,
+      0.9995065603657316,
+      0.03141075907812829,
+      3.75
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "lens_mm": 50.0,
+  "sensor_width_mm": 36.0
+}

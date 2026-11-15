@@ -14,6 +14,19 @@
 //   { glow: [r, g, b] } about twice a second while the film is up: its average colour, for the screen glow (queue 58).
 // The OBS password is read from obs-websocket's own config on this PC; it never goes to the page.
 // Usage: node obs-bridge.js   (env: OBS_BRIDGE_PORT=18790, OBS_WS=ws://127.0.0.1:4455, OBS_PASSWORD to override)
+//
+// Brief 102 (15 Nov 2026): the auditorium's screen shots T1 / T2 / T3 (shared/aud-shots.js).
+//   - Keyed setup: when the auditorium's browser source in SCENE has a colour key filter, the page is told
+//     { obs: true, keyed: true } and keeps its screen exact #00ff00. The bridge keeps "Film screen (src)" OVER the
+//     browser source as before, and moves it UNDER it while a shot plays ({ shot: 'layer-under' | 'layer-over' }), so
+//     the key shows the film through the green and the seat backs and heads in front of the screen stay in front of it.
+//   - During a shot the page sends the usual { film, w, h, quad } once per video frame it shows (the rendered screen
+//     corners), latest-only as always.
+//   - Page -> bridge { shot: 'cut-film' | 'warm' | 'cut-cinema' | 'layer-under' | 'layer-over', rid }: cut to FILM_SCENE (the fullscreen film) at T1's
+//     last frame; before T2 the warm-up (the auditorium source off-canvas in the program scene) and the cut back to
+//     SCENE. Each cut uses the Cut transition and restores the usual one 1.5 s later, as /cut-to-cinema does.
+//     Answer: { rid, ok, ...result | error }. Also POST /cut-to-film for a manual test.
+//   env OBS_FILM_SCENE (default "Film fullscreen").
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -26,13 +39,14 @@ const PORT = Number(process.env.OBS_BRIDGE_PORT || 18790);
 const OBS_URL = process.env.OBS_WS || 'ws://127.0.0.1:4455';
 const SCENE = 'DinkDonk Cinema';
 const FILM = 'Film screen (src)';
+const FILM_SCENE = process.env.OBS_FILM_SCENE || 'Film fullscreen';   // Brief 102: the fullscreen film scene
 const FILTER = 'Corner pin (live)';
 const SHADER = 'C:/Program Files/obs-studio/data/obs-plugins/obs-shaderfilter/examples/corner-pin.shader';
 const OBS_CONFIG = path.join(process.env.APPDATA || '', 'obs-studio', 'plugin_config', 'obs-websocket', 'config.json');
 const log = (...a) => console.log(new Date().toTimeString().slice(0, 8), ...a);
 
 // ---------- OBS side (obs-websocket v5) ----------
-const obs = { ws: null, ready: false, itemId: null, pending: new Map(), seq: 0, setupAt: 0 };
+const obs = { ws: null, ready: false, keyed: false, itemId: null, pending: new Map(), seq: 0, setupAt: 0 };
 
 function obsPassword() {
   if (process.env.OBS_PASSWORD) return process.env.OBS_PASSWORD;
@@ -106,10 +120,13 @@ async function setup() {
     }
     await request('SetSourceFilterEnabled', { sourceName: FILM, filterName: FILTER, filterEnabled: true });
     obs.itemId = sceneItemId;
+    obs.keyed = await keyedSetup().catch(() => false);
+    if (obs.keyed) await setLayer(false).catch((e) => log(`film over the auditorium failed: ${e.message}`));
     sent.quad = null;
     sent.film = null;
     setReady(true);
-    log(`ready: "${FILM}" is item ${sceneItemId} in "${SCENE}"`);
+    for (const c of pages) wsSend(c, { obs: true, keyed: obs.keyed });
+    log(`ready: "${FILM}" is item ${sceneItemId} in "${SCENE}"${obs.keyed ? ' (keyed: the auditorium keys out #00ff00; the film goes under it for the screen shots)' : ''}`);
     pump();
   } catch (e) {
     log(`not ready (${e.message}); is the "Moobies 1440p poll" collection loaded?`);
@@ -119,7 +136,55 @@ async function setup() {
 function setReady(on) {
   if (obs.ready === on) return;
   obs.ready = on;
-  for (const c of pages) wsSend(c, { obs: on });
+  for (const c of pages) wsSend(c, { obs: on, keyed: on && obs.keyed });
+}
+// Brief 102: the auditorium's browser source in SCENE has an enabled colour key, and the film item is in SCENE too
+async function keyedSetup() {
+  const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
+  const film = items.find((i) => i.sourceName === FILM), aud = items.find((i) => i.inputKind === 'browser_source');
+  if (!film || !aud) return false;
+  const { filters } = await request('GetSourceFilterList', { sourceName: aud.sourceName });
+  return filters.some((f) => f.filterEnabled && /color_key|chroma_key/.test(f.filterKind));
+}
+// Keyed setup: the film sits UNDER the auditorium while a screen shot plays (the page keys it in, seat backs and heads
+// stay in front of it) and OVER it the rest of the time, as before. Over, the corner-pinned film covers the screen's
+// rim; under, the page's own live screen left a 1 px half-green line along that rim that no small key takes (Chrome
+// resamples the zoomed room; QA 15 Nov, portable OBS). The shots' canvas despills its rim, so under is clean there.
+// Moving the film to the browser source's index puts it just above or just below it.
+async function setLayer(under) {
+  const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
+  const film = items.find((i) => i.sourceName === FILM), aud = items.find((i) => i.inputKind === 'browser_source');
+  if (!film || !aud) return { skipped: 'film or auditorium item missing' };
+  const isUnder = film.sceneItemIndex < aud.sceneItemIndex;
+  if (isUnder !== under) await request('SetSceneItemIndex', { sceneName: SCENE, sceneItemId: film.sceneItemId, sceneItemIndex: aud.sceneItemIndex });
+  return { film: under ? 'under the auditorium' : 'over the auditorium', moved: isUnder !== under };
+}
+// T1's end (Brief 102): one hard cut to the fullscreen film scene; T1's last frame shows the film filling the frame
+async function cutToFilm(dry) {
+  const { transitionName } = await request('GetCurrentSceneTransition');
+  const plan = { scene: FILM_SCENE, transition: transitionName };
+  if (dry) return { dry: true, ...plan };
+  try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message}): using ${transitionName}`); }
+  await request('SetCurrentProgramScene', { sceneName: FILM_SCENE });
+  setTimeout(async () => {
+    try { await request('SetCurrentSceneTransition', { transitionName }); } catch (e) { log(`restore after the cut failed: ${e.message}`); }
+  }, 1500);
+  return plan;
+}
+// page -> bridge shot requests (driver page only), answered on the same socket
+async function onShot(socket, m) {
+  const reply = (o) => wsSend(socket, { rid: String(m.rid || ''), ...o });
+  if (!obs.ready) return reply({ ok: false, error: 'OBS not ready' });
+  try {
+    const r = m.shot === 'cut-film' ? await cutToFilm(!!m.dry) : m.shot === 'warm' ? await warmCinema() : m.shot === 'cut-cinema' ? await cutToCinema(!!m.dry)
+      : m.shot === 'layer-under' || m.shot === 'layer-over' ? (obs.keyed ? await setLayer(m.shot === 'layer-under') : { skipped: 'not keyed' }) : null;
+    if (!r) return reply({ ok: false, error: `unknown shot request ${m.shot}` });
+    log(`shot ${m.shot}: ${JSON.stringify(r)}`);
+    reply({ ok: true, ...r });
+  } catch (e) {
+    log(`shot ${m.shot} failed: ${e.message}`);
+    reply({ ok: false, error: e.message });
+  }
 }
 
 // ---------- page side: a minimal WebSocket server (text frames only) ----------
@@ -209,6 +274,16 @@ function cutRoute(req, res, what = 'cut') {
     let b = {};
     try { b = body ? JSON.parse(body) : {}; } catch { /* empty */ }
     if (!obs.ready) return reply(503, { error: 'OBS not ready' });
+    if (what === 'film') {
+      try {
+        const r = await cutToFilm(!!b.dry);
+        log(`cut to film: ${JSON.stringify(r)}`);
+        return reply(200, r);
+      } catch (e) {
+        log(`cut to film failed: ${e.message}`);
+        return reply(500, { error: e.message });
+      }
+    }
     if (what === 'warm') {
       try {
         const r = await warmCinema();
@@ -233,6 +308,7 @@ function cutRoute(req, res, what = 'cut') {
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/cut-to-cinema') { cutRoute(req, res); return; }
   if (req.method === 'POST' && req.url === '/warm-cinema') { cutRoute(req, res, 'warm'); return; }
+  if (req.method === 'POST' && req.url === '/cut-to-film') { cutRoute(req, res, 'film'); return; }
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(`obs-bridge: OBS ${obs.ready ? 'ready' : 'not ready'}, ${pages.size} page(s), film ${want.film ? 'on' : 'off'}\n`);
 });
@@ -247,7 +323,9 @@ server.on('upgrade', (req, socket) => {
   socket.setNoDelay(true);
   pages.add(socket);
   driver = socket;
-  wsSend(socket, { obs: obs.ready });
+  wsSend(socket, { obs: obs.ready, keyed: obs.ready && obs.keyed });
+  // (Brief 102) the scene may have been rearranged since setup: look again whenever a page connects
+  if (obs.ready) keyedSetup().then((k) => { obs.keyed = k; if (obs.ready) wsSend(socket, { obs: true, keyed: k }); }).catch(() => {});
   log(`page connected (${pages.size} open)`);
   let buf = Buffer.alloc(0);
   socket.on('data', (chunk) => {
@@ -256,7 +334,7 @@ server.on('upgrade', (req, socket) => {
       const f = readFrame(buf);
       if (!f) break;
       buf = buf.subarray(f.size);
-      if (f.op === 1 && socket === driver) onPage(f.data.toString('utf8'));
+      if (f.op === 1 && socket === driver) onPage(f.data.toString('utf8'), socket);
       else if (f.op === 8) { socket.end(Buffer.from([0x88, 0])); break; }
       else if (f.op === 9) socket.write(frame(f.data, 0xA));
     }
@@ -269,6 +347,7 @@ server.on('upgrade', (req, socket) => {
     driver = [...pages].pop() || null;
     want.film = false;
     pump();
+    if (obs.ready && obs.keyed) setLayer(false).catch(() => {});   // (a shot cut short: the film goes back on top)
   };
   socket.on('close', gone);
   socket.on('error', gone);
@@ -297,9 +376,10 @@ function frame(data, op = 0x1) {
 }
 const wsSend = (socket, obj) => { if (!socket.destroyed) socket.write(frame(Buffer.from(JSON.stringify(obj)))); };
 
-function onPage(text) {
+function onPage(text, socket) {
   let m;
   try { m = JSON.parse(text); } catch { return; }
+  if (typeof m.shot === 'string') { onShot(socket, m); return; }
   const ok = Array.isArray(m.quad) && m.quad.length === 4 && m.w > 0 && m.h > 0
     && m.quad.every((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
   if (ok) {

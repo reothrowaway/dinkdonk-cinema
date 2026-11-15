@@ -18,10 +18,10 @@ call :listening 18790 && (echo OBS bridge          already running) || (
   start "OBS bridge (:18790)" /d "%~dp0" start-obs-bridge.bat
 )
 tasklist /fi "imagename eq obs64.exe" | findstr /i "obs64.exe" >nul && (
-  echo OBS                 already running - check the scene collection is "Moobies 1440p poll"
+  echo OBS                 already running - check the scene collection is "Moobies 1440p transitions"
 ) || (
-  echo OBS                 starting with "Moobies 1440p poll"
-  start "" /d "C:\Program Files\obs-studio\bin\64bit" obs64.exe --profile "Angelthump h264 1440p" --collection "Moobies 1440p poll"
+  echo OBS                 starting with "Moobies 1440p transitions"
+  start "" /d "C:\Program Files\obs-studio\bin\64bit" obs64.exe --profile "Angelthump h264 1440p" --collection "Moobies 1440p transitions"
 )
 
 rem give the standby server a moment before opening its control panel

@@ -3095,3 +3095,48 @@ loop of a pack adds); `obstrace.mjs` takes `CATS=` (other trace categories).
   backups/auditorium-2026-11-14-pre-cove.html), checked on 18771 with real chat: wide and push-in, no page errors.
   Emote flicker in the same video (an emote vanishing for one stream frame while the camera moves, e.g. 0:05) did
   not show in the page's own state (every chatter and depth piece sampled through a 25 s follow): still open.
+
+## 14 Nov 2026 - Brief 99: three auditorium screen transitions, Godot stage
+- Owner wants three small transitions, all lights down: T1 zoomed Film shot -> screen fills the frame (cut to the
+  fullscreen movie scene), T2 fullscreen -> new over-the-heads angle that holds until a button, T3 -> default view.
+- Built by the render agent (Fable 5.2 high): `godot-spike/run-live-aud.bat` (1/2/3, Space, Tab, H stand-ins, P saves
+  the T2 hold pose), shot files `godot-spike/assets_v99/t1|t2|t3_camera_path.json`. QA pass (NOTES-99.md). Claude
+  re-rendered five stills offscreen (`checks_v99/claudecheck_*`): T1 end exactly full frame, T3 end matches the dim plate.
+- Waiting for the owner's review in the viewer. Later: Cycles port, per-frame film corners, T2 hold plate with depth.
+- 14 Nov (later): owner liked the three shots, asked for "a lil bit of spaceship bobbing". Added a gentle float
+  (heave/sway/roll, B toggles, [ ] strength) that is zero at the page-matched frames; see NOTES-godot.md (99b).
+- 14 Nov (later): bob redone properly at the owner's word: part of the shot paths (floats while moving, banks into
+  turns, settles on arrival, hold and page frames still), baked into the shot files. NOTES-godot.md (99c).
+- 14 Nov (later): Brief 100 (Fable 5.2 high, owner's request): shots twice as slow (8 / 10 / 11 s) and the bob
+  replaced by a simulator-ride layer (crouch, launch kick, pitch with speed, banks, timed bumps, rumble, arrival
+  thud and settle), baked into the shot files; unshaken copies in assets_v99/unshaken/. Claude re-checked headless:
+  first/last frames equal Brief 99's, campath pass, viewer autoplay exit 0. NOTES-100.md.
+- 14 Nov (later): ride layer smoothed after owner feedback (too shaky): rumble off, slow soft jolts, gentler settle (NOTES-godot 100b).
+- 14 Nov (later): auditorium shots now glide the lobby's way (turn-rate bank + smooth swoop + accel tilt), keyframed ride layer retired (NOTES-godot 'Glide').
+- 14 Nov (later): owner APPROVED the three auditorium shots (glide, strength 2) at the Godot stage. Next: Cycles port etc. on his go.
+- 14 Nov (night): Brief 101 (Opus 5.5 high): the three auditorium shots ported to Cycles (aud101/aud101.blend, green
+  #00ff00 screen that lights nothing, per-frame screen corners for OBS, depth policy, 4K T2 hold plate in the final),
+  local half-res draft aud101/draft/t1|t2|t3_draft.mp4 sent to the owner; flash scan and campath pass. Final bundle
+  aud101/roxy-cloud-bundle-101.tar.gz sealed, not run (cloud ~$1-2 on 3 pods, local ~4.4 h). Open: final go/budget,
+  T2 seat backs cover up to 4.3% of the screen's bottom at 6.4-7.5 s (corner pin would paint over them). NOTES-101.md.
+- 14 Nov (23:17-23:37): RunPod final of Brief 101 on the owner's word ("Runpod"; seat backs: key OBS on the green):
+  3 x RTX 4090 EU-RO-1, 4 workers each, 90-99% GPU, 873 frames in ~16 min; result in aud101/cloud-final-result/
+  aud101-final (frames, depth, 4K T2 hold plate + depth, screen corners, aud101_1080p30.webm); all pods and the volume
+  deleted by the helper. Claude checks: last frame byte-identical to qa11/cinema_draft_14_dim.png, flash scan max
+  step 0.0063, no spikes. Next: OBS green key (copy of the collection), page player + buttons, chatters in the hold.
+
+## 15 Nov 2026 - Brief 102: auditorium screen shots in the page + OBS green key (QA only, Claude Opus 5.5)
+- Packed the RunPod final for the page (aud101/page/final/, report OK) and built the player shared/aud-shots-qa.js in
+  auditorium-qa.html: T1 from the exact Film framing into the screen (OBS cuts to a new "Film fullscreen" scene), T2
+  back out over the heads into the live 4K hold plate (chatters drawn in with depth, own-backrest cut, hops, names),
+  T3 back to the live wide view. Buttons in control-qa.html (enabled only when they make sense); obs-bridge-qa.js does
+  the cuts, the warm-up, per-frame film corners, and moves the film under the keyed auditorium only during the shots.
+- Recorded in the portable OBS with real chat and a stand-in film: rec/shots102-T1-T2-hold-T3-15nov.mp4 (23.9 MB);
+  key green 0 px in every frame, seat backs and heads in front of the film, no jump at the cuts. OBS copy for the
+  owner: "Moobies 1440p transitions" (from "Moobies 1440p poll"). Not tested in the owner's OBS. NOTES-102.md.
+
+- 15 Nov 2026 (102b): shots player QA - chatters over 295 px on screen fade out (huge blurry front rows gone from T2 low pass and the hold); over the heads everyone faces the screen (left look right, right look left), turn back in T3. Recording qa-night/rec/shots102b-bigfade-facing-15nov.mp4. QA only.
+- 15 Nov 2026 (102c): auditorium QA - jannies on screen duty while lights are down / pushed onto the screen / shots run: they mop the floor by the screen inside the Film framing; with no janny, two random mods (seen in chat, else MOD_LIST) come in and go home after. QA only.
+
+## 15 Nov 2026 - Brief 103: bonsai water fountain, draft 1
+New standalone prop on the owner's request ("small recirculating water fountain bonsai tree chinese decoration piece"). Google Images search first (new rule), reference in fountain/ref-google-103.png. Fable 5.2 high built fountain/fountain103.blend (collection FOUNTAIN, real scale) and rendered fountain/draft103.png (1280x720, 192 samples, 20 s). Waiting for the owner's feedback; placement not decided.
