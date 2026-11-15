@@ -1,6 +1,6 @@
 # Movie suggestions from chat: plan
 
-Status: **plan only, nothing built** (15 Nov 2026). Decisions are the owner's, from the brainstorm the same day.
+Status: **live** since 15 Nov 2026 (local 18770, repo, hosted pages, zip). Chat suggestions run on the local server only; the hosted edition has the panel card hidden and no /ms/ routes. Decisions are the owner's, from the brainstorm the same day; later changes (defaults, !rqmovie, test feed, 6 posters scrolling, poll zoom) are in roxy3d/PROGRESS.md.
 
 ## What it does
 

@@ -53,7 +53,8 @@ fs.mkdirSync(SCREENS, { recursive: true });
 
 // ---------- 1. pages, server, bridge ----------
 // (poll-draft.js: the server requires it since 7 Nov; the userscript is what the server hands out for the poll builder)
-for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-server.js', 'dinkdonk.js', 'poll-draft.js', 'obs-bridge.js', 'lan-proxy.js',
+// (movie-suggest.js + movie-test-list.js: chat movie suggestions, required by the server since 15 Nov 2026)
+for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-server.js', 'dinkdonk.js', 'poll-draft.js', 'movie-suggest.js', 'movie-test-list.js', 'obs-bridge.js', 'lan-proxy.js',
   'userscripts/dinkdonk-poll-draft.user.js']) {
   copy(path.join(STANDBY, f), path.join(SCREENS, f));
 }
