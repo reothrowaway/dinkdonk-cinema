@@ -320,7 +320,7 @@
   // the colour of the user's flair with the lowest priority number (admin = Destiny, sub tiers, mods, bots ...),
   // plain users white; tier 5 is a moving rainbow. flairs.json (via standby-server.js) replaces this built-in
   // copy when it loads.
-  const PLAIN_NICK = '#fff';
+  const PLAIN_NICK = '#dcdcdc';   // (DGG chat's plain name colour, chat css 15 Nov 2026; was #fff)
   const SUB_TIER_FLAIRS = { 1: 'flair13', 2: 'flair1', 3: 'flair3', 4: 'flair8', 5: 'flair42' };
   let flairs = [
     ['flair17', 1, '#FCE205'], ['admin', 1, '#EE1F1F'], ['flair18', 2, '#f082bb'], ['flair33', 3, '#eb79da', true],

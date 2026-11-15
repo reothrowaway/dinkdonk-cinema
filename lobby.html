@@ -21,7 +21,7 @@
 <title>Lobby</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600&family=Yellowtail&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600&family=Roboto:wght@500&family=Yellowtail&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared/base.css">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
@@ -36,18 +36,21 @@
   .w .bod { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
   .w .em { position: absolute; bottom: 0; }
   .w .nm { position: absolute; left: 0; top: 7px; transform: translateX(-50%); white-space: nowrap;
-    font: 500 14px/1 Oswald, 'Arial Narrow', sans-serif; letter-spacing: .02em;
+    /* the name as DGG chat writes it (owner, 15 Nov 2026): Roboto 500, no letter-spacing; the dark pill and outline
+       stay ours, for reading over the scene */
+    font: 500 14px/1 Roboto, Helvetica, 'Trebuchet MS', Verdana, sans-serif;
     text-shadow: 0 1px 2px #000, 0 0 4px #000, 0 0 2px #000; }
   .w .nm { transition: opacity .4s; padding: 0 4px 1px; border-radius: 2px; background: rgba(8, 6, 18, .5); }
   .w.staff .nm { display: none; }
-  /* DGG tier 5 subs: the moving rainbow name of DGG chat (same gradient as the DSA script) */
-  .rbt { background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bff95, #67d8ff, #b28dff, #ff78c6, #ff6b6b);
-    background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
-    -webkit-text-fill-color: transparent; animation: rbt 4s linear infinite; }
+  /* DGG tier 5 subs: the moving rainbow name exactly as DGG chat's CSS draws it (flairs.css, 15 Nov 2026) */
+  .rbt { background: repeating-linear-gradient(90deg, hsl(0, 100%, 65%), hsl(45, 100%, 65%), hsl(90, 100%, 65%),
+      hsl(135, 100%, 65%), hsl(180, 100%, 65%), hsl(225, 100%, 65%), hsl(270, 100%, 65%), hsl(315, 100%, 65%), hsl(360, 100%, 65%) 50%);
+    background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    -webkit-text-fill-color: transparent; animation: rbt 3s linear infinite; }
   /* (the name tag's black text-shadow showed through the see-through letters and smeared the rainbow dark, owner
      11 Nov: the outline comes from a drop-shadow instead, drawn behind the letters) */
   .w .nm .rbt { text-shadow: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .95)) drop-shadow(0 0 1.5px rgba(0, 0, 0, .8)); }
-  @keyframes rbt { to { background-position: -220% 0; } }
+  @keyframes rbt { to { background-position-x: -100%; } }
   /* staff wear a little uniform cap so they don't read as customers */
   /* shaded like the render: lit from the top-left, darker underside */
   .hat { position: absolute; left: -14px; bottom: 44px; width: 28px; height: 11px; border-radius: 4px 4px 1px 1px;
@@ -1426,7 +1429,9 @@
     const sh = h('div', 'sh');
     const bod = h('div', 'bod');
     const nm = h('div', 'nm', nick);
-    nm.style.color = color || SB.nickColor(nick);
+    // plain names in DGG chat's grey (#dcdcdc); the shared room still holds plain white for people who came in before
+    // 15 Nov 2026
+    nm.style.color = (/^#f{3}(f{3})?$/i.test(color || '') ? '#dcdcdc' : color) || SB.nickColor(nick);
     el.append(sh, bod, nm);
     world.append(el);
     const w = { nick, el, sh, bod, nm, em: null, emName: null, u: 0, v: 0, alpha: 1, alphaT: 1, phase: Math.random() * 6, hopN: 0,
