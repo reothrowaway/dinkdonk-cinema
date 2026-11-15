@@ -68,9 +68,9 @@ copy(path.join(WEB, 'testfilm.html'), path.join(SITE, 'web', 'testfilm.html'));
 copyTree(path.join(WEB, 'guide'), path.join(SITE, 'web', 'guide'));   // OBS screenshots for setup.html
 copy(SHADER, path.join(SITE, 'web', 'corner-pin.shader'));
 
-// the server keeps dinkdonk.mov's cache in its data folder, outside the served site
-patch(path.join(SITE, 'dinkdonk.js'), "const CACHE_FILE = path.join(__dirname, 'cache', 'dinkdonk.json');",
-  "const CACHE_FILE = process.env.DINKDONK_CACHE || path.join(__dirname, 'cache', 'dinkdonk.json');");
+// the server keeps dinkdonk.mov's cache in its data folder, outside the served site: dinkdonk.js reads DINKDONK_CACHE
+// itself since 15 Nov 2026 (it used to be patched in here); fail the build if that ever goes away
+if (!fs.readFileSync(path.join(SITE, 'dinkdonk.js'), 'utf8').includes('process.env.DINKDONK_CACHE')) throw new Error('dinkdonk.js no longer reads DINKDONK_CACHE');
 patch(path.join(SITE, 'control.html'), 'The standby server is not reachable (start-standby.bat).', 'The cinema server is not reachable, or this room key is no longer valid.', 2);
 
 // art

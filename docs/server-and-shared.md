@@ -102,10 +102,20 @@ Listens on `127.0.0.1:STANDBY_PORT` (line 275). Every response has `Cache-Contro
 
 There is no WebSocket handling in this server. Chat WebSocket proxying exists only in `lan-proxy.js`.
 
-**Control route safety** (`controlRoute()`, line 163). A request with an `Origin` header other than
+**Control route safety** (`controlRoute()`, `fromOtherSite()`). A request with an `Origin` header other than
 `http://127.0.0.1:<port>` or `http://localhost:<port>` gets 403, so other websites open in the browser can't drive
-the stream. POSTs must be `Content-Type: application/json` (415 otherwise), which forces a CORS preflight that the
-server never answers.
+the stream. Since 15 Nov 2026 (audit) so does a request whose `Sec-Fetch-Site` is `cross-site` or `same-site`:
+Chromium (OBS's browser too) sends it also for `<img>`/`<script>` requests, which carry no `Origin`, so another
+website can't take the room lead with an `<img src=".../ctl/room?obs=1">`. The pages send `same-origin`, a typed
+address `none`, other programs nothing; all three pass. `/dd/search` has the same rule. POSTs must be
+`Content-Type: application/json` (415 otherwise), which forces a CORS preflight that the server never answers.
+
+**Host check** (15 Nov 2026, audit). Every request must name the server as `127.0.0.1:<port>` or `localhost:<port>`
+in `Host`; anything else gets 421. That stops DNS rebinding (a website whose own name was pointed at 127.0.0.1 would
+otherwise count as same-origin). `lan-proxy.js` rewrites `Host`, so phones still work.
+
+**Event streams** (`sseWrite()`). A screen that stops reading is dropped once more than 1 MB waits for it (its
+EventSource reconnects if it is still alive); before, the server buffered every event for it.
 
 **Emote relay caching.** The three CDN files are cached 10 minutes; when a refresh fails, the stale copy is served.
 With no copy at all the route answers 502 and the pages fall back to text emotes.
@@ -123,10 +133,13 @@ qBittorrent can keep an old completion date). Answer:
 `{ "available": false }` when qBittorrent is off, needs a login, or nothing qualifies. The auditorium's pre-show and
 automatic phases use it (see [auditorium.md](auditorium.md#pre-show-phases-and-lights)).
 
-**Static files.** Only these extensions are served: `.html .js .css .json .png .svg .woff2 .webp .avif .gif .webm
-.mp4` (everything else, e.g. `.md`, `.mjs`, `.bat`, is 404). Refused with 404: paths outside the folder,
-`standby-server.js`, `dinkdonk.js`, `lan-proxy.js` (case-insensitive, QA 5 Nov 2026) and anything under `cache/`.
-`obs-bridge.js` is served; it holds no secret.
+**Static files** (`servable()`). Only these extensions are served: `.html .js .css .json .png .svg .woff2 .webp
+.avif .gif .webm .mp4` (everything else, e.g. `.md`, `.mjs`, `.bat`, is 404). Refused with 404: paths outside the
+folder; the server's own code (`standby-server.js`, `dinkdonk.js`, `lan-proxy.js`, `poll-draft.js`,
+`movie-suggest.js`, `movie-test-list.js`); and the folders that stay on this PC: `cache/`, `audit/`, `backup/`,
+`backups/`, `backup-*/`, `.git/`, `roxy3d/cloud/`, `roxy3d/qa-night/`. Since 15 Nov 2026 (audit) the check runs on the
+file's real name on disk (`fs.realpathSync.native`), so other letter case and Windows 8.3 short names
+(`/STANDB~1.JS`) no longer get around it. `obs-bridge.js` is served; it holds no secret.
 
 **Byte ranges** (`sendVideo()`). `Range: bytes=a-b`, `a-` and `-n` give 206 with `Content-Range`; an impossible
 range gives 416; no range gives 200 with `Accept-Ranges: bytes`. HEAD sends headers only. The file stream closes
@@ -241,7 +254,19 @@ the log usually means the expected collection isn't loaded.
 - Updates are latest-only: while one request is with OBS, newer corners replace the waiting ones, so a slow OBS
   never plays back a queue.
 - Only connections from this PC's own addresses are accepted (403 otherwise), so a phone on the LAN can't switch
-  the film on and off. Any plain HTTP request gets a one-line status (`OBS ready/not ready, n page(s), film on/off`).
+  the film on and off. Since 15 Nov 2026 (audit) a browser connection must also come from a standby page (`Origin`
+  `http://127.0.0.1:187xx` or `localhost`, the rule the HTTP routes already had): any other website open on this PC
+  could connect, become the driver and cut the stream's scene. No `Origin` (OBS, scripts) still passes. Any plain
+  HTTP request gets a one-line status (`OBS ready/not ready, n page(s), film on/off`).
+- **Hard cuts** (`hardCut()`, 15 Nov 2026): the cut to the cinema, to the fullscreen film (and in the QA copy back to
+  the lobby) set the transition to Cut, switch, and put the old transition back 1.5 s later. A second cut inside that
+  window used to read the bridge's own "Cut" as the transition to restore and leave OBS on Cut for good; the real one
+  is now kept until it is restored, also when the switch fails. Two warm-up requests at once (a double Fly) share one
+  set-up, so the auditorium is added off-canvas only once. Every OBS request fails after 10 s without an answer, and a
+  non-JSON message from OBS is ignored.
+- The lobby's fly-through calls `http://127.0.0.1:18790/warm-cinema` and `/cut-to-cinema`; `?flybridge=<host:port>`
+  on the lobby moves that (not `bridge=`, which is the street board there). The hosted edition's shim answers the
+  default address.
 - The page only connects when it runs inside OBS (`window.obsstudio`). While `obs` is true, the page paints the
   screen black under the film; otherwise green for a manual chroma key.
 
@@ -270,7 +295,11 @@ error }`.
 - Detail pages: the newest 3 ratings and 2 polls are always re-read; the rest come from cache because finished
   polls don't change. Details no longer referenced are dropped.
 - The last good feed is written to `cache/dinkdonk.json` (git-ignored, never served) and loaded at start if its
-  `version` matches `CACHE_VERSION` (3; bump it when the feed's shape changes).
+  `version` matches `CACHE_VERSION` (3; bump it when the feed's shape changes). A test server on another port writes
+  `cache/dinkdonk-<port>.json` instead (15 Nov 2026), and `DINKDONK_CACHE` overrides the path (the hosted edition's
+  data folder; `web/build.js` used to patch this in).
+- `search()` (the `!watched` command, `/dd/search`): the same query asked again while its fetch is still running
+  shares that fetch.
 - `stale: true` when the data is older than 10 minutes; `error` holds the last refresh error. With no cache and the
   site unreachable (for example Cloudflare blocks during LaLiga matches in Spain), the route answers 502.
 - `search(q)` (`/dd/search`): `{ q, more, entries }` from the history search, cached 10 minutes, at most 200 queries.
@@ -318,13 +347,16 @@ proxy listens on the PC's first private IPv4 (or the address given) on port 1878
 |---|---|
 | HTTP | `standby-server.js` (Host rewritten). If the phone leaves, the upstream request is closed too, so the server doesn't keep a dead screen. If the server restarts mid-stream, the phone's response ends so its EventSource reconnects. |
 | WebSocket `/__dgg_chat_ws` | the chat relay, with the `Origin` header removed (the relay expects local pages) |
-| other WebSocket | `standby-server.js` (which has no WebSocket handler) |
+| other WebSocket | 403 without `--control`; with it, `standby-server.js` (which has no WebSocket handler) |
 
 **View-only by default** (QA 5 Nov 2026). Without `--control` only GET and HEAD pass, and of `/ctl/*` only
-`GET /ctl/events`. Everything else gets 403 "view-only proxy". Reason: the server's control routes only refuse
-foreign `Origin`s, so through the proxy any device on the LAN or tailnet could otherwise post commands (a fake
-chatter saying anything on stream, remove, reset). `--control` passes everything, for the control panel on your own
-phone (e.g. over Tailscale); see "Looked wrong" for a likely problem with that.
+`GET /ctl/events`; `/ms/*` other than `/ms/state.json` (the poll builder's work queue) and `/dd/search` (an outbound
+fetch per query) are refused too. Everything else gets 403 "view-only proxy". Reason: the server's control routes
+only refuse foreign `Origin`s, so through the proxy any device on the LAN or tailnet could otherwise post commands (a
+fake chatter saying anything on stream, remove, reset). Since 15 Nov 2026 (audit) the check uses the path the server
+routes on (`new URL(...).pathname`, so `/./ctl/room` or `/x/../ctl/room-state` no longer slip past), and only the
+chat WebSocket passes (a plain GET sent as a WebSocket upgrade used to skip the check). `--control` passes everything,
+for the control panel on your own phone (e.g. over Tailscale); see "Looked wrong" for a likely problem with that.
 
 Phone URL (printed at start): `http://<lan>:18780/auditorium.html?everyone=1&relay=<lan>:18780`. The `relay=` makes
 the page's chat WebSocket go through the proxy. Each new device's first connection is logged.
@@ -491,7 +523,7 @@ invite key (`DATA/room-state/<key>.json`).
   Node 18 or 20 (README says "Node 18+") it logs "OBS: WebSocket is not defined" every 3 s and never connects.
 - `AGENTS.md` lists "bubbles" under `core.js`; bubbles are drawn by each scene.
 - `lan-proxy.js` routes "anything else (e.g. live reload)" WebSockets to the server, but the server has no WebSocket
-  handler and `live.js` polls over HTTP.
+  handler and `live.js` polls over HTTP. (15 Nov 2026: refused without `--control`.)
 - `README.txt` says dinkdonk.js makes "about 15 requests every 5 minutes"; the code makes 13 list requests plus at
   least 5 detail requests (3 ratings, 2 polls) per refresh, more for new items.
 - `cinema.js`'s header describes it as shared logic for `cinema-*.html` only; the lobby and auditorium use it too.

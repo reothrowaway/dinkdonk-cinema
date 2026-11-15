@@ -5,7 +5,8 @@
 // Usage: node lan-proxy.js [lanAddress] [port] [--control]   (default: the first private IPv4, port 18780)
 // View-only by default (QA 05 Nov): the standby server refuses control requests only when they carry a foreign Origin, so
 // through this proxy any device on the LAN / tailnet could POST /ctl/cmd (a fake chatter saying anything on stream,
-// remove, reset). Now only GET/HEAD pass, and of /ctl/ only the command stream to watching screens (GET /ctl/events).
+// remove, reset). Now only GET/HEAD pass, and of /ctl/ only the command stream to watching screens (GET /ctl/events);
+// the check uses the path the server routes on, and only the chat WebSocket passes (audit 15 Nov 2026).
 // --control passes everything, as before (e.g. control.html on your own phone over Tailscale).
 // Then open  http://<lan>:18780/auditorium.html?everyone=1&relay=<lan>:18780  on the phone.
 'use strict';
@@ -23,9 +24,21 @@ const CONTROL = process.argv.includes('--control');
 const PORT = Number(args[1] || 18780);
 if (!lan) { console.error('No private LAN IPv4 address found; pass one: node lan-proxy.js 192.168.x.y'); process.exit(1); }
 
+// The path the standby server acts on: it routes on new URL(...).pathname, which resolves dot segments, so the check
+// must use the same (audit 15 Nov 2026, F2: /./ctl/room?obs=1 and /x/../ctl/room-state got past the raw-URL check).
+const routePath = (url) => { try { return new URL(url || '/', 'http://x').pathname; } catch { return null; } };
+// View-only: GET/HEAD only; of /ctl/ only the command stream to watching screens (GET /ctl/events); none of the
+// movie-suggestion work routes (GET /ms/work hands out the poll builder's jobs) and no /dd/search (an outbound fetch per
+// query) (F14). Read-only data the pages show (/dd/draft.json, /ms/state.json, emotes) still passes.
+function viewOnlyRefuses(method, p) {
+  if (p == null || (method !== 'GET' && method !== 'HEAD')) return true;
+  if (p.startsWith('/ctl/') && p !== '/ctl/events') return true;
+  if (p.startsWith('/ms/') && p !== '/ms/state.json') return true;
+  return p === '/dd/search';
+}
+
 const server = http.createServer((req, res) => {
-  const path0 = (req.url || '').split('?')[0];
-  if (!CONTROL && ((req.method !== 'GET' && req.method !== 'HEAD') || (path0.startsWith('/ctl/') && path0 !== '/ctl/events'))) {
+  if (!CONTROL && viewOnlyRefuses(req.method, routePath(req.url))) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end('view-only proxy (start it with --control to allow the control panel)');
     return;
@@ -44,7 +57,11 @@ const server = http.createServer((req, res) => {
 
 // WebSocket upgrades: chat goes to the relay, anything else (e.g. live reload) to the standby server
 server.on('upgrade', (req, socket, head) => {
-  const target = req.url.startsWith('/__dgg_chat_ws') ? RELAY : STANDBY;
+  const chat = !!routePath(req.url)?.startsWith('/__dgg_chat_ws');
+  // view-only: the chat socket only. The standby server has no WebSocket handler, so any other request sent this way
+  // was answered as a plain GET, past the check above (audit 15 Nov 2026, F3)
+  if (!CONTROL && !chat) { socket.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
+  const target = chat ? RELAY : STANDBY;
   const up = net.connect(target.port, target.host, () => {
     const headers = { ...req.headers, host: `${target.host}:${target.port}` };
     delete headers.origin;   // the relay only expects local pages

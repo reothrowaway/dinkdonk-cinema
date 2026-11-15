@@ -34,6 +34,25 @@ const TYPES = {
   '.mp4': 'video/mp4',
 };
 
+// ---------- which files the static server hands out ----------
+// Never: the server's own code and data, and folders that stay on this PC (audits, backups, cloud-render state, the QA
+// night's portable OBS with its settings). Checked on the file's real name on disk (case and Windows 8.3 short names:
+// /STANDB~1.JS opened standby-server.js; audit 15 Nov 2026, F5/F8).
+const ROOT_REAL = (() => { try { return fs.realpathSync.native(ROOT); } catch { return ROOT; } })();
+const PRIVATE_FILES = new Set(['standby-server.js', 'dinkdonk.js', 'lan-proxy.js', 'poll-draft.js', 'movie-suggest.js', 'movie-test-list.js']);
+const PRIVATE_DIRS = ['cache', 'audit', 'backup', 'backups', '.git', path.join('roxy3d', 'cloud'), path.join('roxy3d', 'qa-night')]
+  .map((d) => path.join(ROOT_REAL, d).toLowerCase());
+function servable(asked) {
+  let real;
+  try { real = fs.realpathSync.native(asked); } catch { return null; }   // missing: 404
+  const lower = real.toLowerCase();
+  if (!lower.startsWith(ROOT_REAL.toLowerCase() + path.sep)) return null;
+  if (PRIVATE_FILES.has(path.basename(lower))) return null;
+  if (PRIVATE_DIRS.some((d) => lower.startsWith(d + path.sep))) return null;
+  if (path.relative(ROOT_REAL, real).toLowerCase().startsWith('backup-')) return null;   // backup-2026-11-05-…
+  return real;
+}
+
 const cache = new Map(); // key -> { at, type, body }
 
 async function cdnAsset(key) {
@@ -210,7 +229,9 @@ if (room) {
   setInterval(refreshEmoteNames, CACHE_MS).unref();
 }
 roomChat();   // (also without the room: movie suggestions read chat from it)
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { room?.close(); movieSuggest.flush(); process.exit(0); });
+// SIGHUP: the console window was closed (Windows allows a few seconds); SIGBREAK: Ctrl+Break. Before, both lost up to the
+// last 3 s of room changes (audit 15 Nov 2026, F11)
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK']) process.on(sig, () => { room?.close(); movieSuggest.flush(); process.exit(0); });
 
 // Control panel (control.html) <-> the screens: commands go to the selected scene as server-sent events;
 // each screen posts its state (chatters, director) back so the panel can list them. 127.0.0.1 only.
@@ -225,11 +246,28 @@ function readJson(req, limit = 64 * 1024) {
     req.on('error', reject);
   });
 }
+// Requests another website made from the owner's browser: a foreign Origin (fetch), or Sec-Fetch-Site cross-site /
+// same-site, which Chromium (OBS's browser too) also sends for <img>/<script> requests that carry no Origin. Pages of
+// this server send same-origin, a typed address none, other programs neither (audit 15 Nov 2026, F15/N2: an <img>
+// pointing at /ctl/room?obs=1 could take the room lead, one at /dd/search made this server fetch dinkdonk.mov).
+function fromOtherSite(req) {
+  const origin = req.headers.origin;
+  if (origin && origin !== `http://${HOST}:${PORT}` && origin !== `http://localhost:${PORT}`) return true;
+  const site = req.headers['sec-fetch-site'];
+  return !!site && site !== 'same-origin' && site !== 'none';
+}
+// SSE: a screen that stopped reading (half-open connection) would make the server buffer every event for it forever;
+// over 1 MB waiting means it is gone, so it is dropped and reconnects if it is alive (audit 15 Nov 2026, F16)
+function sseWrite(res, text) {
+  if (res.destroyed) return false;
+  if (res.writableLength > 1 << 20) { res.destroy(); return false; }
+  res.write(text);
+  return true;
+}
 async function controlRoute(req, res, pathname) {
   // only the panel and the screens themselves: other websites open in the browser must not drive the stream
   // (a JSON content type forces a CORS preflight, which this server never answers; foreign Origins are refused)
-  const origin = req.headers.origin;
-  if (origin && origin !== `http://${HOST}:${PORT}` && origin !== `http://localhost:${PORT}`) { send(res, 403, 'text/plain', 'Forbidden'); return true; }
+  if (fromOtherSite(req)) { send(res, 403, 'text/plain', 'Forbidden'); return true; }
   if (req.method === 'POST' && !/^application\/json\b/.test(req.headers['content-type'] || '')) { send(res, 415, 'text/plain', 'JSON only'); return true; }
   if (pathname === '/ctl/events' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive' });
@@ -238,8 +276,10 @@ async function controlRoute(req, res, pathname) {
     const page = params.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
     screens.set(res, { page, id: params.get('id') || '' });
     res.write(`data: ${JSON.stringify(settings.message(page))}\n\n`);   // the panel's settings at once (pages ignore unknown cmds)
-    const ping = setInterval(() => res.write(': ping\n\n'), 20000);
-    req.on('close', () => { clearInterval(ping); screens.delete(res); });
+    const ping = setInterval(() => sseWrite(res, ': ping\n\n'), 20000);
+    const gone = () => { clearInterval(ping); screens.delete(res); };
+    req.on('close', gone);
+    res.on('close', gone);
     return true;
   }
   if (pathname === '/ctl/cmd' && req.method === 'POST') {
@@ -257,8 +297,7 @@ async function controlRoute(req, res, pathname) {
     let count = 0;
     for (const [s, target] of screens) {
       if (target.page !== page || (cmd.id && cmd.id !== target.id)) continue;
-      s.write(line);
-      count++;
+      if (sseWrite(s, line)) count++;
     }
     send(res, 200, TYPES['.json'], JSON.stringify({ screens: count }));
     return true;
@@ -280,9 +319,12 @@ async function controlRoute(req, res, pathname) {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive' });
     res.write('retry: 3000\n\n');
     const who = params.has('who') ? params.get('who').replace(/[^A-Za-z0-9_]/g, '').slice(0, 25) || null : undefined;
-    const off = room.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: params.get('obs') === '1', who, caps: String(params.get('caps') || '').split(',').filter((c) => /^[a-z]{1,12}$/.test(c)).slice(0, 8) });
-    const ping = setInterval(() => res.write(': ping\n\n'), 20000);
-    req.on('close', () => { clearInterval(ping); off(); });
+    const off = room.subscribe(page, id, (line) => sseWrite(res, `data: ${line}\n\n`), { obs: params.get('obs') === '1', who, caps: String(params.get('caps') || '').split(',').filter((c) => /^[a-z]{1,12}$/.test(c)).slice(0, 8) });
+    const ping = setInterval(() => sseWrite(res, ': ping\n\n'), 20000);
+    let closed = false;
+    const gone = () => { if (closed) return; closed = true; clearInterval(ping); off(); };
+    req.on('close', gone);
+    res.on('close', gone);
     return true;
   }
   // read-only roster (no subscription, no screen counted): the lobby's fly-through needs who sits where in the auditorium
@@ -325,8 +367,13 @@ function checkPollResults() {
   })().catch((e) => console.error('Poll results:', e.message)).finally(() => { pollResultsBusy = null; });
 }
 
+// DNS rebinding (audit 15 Nov 2026, F15): a web page whose own name was pointed at 127.0.0.1 would reach this server as its
+// own origin, past every Origin check; it still sends its own name as Host, so only our own names are answered. (The LAN
+// proxy rewrites Host to 127.0.0.1:PORT.)
+const OWN_HOSTS = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`]);
 const server = http.createServer(async (req, res) => {
   try {
+    if (!OWN_HOSTS.has(String(req.headers.host || '').toLowerCase())) { send(res, 421, 'text/plain', 'Unknown host name'); return; }
     const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
     if (url.pathname.startsWith('/ctl/') && await controlRoute(req, res, url.pathname)) return;
     // the DinkDonk poll being built: sent by the poll builder's userscript (userscripts/dinkdonk-poll-draft.user.js).
@@ -410,6 +457,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (url.pathname === '/dd/search') {
+      if (fromOtherSite(req)) { send(res, 403, 'text/plain', 'Forbidden'); return; }   // (N2)
       const q = (url.searchParams.get('q') || '').trim().slice(0, 60);
       if (q.length < 2) { send(res, 400, TYPES['.json'], '{"error":"query too short"}'); return; }
       send(res, 200, TYPES['.json'], JSON.stringify(await dinkdonk.search(q)));
@@ -417,12 +465,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
-    const file = path.resolve(ROOT, rel);
-    const type = TYPES[path.extname(file).toLowerCase()];
-    // (case-insensitive: Windows serves /Standby-Server.js for standby-server.js; QA 05 Nov)
-    const lower = file.toLowerCase();
-    if (!file.startsWith(ROOT + path.sep) || !type || ['standby-server.js', 'dinkdonk.js', 'lan-proxy.js', 'poll-draft.js', 'movie-suggest.js', 'movie-test-list.js'].includes(path.basename(lower)) ||
-        lower.startsWith(path.join(ROOT, 'cache').toLowerCase())) {
+    const asked = path.resolve(ROOT, rel);
+    const file = asked.startsWith(ROOT + path.sep) ? servable(asked) : null;
+    const type = file && TYPES[path.extname(file).toLowerCase()];
+    if (!file || !type) {
       send(res, 404, 'text/plain', 'Not found');
       return;
     }

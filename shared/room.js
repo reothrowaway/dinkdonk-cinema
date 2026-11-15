@@ -127,6 +127,17 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     if (!file || saveTimer) return;
     saveTimer = setTimeout(save, 3000);
   }
+  // Windows: a virus scanner or the search indexer can hold the file for a moment, so the rename fails with EPERM/EBUSY
+  // (seen on the live server, 15 Nov 2026); a few quick retries (at most 250 ms) get past it, also for the last save
+  // when the server stops
+  function renameRetry(from, to) {
+    for (let i = 0; ; i++) {
+      try { fs.renameSync(from, to); return; } catch (e) {
+        if (i >= 4 || !['EPERM', 'EBUSY', 'EACCES'].includes(e.code)) throw e;
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (i + 1));
+      }
+    }
+  }
   function save() {
     clearTimeout(saveTimer);
     saveTimer = null;
@@ -135,8 +146,13 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     try {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(`${file}.tmp`, JSON.stringify(state));
-      fs.renameSync(`${file}.tmp`, file);
-    } catch (e) { log(`room: save failed: ${e.message}`); }
+      renameRetry(`${file}.tmp`, file);
+    } catch (e) {
+      // (audit 15 Nov 2026, F11) still unsaved: try again in 10 s instead of waiting for the next change
+      dirty = true;
+      log(`room: save failed: ${e.message} (trying again in 10 s)`);
+      saveTimer = setTimeout(save, 10000);
+    }
   }
   function load() {
     if (!file) return;
@@ -189,10 +205,13 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     if (who !== undefined && !state.settings.fromPanel && (obs || !subs.lobby.size && !subs.auditorium.size)) {
       if (state.settings.tag !== who) { state.settings.tag = who; changed(); log(`room: who walks in: ${who ? `tags ${who}` : 'everyone'}`); }
     }
-    subs[page].set(id, { send, obs, since: Date.now(), caps: new Set(caps) });
+    const sub = { send, obs, since: Date.now(), caps: new Set(caps) };
+    subs[page].set(id, sub);
     send(JSON.stringify(snapshot(page)));
     electLead(page);   // after the snapshot: a new leader hears about it in a 'lead' event
-    return () => { subs[page].delete(id); electLead(page); };
+    // only this connection's own entry: the same screen id reconnecting before its old connection had closed lost the new
+    // one when the old one finally closed (audit 15 Nov 2026, F7)
+    return () => { if (subs[page].get(id) !== sub) return; subs[page].delete(id); electLead(page); };
   }
 
   // ---------- who walks in ----------

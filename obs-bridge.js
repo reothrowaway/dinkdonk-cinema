@@ -59,7 +59,8 @@ function obsConnect() {
   try { ws = new WebSocket(OBS_URL, 'obswebsocket.json'); } catch (e) { log('OBS:', e.message); return setTimeout(obsConnect, 3000); }
   obs.ws = ws;
   ws.onmessage = (ev) => {
-    const m = JSON.parse(ev.data);
+    let m;
+    try { m = JSON.parse(ev.data); } catch { log('OBS sent a message that is not JSON: ignored'); return; }   // (audit 15 Nov 2026, F13)
     if (m.op === 0) {   // Hello
       const a = m.d.authentication;
       const identify = { rpcVersion: 1, eventSubscriptions: 2 };   // Config: scene collection switches
@@ -92,11 +93,17 @@ function obsConnect() {
   ws.onerror = () => {};
 }
 
+// (audit 15 Nov 2026, F13) a request OBS never answers fails after 10 s instead of holding its caller (and pump()) for good
+const OBS_TIMEOUT_MS = 10000;
 function request(requestType, requestData = {}) {
   return new Promise((resolve, reject) => {
     if (!obs.ws || obs.ws.readyState !== WebSocket.OPEN) return reject(new Error('OBS not connected'));
     const requestId = String(++obs.seq);
-    obs.pending.set(requestId, { resolve, reject });
+    const timer = setTimeout(() => {
+      if (obs.pending.delete(requestId)) reject(new Error(`${requestType}: no answer from OBS in ${OBS_TIMEOUT_MS / 1000} s`));
+    }, OBS_TIMEOUT_MS);
+    const done = (fn) => (v) => { clearTimeout(timer); fn(v); };
+    obs.pending.set(requestId, { resolve: done(resolve), reject: done(reject) });
     obs.ws.send(JSON.stringify({ op: 6, d: { requestType, requestId, requestData } }));
   });
 }
@@ -159,16 +166,36 @@ async function setLayer(under) {
   if (isUnder !== under) await request('SetSceneItemIndex', { sceneName: SCENE, sceneItemId: film.sceneItemId, sceneItemIndex: aud.sceneItemIndex });
   return { film: under ? 'under the auditorium' : 'over the auditorium', moved: isUnder !== under };
 }
+// One hard cut to a scene: the transition is a Cut for this one switch and is put back 1.5 s later. A second cut inside
+// those 1.5 s (a double Fly, audit 15 Nov 2026, F1) read our own "Cut" as the current transition and put Cut back for
+// good; the real one is now kept in cutBack until it has been restored. A failed switch still puts it back.
+let cutBack = null, cutBackTimer = 0, cutAfter = [];
+async function transitionToRestore() {
+  return cutBack || (await request('GetCurrentSceneTransition')).transitionName;
+}
+async function hardCut(sceneName, after) {
+  const back = await transitionToRestore();
+  cutBack = back;
+  if (after) cutAfter.push(after);
+  try {
+    try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message}): using ${back}`); }
+    await request('SetCurrentProgramScene', { sceneName });
+  } finally {
+    clearTimeout(cutBackTimer);
+    cutBackTimer = setTimeout(async () => {
+      const to = cutBack, fns = cutAfter;
+      cutBack = null;
+      cutAfter = [];
+      try { await request('SetCurrentSceneTransition', { transitionName: to }); } catch (e) { log(`restore after the cut failed: ${e.message}`); }
+      for (const fn of fns) { try { await fn(); } catch (e) { log(`after the cut: ${e.message}`); } }
+    }, 1500);
+  }
+}
 // T1's end (Brief 102): one hard cut to the fullscreen film scene; T1's last frame shows the film filling the frame
 async function cutToFilm(dry) {
-  const { transitionName } = await request('GetCurrentSceneTransition');
-  const plan = { scene: FILM_SCENE, transition: transitionName };
+  const plan = { scene: FILM_SCENE, transition: await transitionToRestore() };
   if (dry) return { dry: true, ...plan };
-  try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message}): using ${transitionName}`); }
-  await request('SetCurrentProgramScene', { sceneName: FILM_SCENE });
-  setTimeout(async () => {
-    try { await request('SetCurrentSceneTransition', { transitionName }); } catch (e) { log(`restore after the cut failed: ${e.message}`); }
-  }, 1500);
+  await hardCut(FILM_SCENE);
   return plan;
 }
 // page -> bridge shot requests (driver page only), answered on the same socket
@@ -205,18 +232,13 @@ const ownAddresses = () => new Set(['127.0.0.1', '::1', ...Object.values(os.netw
 async function cutToCinema(dry) {
   const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
   const aud = items.find((i) => i.inputKind === 'browser_source');
-  const { transitionName } = await request('GetCurrentSceneTransition');
+  const transitionName = await transitionToRestore();
   const prev = aud ? (await request('GetInputSettings', { inputName: aud.sourceName })).inputSettings || {} : {};
   const refreshOn = !!prev.restart_when_active;
   const plan = { scene: SCENE, auditorium: aud?.sourceName || null, transition: transitionName, refreshOn };
   if (dry) return { dry: true, ...plan };
   if (refreshOn) log(`warning: "${aud.sourceName}" has "Refresh browser when scene becomes active" on: it reloads at the cut`);
-  try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message}): using ${transitionName}`); }
-  await request('SetCurrentProgramScene', { sceneName: SCENE });
-  setTimeout(async () => {
-    try { await request('SetCurrentSceneTransition', { transitionName }); } catch (e) { log(`restore after the cut failed: ${e.message}`); }
-    unwarm('after the cut');
-  }, 1500);
+  await hardCut(SCENE, () => unwarm('after the cut'));
   return plan;
 }
 
@@ -226,7 +248,15 @@ async function cutToCinema(dry) {
 // during the ~50 s flight. The item is removed after the cut (or after 2 min): no lasting scene change, no extra GPU.
 let warm = null;
 let warmTimer = 0;
-async function warmCinema() {
+// (audit 15 Nov 2026, F1) warm is set only after a few awaited requests: a second request in that gap (a double Fly)
+// added the auditorium twice, and the first copy stayed off-canvas in the lobby scene. A request during the set-up now
+// shares the first one's answer.
+let warming = null;
+function warmCinema() {
+  if (!warming) warming = warmCinemaNow().finally(() => { warming = null; });
+  return warming;
+}
+async function warmCinemaNow() {
   if (warm) return { already: true };
   const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
   const aud = items.find((i) => i.inputKind === 'browser_source');
@@ -317,7 +347,10 @@ server.on('upgrade', (req, socket) => {
   // only pages on this PC (OBS's own browser source): a phone on the LAN must not switch the film on and off
   const from = (socket.remoteAddress || '').replace(/^::ffff:/, '');
   const key = req.headers['sec-websocket-key'];
-  if (!ownAddresses().has(from) || !key) { socket.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
+  // ... and only the standby pages: any other web page open on this PC could connect, become the driver and cut the
+  // stream's scene (audit 15 Nov 2026, F4). Browsers always send Origin; the same rule as the HTTP routes (cutRoute).
+  const origin = req.headers.origin || '';
+  if (!ownAddresses().has(from) || !key || (origin && !LOCAL_PAGE.test(origin))) { socket.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
   const accept = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
   socket.setNoDelay(true);

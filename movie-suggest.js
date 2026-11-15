@@ -124,19 +124,31 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
   try {
     const disk = file && JSON.parse(fs.readFileSync(file, 'utf8'));
     if (disk && Array.isArray(disk.items)) state = { ...state, ...disk };
-  } catch { /* nothing saved yet */ }
+  } catch (e) {
+    // a damaged file is kept as .bad instead of being overwritten by an empty round without a word (audit 15 Nov 2026, F11)
+    if (file && e.code !== 'ENOENT') {
+      try { fs.copyFileSync(file, `${file}.bad`); } catch { /* ignore */ }
+      log(`Movie suggestions: ${path.basename(file)} could not be read (${e.message}); kept as ${path.basename(file)}.bad, starting empty`);
+    }
+  }
   let rev = 1;
   let saveTimer = null;
+  // written to a temp file and renamed over: a crash halfway through the write can't leave half a file (F11)
+  function writeFile() {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(`${file}.tmp`, JSON.stringify(state));
+    fs.renameSync(`${file}.tmp`, file);
+  }
   function save() {
     rev++;
     if (!file || saveTimer) return;
     saveTimer = setTimeout(() => {
       saveTimer = null;
-      try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(state)); } catch (e) { log(`Movie suggestions: ${e.message}`); }
+      try { writeFile(); } catch (e) { log(`Movie suggestions: ${e.message}`); }
     }, 300);
     saveTimer.unref?.();
   }
-  function flush() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; } if (file) try { fs.writeFileSync(file, JSON.stringify(state)); } catch { /* ignore */ } }
+  function flush() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; } if (file) try { writeFile(); } catch { /* ignore */ } }
 
   // ---------- settings ----------
   function setting(k) {

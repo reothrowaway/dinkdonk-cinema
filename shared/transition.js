@@ -1073,8 +1073,11 @@
   let repeatTimer = 0;
   // ---------- cut mode (control panel 'fly'): auditorium wide, picture aligned to the cinema scene, OBS cut ----------
   let cutMode = false, cutSent = false, wideSent = false, cutOk = null;
-  const BRIDGE = 'http://127.0.0.1:18790/cut-to-cinema';
-  const WARM = 'http://127.0.0.1:18790/warm-cinema';   // queue 55: OBS loads the auditorium during the flight
+  // ?flybridge=<host:port>: obs-bridge.js somewhere else (default this PC's :18790). Not ?bridge=, which is the street
+  // board in the lobby (audit 15 Nov 2026, F9); the hosted edition's shim answers the default address.
+  const FLYBRIDGE = /^[\w.-]+:\d{2,5}$/.test(q.get('flybridge') || '') ? q.get('flybridge') : '127.0.0.1:18790';
+  const BRIDGE = `http://${FLYBRIDGE}/cut-to-cinema`;
+  const WARM = `http://${FLYBRIDGE}/warm-cinema`;   // queue 55: OBS loads the auditorium during the flight
   const inObs = () => !!window.obsstudio || q.get('flycut') === '1';
   function auditoriumWide() {
     fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1110,8 +1113,15 @@
     }, cutMode && cutOk === false ? Math.max(HOLD, 20000) : HOLD);
   }
 
+  // set before the first await: a second 'fly' during the ~1.5 s set-up below started a second flight (two atlases, two
+  // frame loops, two OBS warm-ups and cuts; audit 15 Nov 2026, F1)
+  let preparing = false;
   async function play(opts = {}) {
-    if (playing) return;
+    if (playing || preparing) return;
+    preparing = true;
+    try { await startFlight(opts); } finally { preparing = false; }
+  }
+  async function startFlight(opts) {
     clearTimeout(repeatTimer);
     cutMode = !!opts.cut; cutSent = false; wideSent = false; cutOk = null;
     if (cutMode) {

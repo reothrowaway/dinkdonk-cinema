@@ -13,7 +13,11 @@ const ORIGIN = 'https://dinkdonk.mov';
 const UA = 'Mozilla/5.0 (compatible; dgg-obs-standby; +local)';
 const REFRESH_MS = 5 * 60 * 1000;
 const HISTORY_PAGES = 8;          // 25 entries each
-const CACHE_FILE = path.join(__dirname, 'cache', 'dinkdonk.json');
+// DINKDONK_CACHE: the hosted edition keeps the cache in its data folder. Else cache/, where a test server on another port
+// (STANDBY_PORT=18771 …) keeps its own file, as poll-draft.js does, so it never rewrites the live server's copy (audit
+// 15 Nov 2026, F12)
+const SERVER_PORT = Number(process.env.STANDBY_PORT || 18770);
+const CACHE_FILE = process.env.DINKDONK_CACHE || path.join(__dirname, 'cache', SERVER_PORT === 18770 ? 'dinkdonk.json' : `dinkdonk-${SERVER_PORT}.json`);
 const SITE_TZ = 'America/New_York';
 
 // ---------- html helpers ----------
@@ -273,15 +277,21 @@ async function pollResults(id) {
 
 // "Have we watched X?" for the !watched chat command.
 const searches = new Map();
-async function search(q) {
+const searching = new Map();   // in flight: the same query asked again meanwhile shares the one fetch (audit 15 Nov 2026, F14)
+function search(q) {
   const key = q.toLowerCase();
   const hit = searches.get(key);
-  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.result;
-  const rows = parseHistory(await get(`/api/page/history?search=${encodeURIComponent(q)}`));
-  const result = { q, more: rows.length >= 25, entries: rows };
-  searches.set(key, { at: Date.now(), result });
-  if (searches.size > 200) searches.delete(searches.keys().next().value);
-  return result;
+  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return Promise.resolve(hit.result);
+  if (searching.has(key)) return searching.get(key);
+  const p = (async () => {
+    const rows = parseHistory(await get(`/api/page/history?search=${encodeURIComponent(q)}`));
+    const result = { q, more: rows.length >= 25, entries: rows };
+    searches.set(key, { at: Date.now(), result });
+    if (searches.size > 200) searches.delete(searches.keys().next().value);
+    return result;
+  })().finally(() => searching.delete(key));
+  searching.set(key, p);
+  return p;
 }
 
 module.exports = { data, search, pollResults, _parse: { parseHistory, parseRatingCards, parseRatingDetail, parsePollCards, parsePollDetail, parseSchedule } };

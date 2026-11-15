@@ -239,7 +239,9 @@
   { const k = new URLSearchParams(location.search).get('k'); if (k) $('pollscript').href = `/dd/poll-script.user.js?k=${encodeURIComponent(k)}`; }
   $('pollclose').onclick = () => send({ cmd: 'pollscreen', on: false, page: 'lobby' }).then(refreshPoll);
   $('pollzoom').onclick = () => send({ cmd: 'pollzoom', page: 'lobby' });
-  $('fly').onclick = () => send({ cmd: 'fly', page: 'lobby' });
+  // one Fly per 3 s: a double click started two fly-throughs (audit 15 Nov 2026, F1; the lobby ignores a second one too)
+  let flyAt = 0;
+  $('fly').onclick = () => { if (Date.now() - flyAt < 3000) return; flyAt = Date.now(); send({ cmd: 'fly', page: 'lobby' }); };
   // Cut to cinema (perf 9 Nov): a hidden OBS browser source is paused and drops its rendered picture, so a plain cut
   // to it froze ~0.45 s with a full house; shown off-canvas for a few seconds first (the bridge's warm-up, as the
   // fly-through does) the cut is clean (~50 ms). Both requests go to obs-bridge.js on this PC.
@@ -313,7 +315,8 @@
     } catch { $('roomcard').hidden = true; return; }   // an older server: no shared room
     $('roomcard').hidden = false;
     const a = r.auditorium;
-    $('roomstate').textContent = `Lobby: ${r.lobby.people} people · Auditorium: ${a.seated}/${a.seats} seated, ${a.waiting} waiting outside`
+    // (audit 15 Nov 2026, F17) the front row stays empty unless Yee come (owner's rule): said here, so "waiting" next to free seats reads right
+    $('roomstate').textContent = `Lobby: ${r.lobby.people} people · Auditorium: ${a.seated}/${a.seats} seated (front row: Yee only) · ${a.waiting} waiting outside`
       + ` · walk in: ${r.tag ? `chatters who tag ${r.tag}` : 'everyone who chats'}${r.fromPanel ? '' : ' (from the screen links; Set overrides them)'}`
       + ` · ${r.lobby.screens + a.screens} screen${r.lobby.screens + a.screens === 1 ? '' : 's'} on the room. The room keeps filling with no screen open.`;
     if (!whoEdited) { $('who').value = r.tag ? 'tag' : 'everyone'; $('whonick').value = r.tag || ''; $('whonick').hidden = !r.tag; }

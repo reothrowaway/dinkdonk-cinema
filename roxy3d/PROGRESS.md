@@ -3161,3 +3161,17 @@ New standalone prop on the owner's request ("small recirculating water fountain 
 - 15 Nov 2026 (Claude, owner list): movie-suggest defaults = owner panel values (cap 20, min score 30%, watched 120 d, runtime/films-only/window off); TV allowed when Films only is off (userscript 0.5 searches tv after movie, whole series); exact-title match preferred (Toy Story was Toy Story 5); test feed (movie-test-list.js, 170 films; testFeed/testEvery settings) swaps 1 in N real chat messages for a suggestion, movie-suggest only; lobby setting pollzoomx (Poll screen zoom, shared/settings.js) + lobby-qa pollZoom cap 4 -> 10. 18770 restarted; test feed on, dry run off: films reach the builder and /dd/draft.
 - 15 Nov 2026 (Claude, owner): lobby-qa poll screen shows at most 6 posters; more = one row of 6 scrolling one poster every 3.5 s (a new film jumps the row to show it; results show the best 6 standing). Chat command is now !rqmovie (movie-suggest setting cmd, lobby hint follows it). 18770 restarted.
 - 15 Nov 2026 (Claude, owner: "make this live"): movie suggestions promoted QA -> live (lobby.html, control.html; backups/promote-movie-15nov/), pushed e1a69e9, package/build.js ships movie-suggest.js + movie-test-list.js, zip rebuilt and smoke-tested on 18773, hosted deployed and checked by SHA-256. OBS lobby source needs a refresh to load the new lobby.html.
+
+- 15 Nov 2026 (Claude, owner: "Fix all" after the QA + perf audit, audit/2026-11-15/REPORT.md): fixed F1 (a double
+  Fly started two fly-throughs: transition.js/-qa sets a flag before its first await, the panel takes one Fly per 3 s,
+  obs-bridge.js/-qa shares one warm-up and never restores its own "Cut" as the transition), F4 (bridge WebSocket checks
+  Origin), F2/F3/F14 (lan-proxy checks the normalized path, refuses non-chat upgrades, /ms/* work routes and
+  /dd/search), F5/F8 (server refuses audit/, backup*/, roxy3d/cloud/, roxy3d/qa-night/, .git/ and checks real file
+  names, so 8.3 short names fail), F7 (same screen id twice keeps the new connection), F9 (?flybridge=), F11 (room save
+  retries, SIGHUP/SIGBREAK flush, movie-suggest temp+rename and .bad copy), F12 (test servers write
+  cache/dinkdonk-<port>.json; dinkdonk.js reads DINKDONK_CACHE itself, web/build.js no longer patches it), F13 (OBS
+  request timeout 10 s, bad JSON ignored), F15/N2 (Host check, Sec-Fetch-Site/Origin on /ctl and /dd/search), F16 (SSE
+  drops a client with >1 MB waiting), F17 (panel: "front row: Yee only"), N1 (aud-shots/-qa undo a failed prepare). F6
+  (Yee look vs Yee seat) waits for the owner's choice; F10 is by design. Checked with scratch tests (stand-in OBS for
+  the bridge, proxy and server checks, double Fly on lobby-qa and lobby on 18771, unit checks for saving); the old
+  bridge/proxy fail the same tests.

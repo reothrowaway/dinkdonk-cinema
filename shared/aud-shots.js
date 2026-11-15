@@ -242,7 +242,17 @@
       console.log('[shots] ready:', SHOTS.map((s) => `${s} ${meta[s].frames} frames`).join(', '));
       return true;
     })();
-    prepP.catch((e) => { console.error('[shots] prepare failed', e); prepP = null; });
+    prepP.catch((e) => {
+      console.error('[shots] prepare failed', e);
+      prepP = null;
+      // undo this attempt (audit 15 Nov 2026, N1): with the pack unreachable every retry (each 3 s during the film) left a
+      // canvas, a WebGL context and the videos behind; past ~16 live contexts Chrome drops the oldest, the room's own
+      for (const s of SHOTS) { videos[s]?.remove(); delete videos[s]; }
+      gl?.getExtension('WEBGL_lose_context')?.loseContext();
+      canvas?.remove();
+      canvas = null;
+      gl = null;
+    });
     return prepP;
   }
   const stageScale = () => { const r = document.getElementById('stage').getBoundingClientRect(); return r.width / 1920 || 1; };
@@ -805,7 +815,7 @@
     cancelAnimationFrame(holdRaf);
     clearInterval(holdTimer);
     clearInterval(filmTimer);
-    for (const s of SHOTS) { videos[s].pause(); videos[s].style.display = 'none'; }
+    for (const s of SHOTS) { if (videos[s]) { videos[s].pause(); videos[s].style.display = 'none'; } }   // (none after a failed prepare)
     if (canvas) canvas.style.display = 'none';
     lastQuadKey = '';
     state = 'idle'; note = ''; cur = null; curFrame = 0;

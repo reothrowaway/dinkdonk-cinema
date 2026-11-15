@@ -37,3 +37,6 @@ __pycache__/
 !/roxy3d/cloud/brief57/
 /roxy3d/cloud/brief57/local-cache/
 /roxy3d/cloud/brief57/upload/bundle/out10/
+
+# QA/perf audit reports and logs (real chatters' names, local paths): local only, never served (audit 15 Nov 2026)
+audit/
