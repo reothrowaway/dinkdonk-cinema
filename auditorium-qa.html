@@ -831,6 +831,7 @@
   let door = null;              // the entrance door's one-shot animation sheet
   let doorShot = null;          // { el, dim, t } while both sheets play in sync
   let DOOR_WAIT = 0.3;          // seconds a newcomer waits outside while the door swings open
+  let DOOR_V = 14.868;          // the door's plane (layout spawn.door_plane_v): crossing it opens the door
 
   function playDoor() {
     if (!door) return;
@@ -1608,23 +1609,22 @@
     const duty = dutyActive();
     if (j.auto && !j.spoke && !duty) { janLeave(j); return; }   // a duty mod who never spoke goes when the duty ends
     if (!duty && performance.now() - j.lastMsg > JAN_IDLE) { janLeave(j); return; }
-    // on duty: the spots around the screen that the zoomed Film shot keeps in frame; else the whole front floor
-    const spots = duty ? screenSpots().map(([u, v], i) => ({ id: `d${i}`, u, v, ju: 0.15, jv: 0.1 }))
-      : JAN_U.map((u, i) => ({ id: `f${i}`, u, v: JAN_V, ju: 0.3, jv: 0.25 }));
+    // the panel's Janny area (auto: around the screen while a show mode is on, else the front floor)
+    const spots = janSpots(janArea());
     const taken = new Set([...jannies.values()].filter((o) => o !== j && !o.leaving).map((o) => o.spot));
     const free = spots.filter((p) => p.id !== j.spot && !taken.has(p.id));
     const pick = free.length ? free[Math.floor(Math.random() * free.length)] : spots.find((p) => p.id === j.spot) || spots[0];
-    const next = pick.id;
-    const z = rows[0]?.z ?? 24;
-    const at = [pick.u + rand(-pick.ju, pick.ju), pick.v + rand(-pick.jv, pick.jv), z];
-    const path = [[...j.pos]];
-    if (j.spot == null) path.push([3.475, 2.9, z], [3.475, JAN_V, z]);   // first time: down from the cross-aisle
-    path.push(at);
-    j.spot = next;
+    const at = [pick.u + rand(-pick.ju, pick.ju), pick.v + rand(-pick.jv, pick.jv), pick.z];
+    const fromJ = janFromJ(pick, at);
+    // along the front floor directly; anywhere else through the cross-aisle (no walking through seats or walls)
+    const path = j.spot != null && j.zone === 'front' && pick.zone === 'front' && j.pos[1] < janCrossV() - 0.5
+      ? [[...j.pos], at] : [[...j.pos], ...janToJ(j), ...fromJ];
+    j.back = [...fromJ].reverse().slice(1).concat([[...L.walk_route.rear_portal_to_cross_aisle.at(-1)]]);   // from the spot to the cross-aisle
+    j.backFrom = at;
+    j.zone = pick.zone;
+    j.spot = pick.id;
     j.mopUntil = 0;
-    j.path = path;
-    j.seg = 0;
-    j.t = 0;
+    go(j, path, null);
     j.onArrive = (x) => { x.mopUntil = performance.now() + rand(10, 18) * 1000; SB.faceEmote(x.em, x.emName, Math.random() < 0.5 ? 1 : -1); };
   }
   // ---------- jannies on screen duty (owner, 15 Nov 2026) ----------
@@ -1666,6 +1666,42 @@
     dutySpots = picked.length ? picked : [[JAN_U[2], JAN_V]];
     return dutySpots;
   }
+  // ---------- Janny area (owner, 15 Nov 2026: "an option that shows and allows to select where the mopping emotes
+  // are restricted to") ----------
+  // auto: around the screen while a show mode is on (dutyActive), else the front floor; screen: always around the
+  // screen; front: the front floor; all: the whole cinema (front floor, cross-aisle, the rows' legroom, the corridor).
+  let JAN_AREA = ['auto', 'screen', 'front', 'all'].includes(q.get('janarea')) ? q.get('janarea') : 'auto';
+  const janArea = () => (JAN_AREA === 'auto' ? (dutyActive() ? 'screen' : 'front') : JAN_AREA);
+  const janCrossV = () => L.walk_route.rear_portal_to_cross_aisle.at(-1)[1];
+  function janSpots(area) {
+    const zf = rows[0]?.z ?? 24;
+    const front = JAN_U.map((u, i) => ({ id: `f${i}`, zone: 'front', u, v: JAN_V, z: zf, ju: 0.3, jv: 0.25 }));
+    if (area === 'screen') return screenSpots().map(([u, v], i) => ({ id: `d${i}`, zone: 'front', u, v, z: zf, ju: 0.15, jv: 0.1 }));
+    if (area !== 'all') return front;
+    const out = [...front];
+    for (const u of [6.2, 9.4, 12.6]) out.push({ id: `c${u}`, zone: 'cross', u, v: janCrossV(), z: 24, ju: 0.3, jv: 0 });
+    for (const i of [2, 4, 6]) if (rows[i]) for (const u of [5.2, 10.6]) out.push({ id: `r${i}-${u}`, zone: 'row', row: rows[i], u, v: rows[i].v - LEG_DV, z: rows[i].z, ju: 0.3, jv: 0 });
+    if (CORRIDOR.length) for (const v of [16.4, 17.8, 19.2]) out.push({ id: `h${v}`, zone: 'hall', u: CORRIDOR[0][0], v, z: CORRIDOR[0][2], ju: 0, jv: 0.4 });
+    return out;
+  }
+  // the points after the cross-aisle junction (the entrance route's end) to the spot, ending at it
+  function janFromJ(p, at) {
+    const zf = rows[0]?.z ?? 24;
+    if (p.zone === 'front') return [[3.475, 2.9, zf], [3.475, JAN_V, zf], at];
+    if (p.zone === 'cross') return [at];
+    if (p.zone === 'row') return aisleTo(p.row, 'main', at[0]);
+    const inward = [...L.walk_route.rear_portal_to_cross_aisle].reverse().slice(1).map((x) => [...x]);   // to the door
+    return [...inward, ...CORRIDOR.map((x) => [...x]).reverse().filter((x) => x[1] < at[1] - 0.05), at];
+  }
+  // from where a janny is to the cross-aisle junction (not including where they stand)
+  function janToJ(j) {
+    const Jp = L.walk_route.rear_portal_to_cross_aisle.at(-1);
+    if (Math.hypot(j.pos[0] - Jp[0], j.pos[1] - Jp[1]) < 0.6) return [];
+    if (j.back && j.backFrom && Math.hypot(j.pos[0] - j.backFrom[0], j.pos[1] - j.backFrom[1]) < 0.8) return j.back.map((x) => [...x]);
+    const zf = rows[0]?.z ?? 24;
+    if (j.pos[1] < janCrossV() - 0.5) return [[3.475, j.pos[1], zf], [3.475, 2.9, zf], [...Jp]];
+    return [[...Jp]];
+  }
   function spawnDutyMods(n) {
     const busy = new Set([...walkers.keys()]);
     let pool = [...seenMods.values()].filter((nick) => !busy.has(nick.toLowerCase()));
@@ -1680,7 +1716,7 @@
       nameStyle(j, m);
     }
   }
-  let dutyWas = false, dutyCheck = 0;
+  let dutyWas = false, dutyCheck = 0, areaWas = '';
   function stepDuty(now) {
     if (now < dutyCheck) return;
     dutyCheck = now + 1000;
@@ -1691,7 +1727,12 @@
       w.pendingSeat = null;
       if (s !== w.seat && !s.taken) moveSeat(w, s);
     }
-    const on = dutyActive();
+    const on = dutyActive(), area = janArea();
+    if (area !== areaWas) {   // the area changed (the panel, or auto following the show): mopping jannies move now
+      areaWas = area;
+      dutySpotsFor = null;
+      for (const j of [...jannies.values()]) if (!j.leaving && j.mopUntil && !j.task && !j.queued) janNext(j);
+    }
     if (on !== dutyWas) {
       dutyWas = on;
       dutySpotsFor = null;   // the screen's framing is read again
@@ -1704,14 +1745,9 @@
   function janLeave(j) {
     j.leaving = true;
     j.mopUntil = 0;
-    const z = rows[0]?.z ?? 24;
-    // down the aisle to the front first only from the rows: from the cross aisle that was a detour down and back up
-    const crossV = L.walk_route.rear_portal_to_cross_aisle.at(-1)[1];
-    const down = j.pos[1] < crossV - 0.5 ? [[3.475, j.pos[1], z], [3.475, 2.9, z]] : [];
-    j.path = [[...j.pos], ...down, ...[...L.walk_route.rear_portal_to_cross_aisle].reverse().map((p) => [...p])];
-    j.seg = 0;
-    j.t = 0;
-    j.onArrive = (x) => removeWalker(x);
+    // from wherever they mop to the cross-aisle (janToJ), then out the way they came; from the hallway straight up it
+    const out = j.pos[1] > DOOR_V ? [[...j.pos]] : [[...j.pos], ...janToJ(j), ...[...L.walk_route.rear_portal_to_cross_aisle].reverse().slice(1).map((p) => [...p])];
+    goOut(j, out, (x) => removeWalker(x));
   }
   // the lobby's floating text, in world space (it zooms with the camera, like the names)
   function floatAt(w, text, color, size) {
@@ -1771,7 +1807,24 @@
     if (r) crowdReact(r[1]);
   });
   window.__crowdReact = crowdReact;   // test hook (otherwise it only fires on real chat combos)
-  function go(w, path, next) { w.path = path; w.seg = 0; w.t = 0; w.onArrive = next; }
+  // the entrance door swings for anyone whose path goes through it (point index where they wait for it; arrivals set
+  // theirs in enterVia; a path that starts in the doorway leaves it to the caller)
+  function doorIndex(path) {
+    for (let i = 1; i < path.length - 1; i++) {
+      const a = path[i], b = path[i + 1];
+      if ((a[1] < DOOR_V) !== (b[1] < DOOR_V) && a[0] < 2.9 && b[0] < 2.9) return i;
+    }
+    return null;
+  }
+  function go(w, path, next) { w.path = path; w.seg = 0; w.t = 0; w.onArrive = next; w.doorAt = doorIndex(path); }
+  // leaving: out through the door and up the entrance corridor to its far end, where they fade out (owner, 15 Nov:
+  // they vanished at the door). A path that ends outside the door goes on up the corridor.
+  function outVia(path) {
+    if (!CORRIDOR.length || !path.length || path.at(-1)[1] < DOOR_V) return path;
+    const v = path.at(-1)[1];
+    return [...path, ...CORRIDOR.map((x) => [...x]).reverse().filter((x) => x[1] > v + 0.05)];
+  }
+  function goOut(w, path, next) { go(w, outVia(path), next); w.exiting = true; }
   function hold(w, secs, next) { go(w, [[...w.pos], [...w.pos]], next); w.wait = secs; }
   // from the cross-aisle, up the stair aisle of that block (the right one for the right edge block) to the row's
   // legroom, then along it to u - the same way chatters go to their seats (routeTo)
@@ -1797,8 +1850,8 @@
   function visitPath(s, t) {
     const row = t.seat.row, u = besideU(t);
     const crossV = L.walk_route.rear_portal_to_cross_aisle.at(-1)[1];
-    if (s.jan && row === rows[0] && s.pos[1] < crossV - 0.5) return [[...s.pos], [u, row.v - LEG_DV, row.z]];
-    const pre = s.jan ? [[...s.pos], [3.475, s.pos[1], 24], [3.475, crossV, 24]] : [[...s.pos]];
+    if (s.jan && row === rows[0] && s.zone !== 'row' && s.pos[1] < crossV - 0.5) return [[...s.pos], [u, row.v - LEG_DV, row.z]];
+    const pre = s.jan ? [[...s.pos], ...janToJ(s)] : [[...s.pos]];
     return [...pre, ...aisleTo(row, t.seat.block, u)];
   }
   // (on screen duty they stay at the screen: the usher shushes instead; a mod's ban escort still takes them)
@@ -1967,7 +2020,7 @@
     t.pos = [seat.u, seat.v - LEG_DV, seat.z];
     placeItem(t);
     const exit = routeTo(seat).reverse();
-    go(t, exit, removeWalker);
+    goOut(t, exit, removeWalker);
     return exit;
   }
 
@@ -2013,7 +2066,7 @@
   const crewDone = (w) => { crewSet.delete(w); removeWalker(w); };
   function crewOut(w) {
     const portal = L.walk_route.rear_portal_to_cross_aisle.map((x) => [...x]).reverse();
-    go(w, [[...w.pos], ...portal], crewDone);
+    goOut(w, [[...w.pos], ...portal], crewDone);
   }
   // staff figure: never sits (leaving), no name, comes in through the entrance like everyone
   function crewWalker(id, emote, { mop = false, cap = false, pace = 1 } = {}) {
@@ -2254,7 +2307,7 @@
     w.spot = null;
     if (w.queued) { w.queued.shushBy = null; w.queued = null; }
     if (w.spotQ) { w.spotQ.spotBy = null; w.spotQ = null; }
-    go(w, [[...w.pos], ...[...L.walk_route.rear_portal_to_cross_aisle].reverse().map((p) => [...p])], removeWalker);
+    goOut(w, [[...w.pos], ...[...L.walk_route.rear_portal_to_cross_aisle].reverse().map((p) => [...p])], removeWalker);
   }
   function stepUsher(now) {
     if (!L) return;
@@ -2677,7 +2730,9 @@
     if (!w.seen && !inTunnel) { w.nameT = 5; if (w.jan && !w.leaving && !w.onDuty) { w.onDuty = true; floatAt(w, '🧹 janny on duty', '#7ff7f0'); }
       if (w.goldSay) { w.goldSay = false; floatAt(w, w.rare === 'purple' ? '✨ PURPLE CABGE' : `✨ GOLDEN ${w.emName === 'glorp' ? 'GLORP' : 'WEOW'}`, w.rare === 'purple' ? '#d9a8ff' : '#ffd75a', 22); } }
     w.seen = !inTunnel;
-    w.alpha += ((w.seen || layers ? 1 : 0) - w.alpha) * Math.min(1, dt * 8);
+    // (someone leaving fades out over the last 2.5 m of the corridor)
+    const farK = w.exiting && CORRIDOR.length && v > CORRIDOR[0][1] - 2.5 ? Math.max(0, (CORRIDOR[0][1] - v) / 2.5) : 1;
+    w.alpha += ((w.seen || layers ? farK : 0) - w.alpha) * Math.min(1, dt * 8);
     // saved messages come out one by one while they can be seen
     w.sayNext = (w.sayNext || 0) - dt;
     if (w.pending.length && w.seen && w.sayNext <= 0) {
@@ -2908,6 +2963,7 @@
     phones: { get: () => PHONE_SHARE, set: (v) => { PHONE_SHARE = clamp(Number.isFinite(Number(v)) ? Number(v) : 0.3, 0, 1); } },
     kick: { get: () => KICK, set: (v) => { KICK = clamp(Number.isFinite(Number(v)) ? Number(v) : 0.5, 0, 1); } },
     janidle: { get: () => JAN_IDLE / 1000, set: (v) => { JAN_IDLE = clamp(Number(v) || 600, 20, 3600) * 1000; } },
+    janarea: { get: () => JAN_AREA, set: (v) => { JAN_AREA = ['auto', 'screen', 'front', 'all'].includes(v) ? v : 'auto'; } },
   };
   const urlSettings = Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
@@ -3116,6 +3172,7 @@
           screen: show.screen, litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
         house: { capacity: seats.length, occupied: guests(), waiting: arrivals.length, queueLimit: MAX_QUEUE },
         shots: window.DD_SHOTS?.state?.() || null,   // Brief 102: the panel enables T1 / T2 / T3 from this
+        jannies: L ? { area: janArea(), setting: JAN_AREA, duty: dutyActive(), count: [...jannies.values()].filter((j) => !j.leaving).length } : null,
         director: { on: director.on, every: director.every, zoom: director.zoom, wantNext: director.wantNext,
           following: f?.w.nick || null, nextIn: Math.max(0, Math.round((director.next - performance.now()) / 1000)) },
         chatters: [...walkers.values()].map((w) => ({ nick: w.nick, emote: w.emName, status: statusOf(w), followed: f?.w === w }))
@@ -3135,7 +3192,7 @@
     // QA test read-out: who walks or sits where, the free front seats
     walkState: () => [...walkers.values()].filter((w) => !w.jan && !w.usher && !w.crew).map((w) => ({ nick: w.nick, sitting: !!w.sitting,
       seat: w.seat ? `${w.seat.row.name}:${w.seat.block}:${w.seat.u}` : null, pending: w.pendingSeat ? `${w.pendingSeat.row.name}:${w.pendingSeat.block}:${w.pendingSeat.u}` : null,
-      leaving: !!w.leaving, out: !!w.out })),
+      leaving: !!w.leaving, out: !!w.out, exiting: !!w.exiting, pos: w.pos.map((x) => +x.toFixed(2)), alpha: +(w.alpha ?? 0).toFixed(2) })),
     freeFront: () => seats.filter((s) => s.row === rows[0] && !s.taken).map((s) => `${s.row.name}:${s.block}:${s.u}`),
     // QA: the jannies and the screen duty (where they are on the page, in stage px, and on screen)
     jan: () => ({ duty: dutyActive(), spots: screenSpots().map(([u, v]) => [u, v, ...P(u, v, rows[0]?.z ?? 24).map(Math.round)]),
@@ -3642,6 +3699,7 @@
         const d = layers.entrance_door;
         if (d && typeof d.file === 'string' && [d.x, d.y, d.frame_width, d.frame_height, d.frames, d.columns, d.z_index].every(Number.isFinite)) door = d;
         if (Number.isFinite(layers.spawn?.wait_seconds)) DOOR_WAIT = layers.spawn.wait_seconds;
+        if (Number.isFinite(layers.spawn?.door_plane_v)) DOOR_V = layers.spawn.door_plane_v;
       }
       const c = L.screen.corners_1920x1080;
       screenPoly = [c.TL, c.TR, c.BR, c.BL];

@@ -326,6 +326,16 @@ them). With no janny in the hall, two mods come in, picked at random from mods s
 (admins and bots left out), else `MOD_LIST`; when the duty ends they go home unless they spoke meanwhile.
 `?janduty=0` turns it off.
 
+**Janny area** (panel Scene settings, `janarea`; 15 Nov 2026; `janArea()`, `janSpots()`, `janFromJ()`, `janToJ()`): Auto (the
+screen duty above, else the front floor), Around the screen, Front floor, or Whole cinema and the hallway (front floor,
+cross-aisle, the legroom of rows D/F/H, the entrance corridor). Away from the front floor they always go through the
+cross-aisle junction (the entrance route's end), so they never walk through seats or walls; errands start from wherever
+they are. The panel's status line under the shot buttons shows where they mop now.
+
+**Leaving** (`goOut()`, `outVia()`, `doorIndex()`): everyone who leaves (chatters, jannies, the usher, the crew) walks out
+through the door (it swings for anyone whose path crosses it) and up the entrance corridor, fading out over its last
+2.5 m.
+
 **Bans and mutes** (`onPurge()`, `escort()`, `escortWalk()`, `leadOut()`). `core.js` sends `modAction`
 (kind, target, mod) just before `purge`. A seated target gets "🚫 banned" / "🔇 muted"; the mod who did it walks over
 if on duty, else the nearest free janny, else that mod is called in through the entrance if a spot is free, else

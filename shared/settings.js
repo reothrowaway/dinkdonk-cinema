@@ -60,6 +60,9 @@ const SCHEMA = {
     num('phones', 'Share who carry a phone', 0, 1, 0.05, 0.3, 'People', '0-1, for new arrivals'),
     num('kick', 'Chance an usher visit ends in a kick', 0, 1, 0.05, 0.5, 'People'),
     JANIDLE,
+    // where the mopping mods work (owner, 15 Nov 2026); the panel's status line shows where they are now
+    pick('janarea', 'Janny area', [['auto', 'Auto: at the screen while lights are down / film / shots, else the front floor'],
+      ['screen', 'Around the screen'], ['front', 'Front floor'], ['all', 'Whole cinema and the hallway']], 'auto', 'People'),
   ],
 };
 

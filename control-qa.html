@@ -92,6 +92,7 @@
     <button id="shotstop" class="danger" title="Ends whatever shot is playing or held and shows the live page again (OBS stays on the scene it is on)">Stop shots</button>
   </div>
   <div class="state" id="shotstate"></div>
+  <div class="state" id="janstate"></div>
   <div class="state" id="phasestate"></div>
   <div class="state" id="litterstate"></div>
   <div class="state" id="downloadstate"></div>
@@ -418,6 +419,11 @@
     $('shotstop').disabled = blocked || !st || st === 'idle';
     const shotLabel = { idle: 'ready', prep: 'getting ready for T1', t1: 'T1 playing', film: 'film full screen (T2 next)', t2wait: 'T2: OBS cuts back',
       t2: 'T2 playing', hold: 'holding over the heads (T3 next)', t3: 'T3 playing' }[st];
+    // where the jannies mop now (Scene settings: Janny area; owner 15 Nov 2026)
+    const ji = s?.jannies;
+    const where = { screen: 'around the screen', front: 'on the front floor', all: 'across the whole cinema and the hallway' }[ji?.area] || ji?.area;
+    $('janstate').textContent = page !== 'auditorium' || !ji ? ''
+      : `Jannies: ${ji.count ? `${ji.count} mopping` : 'none in the hall'}, ${where}${ji.setting === 'auto' ? ` (Auto: ${ji.duty ? 'a show mode is on' : 'no show mode on'})` : ''}. Change it in Scene settings: Janny area.`;
     $('shotstate').textContent = page !== 'auditorium' ? '' : !shotInfo ? 'Screen shots: this screen has no shot player (auditorium-qa.html only).'
       : `Screen shots: ${shotLabel || st}${shotInfo.frames ? ` · frame ${shotInfo.frame}/${shotInfo.frames}` : ''}${st === 'idle' && !filmOk ? ' · T1 needs the Film phase with the house lights down' : ''}${shotInfo.note && st !== 'idle' ? ` · ${shotInfo.note}` : shotInfo.note && /failed|needs|stopped/.test(shotInfo.note) ? ` · ${shotInfo.note}` : ''}`;
     const labels = { seating: 'Seating', dim: 'Lights down', film: 'Film', up: 'Lights up' };
