@@ -14,7 +14,6 @@
   see shared/cinema.js), director=0|<seconds>, zoom=<1.2-3>, ctl=0 (no control panel link), maxres=<height> (cap the art
   resolution, e.g. 1080: no 4K art or loops even at 1440p; off by default), fit=cover (fill a squarer or wider source:
   crop the sides instead of black bars; the wide shot centres on fitx=<stage x>, 1040), rainspeed=<x> / raintune=1,
-  frontdoors=0 (no page-drawn glass doors in the street entrance, 15 Nov 2026).
 -->
 <html lang="en">
 <head>
@@ -2653,7 +2652,8 @@
   // (left) leaf and behind the near one; the SVG is only rewritten while a leaf moves. When the camera is zoomed in they
   // go half see-through with the front glass (.frontdoor: down to 50%, so the door still reads). ?frontdoors=0: none
   // (the open doorway of the render).
-  const FRONT = { on: q.get('frontdoors') !== '0', p: 0, want: 0, leaves: [], hold: 0 };
+  const FRONT = { on: false,   // (owner 15 Nov 2026: no doors at the street entrance, as before)
+    p: 0, want: 0, leaves: [], hold: 0 };
   const FRONT_V = 9.0, FRONT_Z = 140, FRONT_LEAF = 0.87, FRONT_MAX = 82 * Math.PI / 180;
   const FRONT_BOX = [820, 680, 270, 300];   // stage px the leaves can reach (x, y, w, h), the SVGs' viewBox
   function buildFrontDoors() {
