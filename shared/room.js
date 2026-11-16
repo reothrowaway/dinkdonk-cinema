@@ -44,6 +44,9 @@ const YEE_EMOTES = new Set(['YEE', 'diNoThanks', 'YeeMODS', 'YeeLaugh', 'YeeSmug
 const PEPE_OF = { YEE: 'PEPE', diNoThanks: 'NoThanks', YeeMODS: 'pepeMODS', YeeLaugh: 'PepeLaugh', YeeSmug: 'pepeSmug',
   nathanYee: 'nathanPEPE', TeddYEE: 'TeddyPepe', ComfYEE: 'pepoComfy', diNOWAY: 'monkaS', YEEHAW: 'PARDNER',
   FeelsPeekMan: 'FeelsBadMan', KYEK: 'KEK', YAM: 'pepeJAM' };
+// a Pepe look (the Reeducate seat move spares these): the Pepe versions above and anything pepe/pepo by name
+const PEPE_LOOK = new Set(Object.values(PEPE_OF));
+const isPepeLook = (name) => !!name && (PEPE_LOOK.has(name) || /pep[eo]/i.test(name));
 const ROW_WEIGHT = { B: 0.5, C: 0.8, D: 1.1, E: 1.4, F: 1.5, G: 1.3, H: 1, I: 0.8 };
 const OUTSIDE = new Set(['street', 'ticket line']);                // lobby statusOf() values counted as "outside"
 const URL_RE = /\bhttps?:\/\/\S+|\bwww\.\S+/gi;
@@ -374,6 +377,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   }
 
   // ---------- chat ----------
+  const kickedAt = new Map();   // auditorium key -> when a Reeducate kicked them out (they stay out a minute)
   function onMessage(d, { force = false, say = false, emote = null } = {}) {
     const nick = String(d.nick || '').trim().slice(0, 25);
     const text = String(d.data || '');
@@ -392,6 +396,13 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     for (const page of PAGES) {
       const P = state.pages[page];
       const e = find(page, key);
+      // the MOPPING look (the cpMOP penguin) in the auditorium is a janny, like a mod's (owner, 16 Nov 2026): no seat,
+      // in even when the hall is full, mopping instead of sitting (auditorium.html onModMessage)
+      if (page === 'auditorium' && (own[0] === 'MOPPING' || e?.emote === 'MOPPING')) {
+        if (e) removeEntry(page, key, 'panel');
+        emit(page, { t: 'janny', nick, d: slim });
+        continue;
+      }
       if (e) {
         // already in the room: they talk (a seated chatter keeps their emote, as in the page)
         e.d = slim;
@@ -405,6 +416,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         continue;
       }
       if (page === 'lobby' && !force && crowdSkip(nick)) continue;
+      if (page === 'auditorium' && !force && Date.now() - (kickedAt.get(key) || 0) < 60000) continue;
       const alt = [...new Set([...own, ...before])];
       let roomIndex = roomOf.get(key);
       if (roomIndex == null || Math.random() < 0.3) roomIndex = Math.floor(Math.random() * 5);
@@ -496,7 +508,35 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         e.emote = to;
         e.reeducated = true;
         e.alt = (e.alt || []).filter((a) => !PEPE_OF[a]);
-        emit(page, { t: 'reeducate', nick: e.nick, from, to });
+        // auditorium: the new Pepe leaves the front row (Yee only) once the show is over (the screens play the walk,
+        // auditorium.html reeduMove): the nearest free seat in another row, or, in a full hall, the seat of a seated
+        // non-Pepe, who is kicked out and leaves (owner, 16 Nov 2026). The room moves them at once, so a reload or a
+        // late screen already shows the end result.
+        let move = null;
+        const cur = page === 'auditorium' && e.seat ? seatOf(e.seat) : null;
+        if (cur && cur.ri === 0) {
+          const roster = state.pages.auditorium.roster;
+          const taken = new Set(roster.map((x) => x.seat).filter(Boolean));
+          const all = getSeats() || [];
+          const dist = (x) => Math.abs(x.u - cur.u) + Math.abs(x.ri - cur.ri) * 1.5;
+          const free = all.filter((x) => x.ri !== 0 && !taken.has(x.id)).sort((a, b) => dist(a) - dist(b));
+          if (free.length) move = { seat: free[0].id };
+          else {
+            const victims = roster.filter((x) => x !== e && x.seat && !isPepeLook(x.emote) && !x.reeducated && seatOf(x.seat)?.ri !== 0);
+            const v = victims[Math.floor(Math.random() * victims.length)];
+            if (v) {
+              move = { seat: v.seat, kick: v.nick };
+              roster.splice(roster.indexOf(v), 1);   // (no remove event: the screens play the kick and walk them out)
+              kickedAt.set(v.key, Date.now());
+            }
+          }
+          if (move) {
+            e.seat = move.seat;
+            // the front seat they leave goes to the next waiting Yee once they're out of it (show + walk)
+            setTimeout(() => { try { seatQueue(); } catch { /* room closed */ } }, 25000).unref?.();
+          }
+        }
+        emit(page, { t: 'reeducate', nick: e.nick, from, to, ...(move || {}) });
         changed();
         log(`room: ${e.nick} reeducated (${from} -> ${to})`);
         break;

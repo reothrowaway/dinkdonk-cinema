@@ -3135,7 +3135,8 @@
     let tilt = 0;
     let bouncing = false;
     const moving = w.moving;
-    if (t < combo.until && w.emName === combo.emote && !w.entering) {
+    if (w.reFreeze) { w.bounce = 0; w.idle = 0; }   // Reeducate: no hops during the show
+    if (!w.reFreeze && t < combo.until && w.emName === combo.emote && !w.entering) {
       s = Math.abs(Math.sin(((t - combo.start) / 1000) * 9));
       lift = s * 26;
       bouncing = true;
@@ -3158,7 +3159,7 @@
         if (w.v > 9.15) { if (!underMarquee(w.u, w.v) && Math.random() < 0.6) splash(w.u, w.v); } else if (w.wetSteps > 0) { w.wetSteps--; wetPrint(w.u, w.v); }
       }
       w.lastC = c;
-    } else if (!w.staff) {
+    } else if (!w.staff && !w.reFreeze) {
       if (!w.idle && Math.random() < dt * (w.gait?.dance || w.dancing ? 2.5 : 0.1)) w.idle = 0.001;
       if (w.idle) { w.idle += dt * 6; if (w.idle >= Math.PI) w.idle = 0; }
       s = Math.sin(w.idle);
@@ -5418,6 +5419,7 @@ void main() {
     reeduStyles();
     w.reeducating = true;
     w.plan.unshift({ wait: REEDU.total / 1000 });   // stands still for the show
+    w.reFreeze = [w.u, w.v];   // (the frame loop holds them here: groups, the line and the rest don't move them either)
     director.spot = null;
     startFollow(w);
     if (director.follow) { director.follow.reedu = true; director.follow.z = clamp(director.zoom * 1.35, 1.6, 4); }   // a bit closer than a usual follow
@@ -5441,6 +5443,7 @@ void main() {
     setTimeout(() => { if (live()) reeduWin(w); }, REEDU.win);
     setTimeout(() => {
       w.reeducating = false;
+      w.reFreeze = null;
       w.bod.classList.remove('reedu-arrive');
       if (director.follow?.w === w && director.follow.reedu) endFollow();
     }, REEDU.total);
@@ -5806,7 +5809,8 @@ void main() {
       if (w.gone) continue;
       w.moving = stepPlan(w, dt);
       if (w.gone) continue;
-      if (w.thru) stepThru(w);   // walking through a door (15 Nov 2026)
+      if (w.reFreeze) { [w.u, w.v] = w.reFreeze; w.moving = false; }   // Reeducate: stands still for the whole show
+      if (w.thru && !w.reFreeze) stepThru(w);   // walking through a door (15 Nov 2026)
       drawFigure(w, dt, t);
       stepLight(w, dt);
       if (w.pending && onScreen(w)) say(w, w.pending);

@@ -1505,6 +1505,8 @@
     const nick = String(m.nick || '').trim().slice(0, 25);
     if (!nick) return;
     if (m.features?.includes('moderator')) return;   // mods are the jannies (onModMessage): they never take a seat
+    // the MOPPING look (panel: the cpMOP penguin) is a janny too: in even with a full hall, mopping (owner, 16 Nov 2026)
+    if (m.emote === 'MOPPING') { onModMessage({ ...m, nick, features: ['moderator'] }); return; }
     m = { nick, emote: m.emote || Cinema.defaultEmote(nick), text: String(m.text || '').slice(0, 512),
       tokens: shortTokens(m.tokens), color: m.color, rainbow: !!m.rainbow,
       room: !!m.room, seat: m.seat ?? null, seed: m.seed, follow: !!m.follow };
@@ -2666,7 +2668,9 @@
     let lift = 0;
     let tilt = 0;
     let sq = 1;
-    if (!w.sitting) {
+    if (w.reeducating) {
+      // Reeducate: stands (or sits) still for the whole show
+    } else if (!w.sitting) {
       const a = w.path[w.seg];
       const b = w.path[w.seg + 1];
       if (!b && (w.jan || w.usher || w.out || w.leaving)) {
@@ -2713,6 +2717,7 @@
         }
       }
     }
+    if (w.reeducating) w.bounce = 0;
     if (w.sitting && w.bounce > 0) {
       // seated: a small bounce in the seat when they say something
       w.bounce = Math.max(0, w.bounce - dt * 2.4);
@@ -2915,6 +2920,12 @@
         20% { filter: saturate(1.7) brightness(1.6) drop-shadow(0 0 12px #5dff6a); }
         60% { filter: saturate(1.2) drop-shadow(0 0 7px #3bff5c); }
         100% { filter: none; } }
+      .w .bod.reedu-kick { animation: reedu-kick .7s ease-out; }
+      @keyframes reedu-kick { 0% { rotate: 0deg; translate: 0 0; } 30% { rotate: -24deg; translate: -7px -3px; } 50% { rotate: 22deg; translate: 12px -4px; }
+        70% { rotate: 6deg; translate: 4px -1px; } 100% { rotate: 0deg; translate: 0 0; } }
+      .w .bod.reedu-kicked { animation: reedu-kicked .8s cubic-bezier(.2,.9,.3,1); }
+      @keyframes reedu-kicked { 0% { rotate: 0deg; translate: 0 0; } 25% { rotate: 40deg; translate: 16px -22px; } 55% { rotate: -18deg; translate: 9px -8px; }
+        80% { rotate: 8deg; translate: 3px -2px; } 100% { rotate: 0deg; translate: 0 0; } }
       #names .reedu-fx { position: absolute; left: 0; top: 0; pointer-events: none; }
       #names .reedu-flash { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
         background: radial-gradient(circle, #fff 0%, rgba(240,255,235,.95) 22%, rgba(120,255,140,.6) 50%, transparent 72%); }
@@ -3032,17 +3043,77 @@
     checkAvatar(w);
     gild(w);
   }
+  // After the show (owner, 16 Nov 2026): the new Pepe gets up from the front row (Yee only) and goes to another seat;
+  // in a full hall it walks up to a seated non-Pepe, kicks them, and sits in their seat while they leave the cinema.
+  // plan: { seat: room seat id, kick: nick or null } from the room (every screen the same); without the room this
+  // screen picks it the same way (reeduPlan).
+  const isPepeLook = (name) => !!name && (Object.values(PEPE_OF).includes(name) || /pep[eo]/i.test(name));
+  const seatId = (x) => `${x.row.name}:${x.block}:${x.u}`;
+  function reeduPlan(w) {
+    if (!w.sitting || !w.seat || w.seat.row !== rows[0]) return null;
+    const cur = w.seat, ri = (x) => rows.indexOf(x.row);
+    const dist = (x) => Math.abs(x.u - cur.u) + Math.abs(ri(x) - ri(cur)) * 1.5;
+    const free = seats.filter((x) => x.row !== rows[0] && !x.taken).sort((a, b) => dist(a) - dist(b));
+    if (free.length) return { seat: seatId(free[0]) };
+    const vs = [...walkers.values()].filter((v) => v !== w && v.sitting && v.seat && v.seat.row !== rows[0] && !v.out && !v.leaving
+      && !v.jan && !v.usher && !v.crew && !isPepeLook(v.emName) && !v.reeducated);
+    const v = vs[Math.floor(Math.random() * vs.length)];
+    return v ? { seat: seatId(v.seat), kick: v.nick } : null;
+  }
+  function reeduMove(w, plan) {
+    const s = plan && seatById(plan.seat);
+    if (!s || !walkers.has(w.key) || !w.sitting || w.out || w.leaving || w.seat === s) return;
+    const v = plan.kick ? walkers.get(plan.kick.toLowerCase()) : null;
+    const victim = v && v.seat === s && v.sitting && !v.out && !v.leaving ? v : null;
+    if (victim) s.taken = false;   // (moveSeat wants it free; the victim keeps a copy of it to walk out from)
+    if (s.taken || !moveSeat(w, s)) { if (victim) s.taken = true; return; }
+    startFollow(w, true);   // the camera goes along
+    if (director.follow) director.follow.reeduWalk = true;
+    const held = () => director.follow?.w === w && director.follow.reeduWalk;
+    let kicked = !victim;
+    const t = setInterval(() => {
+      if (!walkers.has(w.key) || w.out || w.leaving) { clearInterval(t); return; }
+      if (!kicked) {
+        const near = Math.hypot(w.pos[0] - victim.pos[0], w.pos[1] - victim.pos[1]) < 0.95;   // (right beside them, in their row)
+        if (!near) return;
+        kicked = true;
+        if (!walkers.has(victim.key) || victim.out || victim.leaving) return;
+        // the kick: the Pepe stops, swings, "get out"; the one kicked jolts out of the seat and walks out of the cinema
+        w.wait = 1.8;
+        w.bod.classList.remove('reedu-kick'); void w.bod.offsetWidth; w.bod.classList.add('reedu-kick');
+        say(w, [{ t: 'text', v: 'get out' }]);
+        SB.faceEmote(w.em, w.emName, P(...victim.pos)[0] - P(...w.pos)[0]);
+        victim.bod.classList.add('reedu-kicked');
+        goingOut(victim, '👢 KICKED OUT');
+        setTimeout(() => {
+          victim.bod.classList.remove('reedu-kicked');
+          if (!walkers.has(victim.key) || !victim.sitting) return;
+          standUp(victim);
+          victim.seat = { ...s, taken: false };   // (their exit frees this copy, not the Pepe's new seat)
+        }, 650);
+        return;
+      }
+      if (w.sitting) {   // in the new seat: the camera lets go a moment later
+        clearInterval(t);
+        if (held()) director.follow.endAt = performance.now() + 2500;
+      }
+    }, 100);
+  }
   // to: the Pepe the room chose (every screen the same); without the room (local walk-ins) this screen's map
-  function reeducate(key, to) {
+  function reeducate(key, to, plan) {
     const w = walkers.get(key);
     if (!w || w.reeducating) return false;
     const target = to || PEPE_OF[w.emName];
     if (!target) return false;
     w.reeducated = true;
-    // the screen shots are running, or they're not in the hall right now: just the new look
-    if (shotsActive || shotCam || w.out || w.leaving || w.seen === false) { reeduSetEmote(w, target); return true; }
+    if (plan === undefined) plan = reeduPlan(w);   // (no room: this screen picks)
+    // the screen shots are running, or they're not in the hall right now: just the new look (and the seat change)
+    if (shotsActive || shotCam || w.out || w.leaving || w.seen === false) { reeduSetEmote(w, target); reeduMove(w, plan); return true; }
     reeduStyles();
     w.reeducating = true;
+    if (w.dozing) doze(w, false);
+    w.lastMsg = performance.now();
+    w.dozeK = 0;
     startFollow(w, true);
     if (director.follow) Object.assign(director.follow, { reedu: true, z: clamp(director.zoom * 1.35, 1.6, 4), endAt: performance.now() + REEDU.total });
     const live = () => walkers.has(key);
@@ -3067,6 +3138,7 @@
       w.reeducating = false;
       w.bod.classList.remove('reedu-arrive');
       if (director.follow?.w === w && director.follow.reedu) endFollow();
+      if (walkers.has(key)) reeduMove(w, plan);   // out of the front row: a free seat, or someone else's
     }, REEDU.total);
     return true;
   }
@@ -3374,7 +3446,12 @@
         break;
       }
       case 'follow': if (!director.follow?.reedu) followSomeone(key); break;
-      case 'reeducate': reeducate(key, typeof ev.to === 'string' ? ev.to : null); break;   // the panel's Reeducate, on every screen
+      case 'janny': {   // the MOPPING look (shared/room.js): a janny, as for a mod's message
+        const msg = SB.parseMessage(ev.d || { nick: ev.nick, data: '' });
+        onModMessage({ ...msg, nick: ev.nick, features: ['moderator'] });
+        break;
+      }
+      case 'reeducate': reeducate(key, typeof ev.to === 'string' ? ev.to : null, typeof ev.seat === 'string' ? { seat: ev.seat, kick: ev.kick || null } : null); break;   // the panel's Reeducate, on every screen
       case 'clear': resetHall(); break;
       case 'remove': {
         const w = walkers.get(key);
