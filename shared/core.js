@@ -159,7 +159,13 @@
     for (const r of rules) {
       const m = /^\.emote\.([A-Za-z0-9_-]+):hover$/.exec(r.selectorText || '');
       if (!m || !r.style?.animationName || r.style.animationName === 'none') continue;
-      out.push(`.sb-emote > .emote.${m[1]} { animation: ${r.style.animation} !important; animation-iteration-count: infinite !important; }`);
+      // the :hover rule's own repeat counts, except finite loops become endless: a once-only intro next to an endless
+      // loop stays once (owner, 16 Nov 2026: KYSNOW "scrolls" - its intro KYSNOW-ANIM also moves the sprite sheet, and
+      // looping it every .5 s slid the sheet instead of stepping the frames)
+      const counts = (r.style.animationIterationCount || '').split(',').map((c) => c.trim());
+      const loops = counts.some((c) => c === 'infinite');
+      const iter = counts.length && loops ? counts.map((c) => (c === '1' ? '1' : 'infinite')).join(', ') : 'infinite';
+      out.push(`.sb-emote > .emote.${m[1]} { animation: ${r.style.animation} !important; animation-iteration-count: ${iter} !important; }`);
     }
     // Animations that move the emote itself with `transform` (gachiGASM's shake, pulses, swings) replace the page's own
     // scale(k) while they run, so the emote snapped to its tiny chat size every few frames (owner, 15 Nov 2026: gachiGASM
