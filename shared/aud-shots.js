@@ -406,7 +406,11 @@
       if (bs[0] && bs[0] !== 'auto' && parseFloat(bs[0])) { kx = parseFloat(bs[0]) / nw; ky = bs[1] && bs[1] !== 'auto' ? parseFloat(bs[1]) / nh : kx; }
       const off = (v, box, size) => (v?.endsWith('%') ? (parseFloat(v) / 100) * (box - size) : parseFloat(v) || 0);
       const px = off(pos[0], s.w, nw * kx), py = off(pos[1] ?? pos[0], s.h, nh * ky);
-      return { sx: -px / kx, sy: -py / ky, sw: s.w / kx, sh: s.h / ky };
+      // a sprite sheet stepped past its own edge wraps round, as the page's repeating background does (WOOF steps from 0
+      // to +1020 px; owner 16 Nov 2026: it "disappears while its animation loops"). Only stepped sheets: a still emote
+      // placed inside a larger box keeps its offset
+      const wrap = (v, n, cell) => (s.samples.length > 1 && cell < n - 0.5 ? ((v % n) + n) % n : v);
+      return { sx: wrap(-px / kx, nw, s.w / kx), sy: wrap(-py / ky, nh, s.h / ky), sw: s.w / kx, sh: s.h / ky };
     };
     const frames = gif
       ? gif.map((g) => ({ src: g.src, ...rect(g.src, s.samples[0]), tf: s.samples[0].tf, op: s.samples[0].op, ms: g.ms }))

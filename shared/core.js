@@ -189,6 +189,17 @@
         return `${fr.keyText} { ${rest} transform: scale(var(--sb-k, 1)) ${t === 'none' ? '' : t}; }`;
       }).join(' ')} }`);
     }
+    // Sprite sheets that step past their own edge (WOOF goes from 0 to +1020 px and back to -1020 px) rely on the background
+    // repeating; base.css has no-repeat for every emote, so those frames were empty and WOOF vanished for most of its loop
+    // (owner, 16 Nov 2026). Emotes whose own animation moves background-position repeat; still emotes stay no-repeat.
+    const posAnims = new Set(rules.filter((kf) => kf.type === 7 && [...kf.cssRules].some((fr) => fr.style.backgroundPosition || fr.style.backgroundPositionX))
+      .map((kf) => kf.name));
+    const sheets = new Set();
+    for (const r of rules) {
+      const m = /^\.emote\.([A-Za-z0-9_-]+)(:hover)?$/.exec(r.selectorText || '');
+      if (m && (r.style?.animationName || '').split(',').some((n) => posAnims.has(n.trim()))) sheets.add(m[1]);
+    }
+    for (const n of sheets) out.push(`.sb-emote > .emote.${n} { background-repeat: repeat !important; }`);
     for (const n of PLAY_ONCE) out.push(`.sb-emote > .emote.${n}, .sb-emote > .emote.${n}::before, .sb-emote > .emote.${n}::after { animation-iteration-count: 1 !important; }`);
     let st = document.getElementById('sb-emote-loop');
     if (!st) { st = document.createElement('style'); st.id = 'sb-emote-loop'; }

@@ -3207,3 +3207,8 @@ New standalone prop on the owner's request ("small recirculating water fountain 
 - 16 Nov 2026 (Claude, owner: "Yes, in the auditorium too"): Reeducate in the auditorium (auditorium.html + -qa: own emote swap reeduSetEmote, show on the seated emote, bubbles keep off via the bubble pass), room.js reeducate for both scenes, panel button for auditorium rows too. Recorded on 18771 (PryingMind KYEK -> KEK, front row). Shipped.
 - 16 Nov 2026 (Claude, owner: "explosion more dramatic, slower, wave way bigger like on the script"): Reeducate v2 in lobby-qa + auditorium-qa (DSA keyframes as the model): 3.6 s decay (swells to 2.6x, sepia/grey/darker, red glow, collapses), flash + green light beam + 3 rings + 26 ash flakes + sparks + a short jolt of the whole picture, a green wave + wash out to the farthest corner of the room, the Pepe bounces in (elastic) with a pulsing aura, PEPE WINS; 12.5 s in all. Recorded on 18771: auditorium Herculius YEE->PEPE (real chat), lobby with one panel-added test chatter (removed after). Not live yet.
 - 16 Nov 2026 (Claude, owner: "Make it live"): Reeducate v2 live (lobby.html, auditorium.html; backups/promote-reedu-v2-16nov/).
+- 16 Nov 2026 (Claude, owner: WOOF "disappears while its animation loops"): its sprite sheet steps from 0 to +1020 px
+  (and starts at -1020 px), which only works with a repeating background; base.css has no-repeat for every emote, so 16
+  of its 17 steps were empty. core.js now gives repeat to emotes whose own animation moves background-position (still
+  emotes keep no-repeat), and the fly-through/shot players (transition*.js, aud-shots*.js) wrap such stepped sheets the
+  same way. Checked: frozen at each step over a magenta box, 17/17 steps show the dog (before 1/17).
