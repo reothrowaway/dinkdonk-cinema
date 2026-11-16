@@ -3199,3 +3199,4 @@ New standalone prop on the owner's request ("small recirculating water fountain 
   (poll-draft.js, lobby/-qa poll screen: Dune 1984 and Dune 2021 both show). Builder-cap wording (Codex's open
   decision) left for the owner. Found on the way: the owner's live OBS collection "Moobies 1440p transitions" has a
   leftover bridge warm-up item (the auditorium source at x=2960 in "DinkDonk Lobby", saved 15 Nov 17:42); not touched.
+- 16 Nov 2026 (Claude, owner: "it's pointing right"): mhm faces right (shared/emote-facing.json, was front), so it's mirrored when walking left like the other side-facing emotes.
