@@ -1955,7 +1955,7 @@
     const key = wi.nick.toLowerCase();
     const old = walkers.get(key);
     if (old && !old.entering && !old.removing) {
-      setEmote(old, wi.emote);
+      if (!old.reeducating) setEmote(old, old.reeducated && PEPE_OF[wi.emote] ? PEPE_OF[wi.emote] : wi.emote);   // reeducated stays reeducated
       if (!inRoom()) voteArrival(old, wi);   // (in the room the server sends a follow for it)
       // the panel's "say" (it comes back from the room as a walk-in): at once, as the panel's say did
       if (wi.say) say(old, wi.tokens);
@@ -5260,6 +5260,143 @@ void main() {
     if (list.length) startFollow(list[Math.floor(Math.random() * list.length)]);
     return list.length > 0;
   }
+  // ===== REEDUCATE (owner, 16 Nov 2026; after DSA's "ideological emote correction") =========================
+  // The panel's Reeducate on a Yee wearer: the camera moves in, the emote shakes and drains of colour, "oh no", it
+  // bursts (flash, two shockwaves, ash, sparks) into its Pepe version, a green PEPE WINS glows over them, then the
+  // camera goes back to normal. They stand still meanwhile. The room keeps the new emote (shared/room.js reeducate).
+  const PEPE_OF = { YEE: 'PEPE', diNoThanks: 'NoThanks', YeeMODS: 'pepeMODS', YeeLaugh: 'PepeLaugh', YeeSmug: 'pepeSmug',
+    nathanYee: 'nathanPEPE', TeddYEE: 'TeddyPepe', ComfYEE: 'pepoComfy', diNOWAY: 'monkaS', YEEHAW: 'PARDNER',
+    FeelsPeekMan: 'FeelsBadMan', KYEK: 'KEK', YAM: 'pepeJAM' };
+  const REEDU = { arrive: 2000, shake: 2600, win: 4800, total: 9400 };   // ms from the click (arrive: the camera gets there first)
+  let reeduCss = false;
+  function reeduStyles() {
+    if (reeduCss) return;
+    reeduCss = true;
+    const st = document.createElement('style');
+    st.textContent = `
+      .w .bod.reedu-shake { animation: reedu-shake ${REEDU.shake}ms linear forwards, reedu-drain ${REEDU.shake}ms ease-in forwards; }
+      @keyframes reedu-shake {
+        0% { translate: 0 0; } 4% { translate: -1px 0; } 8% { translate: 1px 0; } 12% { translate: -1px 0; } 16% { translate: 1px 0; }
+        20% { translate: -1.5px .5px; } 24% { translate: 1.5px -.5px; } 28% { translate: -1.5px 0; } 32% { translate: 2px .5px; }
+        36% { translate: -2px -.5px; } 40% { translate: 2px 0; } 44% { translate: -2.5px .5px; } 48% { translate: 2.5px -1px; }
+        52% { translate: -3px 0; } 56% { translate: 3px 1px; } 60% { translate: -3px -1px; } 64% { translate: 3.5px 0; }
+        68% { translate: -3.5px 1px; } 72% { translate: 4px -1px; } 76% { translate: -4px 0; } 80% { translate: 4.5px 1px; }
+        84% { translate: -4.5px -1px; } 88% { translate: 5px 0; } 92% { translate: -5px 1px; } 96% { translate: 5px -1px; } 100% { translate: 0 0; } }
+      @keyframes reedu-drain {
+        0% { filter: none; }
+        30% { filter: saturate(.7) drop-shadow(0 0 3px rgba(255,40,40,.8)); }
+        45% { filter: saturate(.5) drop-shadow(0 0 1px rgba(255,40,40,.4)); }
+        60% { filter: saturate(.35) brightness(1.1) drop-shadow(0 0 5px rgba(255,40,40,.95)); }
+        75% { filter: saturate(.2) drop-shadow(0 0 2px rgba(255,40,40,.5)); }
+        100% { filter: grayscale(1) brightness(1.6) drop-shadow(0 0 8px #fff); } }
+      .w .bod.reedu-pop { animation: reedu-pop .7s cubic-bezier(.2,1.8,.4,1) both, reedu-glow 5s ease-out both; }
+      @keyframes reedu-pop { 0% { scale: .15; } 100% { scale: 1; } }
+      @keyframes reedu-glow { 0% { filter: brightness(1.8) drop-shadow(0 0 10px #5dff6a); } 40% { filter: drop-shadow(0 0 6px #5dff6a); } 100% { filter: none; } }
+      .reedu-fx { position: absolute; left: 0; top: 0; pointer-events: none; }
+      .reedu-flash { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+        background: radial-gradient(circle, #fff 0%, rgba(255,255,230,.9) 30%, rgba(120,255,140,.5) 60%, transparent 72%); }
+      .reedu-ring { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 3px solid rgba(160,255,170,.9);
+        box-shadow: 0 0 10px rgba(93,255,106,.8), inset 0 0 8px rgba(93,255,106,.6); }
+      .reedu-ash { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; background: #3b3f3a; border-radius: 1px; }
+      .reedu-spark { width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%; background: #fff6b0; box-shadow: 0 0 6px #ffe24a; }
+      .reedu-win { font: 400 34px/1 'Bebas Neue', Oswald, sans-serif; letter-spacing: .08em; color: #7dff7a; white-space: nowrap;
+        text-shadow: 0 0 6px #2bff4d, 0 0 14px #19d63a, 0 0 28px rgba(25,214,58,.8), 0 2px 0 #0b3d12; -webkit-text-stroke: .6px #0d4d18; }`;
+    document.head.append(st);
+  }
+  function reeduFx(cls, x, y, keyframes, opts) {
+    const el = h('div', `reedu-fx ${cls}`);
+    fx.append(el);
+    el.animate(keyframes.map((k) => ({ ...k, transform: `translate(${x}px, ${y}px) ${k.transform || ''}` })), { fill: 'forwards', ...opts })
+      .onfinish = () => el.remove();
+    return el;
+  }
+  function reeduBurst(w) {
+    const [x, y0] = screenOf(w);
+    const y = y0 - EH * 0.55;   // the middle of the emote
+    reeduFx('reedu-flash', x, y, [{ transform: 'scale(.2)', opacity: 1 }, { transform: 'scale(2.6)', opacity: 0.9, offset: 0.25 }, { transform: 'scale(3.4)', opacity: 0 }], { duration: 650, easing: 'ease-out' });
+    reeduFx('reedu-ring', x, y, [{ transform: 'scale(.3)', opacity: 1 }, { transform: 'scale(4.2)', opacity: 0 }], { duration: 750, easing: 'cubic-bezier(.2,.7,.3,1)' });
+    reeduFx('reedu-ring', x, y, [{ transform: 'scale(.3)', opacity: 0.8 }, { transform: 'scale(6)', opacity: 0 }], { duration: 1100, delay: 120, easing: 'cubic-bezier(.2,.7,.3,1)' });
+    for (let i = 0; i < 16; i++) {   // ash: out, up a little, then falling, turning
+      const a = (i / 16) * Math.PI * 2 + rand(-0.2, 0.2);
+      const d = rand(28, 62);
+      const dx = Math.cos(a) * d, dy = Math.sin(a) * d * 0.75 - 14;
+      const spin = rand(-540, 540);
+      const el = reeduFx('reedu-ash', x, y, [
+        { transform: 'translate(0px, 0px) rotate(0deg) scale(1)', opacity: 1 },
+        { transform: `translate(${dx * 0.7}px, ${dy * 0.7}px) rotate(${spin * 0.5}deg) scale(1)`, opacity: 1, offset: 0.35 },
+        { transform: `translate(${dx}px, ${dy + 34}px) rotate(${spin}deg) scale(.5)`, opacity: 0 },
+      ], { duration: rand(1100, 1600), easing: 'cubic-bezier(.15,.6,.4,1)' });
+      if (i % 3 === 0) el.style.background = '#6b6f66';
+    }
+    for (let i = 0; i < 9; i++) {   // sparks: fast and short
+      const a = rand(0, Math.PI * 2);
+      const d = rand(30, 55);
+      reeduFx('reedu-spark', x, y, [{ transform: 'translate(0px, 0px)', opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px)`, opacity: 0 }],
+        { duration: rand(380, 620), delay: rand(0, 120), easing: 'ease-out' });
+    }
+  }
+  function reeduWin(w) {
+    const [x, y0] = screenOf(w);
+    const el = h('div', 'reedu-fx reedu-win', 'PEPE WINS');
+    fx.append(el);
+    const y = y0 - EH - 44;
+    // speech keeps off it while it shows (as off the poll screen: softRects, world px)
+    const keep = [x - 120, y - 34, x + 120, y + 24];
+    softRects.push(keep);
+    setTimeout(() => { const i = softRects.indexOf(keep); if (i >= 0) softRects.splice(i, 1); }, REEDU.total - REEDU.win);
+    const at = (dy, sc) => `translate(${x}px, ${y + dy}px) translate(-50%, -50%) scale(${sc})`;
+    el.animate([
+      { transform: at(10, 0.3), opacity: 0 },
+      { transform: at(0, 1.25), opacity: 1, offset: 0.08 },
+      { transform: at(0, 1), opacity: 1, offset: 0.14 },
+      { transform: at(-4, 1.04), opacity: 1, offset: 0.55 },
+      { transform: at(-6, 1), opacity: 1, offset: 0.85 },
+      { transform: at(-16, 1), opacity: 0 },
+    ], { duration: REEDU.total - REEDU.win - 300, easing: 'ease-out', fill: 'forwards' }).onfinish = () => el.remove();
+  }
+  // to: the Pepe the room chose (every screen the same); without the room (local walk-ins) this screen's map
+  function reeducate(key, to) {
+    const w = walkers.get(key);
+    if (!w || w.gone || w.removing || w.reeducating) return false;
+    const target = to || PEPE_OF[w.emName];
+    if (!target) return false;
+    w.reeducated = true;
+    // not in sight to play it (riding in, through a door, faded): just the new look
+    if (w.entering || w.alpha < 0.5 || (w.ride && !w.ride.gone)) { setEmote(w, target); return true; }
+    reeduStyles();
+    w.reeducating = true;
+    w.plan.unshift({ wait: REEDU.total / 1000 });   // stands still for the show
+    director.spot = null;
+    startFollow(w);
+    if (director.follow) { director.follow.reedu = true; director.follow.z = clamp(director.zoom * 1.35, 1.6, 4); }   // a bit closer than a usual follow
+    const live = () => !w.gone && !w.removing;
+    setTimeout(() => {
+      if (!live()) return;
+      w.bod.classList.add('reedu-shake');
+      say(w, [{ t: 'text', v: 'oh no' }]);
+      // other people's speech keeps off the emote for the shake and the burst (their own "oh no" sits above it)
+      const [ex, ey] = screenOf(w);
+      const keep = [ex - 70, ey - EH - 40, ex + 70, ey + 12];
+      softRects.push(keep);
+      setTimeout(() => { const i = softRects.indexOf(keep); if (i >= 0) softRects.splice(i, 1); }, REEDU.win - REEDU.arrive);
+    }, REEDU.arrive);
+    setTimeout(() => {
+      if (!live()) return;
+      w.bod.classList.remove('reedu-shake');
+      dropBubble(w);   // (the "oh no" goes with the old emote)
+      reeduBurst(w);
+      setEmote(w, target);
+      w.bod.classList.add('reedu-pop');
+    }, REEDU.arrive + REEDU.shake);
+    setTimeout(() => { if (live()) reeduWin(w); }, REEDU.win);
+    setTimeout(() => {
+      w.reeducating = false;
+      w.bod.classList.remove('reedu-pop');
+      if (director.follow?.w === w && director.follow.reedu) endFollow();
+    }, REEDU.total);
+    return true;
+  }
+  // ===== end REEDUCATE ==========================================================================================
   // The wide shot's own zoom (owner, 11 Nov 2026): 1 = the whole scene, more = the wide shot sits that much closer,
   // on the same centre. ?widezoom=<1-1.6>, live from the panel ("Wide shot zoom").
   let WIDE_Z = clamp(Number(q.get('widezoom')) || 1, 1, 1.6);
@@ -5294,7 +5431,7 @@ void main() {
           f.tx = x + clamp(f.ax * 0.35, -60, 60);
           f.ty = y + clamp(f.ay * 0.35, -40, 40);
         }
-        if (f.tx != null) { tx = f.tx; ty = f.ty; tz = director.zoom; }
+        if (f.tx != null) { tx = f.tx; ty = f.ty; tz = f.z || director.zoom; }
       }
     } else if (director.spot) {
       tx = director.spot.x; ty = director.spot.y; tz = director.spot.z;   // "Zoom to the poll"
@@ -5404,6 +5541,7 @@ void main() {
       case 'every': if (Number.isFinite(+c.value)) director.every = clamp(+c.value, 30, 1800); break;
       case 'zoom': if (Number.isFinite(+c.value)) { director.zoom = clamp(+c.value, 1.2, 3); rezoomPoll(); } break;
       case 'remove': removeNick(key); break;
+      case 'reeducate': if (!inRoom()) reeducate(key); break;   // (in the room it comes back as a room event, on every screen)
       // the panel's Clear lobby (older servers broadcast the auditorium's reset to every screen: only page 'lobby')
       case 'reset': if (c.page === 'lobby') resetLobby(); break;
       case 'add':
@@ -5549,7 +5687,8 @@ void main() {
     const key = String(ev.nick || '').toLowerCase();
     switch (ev.t) {
       case 'snapshot': applySnapshot(ev); break;
-      case 'follow': if (!director.spot) followSomeone(key); break;   // the room's director waits while the camera is on the poll
+      case 'follow': if (!director.spot && !director.follow?.reedu) followSomeone(key); break;   // the room's director waits while the camera is on the poll (or a reeducation)
+      case 'reeducate': reeducate(key, typeof ev.to === 'string' ? ev.to : null); break;   // the panel's Reeducate, on every screen
       case 'peek': startPeek(String(ev.spot || '')); break;   // the room's director: a look at something, max 7 s
       case 'gag': if (ev.kind === 'stall') startGag(walkers.get(String(ev.a || '').toLowerCase()), walkers.get(String(ev.b || '').toLowerCase())); break;
       case 'clear': resetLobby(); break;

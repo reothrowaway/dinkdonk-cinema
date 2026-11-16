@@ -412,6 +412,9 @@
   fetch('/dgg/emotes.json', { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).then((list) => {
     $('looks').replaceChildren(...[...list.map((e) => e.prefix), 'MOPPING'].filter(Boolean).sort((a, b) => a.localeCompare(b)).map((n) => { const o = document.createElement('option'); o.value = n; return o; }));
   }).catch(() => {});
+  // the Yee emotes that have a Pepe version (shared/room.js PEPE_OF): only these get the Reeducate button
+  const YEE_LOOKS = new Set(['YEE', 'diNoThanks', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE', 'diNOWAY',
+    'YEEHAW', 'FeelsPeekMan', 'KYEK', 'YAM']);
   const td = (text) => { const el = document.createElement('td'); el.textContent = text; return el; };
   const btn = (label, cmd, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = () => send(cmd); return b; };
   let editing = false;
@@ -534,7 +537,12 @@
         where.append(pill);
         const act = document.createElement('td');
         act.style.textAlign = 'right';
-        act.append(btn('Follow', { cmd: 'follow', nick: c.nick }), ' ', btn('Remove', { cmd: 'remove', nick: c.nick }, 'danger'));
+        // Reeducate (owner, 16 Nov 2026): lobby chatters wearing a Yee emote burst into its Pepe version (lobby.html reeducate)
+        const reedu = btn('Reeducate', { cmd: 'reeducate', nick: c.nick, page: 'lobby' });
+        reedu.title = 'The camera moves in, the emote shakes, "oh no", it bursts into its Pepe version: PEPE WINS';
+        reedu.style.cssText = 'border-color:#2f8f3e;color:#8dff94';
+        act.append(btn('Follow', { cmd: 'follow', nick: c.nick }), ' ', reedu, ' ', btn('Remove', { cmd: 'remove', nick: c.nick }, 'danger'));
+        tr._reedu = reedu;
         tr.append(td(c.nick), td(c.emote || ''), where, act);
         tr._pill = pill;
         tr._follow = act.firstElementChild;
@@ -544,6 +552,8 @@
       if (tr.cells[1].textContent !== (c.emote || '')) tr.cells[1].textContent = c.emote || '';
       if (tr._pill.textContent !== c.status) tr._pill.textContent = c.status;
       tr._follow.disabled = blocked || c.status === 'waiting outside';
+      tr._reedu.hidden = page !== 'lobby' || !YEE_LOOKS.has(c.emote);
+      tr._reedu.disabled = blocked;
       // Preserve button identity while someone is pressing it during a one-second state refresh.
       const index = present.size - 1;
       if (list.children[index] !== tr) list.insertBefore(tr, list.children[index] || null);

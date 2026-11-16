@@ -40,6 +40,10 @@ const AVATAR_BLOCK = new Set(['JARVIS']);                          // shared/cin
 // auditorium.html YEE_EMOTES: the front ("wheelchair") row is theirs
 const YEE_EMOTES = new Set(['YEE', 'diNoThanks', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE',
   'diNOWAY', 'YEEHAW', 'FeelsPeekMan', 'KYEK', 'YAM']);
+// the panel's Reeducate (owner, 16 Nov 2026; after DSA's "ideological emote correction"): each Yee emote's Pepe
+const PEPE_OF = { YEE: 'PEPE', diNoThanks: 'NoThanks', YeeMODS: 'pepeMODS', YeeLaugh: 'PepeLaugh', YeeSmug: 'pepeSmug',
+  nathanYee: 'nathanPEPE', TeddYEE: 'TeddyPepe', ComfYEE: 'pepoComfy', diNOWAY: 'monkaS', YEEHAW: 'PARDNER',
+  FeelsPeekMan: 'FeelsBadMan', KYEK: 'KEK', YAM: 'pepeJAM' };
 const ROW_WEIGHT = { B: 0.5, C: 0.8, D: 1.1, E: 1.4, F: 1.5, G: 1.3, H: 1, I: 0.8 };
 const OUTSIDE = new Set(['street', 'ticket line']);                // lobby statusOf() values counted as "outside"
 const URL_RE = /\bhttps?:\/\/\S+|\bwww\.\S+/gi;
@@ -393,6 +397,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         e.d = slim;
         e.last = now;
         if (page === 'lobby' && own.length) { e.emote = own[0]; e.alt = [...new Set([...own.slice(1), ...e.alt])].slice(0, 4); }
+        if (page === 'lobby' && e.reeducated && PEPE_OF[e.emote]) e.emote = PEPE_OF[e.emote];   // reeducated stays reeducated
         emit(page, { t: 'walk', e, again: true, follow: false, say });
         // a seated / present chatter who talks about the vote: the director goes to them (every screen)
         if ((page === 'lobby' || e.seat) && voteFollow(page, text)) emit(page, { t: 'follow', nick: e.nick });
@@ -481,6 +486,20 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       // them so a reload doesn't bring them back; the other screens let their own walker finish the exit
       case 'left': removeEntry(page, key, 'left'); break;
       case 'gag': if (page === 'lobby') stallGag(true); break;
+      case 'reeducate': {
+        // the panel's Reeducate: a Yee wearer becomes the Pepe version for good (every screen plays the show: lobby.html)
+        const e = page === 'lobby' && find(page, key);
+        const to = e && PEPE_OF[e.emote];
+        if (!to) break;
+        const from = e.emote;
+        e.emote = to;
+        e.reeducated = true;
+        e.alt = (e.alt || []).filter((a) => !PEPE_OF[a]);
+        emit(page, { t: 'reeducate', nick: e.nick, from, to });
+        changed();
+        log(`room: ${e.nick} reeducated (${from} -> ${to})`);
+        break;
+      }
       case 'peek': if (page === 'lobby') peek(typeof c.spot === 'string' ? c.spot : 'any'); break;   // (test hook too)   // (no panel button: a test hook, /ctl/cmd {cmd: 'gag'})
       case 'reset':
         P.roster = [];
