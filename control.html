@@ -4,6 +4,10 @@
   any browser on the stream PC; it talks to every open screen (OBS source included) through the standby
   server. Follow a chatter with the camera, go back to the wide shot, switch the automatic director on/off,
   add or remove chatters, make someone say something.
+  Layout (owner, 15 Nov 2026: "better organized and better looking"): a sticky top bar (scene switch, which screens
+  are open), "Now" (what is happening), the selected scene's show controls in show order, camera, movie
+  suggestions, adding a chatter, then the people; rare things (room setup, scene settings) fold away. Narrow (docked
+  beside OBS): one column in that order. 1100 px and wider: Now across the top, controls left, people right.
 -->
 <html lang="en">
 <head>
@@ -11,45 +15,212 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cinema control</title>
 <style>
-  :root { color-scheme: dark; --bg: #121318; --panel: #1b1d24; --line: #2c2f39; --text: #e9ebf0; --dim: #8b90a0; --acc: #59aeea; --warn: #ff6d6d; }
+  :root {
+    color-scheme: dark;
+    --bg: #0e1015; --panel: #161920; --panel2: #1b1f28; --line: #262b36; --line2: #353b49;
+    --text: #e9ebf0; --soft: #cdd2dd; --dim: #8e94a4; --faint: #687083;
+    --acc: #59aeea; --acc-ink: #06131e; --warn: #ff6d6d; --ok: #4fd18b; --amber: #ffc857;
+    --lobby: #59aeea; --aud: #b48cff; --scene: var(--lobby);
+    --btn: #222632; --btn-h: #282d3a;
+    --r: 12px; --maxw: 1720px;
+  }
+  body[data-scene="auditorium"] { --scene: var(--aud); }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 20px; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, 'Segoe UI', sans-serif; }
-  h1 { margin: 0 0 4px; font-size: 22px; }
-  .sub { color: var(--dim); margin-bottom: 18px; }
-  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
-  .card h2 { margin: 0 0 10px; font-size: 15px; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-  button { background: #262a35; color: var(--text); border: 1px solid #3a3f4d; border-radius: 7px; padding: 7px 13px; font: inherit; cursor: pointer; }
-  button:hover { border-color: var(--acc); }
-  button.on { background: var(--acc); color: #06131e; border-color: var(--acc); font-weight: 600; }
+  [hidden] { display: none !important; }
+  /* the Now tiles and the room setup follow the cards' own hidden flags (mirrored onto <body> by the last script) */
+  body.no-room .room-only, body.no-aud .aud-only, body.no-lobby .lobby-only { display: none !important; }
+  body { margin: 0; min-height: 100vh; color: var(--text); font: 14px/1.45 system-ui, 'Segoe UI', sans-serif;
+    background: radial-gradient(1100px 320px at 50% -140px, rgba(89, 174, 234, .10), transparent 70%) no-repeat fixed, var(--bg); }
+  body[data-scene="auditorium"] { background-image: radial-gradient(1100px 320px at 50% -140px, rgba(180, 140, 255, .11), transparent 70%); }
+
+  /* ---------- top bar: title, scene switch, screens ---------- */
+  .top { position: sticky; top: 0; z-index: 20; background: rgba(13, 15, 20, .92); border-bottom: 1px solid var(--line);
+    box-shadow: inset 0 3px 0 var(--scene), 0 8px 20px rgba(0, 0, 0, .28); backdrop-filter: blur(10px); }
+  .top-in { max-width: var(--maxw); margin: 0 auto; padding: 13px 20px 11px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; }
+  .brand { min-width: 0; }
+  h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .01em; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+  h1::before { content: ''; width: 10px; height: 10px; border-radius: 3px; background: var(--scene); box-shadow: 0 0 12px var(--scene); }
+  .brand > h1 + div { margin: 3px 0 0 !important; }   /* the hosted edition's "Film screen link" line (web/shim.js) */
+  .scene { display: flex; align-items: center; gap: 10px; }
+  .scene-l { color: var(--faint); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+  .seg { display: inline-flex; gap: 3px; padding: 3px; background: #090b0f; border: 1px solid var(--line2); border-radius: 11px; }
+  .seg button { min-height: 32px; padding: 5px 18px; border: 0; border-radius: 8px; background: transparent; color: var(--dim); font-weight: 600; }
+  .seg button:hover { color: var(--text); background: #1d212b; border: 0; }
+  .seg button.on, .seg button.on:hover { background: var(--scene); color: #0a0c12; }
+  .conn { flex: 1 1 300px; min-width: 0; display: flex; align-items: flex-start; gap: 9px; color: var(--dim); font-size: 13px; }
+  .conn::before { content: ''; flex: none; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--faint); }
+  .conn[data-tone="ok"]::before { background: var(--ok); box-shadow: 0 0 8px rgba(79, 209, 139, .6); }
+  .conn[data-tone="warn"] { color: #f1d595; }
+  .conn[data-tone="warn"]::before { background: var(--amber); }
+  .conn[data-tone="bad"] { color: #ffb3b3; }
+  .conn[data-tone="bad"]::before { background: var(--warn); box-shadow: 0 0 8px rgba(255, 109, 109, .6); }
+
+  /* ---------- page ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 16px 20px 36px; display: flex; flex-direction: column; gap: 14px; }
+  /* narrow: one column; the two column boxes step aside and `order` sets the reading order (the people list last) */
+  .cols, .col { display: contents; }
+  #now { order: 1; } .cols { order: 2; } #pollcard, #preshow { order: 2; } #cameracard { order: 3; } #mscard { order: 4; }
+  #addcard { order: 5; } #roomsetup { order: 6; } #setcard { order: 7; } #peoplecard { order: 8; }
+  /* wide: Now across the top, the controls on the left, the people on the right */
+  @media (min-width: 1100px) {
+    .cols { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(420px, 1fr); gap: 14px; align-items: start; }
+    .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  }
+
+  .card { min-width: 0; background: linear-gradient(180deg, rgba(255, 255, 255, .018), transparent 140px), var(--panel);
+    border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px 16px; box-shadow: 0 10px 26px rgba(0, 0, 0, .18); }
+  .card-h { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; min-height: 30px; margin: -3px 0 12px; }
+  .card-h h2, .now-h { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--dim); }
+  .scene-card { box-shadow: inset 3px 0 0 var(--scene), 0 10px 26px rgba(0, 0, 0, .18); }
+  .scene-card .card-h h2 { color: var(--scene); }
+  .grps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .grp { min-width: 0; }
+  .grps > .grp, .grp.box { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; }
+  .grps + .grp, .card > .grp + .grp, .fold-body > .grp + .grp { margin-top: 12px; }
+  .grp-l { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .btns, .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .state { color: var(--dim); font-size: 13px; }
+  .state b { color: var(--text); font-weight: 600; }
+  .state:empty { display: none; }
+  .grp .state { margin-top: 8px; }
+  .grp .state + .state { margin-top: 3px; }
+  .empty { color: var(--dim); padding: 10px 0 2px; }
+  .hint { margin: 0; padding-top: 11px; border-top: 1px dashed var(--line); color: var(--faint); font-size: 12.5px; }
+
+  /* ---------- controls ---------- */
+  button, a.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; max-width: 100%; min-height: 34px;
+    padding: 6px 13px; border: 1px solid var(--line2); border-radius: 8px; background: var(--btn); color: var(--text); font: inherit;
+    font-weight: 500; text-align: center; text-decoration: none; cursor: pointer; transition: border-color .12s, background-color .12s, color .12s; }
+  button:hover, a.btn:hover { border-color: var(--acc); background: var(--btn-h); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button.on, button.on:hover { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); font-weight: 650; }
   button.danger:hover { border-color: var(--warn); color: var(--warn); }
-  a.btn { background: #262a35; color: var(--text); border: 1px solid #3a3f4d; border-radius: 7px; padding: 7px 13px; text-decoration: none; }
-  a.btn:hover { border-color: var(--acc); }
-  input, select { background: #10121a; color: var(--text); border: 1px solid #3a3f4d; border-radius: 7px; padding: 7px 10px; font: inherit; }
-  button:disabled { opacity: .45; cursor: default; }
+  button:disabled { opacity: .42; cursor: default; }
+  button:disabled:hover { border-color: var(--line2); background: var(--btn); color: var(--text); }
+  button.on:disabled:hover { border-color: var(--acc); background: var(--acc); color: var(--acc-ink); }
+  button:focus-visible, a.btn:focus-visible, summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+  /* toggles: a dot that lights up with the "on" state */
+  .tog::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+  .tog.on::before { background: var(--acc-ink); }
+  /* the big move of the night: lobby -> auditorium */
+  button.primary { min-height: 42px; padding: 8px 20px; border-color: transparent; color: #fff; font-weight: 650;
+    background: linear-gradient(100deg, #3a8ccd, #8460e0); box-shadow: 0 6px 18px rgba(96, 110, 230, .3); }
+  button.primary:hover { border-color: transparent; background: linear-gradient(100deg, #4499db, #9070ea); }
+  input, select, textarea { max-width: 100%; min-height: 34px; padding: 6px 10px; border: 1px solid var(--line2); border-radius: 8px;
+    background: #0b0d12; color: var(--text); font: inherit; }
+  input:hover, select:hover, textarea:hover { border-color: #49526a; }
+  input:focus, select:focus, textarea:focus { border-color: var(--acc); outline: none; }
+  input[type=range] { width: 150px; min-height: 0; padding: 0; border: 0; background: none; accent-color: var(--acc); vertical-align: middle; }
+  input[type=number] { width: 90px; }
   label { color: var(--dim); }
+  label > input, label > select { margin-left: 6px; }
+  #zoomv { color: var(--text); font-variant-numeric: tabular-nums; }
+  kbd { padding: 0 5px; border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 4px; background: var(--btn); color: var(--soft); font-size: 12px; }
+
+  /* ---------- now ---------- */
+  .now { display: flex; flex-direction: column; gap: 8px; }
+  .now-h { padding-left: 2px; }
+  .tiles { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tile { flex: 1 1 200px; min-width: 0; padding: 11px 14px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+  .tile-room { flex: 1.7 1 360px; }
+  .tile-l { margin-bottom: 5px; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+  .tile .val { color: var(--soft); font-size: 13.5px; }
+  .tile .val b { color: var(--text); font-weight: 650; }
+  .tile .val:empty::before { content: '—'; color: var(--faint); }
+  .stats { display: flex; flex-wrap: wrap; gap: 6px 30px; }
+  .stat-l { color: var(--dim); font-size: 12px; }
+  .stat-v { font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .stat-s { color: var(--dim); font-size: 12.5px; }
+  .room-note { margin-top: 8px; color: var(--faint); font-size: 12.5px; }
+
+  /* ---------- folded sections ---------- */
+  details.fold { padding: 0; }
+  details.fold > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 13px 16px; border-radius: var(--r);
+    cursor: pointer; list-style: none; user-select: none; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::before { content: ''; flex: none; width: 7px; height: 7px; margin: 0 3px 0 1px; border-right: 2px solid var(--dim);
+    border-bottom: 2px solid var(--dim); transform: rotate(-45deg); transition: transform .15s; }
+  details.fold[open] > summary::before { transform: rotate(45deg); }
+  details.fold > summary:hover { background: rgba(255, 255, 255, .025); }
+  details.fold[open] > summary { border-bottom: 1px solid var(--line); border-radius: var(--r) var(--r) 0 0; }
+  .fold-t { font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--dim); }
+  .fold-n { color: var(--faint); font-size: 12.5px; }
+  .fold-body { padding: 14px 16px 16px; }
+  body[data-scene="lobby"] .scene-name::before { content: 'Lobby'; }
+  body[data-scene="auditorium"] .scene-name::before { content: 'Auditorium'; }
+
+  /* ---------- tables ---------- */
   table { width: 100%; border-collapse: collapse; }
   td, th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
-  th { color: var(--dim); font-weight: 500; font-size: 13px; }
-  tr.followed td { background: rgba(89, 174, 234, .12); }
-  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; background: #262a35; color: var(--dim); font-size: 13px; }
-  .state { color: var(--dim); }
-  .state b { color: var(--text); font-weight: 600; }
-  .empty { color: var(--dim); padding: 10px 0; }
-  .sets { display: grid; grid-template-columns: minmax(200px, max-content) minmax(150px, max-content) 1fr; gap: 6px 14px; align-items: center; }
-  .sets h3 { grid-column: 1 / -1; margin: 10px 0 0; font-size: 13px; color: var(--dim); font-weight: 600; }
-  .sets h3:first-child { margin-top: 0; }
+  th { color: var(--faint); font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+  td { overflow-wrap: break-word; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: rgba(255, 255, 255, .025); }
+  td button { min-height: 28px; padding: 2px 10px; font-size: 13px; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 99px; background: #262b37; color: var(--soft); font-size: 12.5px; white-space: nowrap; }
+  /* the people list: a small grid per row (nick over emote, where, Follow / Remove), so long nicks and emote names
+     never push the page sideways; 1400 px and wider: one line per chatter under the column heads */
+  .people table, .people thead, .people tbody { display: block; }
+  .people thead { display: none; }
+  .people tr { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "n w a" "e w a"; align-items: center;
+    gap: 1px 12px; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .people tbody tr:last-child { border-bottom: 0; }
+  .people tbody tr:hover { background: rgba(255, 255, 255, .025); }
+  .people tr.followed, .people tr.followed:hover { background: rgba(89, 174, 234, .14); box-shadow: inset 3px 0 0 var(--acc); }
+  .people td, .people th { padding: 0; border: 0; background: none !important; overflow-wrap: anywhere; }
+  .people tr > :nth-child(1) { grid-area: n; }
+  .people tr > :nth-child(2) { grid-area: e; }
+  .people tr > :nth-child(3) { grid-area: w; justify-self: end; }
+  .people tr > :nth-child(4) { grid-area: a; white-space: nowrap; }
+  .people td:nth-child(1) { font-weight: 600; }
+  .people td:nth-child(2) { color: var(--dim); font-size: 12.5px; }
+  /* a full house is 200+ rows: the list scrolls in its own box (narrow: most of the screen; wide: down to the fold) */
+  .people-scroll { max-height: max(320px, 75vh); overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+  @media (min-width: 1100px) {
+    .people-scroll { max-height: max(260px, calc(100vh - 400px)); }
+  }
+  @media (min-width: 1400px) {
+    .people thead { display: block; }
+    .people tr { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 124px 132px; grid-template-areas: "n e w a"; }
+    .people thead tr { padding-top: 0; }
+    .people tr > :nth-child(3) { justify-self: start; }
+    .people tr > :nth-child(4) { justify-self: end; }
+    .people td:nth-child(2) { color: var(--soft); font-size: inherit; }
+  }
+
+  /* ---------- add a chatter ---------- */
+  .addform { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .addform #text { grid-column: 1 / -1; }
+  .addform button { justify-self: start; }
+
+  /* ---------- scene settings and suggestion rules (built by the code) ---------- */
+  /* label | control | note; the note keeps at least 180 px (a very wide select used to squeeze it to one word a line) */
+  .sets { display: grid; grid-template-columns: minmax(150px, max-content) minmax(140px, max-content) minmax(180px, 1fr); gap: 7px 14px; align-items: center; }
+  /* the control cell: selects and text fields shrink with the column instead of running over the note */
+  .sets > :not(.lab):not(.note):not(h3) { display: flex; align-items: center; min-width: 0; }
+  .sets select, .sets input[type=text], .sets textarea { width: 100%; min-width: 0; }
+  .sets select { max-width: 260px; }
+  .sets h3 { grid-column: 1 / -1; margin: 10px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .sets h3:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
   .sets .lab { color: var(--text); }
   .sets .lab.set::before { content: '● '; color: var(--acc); }
-  .sets .note { color: var(--dim); font-size: 13px; }
+  .sets .note { color: var(--dim); font-size: 12.5px; }
   .sets input[type=number] { width: 110px; }
-  .sets input[type=text] { width: 260px; max-width: 60vw; }
-  .sets button.undo { padding: 2px 8px; font-size: 13px; margin-left: 6px; }
-  /* movie suggestions card (movie-suggest.js) */
+  .sets input[type=text] { max-width: 240px; }
+  .sets button { min-width: 58px; }
+  .sets button.undo { min-width: 0; min-height: 28px; padding: 2px 8px; margin-left: 6px; font-size: 13px; }
+
+  /* ---------- movie suggestions card (movie-suggest.js) ---------- */
+  #mscard .btns + .btns { margin-top: 10px; }
+  #mscard .filter { gap: 4px; }
+  #mscard .filter button { min-height: 28px; padding: 3px 11px; font-size: 13px; border-radius: 99px; }
+  #mscard table { margin-top: 8px; }
+  #mscard .ms-list:has(> tbody:empty) { display: none; }   /* no bare column heads over an empty round (looks only) */
   #mscard .ms-list td { vertical-align: middle; }
   #mscard .ms-list img { width: 28px; height: 42px; object-fit: cover; border-radius: 3px; display: block; background: #262a35; }
   #mscard .ms-list button { padding: 2px 9px; font-size: 13px; }
-  #mscard .st { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #262a35; color: var(--dim); }
+  #mscard .st { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #262a35; color: var(--dim); white-space: nowrap; }
   #mscard .st.added { background: #1e4d2f; color: #8ff0b0; }
   #mscard .st.approved, #mscard .st.adding, #mscard .st.dry { background: #1c3b52; color: #9fd6ff; }
   #mscard .st.bench { background: #4a3d16; color: #ffd36b; }
@@ -57,142 +228,257 @@
   #mscard .meta { color: var(--dim); font-size: 13px; }
   #mscard details { margin-top: 12px; }
   #mscard summary { cursor: pointer; color: var(--dim); }
-  #mscard textarea { background: #10121a; color: var(--text); border: 1px solid #3a3f4d; border-radius: 7px; padding: 7px 10px; font: inherit; width: 260px; max-width: 60vw; height: 70px; }
-  #mscard .filter button { padding: 3px 10px; font-size: 13px; }
-  kbd { background: #262a35; border: 1px solid #3a3f4d; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 13px; }
+  #mscard textarea { max-width: 260px; height: 70px; }
+
+  /* ---------- narrow: docked beside OBS ---------- */
+  @media (max-width: 760px) {
+    .sets { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .sets .lab { margin-top: 9px; font-weight: 600; }
+    .sets h3 + .lab, .sets h3 + span.lab { margin-top: 2px; }
+  }
+  @media (max-width: 600px) {
+    .top-in { padding: 9px 12px 8px; gap: 6px 14px; }
+    /* title and scene switch on one row; the hosted film-link line (if any) and the screens line below, full width */
+    .brand { display: contents; }
+    h1 { order: 1; }
+    .scene { order: 2; margin-left: auto; }
+    .brand > h1 + div { order: 3; flex-basis: 100%; margin: 0 !important; font-size: 12px !important; line-height: 1.35 !important; }
+    .scene-l { display: none; }
+    .seg button { padding: 5px 14px; }
+    .conn { order: 4; flex-basis: 100%; font-size: 12.5px; }
+    .wrap { padding: 12px 12px 28px; gap: 12px; }
+    .card { padding: 12px 13px 14px; }
+    details.fold { padding: 0; }
+    details.fold > summary { padding: 12px 13px; }
+    .fold-body { padding: 12px 13px 14px; }
+    /* Now: one card with a row per item */
+    .tiles { flex-direction: column; gap: 1px; overflow: hidden; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); }
+    .tile { flex: none; display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 0; border-radius: 0; }
+    .tile-l { margin: 2px 0 0; }
+    .stats { gap: 4px 22px; }
+    .stat-v { font-size: 22px; }
+    /* people: where above Follow / Remove, so the nick keeps the width; suggestions: one small grid per row */
+    .people tbody tr { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n w" "e a"; gap: 3px 10px; padding: 8px 6px; }
+    .people td:nth-child(4) { justify-self: end; }
+    .ms-list, .ms-list tbody { display: block; }
+    .ms-list thead { display: none; }
+    #mscard .ms-list tr { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: "p f s" "p b a" "p m a";
+      align-items: center; gap: 2px 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
+    #mscard .ms-list td { padding: 0; border: 0; background: none; }
+    #mscard .ms-list td:nth-child(1) { grid-area: p; align-self: start; }
+    #mscard .ms-list td:nth-child(2) { grid-area: f; font-weight: 600; }
+    #mscard .ms-list td:nth-child(3) { grid-area: b; font-size: 13px; }
+    #mscard .ms-list td:nth-child(4) { grid-area: s; justify-self: end; }
+    #mscard .ms-list td:nth-child(5) { grid-area: m; }
+    #mscard .ms-list td:nth-child(6) { grid-area: a; justify-self: end; }
+  }
 </style>
 </head>
-<body>
-<h1>Cinema control</h1>
-<div class="row"><button id="emptyall" class="danger" title="Everyone leaves the lobby and the auditorium at once, on every screen (chat fills them again)">Empty lobby + auditorium</button></div>
-<!-- two buttons (owner, 15 Nov 2026); the hidden select keeps the choice for the rest of the panel -->
-<div class="row"><span style="color:var(--dim)">Scene</span><button id="pg-lobby" class="on" title="lobby.html">Lobby</button><button id="pg-auditorium" title="auditorium.html">Auditorium</button><select id="page" hidden><option value="lobby">Lobby (lobby.html)</option><option value="auditorium">Auditorium (auditorium.html)</option></select></div>
-<div class="sub" id="screens">looking for open screens…</div>
-
-<div class="card" id="roomcard" hidden>
-  <h2>Shared room</h2>
-  <div class="state" id="roomstate"></div>
-  <div class="row" style="margin-top:10px">
-    <label>Who walks in <select id="who"><option value="tag">Only chatters who tag…</option><option value="everyone">Everyone who chats</option></select></label>
-    <input id="whonick" placeholder="nick" maxlength="25" style="width:160px">
-    <button id="whoset">Set</button>
-    <button id="clearlobby" class="danger" title="Empties the lobby on every screen; chat fills it again">Clear lobby</button>
+<body data-scene="lobby">
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><h1>Cinema control</h1></div>
+    <!-- two buttons (owner, 15 Nov 2026); the hidden select keeps the choice for the rest of the panel -->
+    <div class="scene" role="group" aria-label="Scene"><span class="scene-l">Scene</span><div class="seg"><button id="pg-lobby" class="on" title="lobby.html">Lobby</button><button id="pg-auditorium" title="auditorium.html">Auditorium</button></div><select id="page" hidden><option value="lobby">Lobby (lobby.html)</option><option value="auditorium">Auditorium (auditorium.html)</option></select></div>
+    <div class="conn" id="screens">looking for open screens…</div>
   </div>
-</div>
+</header>
 
-<div class="card" id="preshow" hidden>
-  <h2>Auditorium pre-show</h2>
-  <div class="row">
-    <button data-phase="seating">Seating</button><button data-phase="dim" title="House lights dim; the camera stays on the wide shot">Lights down</button>
-    <button data-phase="film" title="Lights down, the film plays and the camera pushes onto the screen">Film</button><button id="movie" title="Film on the screen without the camera pushing in">Movie (no zoom)</button>
-    <button id="outro" title="The camera eases back out to the wide shot; the film keeps playing">Film outro</button>
-    <button id="lightson" title="House lights up while the film keeps playing (e.g. the credits); press again to dim them">Lights on (film plays)</button>
-    <button id="houseout" title="Everyone stands up and walks out, one after another; new arrivals wait until the next Seating">Everyone leaves</button>
-    <button id="yeefront" title="Every seated chatter wearing a Yee emote who is not in the front row stands up and walks to a free front seat">Yee to the front</button>
-    <button data-phase="up">Lights up</button>
-    <button id="phaseauto">Auto: on</button>
-  </div>
-  <div class="row">
-    <label>Cinema screen shows <select id="screenpick" title="Auto: the pre-show slides take turns, the film comes on with Film / Movie">
-      <option value="auto">Auto (slides, then the film)</option><option value="upnext">Slide: Up next</option>
-      <option value="loading">Slide: The feature will begin shortly</option><option value="audience">Slide: In the audience</option>
-      <option value="film">The film</option></select></label>
-    <button id="litter" title="About 10 min after the hall is 60% full, popcorn, cups and wrappers pile up on the floor. Off sweeps it all up">Litter: on</button>
-  </div>
-  <!-- Brief 102: the three rendered screen shots; each is enabled only when it makes sense (T2 after T1, T3 after T2) -->
-  <div class="row" id="shotrow">
-    <button id="shot1" title="From the zoomed Film shot the camera flies into the screen (8 s); OBS then cuts to the fullscreen film scene (needs obs-bridge.js). Needs the Film phase with the house lights down">Into the film (T1)</button>
-    <button id="shot2" title="OBS cuts back to the auditorium and the camera comes out of the screen over the heads (10 s), then holds there with everyone live">Out of the film (T2)</button>
-    <button id="shot3" title="From the hold back to the default view of the room (11 s); the page carries on live, lights still down, film on the screen">Back to the room (T3)</button>
-    <button id="shotstop" class="danger" title="Ends whatever shot is playing or held and shows the live page again (OBS stays on the scene it is on)">Stop shots</button>
-  </div>
-  <div class="state" id="shotstate"></div>
-  <div class="state" id="janstate"></div>
-  <div class="state" id="phasestate"></div>
-  <div class="state" id="litterstate"></div>
-  <div class="state" id="downloadstate"></div>
-</div>
+<main class="wrap">
+  <!-- what is happening now: the shared room, the camera, and the selected scene's show (poll, or phase and film) -->
+  <section class="now" id="now" aria-label="Now">
+    <h2 class="now-h">Now</h2>
+    <div class="tiles">
+      <div class="tile tile-room" id="roomcard" hidden><div class="tile-l">Room</div><div id="roomstate"></div></div>
+      <div class="tile"><div class="tile-l">Camera</div><div class="val" id="dirstate"></div></div>
+      <div class="tile lobby-only"><div class="tile-l">Poll</div><div class="val" id="pollstate"></div></div>
+      <div class="tile aud-only"><div class="tile-l">Show</div><div class="val" id="phasestate"></div></div>
+      <div class="tile aud-only"><div class="tile-l">Film</div><div class="val" id="downloadstate"></div></div>
+    </div>
+  </section>
 
-<div class="card" id="pollcard">
-  <h2>Poll screen (lobby)</h2>
-  <div class="row">
-    <button id="pollopen" title="Unrolls the screen on the corridor back wall: the poll being built, then the open poll, then the result">Lower the poll screen</button>
-    <button id="pollclose" title="Rolls the screen back up">Roll it up</button>
-    <a id="pollscript" class="btn" href="/dd/poll-script.user.js" target="_blank" rel="noopener"
-      title="Needs Tampermonkey or Violentmonkey in your browser. Then build your poll on dinkdonk.mov as usual: the movies show up on your lobby's poll screen as you add them">Install your poll script</a>
+  <div class="cols">
+    <div class="col col-main">
+      <!-- the lobby's show: off to the cinema, and the roll-up poll screen -->
+      <section class="card scene-card" id="pollcard">
+        <div class="card-h"><h2>Lobby</h2></div>
+        <div class="grps">
+          <div class="grp">
+            <div class="grp-l">Go to the cinema</div>
+            <div class="btns">
+              <button id="fly" class="primary" title="Lobby: the camera flies through the street into the auditorium (about 50 s), then OBS cuts to the cinema scene (needs obs-bridge.js)">Fly to the auditorium</button>
+              <button id="cutwarm" title="Lobby: a plain cut to the cinema scene without the fly-through. OBS first runs the auditorium off-canvas for 5 s (obs-bridge.js warm-up), so the cut does not freeze (~0.45 s otherwise, from a hidden source)">Cut to cinema</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="grp-l">Poll screen</div>
+            <div class="btns">
+              <button id="pollopen" title="Unrolls the screen on the corridor back wall: the poll being built, then the open poll, then the result">Lower the poll screen</button>
+              <button id="pollclose" title="Rolls the screen back up">Roll it up</button>
+              <button id="pollzoom" title="Lobby: the camera moves in on the poll screen; Wide shot comes back">Zoom to the poll</button>
+              <a id="pollscript" class="btn" href="/dd/poll-script.user.js" target="_blank" rel="noopener"
+                title="Needs Tampermonkey or Violentmonkey in your browser. Then build your poll on dinkdonk.mov as usual: the movies show up on your lobby's poll screen as you add them">Install your poll script</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- the auditorium's show, in show order -->
+      <section class="card scene-card" id="preshow" hidden>
+        <div class="card-h"><h2>Auditorium show</h2><button id="phaseauto" class="tog">Auto: on</button></div>
+        <div class="grps">
+          <div class="grp">
+            <div class="grp-l">Before the film</div>
+            <div class="btns">
+              <button data-phase="seating">Seating</button>
+              <button data-phase="dim" title="House lights dim; the camera stays on the wide shot">Lights down</button>
+              <button id="yeefront" title="Every seated chatter wearing a Yee emote who is not in the front row stands up and walks to a free front seat">Yee to the front</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="grp-l">Film</div>
+            <div class="btns">
+              <button data-phase="film" title="Lights down, the film plays and the camera pushes onto the screen">Film</button>
+              <button id="movie" title="Film on the screen without the camera pushing in">Movie (no zoom)</button>
+              <button id="outro" title="The camera eases back out to the wide shot; the film keeps playing">Film outro</button>
+              <button id="lightson" class="tog" title="House lights up while the film keeps playing (e.g. the credits); press again to dim them">Lights on (film plays)</button>
+            </div>
+          </div>
+          <!-- Brief 102: the three rendered screen shots; each is enabled only when it makes sense (T2 after T1, T3 after T2) -->
+          <div class="grp" id="shotrow">
+            <div class="grp-l">Screen shots</div>
+            <div class="btns">
+              <button id="shot1" title="From the zoomed Film shot the camera flies into the screen (8 s); OBS then cuts to the fullscreen film scene (needs obs-bridge.js). Needs the Film phase with the house lights down">Into the film (T1)</button>
+              <button id="shot2" title="OBS cuts back to the auditorium and the camera comes out of the screen over the heads (10 s), then holds there with everyone live">Out of the film (T2)</button>
+              <button id="shot3" title="From the hold back to the default view of the room (11 s); the page carries on live, lights still down, film on the screen">Back to the room (T3)</button>
+              <button id="shotstop" class="danger" title="Ends whatever shot is playing or held and shows the live page again (OBS stays on the scene it is on)">Stop shots</button>
+            </div>
+            <div class="state" id="shotstate"></div>
+          </div>
+          <div class="grp">
+            <div class="grp-l">After the film</div>
+            <div class="btns">
+              <button id="houseout" class="tog" title="Everyone stands up and walks out, one after another; new arrivals wait until the next Seating">Everyone leaves</button>
+              <button data-phase="up">Lights up</button>
+              <button id="cutlobby" hidden title="Auditorium: a plain cut back to the lobby scene. OBS first runs the lobby off-canvas for 5 s (warm-up in obs-bridge-qa.js), so the cut does not freeze (~0.3 s otherwise, from a hidden source)">Cut to lobby</button>
+            </div>
+          </div>
+        </div>
+        <div class="grp box">
+          <div class="grp-l">Screen and floor</div>
+          <div class="btns">
+            <label>Cinema screen shows <select id="screenpick" title="Auto: the pre-show slides take turns, the film comes on with Film / Movie">
+              <option value="auto">Auto (slides, then the film)</option><option value="upnext">Slide: Up next</option>
+              <option value="loading">Slide: The feature will begin shortly</option><option value="audience">Slide: In the audience</option>
+              <option value="film">The film</option></select></label>
+            <button id="litter" class="tog" title="About 10 min after the hall is 60% full, popcorn, cups and wrappers pile up on the floor. Off sweeps it all up">Litter: on</button>
+          </div>
+          <div class="state" id="litterstate"></div>
+          <div class="state" id="janstate"></div>
+        </div>
+      </section>
+
+      <section class="card" id="cameracard">
+        <div class="card-h"><h2>Camera</h2></div>
+        <div class="grps">
+          <div class="grp">
+            <div class="grp-l">Shot</div>
+            <div class="btns">
+              <button id="wide">Wide shot</button>
+              <button id="next">Follow the next arrival</button>
+              <button id="random">Follow someone now</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="grp-l">Director</div>
+            <div class="btns">
+              <button id="auto" class="tog">Automatic director</button>
+              <label>Every <input id="every" type="number" min="30" max="1800" step="10"> s</label>
+              <label>Zoom <input id="zoom" type="range" min="1.2" max="3" step="0.05"> <span id="zoomv"></span>×</label>
+            </div>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:12px">Keys on the screen itself (OBS: right-click the source → Interact): <kbd>F</kbd> follow the next arrival,
+        <kbd>R</kbd> follow someone now, <kbd>W</kbd>/<kbd>Esc</kbd> wide shot, <kbd>D</kbd> director on/off.</p>
+      </section>
+
+      <!-- movie suggestions from chat (movie-suggest.js, docs/movie-suggestions-plan.md): open/close, the list, the rules -->
+      <section class="card" id="mscard" hidden>
+        <div class="card-h"><h2>Movie suggestions (chat)</h2></div>
+        <div class="btns">
+          <button id="msopen" class="tog" title="Chat can suggest films now (!rqmovie Title, or the tag name first). Approved films go into your dinkdonk poll builder tab (poll script 0.4) one by one">Open suggestions</button>
+          <button id="msround" title="Start over: a new round with an empty list and everyone's entries back (the builder on dinkdonk is not touched)">New round</button>
+          <span class="state" id="msstate"></span>
+        </div>
+        <div class="btns filter" id="msfilter">
+          <button data-f="all" class="on">All</button><button data-f="in">In the builder</button><button data-f="bench">Bench</button><button data-f="rejected">Rejected</button>
+        </div>
+        <table class="ms-list"><thead><tr><th></th><th>Film</th><th>By</th><th>Status</th><th>Score</th><th></th></tr></thead><tbody id="mslist"></tbody></table>
+        <div class="empty" id="msempty">No suggestions in this round yet.</div>
+        <details id="msrules"><summary>Rules</summary><div class="sets" id="mssets" style="margin-top:10px"></div>
+          <div class="row" style="margin:12px 0 0"><button id="msreset" class="danger" title="Every rule back to its default">Reset rules</button></div>
+        </details>
+      </section>
+
+      <section class="card" id="addcard">
+        <div class="card-h"><h2>Add a chatter / make someone talk</h2></div>
+        <form class="addform" id="addform">
+          <input id="nick" placeholder="nick" maxlength="25" required>
+          <input id="look" list="looks" placeholder="looks like (emote, optional)" maxlength="40" title="The emote this chatter wears when they walk in. Empty: the first emote in the message, else their usual one. Someone already seated in the auditorium keeps the emote they came in with.">
+          <datalist id="looks"></datalist>
+          <input id="text" placeholder="message (emote names work, e.g. PEPE hi)" maxlength="200">
+          <button type="submit">Walk in / say it</button>
+        </form>
+      </section>
+
+      <!-- rarely needed: who walks in, emptying the rooms (folded; the open/closed state is remembered in this browser) -->
+      <details class="card fold" id="roomsetup" data-keep>
+        <summary><span class="fold-t">Room setup</span><span class="fold-n">who walks in · clear or empty the rooms</span></summary>
+        <div class="fold-body">
+          <div class="grp room-only">
+            <div class="grp-l">Shared room</div>
+            <div class="btns">
+              <label>Who walks in <select id="who"><option value="tag">Only chatters who tag…</option><option value="everyone">Everyone who chats</option></select></label>
+              <input id="whonick" placeholder="nick" maxlength="25" style="width:160px">
+              <button id="whoset">Set</button>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="grp-l">Empty the rooms</div>
+            <div class="btns">
+              <button id="clearlobby" class="danger room-only" title="Empties the lobby on every screen; chat fills it again">Clear lobby</button>
+              <button id="emptyall" class="danger" title="Everyone leaves the lobby and the auditorium at once, on every screen (chat fills them again)">Empty lobby + auditorium</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="card fold" id="setcard" hidden data-keep>
+        <summary><span class="fold-t">Scene settings</span><span class="fold-n"><span class="scene-name"></span> · look, people, weather</span></summary>
+        <div class="fold-body">
+          <div class="state" style="margin-bottom:12px">Live on every screen of this scene. The server remembers them, so a reloaded
+            OBS source keeps them. <span style="color:var(--acc)">●</span> = set here; the rest come from the screen's link (URL).</div>
+          <div class="sets" id="sets"></div>
+          <div class="row" style="margin:14px 0 0"><button id="setreset" class="danger" title="Every setting of this scene goes back to what the screen links say">Reset all to the screen links</button></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="col col-side">
+      <section class="card people" id="peoplecard">
+        <div class="card-h"><h2>In the cinema</h2><button id="reset" class="danger" hidden>Reset auditorium — everyone leaves</button></div>
+        <div class="state" id="housestate" hidden style="margin-bottom:8px"></div>
+        <div class="people-scroll">
+          <table>
+            <thead><tr><th>Chatter</th><th>Emote</th><th>Where</th><th></th></tr></thead>
+            <tbody id="list"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="empty">Nobody here right now.</div>
+      </section>
+    </div>
   </div>
-  <div class="state" id="pollstate"></div>
-</div>
-
-<!-- movie suggestions from chat (movie-suggest.js, docs/movie-suggestions-plan.md): open/close, the list, the rules -->
-<div class="card" id="mscard" hidden>
-  <h2>Movie suggestions (chat)</h2>
-  <div class="row">
-    <button id="msopen" title="Chat can suggest films now (!rqmovie Title, or the tag name first). Approved films go into your dinkdonk poll builder tab (poll script 0.4) one by one">Open suggestions</button>
-    <button id="msround" title="Start over: a new round with an empty list and everyone's entries back (the builder on dinkdonk is not touched)">New round</button>
-    <span class="state" id="msstate"></span>
-  </div>
-  <div class="row filter" id="msfilter">
-    <button data-f="all" class="on">All</button><button data-f="in">In the builder</button><button data-f="bench">Bench</button><button data-f="rejected">Rejected</button>
-  </div>
-  <table class="ms-list"><thead><tr><th></th><th>Film</th><th>By</th><th>Status</th><th>Score</th><th></th></tr></thead><tbody id="mslist"></tbody></table>
-  <div class="empty" id="msempty">No suggestions in this round yet.</div>
-  <details id="msrules"><summary>Rules</summary><div class="sets" id="mssets" style="margin-top:10px"></div>
-    <div class="row" style="margin:12px 0 0"><button id="msreset" class="danger" title="Every rule back to its default">Reset rules</button></div>
-  </details>
-</div>
-
-<div class="card">
-  <h2>Camera</h2>
-  <div class="row">
-    <button id="wide">Wide shot</button>
-    <button id="next">Follow the next arrival</button>
-    <button id="random">Follow someone now</button>
-    <button id="auto">Automatic director</button>
-    <button id="pollzoom" title="Lobby: the camera moves in on the poll screen; Wide shot comes back">Zoom to the poll</button>
-    <button id="fly" title="Lobby: the camera flies through the street into the auditorium (about 50 s), then OBS cuts to the cinema scene (needs obs-bridge.js)">Fly to the auditorium</button>
-    <button id="cutwarm" title="Lobby: a plain cut to the cinema scene without the fly-through. OBS first runs the auditorium off-canvas for 5 s (obs-bridge.js warm-up), so the cut does not freeze (~0.45 s otherwise, from a hidden source)">Cut to cinema</button>
-    <button id="cutlobby" hidden title="Auditorium: a plain cut back to the lobby scene. OBS first runs the lobby off-canvas for 5 s (warm-up in obs-bridge-qa.js), so the cut does not freeze (~0.3 s otherwise, from a hidden source)">Cut to lobby</button>
-  </div>
-  <div class="row">
-    <label>Every <input id="every" type="number" min="30" max="1800" step="10" style="width:90px"> s</label>
-    <label>Zoom <input id="zoom" type="range" min="1.2" max="3" step="0.05" style="vertical-align:middle"> <span id="zoomv"></span>×</label>
-  </div>
-  <div class="state" id="dirstate"></div>
-</div>
-
-<div class="card" id="setcard" hidden>
-  <h2>Scene settings</h2>
-  <div class="state" style="margin-bottom:10px">Live on every screen of this scene. The server remembers them, so a reloaded
-    OBS source keeps them. <span style="color:var(--acc)">●</span> = set here; the rest come from the screen's link (URL).</div>
-  <div class="sets" id="sets"></div>
-  <div class="row" style="margin:12px 0 0"><button id="setreset" class="danger" title="Every setting of this scene goes back to what the screen links say">Reset all to the screen links</button></div>
-</div>
-
-<div class="card">
-  <h2>Add a chatter / make someone talk</h2>
-  <form class="row" id="addform">
-    <input id="nick" placeholder="nick" maxlength="25" required style="width:180px">
-    <input id="look" list="looks" placeholder="looks like (emote, optional)" maxlength="40" style="width:210px" title="The emote this chatter wears when they walk in. Empty: the first emote in the message, else their usual one. Someone already seated in the auditorium keeps the emote they came in with.">
-    <datalist id="looks"></datalist>
-    <input id="text" placeholder="message (emote names work, e.g. PEPE hi)" maxlength="200" style="flex:1;min-width:240px">
-    <button type="submit">Walk in / say it</button>
-  </form>
-</div>
-
-<div class="card">
-  <h2>In the cinema</h2>
-  <div class="state" id="housestate" hidden></div>
-  <div class="row"><button id="reset" class="danger" hidden>Reset auditorium — everyone leaves</button></div>
-  <table>
-    <thead><tr><th>Chatter</th><th>Emote</th><th>Where</th><th></th></tr></thead>
-    <tbody id="list"></tbody>
-  </table>
-  <div class="empty" id="empty">Nobody here right now.</div>
-</div>
-
-<div class="sub">Keys on the screen itself (OBS: right-click the source → Interact): <kbd>F</kbd> follow the next arrival,
-<kbd>R</kbd> follow someone now, <kbd>W</kbd>/<kbd>Esc</kbd> wide shot, <kbd>D</kbd> director on/off.</div>
+</main>
 
 <script>
 (() => {
@@ -318,10 +604,16 @@
     } catch { $('roomcard').hidden = true; return; }   // an older server: no shared room
     $('roomcard').hidden = false;
     const a = r.auditorium;
-    // (audit 15 Nov 2026, F17) the front row stays empty unless Yee come (owner's rule): said here, so "waiting" next to free seats reads right
-    $('roomstate').textContent = `Lobby: ${r.lobby.people} people · Auditorium: ${a.seated}/${a.seats} seated (front row: Yee only) · ${a.waiting} waiting outside`
-      + ` · walk in: ${r.tag ? `chatters who tag ${r.tag}` : 'everyone who chats'}${r.fromPanel ? '' : ' (from the screen links; Set overrides them)'}`
-      + ` · ${r.lobby.screens + a.screens} screen${r.lobby.screens + a.screens === 1 ? '' : 's'} on the room. The room keeps filling with no screen open.`;
+    const n = r.lobby.screens + a.screens;
+    // big numbers for a glance (layout 15 Nov 2026). The front-row seats stay empty on purpose (the front row is for Yee
+    // only, owner's rule: shared/room.js chooseSeat), so "seated" says so; it read like a bug (audit 15 Nov 2026, F17)
+    const div = (className, text = '', ...kids) => { const d = Object.assign(document.createElement('div'), { className, textContent: text }); d.append(...kids); return d; };
+    const stat = (label, value, ...notes) => div('stat', '', div('stat-l', label), div('stat-v', value), ...notes.map((t) => div('stat-s', t)));
+    $('roomstate').replaceChildren(
+      div('stats', '', stat('Lobby', String(r.lobby.people), r.lobby.people === 1 ? 'person' : 'people'),
+        stat('Auditorium', `${a.seated}/${a.seats}`, 'seated (front row: Yee only)', `${a.waiting} waiting outside`)),
+      div('room-note', `Walk in: ${r.tag ? `chatters who tag ${r.tag}` : 'everyone who chats'}${r.fromPanel ? '' : ' (from the screen links; Set overrides them)'}`
+        + ` · ${n} screen${n === 1 ? '' : 's'} on the room. The room keeps filling with no screen open.`));
     if (!whoEdited) { $('who').value = r.tag ? 'tag' : 'everyone'; $('whonick').value = r.tag || ''; $('whonick').hidden = !r.tag; }
   }
   // ---------- scene settings (shared/settings.js: the server's list, its remembered values; the screens apply them) ----------
@@ -459,7 +751,7 @@
     if (setBuiltFor === page) showSettings();
     const house = s?.house;
     $('housestate').hidden = page !== 'auditorium' || !house;
-    $('housestate').textContent = house ? `${house.occupied}/${house.capacity} seats reserved or occupied · ${house.waiting} waiting outside (up to ${house.queueLimit}). A free seat admits the next arrival.` : '';
+    $('housestate').textContent = house ? `${house.occupied}/${house.capacity} seats reserved or occupied · ${house.waiting} waiting outside (up to ${house.queueLimit}). A free seat admits the next arrival; the front row is for Yee only.` : '';
     preshow = s?.preshow || null;
     // screen shots: T1 from the Film phase with the lights down, T2 once T1 has ended (film full screen), T3 from the hold
     shotInfo = s?.shots || null;
@@ -686,6 +978,38 @@
   refresh();
   setInterval(refresh, 2000);
   setInterval(() => { lastRev = -1; render(); }, 30000);   // the "… ago" times
+})();
+</script>
+<script>
+// Layout helper (15 Nov 2026), outside the panel's own code. The "Now" tiles and the room setup sit outside the cards
+// whose hidden flags the code above sets, so <body> mirrors those flags (no CSS :has(), so older browsers and OBS docks
+// hide them too); the scene colour follows the scene buttons; the screens line gets a coloured dot; the folded
+// sections remember open/closed in this browser.
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const body = document.body;
+  const sync = () => {
+    body.dataset.scene = $('pg-auditorium').classList.contains('on') ? 'auditorium' : 'lobby';
+    body.classList.toggle('no-room', $('roomcard').hidden);
+    body.classList.toggle('no-aud', $('preshow').hidden);
+    body.classList.toggle('no-lobby', $('pollcard').hidden);
+  };
+  const flags = new MutationObserver(sync);
+  for (const id of ['pg-lobby', 'pg-auditorium', 'roomcard', 'preshow', 'pollcard']) flags.observe($(id), { attributes: true, attributeFilter: ['class', 'hidden'] });
+  sync();
+  const screens = $('screens');
+  const tone = () => {
+    const t = screens.textContent;
+    screens.dataset.tone = /not reachable|Restart standby-server/i.test(t) ? 'bad' : /No screen is open/i.test(t) ? 'warn' : /screens? open/i.test(t) ? 'ok' : 'idle';
+  };
+  new MutationObserver(tone).observe(screens, { childList: true, characterData: true, subtree: true });
+  tone();
+  for (const d of document.querySelectorAll('details[data-keep]')) {
+    const key = `cinema-control-open-${d.id}`;
+    try { const v = localStorage.getItem(key); if (v !== null) d.open = v === '1'; } catch { /* storage blocked */ }
+    d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch { /* storage blocked */ } });
+  }
 })();
 </script>
 </body>

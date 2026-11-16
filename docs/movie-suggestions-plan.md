@@ -32,7 +32,7 @@ lobby's poll screen. The bot never writes in chat.
 | Setting | Default |
 |---|---|
 | Entries per person | 2 |
-| Builder cap | 12 |
+| Builder cap | 20 (counts every film in the builder: hand-picked and earlier rounds too, 16 Nov 2026) |
 | Min TMDB score | 6.8 |
 | Min TMDB votes | 2,000 |
 | Not watched within | 365 days |

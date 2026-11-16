@@ -227,6 +227,9 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
   }
 
   function inBuilderCount() { return state.items.filter((i) => i.round === state.round && IN_BUILDER.has(i.status)).length; }
+  // The cap is for the whole builder (owner, 16 Nov 2026; Codex audit): films the owner picked by hand or kept from an
+  // earlier round count too. builderExtra = builder options that aren't this round's chat films (syncBuilder).
+  function capFull() { return inBuilderCount() + (state.builderExtra || 0) >= settings().cap; }
 
   /** decide one looked-up film: returns the reason code or null when it passes */
   async function judge(item, f) {
@@ -293,7 +296,7 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
     else {
       item.decidedAt = now();
       if (settings().dryRun) item.status = 'dry';
-      else item.status = inBuilderCount() < settings().cap ? 'approved' : 'bench';
+      else item.status = !capFull() ? 'approved' : 'bench';
       event(item);
     }
     save();
@@ -353,13 +356,18 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
       i.status = 'removed'; i.removedAt = now(); freed++;
       event(i);
     }
+    // the rest of the builder: hand-picked films and films kept from earlier rounds count to the cap
+    const ours = new Set(state.items.filter((i) => i.round === state.round && (i.status === 'added' || i.status === 'adding') && i.film)
+      .map((i) => key(i.film.title)));
+    const extra = options.filter((o) => !ours.has(key(o.title))).length;
+    if (extra !== (state.builderExtra || 0)) { if (extra < (state.builderExtra || 0)) freed++; state.builderExtra = extra; }
     if (freed) { promoteBench(); save(); }
   }
 
   function promoteBench() {
     if (settings().dryRun) return;
     for (const b of state.items.filter((i) => i.round === state.round && i.status === 'bench' && !i.note)) {
-      if (inBuilderCount() >= settings().cap) break;
+      if (capFull()) break;
       b.status = 'approved'; b.handedAt = 0;
     }
   }
@@ -390,7 +398,7 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
           if (activeFor(i.nickKey) >= settings().entries) continue;   // they used their entries since
           delete i.reason; delete i.watchedLabel;
           i.decidedAt = now(); i.rechecked = true;
-          i.status = settings().dryRun ? 'dry' : inBuilderCount() < settings().cap ? 'approved' : 'bench';
+          i.status = settings().dryRun ? 'dry' : !capFull() ? 'approved' : 'bench';
           i.handedAt = 0;
           event(i);
           changed = true;
@@ -454,7 +462,7 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
     return {
       rev, open: state.open, round: state.round, openedAt: state.openedAt, closedAt: state.closedAt,
       settings: settings(), schema: Object.fromEntries(Object.entries(SCHEMA).map(([k, [kind, def, min, max, label]]) => [k, { kind, def, min, max, label }])),
-      counts: { inBuilder: inBuilderCount(), bench: items.filter((i) => i.status === 'bench').length, rejected: items.filter((i) => i.status === 'rejected').length },
+      counts: { inBuilder: inBuilderCount() + (state.builderExtra || 0), ours: inBuilderCount(), extra: state.builderExtra || 0, bench: items.filter((i) => i.status === 'bench').length, rejected: items.filter((i) => i.status === 'rejected').length },
       items,
       // for the lobby's stamp strip: the newest decisions of this round
       events: state.events.filter((e) => items.some((i) => i.id === e.id)).slice(-20),

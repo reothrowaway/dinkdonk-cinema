@@ -190,6 +190,12 @@ lobby's `marquee1` / `marquee2` (the street marquee's two lines) are the first t
 One page for both scenes. It polls `GET /ctl/state` every second and sends commands with `POST /ctl/cmd` (3.5 s
 timeout).
 
+Layout (redesign, live since 16 Nov 2026; built in control-qa.html, screenshots in `concepts/control-panel/`): a top bar
+with the scene switch and the status line; a **Now** strip (room, camera, poll); one card per scene (**Lobby**: go to
+the cinema, poll screen; **Auditorium show**: pre-show phases and the screen shots T1/T2/T3), then **Camera**, **Movie
+suggestions (chat)** (rules folded), **Add a chatter**, the folded **Room setup** and **Settings**, and **In the
+cinema** (the chatter rows). Same commands and ids as before; only the layout changed.
+
 | Part | Controls | Sends |
 |---|---|---|
 | Scene | Lobby / Auditorium select; clears the old scene's rows at once | (added as `page` to every command) |
