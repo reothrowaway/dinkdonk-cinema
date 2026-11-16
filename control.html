@@ -817,7 +817,8 @@
     }
     const list = $('list');
     const present = new Set();
-    for (const c of (s?.chatters || []).sort((a, b) => a.nick.localeCompare(b.nick))) {
+    // Yee wearers at the bottom of the list, in both scenes (owner, 16 Nov 2026); A-Z within each group
+    for (const c of (s?.chatters || []).sort((a, b) => YEE_LOOKS.has(a.emote) - YEE_LOOKS.has(b.emote) || a.nick.localeCompare(b.nick))) {
       const key = `${page}:${c.nick}`;
       present.add(key);
       let tr = chatterRows.get(key);

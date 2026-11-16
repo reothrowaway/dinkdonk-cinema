@@ -3038,7 +3038,11 @@
   // in a full hall it walks up to a seated non-Pepe, kicks them, and sits in their seat while they leave the cinema.
   // plan: { seat: room seat id, kick: nick or null } from the room (every screen the same); without the room this
   // screen picks it the same way (reeduPlan).
-  const isPepeLook = (name) => !!name && (Object.values(PEPE_OF).includes(name) || /pep[eo]/i.test(name));
+  // every Pepe-type DGG emote (green frog faces, picked by looking at all 325 DGG emotes, 16 Nov 2026): a converted Pepe
+  // never kicks one of these out of their seat (owner: "only non pepe") (the same list as shared/room.js PEPE_LOOK)
+  const PEPE_LOOK = new Set([...Object.values(PEPE_OF),
+    'ALO', 'CamOnIngerland', 'ChokeDank', 'COGGERS', 'COPIUM', 'DankWave', 'DinkDonk', 'FeelsBadMan', 'FeelsBirthdayMan', 'FeelsGimiMan', 'FeelsGoodMan', 'FeelsOkayMan', 'FeelsOrbMan', 'FeelsStrongMan', 'FeelsWeirdMan', 'Fishge', 'FLIPMYBURGER', 'GAMBA', 'guh', 'Hmm', 'KEK', 'Looking', 'MILKERINO', 'monkaS', 'monkaSMEGA', 'monkaVIRUS', 'nathanPEPE', 'NODDERS', 'NOPERS', 'NoThanks', 'OhBrother', 'OkaygeBusiness', 'PARDNER', 'peepoHug', 'peepoRiot', 'peepoShy', 'PEPE', 'PepeHands', 'pepeJAM', 'PepeLaugh', 'pepeMODS', 'pepeSmug', 'PepeSteer', 'pepeW', 'pepoComfy', 'PepoG', 'PepOk', 'PepoPunch', 'PepoThink', 'PepoTurkey', 'PepoTurtle', 'PepoWant', 'POGGERS', 'REE', 'Smadge', 'smolguh', 'Stare', 'Susge', 'TeddyPepe', 'widepeepoHappy']);
+  const isPepeLook = (name) => !!name && (PEPE_LOOK.has(name) || /pep[eo]/i.test(name));
   const seatId = (x) => `${x.row.name}:${x.block}:${x.u}`;
   function reeduPlan(w) {
     if (!w.sitting || !w.seat || w.seat.row !== rows[0]) return null;

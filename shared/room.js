@@ -45,7 +45,10 @@ const PEPE_OF = { YEE: 'PEPE', diNoThanks: 'NoThanks', YeeMODS: 'pepeMODS', YeeL
   nathanYee: 'nathanPEPE', TeddYEE: 'TeddyPepe', ComfYEE: 'pepoComfy', diNOWAY: 'monkaS', YEEHAW: 'PARDNER',
   FeelsPeekMan: 'FeelsBadMan', KYEK: 'KEK', YAM: 'pepeJAM' };
 // a Pepe look (the Reeducate seat move spares these): the Pepe versions above and anything pepe/pepo by name
-const PEPE_LOOK = new Set(Object.values(PEPE_OF));
+// every Pepe-type DGG emote (green frog faces, picked by looking at all 325 DGG emotes, 16 Nov 2026): a converted Pepe
+// never kicks one of these out of their seat (owner: "only non pepe")
+const PEPE_LOOK = new Set([...Object.values(PEPE_OF),
+  'ALO', 'CamOnIngerland', 'ChokeDank', 'COGGERS', 'COPIUM', 'DankWave', 'DinkDonk', 'FeelsBadMan', 'FeelsBirthdayMan', 'FeelsGimiMan', 'FeelsGoodMan', 'FeelsOkayMan', 'FeelsOrbMan', 'FeelsStrongMan', 'FeelsWeirdMan', 'Fishge', 'FLIPMYBURGER', 'GAMBA', 'guh', 'Hmm', 'KEK', 'Looking', 'MILKERINO', 'monkaS', 'monkaSMEGA', 'monkaVIRUS', 'nathanPEPE', 'NODDERS', 'NOPERS', 'NoThanks', 'OhBrother', 'OkaygeBusiness', 'PARDNER', 'peepoHug', 'peepoRiot', 'peepoShy', 'PEPE', 'PepeHands', 'pepeJAM', 'PepeLaugh', 'pepeMODS', 'pepeSmug', 'PepeSteer', 'pepeW', 'pepoComfy', 'PepoG', 'PepOk', 'PepoPunch', 'PepoThink', 'PepoTurkey', 'PepoTurtle', 'PepoWant', 'POGGERS', 'REE', 'Smadge', 'smolguh', 'Stare', 'Susge', 'TeddyPepe', 'widepeepoHappy']);
 const isPepeLook = (name) => !!name && (PEPE_LOOK.has(name) || /pep[eo]/i.test(name));
 const ROW_WEIGHT = { B: 0.5, C: 0.8, D: 1.1, E: 1.4, F: 1.5, G: 1.3, H: 1, I: 0.8 };
 const OUTSIDE = new Set(['street', 'ticket line']);                // lobby statusOf() values counted as "outside"
