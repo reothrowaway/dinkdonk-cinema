@@ -36,6 +36,9 @@ const SCHEMA = {
   watchedDays:   ['num', 120, 0, 3650, 'Not watched within (days, 0 = off)'],
   maxRuntimeOn:  ['bool', false, null, null, 'Max runtime on'],
   maxRuntime:    ['num', 165, 30, 600, 'Max runtime (minutes)'],
+  // owner, 16 Nov 2026 (idea from dggTrivia/movie-requests): films the community has seen too often (dinkdonk's
+  // "Watched N times" on the search result); 0 = off
+  maxShows:      ['num', 0, 0, 100, 'Reject if shown more than (times, 0 = off)'],
   filmsOnly:     ['bool', false, null, null, 'Films only (no TV)'],
   windowOn:      ['bool', false, null, null, 'Release window on'],
   minAgeDays:    ['num', 90, 0, 3650, 'Not newer than (days)'],
@@ -56,10 +59,14 @@ const SCHEMA = {
 const REASONS = {
   entries: 'NO ENTRIES LEFT', notfound: 'NOT FOUND', score: 'SCORE TOO LOW', votes: 'TOO FEW VOTES',
   watched: 'WATCHED', runtime: 'TOO LONG', notmovie: 'NOT A MOVIE', toonew: 'TOO NEW', tooold: 'TOO OLD',
-  banned: 'BANNED', already: 'ALREADY IN', removed: 'REMOVED',
+  banned: 'BANNED', already: 'ALREADY IN', removed: 'REMOVED', shown: 'SEEN TOO OFTEN',
 };
 
 const TEST_LIST = require('./movie-test-list');
+// settings that decide whether a film may come in: changing one re-judges the round (recheck)
+const RULE_KEYS = new Set(['minScore', 'minVotes', 'watchedDays', 'maxRuntimeOn', 'maxRuntime', 'maxShows', 'filmsOnly',
+  'windowOn', 'minAgeDays', 'minYear', 'banTitles', 'banGenres']);
+const RULE_REASONS = new Set(['score', 'votes', 'watched', 'runtime', 'shown', 'notmovie', 'toonew', 'tooold', 'banned']);
 
 const ACTIVE = new Set(['pending', 'lookup', 'approved', 'adding', 'added', 'bench', 'dry']);   // uses an entry
 const IN_BUILDER = new Set(['approved', 'adding', 'added', 'dry']);                              // counts to the cap
@@ -235,6 +242,7 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
     if (f.votes != null && f.votes < s.minVotes) return 'votes';
     if ((f.scorePct == null && s.minScore > 0) || (f.votes == null && s.minVotes > 0)) return f.scorePct == null ? 'score' : 'votes';
     if (s.maxRuntimeOn && f.runtimeMin != null && f.runtimeMin > s.maxRuntime) return 'runtime';
+    if (s.maxShows > 0 && f.playCount != null && f.playCount > s.maxShows) return 'shown';
     if (s.windowOn) {
       const rel = f.releaseDate ? Date.parse(f.releaseDate) : NaN;
       if (Number.isFinite(rel) ? now() - rel < s.minAgeDays * DAY : (f.year && f.year > new Date(now()).getFullYear())) return 'toonew';
@@ -356,6 +364,43 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
     }
   }
 
+  // ---------- a rule changed: the round's films are judged again (owner, 16 Nov 2026; idea from dggTrivia) ----------
+  // Films that now fail leave (out of the builder too); films a rule had rejected that now pass come in (or go to the
+  // bench), oldest suggestion first, if the person still has an entry free. The owner's own picks stay as they are:
+  // Add now (override) and films he removed. Not-found, duplicate and no-entries rejections are not rule decisions.
+  let rechecking = null;
+  let recheckAgain = false;
+  function recheck() {
+    if (rechecking) { recheckAgain = true; return rechecking; }
+    rechecking = (async () => {
+      do {
+        recheckAgain = false;
+        let changed = false;
+        const items = state.items.filter((i) => i.round === state.round && i.film && !i.override).sort((a, b) => a.at - b.at);
+        // first the ones that now fail (frees room and entries), then the ones that now pass
+        for (const i of items.filter((x) => IN_BUILDER.has(x.status) || x.status === 'bench')) {
+          const reason = await judge(i, i.film);
+          if (!reason || reason === 'already' || reason === 'removed') continue;
+          if (i.status === 'added' || i.status === 'adding') i.unadd = true;
+          reject(i, reason, { rechecked: true });
+          changed = true;
+        }
+        for (const i of items.filter((x) => x.status === 'rejected' && RULE_REASONS.has(x.reason))) {
+          if (await judge(i, i.film)) continue;
+          if (activeFor(i.nickKey) >= settings().entries) continue;   // they used their entries since
+          delete i.reason; delete i.watchedLabel;
+          i.decidedAt = now(); i.rechecked = true;
+          i.status = settings().dryRun ? 'dry' : inBuilderCount() < settings().cap ? 'approved' : 'bench';
+          i.handedAt = 0;
+          event(i);
+          changed = true;
+        }
+        if (changed) { promoteBench(); save(); }
+      } while (recheckAgain);
+    })().finally(() => { rechecking = null; });
+    return rechecking;
+  }
+
   // ---------- panel ----------
   function command(c) {
     switch (c?.cmd) {
@@ -380,9 +425,13 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
         }
         break;
       }
-      case 'promote': { const i = byId(c.id); if (i && i.status === 'bench') { i.status = 'approved'; i.handedAt = 0; delete i.note; } break; }
-      case 'setting': if (!setSetting(c.key, c.value)) return { ok: false, error: 'bad setting' }; break;
-      case 'settingsReset': state.settings = {}; break;
+      // Add now: the owner's pick, kept whatever the rules say later (recheck skips it)
+      case 'promote': { const i = byId(c.id); if (i && i.status === 'bench') { i.status = 'approved'; i.handedAt = 0; i.override = true; delete i.note; } break; }
+      case 'setting':
+        if (!setSetting(c.key, c.value)) return { ok: false, error: 'bad setting' };
+        if (RULE_KEYS.has(c.key)) recheck().catch((e) => log(`Movie suggestions recheck: ${e.message}`));
+        break;
+      case 'settingsReset': state.settings = {}; recheck().catch((e) => log(`Movie suggestions recheck: ${e.message}`)); break;
       default: return { ok: false, error: 'unknown cmd' };
     }
     save();

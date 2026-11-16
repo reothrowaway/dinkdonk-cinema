@@ -568,7 +568,7 @@
   const $ = (id) => document.getElementById(id);
   const STATUS = { pending: 'looking up', lookup: 'looking up', approved: 'adding', adding: 'adding', added: 'in builder', bench: 'bench', dry: 'would add', rejected: 'rejected', removed: 'removed' };
   const GROUPS = { in: ['approved', 'adding', 'added', 'dry'], bench: ['bench'], rejected: ['rejected', 'removed'] };
-  const HINTS = { minScore: '30 = TMDB 3.0', watchedDays: 'from dinkdonk\'s "last watched"', tag: 'a message starting with this name is a suggestion', dryRun: 'nothing goes into the builder', testFeed: 'real chatters, swapped message (only here; the lobby shows the real one)', testEvery: '8 = about every 8th chat message' };
+  const HINTS = { minScore: '30 = TMDB 3.0', watchedDays: 'from dinkdonk\'s "last watched"', maxShows: 'from dinkdonk "Watched N times" (any rule change re-checks this round)', tag: 'a message starting with this name is a suggestion', dryRun: 'nothing goes into the builder', testFeed: 'real chatters, swapped message (only here; the lobby shows the real one)', testEvery: '8 = about every 8th chat message' };
   let st = null;
   let lastRev = -1;
   let filter = 'all';

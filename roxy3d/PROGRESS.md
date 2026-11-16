@@ -3200,3 +3200,4 @@ New standalone prop on the owner's request ("small recirculating water fountain 
   decision) left for the owner. Found on the way: the owner's live OBS collection "Moobies 1440p transitions" has a
   leftover bridge warm-up item (the auditorium source at x=2960 in "DinkDonk Lobby", saved 15 Nov 17:42); not touched.
 - 16 Nov 2026 (Claude, owner: "it's pointing right"): mhm faces right (shared/emote-facing.json, was front), so it's mirrored when walking left like the other side-facing emotes.
+- 16 Nov 2026 (Claude, owner picked 1 + 3 from dggTrivia/movie-requests): movie-suggest rule maxShows ("Reject if shown more than X times", dinkdonk play count, 0 = off, stamp SEEN TOO OFTEN); any rule change re-checks the round (failing films leave, also out of the builder; rule-rejected films that now pass come back if the person has an entry free; Add now = owner override, kept). 18770 restarted in its own window.
