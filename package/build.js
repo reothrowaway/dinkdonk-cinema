@@ -80,8 +80,9 @@ if (!fs.existsSync(path.join(RELAY, 'server.js'))) fail(`chat relay not found at
 copyTree(RELAY, path.join(OUT, 'chat-relay'), (a, e) => /tests?\.c?js$/i.test(e.name) || e.name === 'start-unix.sh');
 
 // ---------- 4. OBS scene collections ----------
-// From the live collection: the two cinema scenes and the lobby/film sub-scenes, with their sources. Everything else
-// (the movie scene, audio devices, scripts, projectors, filters) stays out; the bridge creates the corner-pin filter.
+// From the live collection: the two cinema scenes and the lobby/film sub-scenes, with their sources, plus the Film
+// fullscreen scene and the auditorium's colour key (below). Everything else (the movie scene, audio devices, scripts,
+// projectors, other filters) stays out; the bridge creates the corner-pin filter.
 const live = JSON.parse(fs.readFileSync(OBS_SCENES, 'utf8'));
 const byName = Object.fromEntries(live.sources.map((s) => [s.name, s]));
 const SCENES = ['DinkDonk Cinema', 'Lobby + Poll setup', 'Lobby (src)', 'Film screen (src)'];
@@ -95,6 +96,21 @@ if (!byName[SCENES[1]]) {
 }
 const DROP = new Set(['Poll setup label']);   // a scratch text label ("testing")
 for (const n of SCENES) if (!byName[n]) fail(`scene "${n}" missing from ${OBS_SCENES}`);
+// The screen shots T1/T2/T3 (Brief 102) need two things the poll collection predates: the "Film fullscreen" scene (T1
+// ends with a cut to it) and the colour key on the auditorium's browser source (for T2/T3 the bridge moves the film under
+// the keyed page, so heads and seat backs stay in front). Both come from the live "transitions" collection, which
+// start-all.bat loads since 15 Nov 2026; the build stops if either is missing (Codex audit 15 Nov 2026, C2).
+const OBS_SHOTS = path.join(process.env.APPDATA || '', 'obs-studio', 'basic', 'scenes', 'Moobies_1440p_transitions.json');
+if (!fs.existsSync(OBS_SHOTS)) fail(`${OBS_SHOTS} not found: the screen shots' Film fullscreen scene and colour key come from it`);
+const shotsBy = Object.fromEntries(JSON.parse(fs.readFileSync(OBS_SHOTS, 'utf8')).sources.map((s) => [s.name, s]));
+const FULL = 'Film fullscreen';
+if (!shotsBy[FULL]) fail(`scene "${FULL}" missing from ${OBS_SHOTS}`);
+for (const it of shotsBy[FULL].settings.items) if (!byName[it.name]) fail(`"${FULL}" shows "${it.name}", which ${OBS_SCENES} lacks`);
+byName[FULL] = shotsBy[FULL];
+SCENES.push(FULL);
+const AUD = byName['DinkDonk Cinema'].settings.items.map((it) => byName[it.name]).find((s) => s?.id === 'browser_source')?.name;
+const KEY = (shotsBy[AUD]?.filters || []).find((x) => /^(color|chroma)_key_filter/.test(x.id) && x.enabled);
+if (!AUD || !KEY) fail(`no enabled colour key on the auditorium browser source "${AUD}" in ${OBS_SHOTS}`);
 const W0 = live.resolution?.x || 2560;
 
 function collection(w, h) {
@@ -102,7 +118,7 @@ function collection(w, h) {
   for (const n of SCENES) for (const it of byName[n].settings.items) if (!DROP.has(it.name)) keep.add(it.name);
   for (const n of keep) {
     const s = structuredClone(byName[n]);
-    s.filters = [];
+    s.filters = s.name === AUD ? [structuredClone(KEY)] : [];   // (only the auditorium's colour key; the bridge adds the corner pin)
     delete s.hotkeys;
     if (s.id === 'scene') {
       s.settings.items = s.settings.items.filter((it) => !DROP.has(it.name)).map((it) => {

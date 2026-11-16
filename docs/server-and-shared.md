@@ -319,6 +319,9 @@ builder form (`data-controller="create-poll"`; each movie is a hidden `options[]
 posts the list to this server whenever it changes. After "Create" it reports the new poll id (`/poll/<id>`), and
 the results page reports it closed.
 
+- One film = its title plus year (16 Nov 2026, Codex audit C5): Dune (1984) and Dune (2021) are two options, and each
+  keeps its own added time; before, the second was dropped as a duplicate title. The lobby's poll screen matches its
+  pop-in and the winner the same way (a winner named without "(year)" still matches by title).
 - `POST /dd/draft`: JSON with header `X-DD-Draft: 1` (other pages can't send that without a preflight, which is
   never answered). Body `{ title, type, state: building|open|closed, pollId, options: [{ title, year, poster }] }`,
   or `{ clear: true }`. Leaving out `options` keeps the list already stored.

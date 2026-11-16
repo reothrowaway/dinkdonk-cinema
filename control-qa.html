@@ -502,17 +502,20 @@
     for (const q of ['lobby', 'auditorium']) $(`pg-${q}`).classList.toggle('on', q === p);
     $('page').onchange();
   };
-  $('page').onchange = () => { dir = null; setScreen = null; for (const tr of chatterRows.values()) tr.remove(); chatterRows.clear(); refresh(); refreshSettings(); };
-  for (const b of document.querySelectorAll('[data-phase]')) b.onclick = () => send({ cmd: 'phase', value: b.dataset.phase });
-  $('phaseauto').onclick = () => send({ cmd: 'phaseAuto', on: !preshow?.auto });
-  $('movie').onclick = () => send({ cmd: 'movie' });
-  $('outro').onclick = () => send({ cmd: 'outro' });
-  $('lightson').onclick = () => send({ cmd: 'lights', on: !preshow?.lightsOn });
-  $('houseout').onclick = () => send({ cmd: 'houseOut', on: !preshow?.houseOut });
-  $('yeefront').onclick = () => send({ cmd: 'yeefront', page: 'auditorium' });
-  $('reset').onclick = () => send({ cmd: 'reset' });
-  $('screenpick').onchange = (e) => send({ cmd: 'screen', value: e.target.value });
-  $('litter').onclick = () => send({ cmd: 'litter', on: !(preshow?.litter ?? true) });
+  $('page').onchange = () => { dir = null; setScreen = null; for (const tr of chatterRows.values()) tr.remove(); chatterRows.clear(); sceneControls($('page').value); refresh(); refreshSettings(); };
+  // The auditorium-only controls name their scene: right after a switch to the Lobby, a refresh still in flight left the
+  // "Reset auditorium" button showing, and a click reset the LOBBY (Codex audit 15 Nov 2026, C4)
+  const aud = (c) => send({ ...c, page: 'auditorium' });
+  for (const b of document.querySelectorAll('[data-phase]')) b.onclick = () => aud({ cmd: 'phase', value: b.dataset.phase });
+  $('phaseauto').onclick = () => aud({ cmd: 'phaseAuto', on: !preshow?.auto });
+  $('movie').onclick = () => aud({ cmd: 'movie' });
+  $('outro').onclick = () => aud({ cmd: 'outro' });
+  $('lightson').onclick = () => aud({ cmd: 'lights', on: !preshow?.lightsOn });
+  $('houseout').onclick = () => aud({ cmd: 'houseOut', on: !preshow?.houseOut });
+  $('yeefront').onclick = () => aud({ cmd: 'yeefront' });
+  $('reset').onclick = () => aud({ cmd: 'reset' });
+  $('screenpick').onchange = (e) => aud({ cmd: 'screen', value: e.target.value });
+  $('litter').onclick = () => aud({ cmd: 'litter', on: !(preshow?.litter ?? true) });
   // screen shots (Brief 102): every auditorium screen plays them; the one inside OBS also drives OBS through the bridge
   $('shot1').onclick = () => send({ cmd: 'shot', value: 't1', page: 'auditorium' });
   $('shot2').onclick = () => send({ cmd: 'shot', value: 't2', page: 'auditorium' });
@@ -712,13 +715,8 @@
     refreshing = true;
     try { await refreshState(); } finally { refreshing = false; }
   }
-  async function refreshState() {
-    let data;
-    try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
-    controlVersion = data.controlVersion || 0;
-    const page = $('page').value;
-    const all = data.screens || [];
-    const screens = all.filter((s) => (s.page || 'lobby') === page);
+  // which controls belong to which scene: at once on a scene switch (C4) and again on every refresh
+  function sceneControls(page) {
     $('reset').hidden = page !== 'auditorium';
     $('preshow').hidden = page !== 'auditorium';
     $('pollcard').hidden = page !== 'lobby';
@@ -728,6 +726,15 @@
     $('cutwarm').hidden = page !== 'lobby' || new URLSearchParams(location.search).has('k');
     // (needs obs-bridge-qa.js's /warm-lobby; the live bridge does not have it yet: shown only with ?lobbycut=1)
     $('cutlobby').hidden = page !== 'auditorium' || new URLSearchParams(location.search).get('lobbycut') !== '1';
+  }
+  async function refreshState() {
+    let data;
+    try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
+    controlVersion = data.controlVersion || 0;
+    const page = $('page').value;
+    const all = data.screens || [];
+    const screens = all.filter((s) => (s.page || 'lobby') === page);
+    sceneControls(page);
     const blocked = page === 'auditorium' && controlVersion < 2;
     for (const el of document.querySelectorAll('button, input')) el.disabled = blocked;
     $('screens').textContent = screens.length ? `${screens.length} screen${screens.length > 1 ? 's' : ''} open (${screens.map((s) => s.size.join('×')).join(', ')}) - commands go to all of them`

@@ -3187,3 +3187,15 @@ New standalone prop on the owner's request ("small recirculating water fountain 
 - 15 Nov 2026 (Claude, Opus agent, owner: "make it better organized and better looking"): control panel redesign in
   control-qa.html only (status strip, show controls in show order, people list in its own box, rare settings folded);
   screenshots concepts/control-panel/. Waiting for the owner's OK before it replaces control.html.
+- 16 Nov 2026 (Claude, owner: "Fix all" for the Codex audit, audit/2026-11-15-codex/REPORT.md):
+  C1 Stop now cancels shot preparation (aud-shots.js/-qa: one generation per start/stop, checked after every wait;
+  checked headless on QA and live, and in a portable OBS: Stop 500 ms into T2 no longer cuts OBS 6.5 s later);
+  C2 the zip's OBS collections get "Film fullscreen" and the auditorium colour key from the live "transitions"
+  collection (package/build.js; loaded in a portable OBS: the bridge sees the keyed setup and cuts both ways);
+  C3 the hosted edition answers the shots' OBS requests on the direct and the relay path (web/shim.js, web/server.js),
+  and setup.html creates Film fullscreen + the colour key (checked with a local hosted server and a portable OBS);
+  C4 the panel's auditorium-only controls name their scene and hide at once on a switch (control.html and the
+  control-qa.html redesign; a stale "Reset auditorium" reset the LOBBY before); C5 poll options are title + year
+  (poll-draft.js, lobby/-qa poll screen: Dune 1984 and Dune 2021 both show). Builder-cap wording (Codex's open
+  decision) left for the owner. Found on the way: the owner's live OBS collection "Moobies 1440p transitions" has a
+  leftover bridge warm-up item (the auditorium source at x=2960 in "DinkDonk Lobby", saved 15 Nov 17:42); not touched.

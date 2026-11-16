@@ -3,6 +3,8 @@
 //   - /ctl/* calls get the room key (?k=) from this page's own URL (and /dd/draft.json: the poll screen is up or down per room)
 //   - the chat socket (ws://127.0.0.1:18765/__dgg_chat_ws) goes to this server's shared relay instead
 //   - the fly-through's cut (POST :18790/cut-to-cinema) goes to this server, which hands it to the room's control panel
+//   - the screen shots T1/T2/T3 (Brief 102) ask the bridge for OBS cuts (to the fullscreen film and back) and the film's
+//     layer: answered below on both paths, as obs-bridge.js does (Codex audit 15 Nov 2026, C3)
 //   - the auditorium's film-screen bridge (ws://<host>:18790) is answered right here, by the same logic as
 //     obs-bridge.js, talking to OBS's own WebSocket server on the streamer's PC (ws://127.0.0.1:4455):
 //       direct: the auditorium (inside OBS) talks to OBS itself. OBS password/port come from the URL's #fragment
@@ -46,6 +48,7 @@
   // ---------- OBS film-screen bridge (same protocol and behaviour as obs-bridge.js) ----------
   const SCENE = h.get('obsscene') || 'DinkDonk Cinema';
   const FILM = h.get('obsfilm') || 'Film screen (src)';
+  const FULL = h.get('obsfull') || 'Film fullscreen';   // Brief 102: T1 ends with a cut to it (setup.html creates it)
   const FILTER = 'Corner pin (live)';
   const log = (...a) => console.log('[obs-bridge]', ...a);
   const sha256b64 = async (s) => btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))));
@@ -54,7 +57,7 @@
   // onUnreachable fires once if the very first connection attempt never opens (blocked or nothing listening).
   function makeBridge({ port, password, deliver, onUnreachable }) {
     const OBS_URL = `ws://127.0.0.1:${port || 4455}`;
-    const obs = { ws: null, ready: false, itemId: null, pending: new Map(), seq: 0, setupAt: 0, closed: false, everOpen: false, filmShown: false };
+    const obs = { ws: null, ready: false, keyed: false, itemId: null, pending: new Map(), seq: 0, setupAt: 0, closed: false, everOpen: false, filmShown: false };
     const want = { film: false, quad: null };
     const sent = { film: null, quad: null };
     let busy = false;
@@ -132,10 +135,14 @@
         }
         await request('SetSourceFilterEnabled', { sourceName: FILM, filterName: FILTER, filterEnabled: true });
         obs.itemId = sceneItemId;
+        // keyed (Brief 102): the auditorium's browser source has a colour key; for T2/T3 the film goes under the page, on
+        // top of it otherwise (as obs-bridge.js)
+        obs.keyed = await keyedSetup().catch(() => false);
+        if (obs.keyed) await setLayer(false).catch((e) => log(`film over the auditorium failed: ${e.message}`));
         sent.quad = null;
         sent.film = null;
         setReady(true);
-        log(`ready: "${FILM}" is item ${sceneItemId} in "${SCENE}"`);
+        log(`ready: "${FILM}" is item ${sceneItemId} in "${SCENE}"${obs.keyed ? ' (keyed: the film goes under the page for the screen shots)' : ''}`);
         pump();
       } catch (e) {
         log(`not ready (${e.message}); run the setup page to create the "${SCENE}" scene`);
@@ -147,11 +154,12 @@
     function setReady(on) {
       if (obs.ready === on) return;
       obs.ready = on;
-      deliver({ obs: on });
+      deliver({ obs: on, keyed: on && obs.keyed });
     }
     function onPage(text) {
       let m;
       try { m = JSON.parse(text); } catch { return; }
+      if (typeof m.shot === 'string') { onShot(m); return; }   // Brief 102: a screen shot's OBS request
       const ok = Array.isArray(m.quad) && m.quad.length === 4 && m.w > 0 && m.h > 0
         && m.quad.every((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
       if (ok) {
@@ -196,32 +204,91 @@
       if (obs.ready && obs.itemId != null && obs.filmShown) request('SetSceneItemEnabled', { sceneName: SCENE, sceneItemId: obs.itemId, sceneItemEnabled: false }).catch(() => {});
       if (obs.ws) obs.ws.close();
     }
-    // The fly-through's end (as obs-bridge.js cutToCinema): one hard cut to SCENE, then the streamer's transition back.
-    // Never touches source settings (that reloads a browser source). Restored right after the switch, not on a timer:
-    // the relay host may be a background tab.
-    async function cut() {
-      const { transitionName } = await request('GetCurrentSceneTransition');
-      try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message})`); }
-      try { await request('SetCurrentProgramScene', { sceneName: SCENE }); } finally {
-        await request('SetCurrentSceneTransition', { transitionName }).catch(() => {});
+    // One hard cut to a scene, then the streamer's transition back. Restored right after the switch, not on a timer: the
+    // relay host may be a background tab. A second cut while one is under way (a double Fly, a screen shot's cut) read
+    // our own "Cut" as the transition to restore; the real one is kept until the last cut is done (Codex audit, C3).
+    let cutBack = null, cutsRunning = 0;
+    async function hardCut(sceneName) {
+      const back = cutBack || (await request('GetCurrentSceneTransition')).transitionName;
+      cutBack = back;
+      cutsRunning++;
+      try {
+        try { await request('SetCurrentSceneTransition', { transitionName: 'Cut' }); } catch (e) { log(`no Cut transition (${e.message})`); }
+        await request('SetCurrentProgramScene', { sceneName });
+      } finally {
+        if (--cutsRunning === 0) { cutBack = null; await request('SetCurrentSceneTransition', { transitionName: back }).catch(() => {}); }
       }
-      log(`cut to "${SCENE}" (lobby fly-through)`);
-      await unwarm('after the cut');
+      return { scene: sceneName, transition: back };
     }
-    // The fly-through's start (as obs-bridge.js warmCinema, queue 55): the auditorium source goes off-canvas into the
-    // program (lobby) scene so OBS loads it during the flight; taken out again after the cut (or after 2 min).
+    // The fly-through's end and T2's way back (as obs-bridge.js cutToCinema): one hard cut to SCENE. Never touches source
+    // settings (that reloads a browser source).
+    async function cut() {
+      const r = await hardCut(SCENE);
+      log(`cut to "${SCENE}"`);
+      await unwarm('after the cut');
+      return r;
+    }
+    // T1's end (Brief 102): one hard cut to the fullscreen film scene
+    async function cutToFilm() {
+      const r = await hardCut(FULL);
+      log(`cut to "${FULL}"`);
+      return r;
+    }
+    // Brief 102 (as obs-bridge.js): the auditorium's browser source in SCENE has an enabled colour key, and the film
+    // item is in SCENE too
+    async function keyedSetup() {
+      const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
+      const film = items.find((i) => i.sourceName === FILM), aud = items.find((i) => i.inputKind === 'browser_source');
+      if (!film || !aud) return false;
+      const { filters } = await request('GetSourceFilterList', { sourceName: aud.sourceName });
+      return filters.some((f) => f.filterEnabled && /color_key|chroma_key/.test(f.filterKind));
+    }
+    // the film just under (during T2/T3) or just over (otherwise) the auditorium's browser source
+    async function setLayer(under) {
+      const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
+      const film = items.find((i) => i.sourceName === FILM), aud = items.find((i) => i.inputKind === 'browser_source');
+      if (!film || !aud) return { skipped: 'film or auditorium item missing' };
+      const isUnder = film.sceneItemIndex < aud.sceneItemIndex;
+      if (isUnder !== under) await request('SetSceneItemIndex', { sceneName: SCENE, sceneItemId: film.sceneItemId, sceneItemIndex: aud.sceneItemIndex });
+      return { film: under ? 'under the auditorium' : 'over the auditorium', moved: isUnder !== under };
+    }
+    // Brief 102: a page's screen-shot request {shot, rid}, answered {rid, ok, ...} (as obs-bridge.js onShot). Before,
+    // the hosted bridge ignored these: the shots timed out and no OBS cut happened (Codex audit 15 Nov 2026, C3).
+    async function onShot(m) {
+      const rid = String(m.rid || '').slice(0, 16);
+      const reply = (o) => deliver({ rid, ...o });
+      if (!obs.ready) { reply({ ok: false, error: 'OBS not ready' }); return; }
+      try {
+        const r = m.shot === 'cut-film' ? await cutToFilm() : m.shot === 'warm' ? await warm() : m.shot === 'cut-cinema' ? await cut()
+          : m.shot === 'layer-under' || m.shot === 'layer-over' ? (obs.keyed ? await setLayer(m.shot === 'layer-under') : { skipped: 'not keyed' }) : null;
+        if (!r) { reply({ ok: false, error: `unknown shot request ${m.shot}` }); return; }
+        log(`shot ${m.shot}: ${JSON.stringify(r)}`);
+        reply({ ok: true, ...r });
+      } catch (e) {
+        log(`shot ${m.shot} failed: ${e.message}`);
+        reply({ ok: false, error: e.message });
+      }
+    }
+    // The fly-through's start and T2's warm-up (as obs-bridge.js warmCinema, queue 55): the auditorium source goes
+    // off-canvas into the program scene so OBS loads it before the cut; taken out again after the cut (or after 2 min).
+    // Two requests at once (a double Fly) share one set-up, so the source is added once.
     let warmed = null;
     let warmTimer = 0;
-    async function warm() {
-      if (warmed) return;
+    let warming = null;
+    function warm() {
+      if (!warming) warming = warmNow().finally(() => { warming = null; });
+      return warming;
+    }
+    async function warmNow() {
+      if (warmed) return { already: true };
       const items = (await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || [];
       const aud = items.find((i) => i.inputKind === 'browser_source');
-      if (!aud) return;
+      if (!aud) return { skipped: `no browser source in "${SCENE}"` };
       const prog = await request('GetCurrentProgramScene');
       const scene = prog.currentProgramSceneName || prog.sceneName;
-      if (!scene || scene === SCENE) return;
+      if (!scene || scene === SCENE) return { skipped: 'the cinema scene is already on' };
       const active = await request('GetSourceActive', { sourceName: aud.sourceName }).catch(() => ({}));
-      if (active.videoActive) return;
+      if (active.videoActive) return { skipped: 'the auditorium is already shown' };
       const { baseWidth = 1920 } = await request('GetVideoSettings');
       const { sceneItemId } = await request('CreateSceneItem', { sceneName: scene, sourceName: aud.sourceName, sceneItemEnabled: false });
       warmed = { scene, sceneItemId, source: aud.sourceName };
@@ -232,6 +299,7 @@
       clearTimeout(warmTimer);
       warmTimer = setTimeout(() => unwarm('no cut within 2 min'), 120000);
       log(`warm-up: "${aud.sourceName}" loads off-canvas in "${scene}"`);
+      return { warmed: aud.sourceName, scene };
     }
     async function unwarm(why) {
       if (!warmed) return;
@@ -268,7 +336,7 @@
     })();
     addEventListener('pagehide', close);
     obsConnect();
-    return { onPage, close, cut, warm, isReady: () => obs.ready };
+    return { onPage, close, cut, warm, isReady: () => obs.ready, isKeyed: () => obs.ready && obs.keyed };
   }
 
   // What auditorium.html gets back from `new WebSocket('ws://<host>:18790')`: a socket-shaped object that answers like
@@ -299,8 +367,10 @@
         ws.onmessage = (e) => {
           try {
             const m = JSON.parse(e.data);
-            if (typeof m.obs === 'boolean') this._deliver({ obs: m.obs });
+            if (typeof m.obs === 'boolean') this._deliver({ obs: m.obs, keyed: m.obs && m.keyed === true });
             else if (Array.isArray(m.glow) && m.glow.length === 3) this._deliver({ glow: m.glow.map(Number) });
+            // Brief 102: the panel's answer to a screen-shot request (the waiting shot matches its rid)
+            else if (typeof m.rid === 'string') this._deliver({ rid: m.rid, ok: m.ok, ...(m.error ? { error: String(m.error) } : {}), ...(m.skipped ? { skipped: String(m.skipped) } : {}) });
           } catch { /* ignore */ }
         };
         ws.onclose = () => { this._deliver({ obs: false }); setTimeout(open, 3000); };
@@ -357,7 +427,7 @@
       } });
       const open = () => {
         ws = new NativeWS(`${wsBase}/__bridge?k=${encodeURIComponent(KEY)}&role=obs`);
-        ws.onopen = () => { state.relay = true; show(); ws.send(JSON.stringify({ obs: bridge.isReady() })); };
+        ws.onopen = () => { state.relay = true; show(); ws.send(JSON.stringify({ obs: bridge.isReady(), keyed: bridge.isKeyed() })); };
         ws.onmessage = (e) => {
           let m;
           try { m = JSON.parse(e.data); } catch { return; }

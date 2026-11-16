@@ -238,7 +238,7 @@ wss.on('connection', (client, req, key) => {
 const bridgeWss = new WebSocketServer({ noServer: true, maxPayload: 8192 });
 function roomBridge(key) {
   const room = roomLive(key);
-  if (!room.bridge) room.bridge = { host: null, ready: false, pages: new Set(), driver: null };
+  if (!room.bridge) room.bridge = { host: null, ready: false, keyed: false, pages: new Set(), driver: null };
   return room.bridge;
 }
 const sendIfOpen = (ws, text) => { if (ws?.readyState === WebSocket.OPEN) ws.send(text); };
@@ -259,21 +259,33 @@ bridgeWss.on('connection', (ws, req, key, role) => {
         for (const p of b.pages) sendIfOpen(p, text);
         return;
       }
+      // Brief 102: the panel's answer to a page's screen-shot request (cut to the fullscreen film and back, the film's
+      // layer), passed on to the pages; the waiting shot matches its rid. Known fields only (Codex audit 15 Nov 2026, C3)
+      if (typeof m.rid === 'string' && /^[A-Za-z0-9]{1,16}$/.test(m.rid)) {
+        const reply = { rid: m.rid, ok: m.ok === true };
+        if (typeof m.error === 'string') reply.error = m.error.slice(0, 200);
+        if (typeof m.skipped === 'string') reply.skipped = m.skipped.slice(0, 200);
+        const text = JSON.stringify(reply);
+        for (const p of b.pages) sendIfOpen(p, text);
+        return;
+      }
       if (typeof m.obs !== 'boolean') return;
       b.ready = m.obs;
-      for (const p of b.pages) sendIfOpen(p, JSON.stringify({ obs: b.ready }));
+      b.keyed = m.obs && m.keyed === true;   // (the auditorium paints its screen for the colour key only when keyed)
+      for (const p of b.pages) sendIfOpen(p, JSON.stringify({ obs: b.ready, keyed: b.keyed }));
     });
     ws.on('close', () => {
       if (b.host !== ws) return;
       b.host = null;
       b.ready = false;
+      b.keyed = false;
       for (const p of b.pages) sendIfOpen(p, '{"obs":false}');
     });
     return;
   }
   b.pages.add(ws);
   b.driver = ws;
-  sendIfOpen(ws, JSON.stringify({ obs: b.ready }));
+  sendIfOpen(ws, JSON.stringify({ obs: b.ready, keyed: b.keyed }));
   tellHost();
   ws.on('message', (data) => { if (ws === b.driver) sendIfOpen(b.host, data.toString()); });
   ws.on('close', () => {

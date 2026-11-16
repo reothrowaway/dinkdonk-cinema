@@ -140,7 +140,7 @@
   'use strict';
   const $ = (id) => document.getElementById(id);
   const KEY = new URLSearchParams(location.search).get('k') || '';
-  const LOBBY = 'DinkDonk Lobby', CINEMA = 'DinkDonk Cinema', FILM = 'Film screen (src)';
+  const LOBBY = 'DinkDonk Lobby', CINEMA = 'DinkDonk Cinema', FILM = 'Film screen (src)', FULL = 'Film fullscreen';
   const LOBBY_SRC = 'DinkDonk Lobby (browser)', AUD_SRC = 'DinkDonk Auditorium (browser)';
   const base = `${location.origin}/`;
 
@@ -352,6 +352,26 @@
       const top = Math.max(...sceneItems.map((i) => i.sceneItemIndex));
       await req('SetSceneItemIndex', { sceneName: CINEMA, sceneItemId: fid, sceneItemIndex: top });
       await req('SetSceneItemTransform', { sceneName: CINEMA, sceneItemId: fid, sceneItemTransform: { positionX: 0, positionY: 0, scaleX: 1, scaleY: 1, rotation: 0, boundsType: 'OBS_BOUNDS_NONE', alignment: 5 } });
+
+      // the control panel's screen shots T1/T2/T3 (Brief 102): T1 ends with a cut to the film full screen, a scene of its
+      // own, and for T2/T3 the film goes under the auditorium, which a colour key (#00ff00) on its browser source makes
+      // possible (heads and seat backs stay in front). Codex audit 15 Nov 2026, C3.
+      await ensureScene(FULL, scenes);
+      if (film) {
+        let id = await itemId(FULL, film);
+        if (id == null) { id = (await req('CreateSceneItem', { sceneName: FULL, sourceName: film })).sceneItemId; line(`+ "${film}" in "${FULL}"`); }
+        await req('SetSceneItemTransform', { sceneName: FULL, sceneItemId: id, sceneItemTransform: {
+          positionX: 0, positionY: 0, alignment: 5, rotation: 0, boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsAlignment: 0, boundsWidth: canvas.w, boundsHeight: canvas.h,
+          cropLeft: 0, cropTop: 0, cropRight: 0, cropBottom: 0 } });
+        await req('SetSceneItemEnabled', { sceneName: FULL, sceneItemId: id, sceneItemEnabled: true });
+      }
+      const { filters } = await req('GetSourceFilterList', { sourceName: AUD_SRC });
+      if (!filters.some((f) => /color_key|chroma_key/.test(f.filterKind))) {
+        const key = { sourceName: AUD_SRC, filterName: 'Key #00ff00', filterSettings: { key_color_type: 'custom', key_color: 0xff00ff00, similarity: 1, smoothness: 1 } };
+        try { await req('CreateSourceFilter', { ...key, filterKind: 'color_key_filter_v2' }); }
+        catch { await req('CreateSourceFilter', { ...key, filterKind: 'color_key_filter' }); }   // (older OBS)
+        line(`+ colour key #00ff00 on "${AUD_SRC}"`);
+      }
 
       if (previous && previous !== NEW_COLLECTION) {
         // a collection of its own: show the cinema straight away, and offer the way back

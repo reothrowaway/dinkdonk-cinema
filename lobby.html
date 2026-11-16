@@ -6797,8 +6797,13 @@ void main() {
       if (opts.some((o) => o.votes != null)) opts.sort((a, b) => (b.votes || 0) - (a.votes || 0));
     }
     const titleKey = (t) => String(t || '').toLowerCase().replace(/\s*\(\d{4}\)\s*$/, '').replace(/[^a-z0-9]+/g, '');
-    const winners = new Set((r?.winners || []).filter((w) => w.label !== 'Runner-up').map((w) => titleKey(w.title)));
-    if (closed && !winners.size && opts[0]?.votes) winners.add(titleKey(opts[0].title));
+    // one film = title + year: remakes (Dune 1984 / Dune 2021) are two cards and only the one that won lights up; a
+    // winner named without "(year)" still matches by title (Codex audit 15 Nov 2026, C5)
+    const yearOf = (o) => String(o.year || (String(o.title || '').match(/\((\d{4})\)\s*$/) || [])[1] || '');
+    const filmId = (o) => `${titleKey(o.title)}|${yearOf(o)}`;
+    const winList = (r?.winners || []).filter((w) => w.label !== 'Runner-up').map((w) => ({ k: titleKey(w.title), y: yearOf({ title: w.title }) }));
+    if (closed && !winList.length && opts[0]?.votes) winList.push({ k: titleKey(opts[0].title), y: yearOf(opts[0]) });
+    const isWin = (o) => winList.some((w) => w.k === titleKey(o.title) && (!w.y || !yearOf(o) || w.y === yearOf(o)));
     const votes = opts.some((o) => o.votes != null);
     const now = Date.now();
     const n = opts.length;
@@ -6823,13 +6828,13 @@ void main() {
     if (n > POLL_MAX) best = { cols: POLL_MAX, cw: Math.min((AW - gap * (POLL_MAX - 1)) / POLL_MAX, (AH - (votes ? 62 : 34)) / 1.5) };
     if (closed && n > POLL_MAX) opts = opts.slice(0, POLL_MAX);
     const card = (o) => {
-          const k = titleKey(o.title);
+          const k = filmId(o);
           const pop = pollScreen.seen && !pollScreen.seen.has(k) && !closed;
           const fresh = !closed && now - (o.addedAt || 0) < 12000;
           const post = o.poster ? `style="background-image:url('${esc(o.poster)}')"` : '';
           const vote = votes ? `<div class="pscr-vote"><i style="width:${Math.max(0, Math.min(100, o.pct || 0)).toFixed(1)}%"></i></div>` +
             `<div class="pscr-pct">${Math.round(o.pct || 0)}% · ${o.votes || 0}</div>` : '';
-          return `<div class="pscr-card${pop ? ' new' : ''}${fresh ? ' fresh' : ''}${winners.has(k) ? ' win' : ''}">` +
+          return `<div class="pscr-card${pop ? ' new' : ''}${fresh ? ' fresh' : ''}${isWin(o) ? ' win' : ''}">` +
             `<div class="pscr-post" ${post}>${o.poster ? '' : esc(o.title)}</div>` +
             `<div class="pscr-name">${esc(o.title)} <span class="pscr-year">${esc(o.year)}</span></div>${vote}</div>`;
     };
@@ -6842,12 +6847,12 @@ void main() {
         opts.map(card).join('') + '</div>';
     } else if (n) {
       body = `<div class="pscr-list" style="--cols:${Math.min(4, Math.ceil(n / 9))}">` + opts.map((o, i) =>
-        `<div class="${winners.has(titleKey(o.title)) ? 'win' : ''}">${i + 1}. ${esc(o.title)} <span class="pscr-year">${esc(o.year)}</span>` +
+        `<div class="${isWin(o) ? 'win' : ''}">${i + 1}. ${esc(o.title)} <span class="pscr-year">${esc(o.year)}</span>` +
         `${votes ? ` <span class="pscr-pct">${Math.round(o.pct || 0)}%</span>` : ''}</div>`).join('') + '</div>';
     } else {
       body = '<div class="pscr-empty">Adding movies…</div>';
     }
-    pollScreen.seen = new Set(opts.map((o) => titleKey(o.title)));
+    pollScreen.seen = new Set(opts.map(filmId));
     pollScreen.img.innerHTML = `<div class="pscr-top">${logo}<div class="pscr-kick ${cls}">${kick}</div><div class="pscr-meta">${esc(meta)}</div></div>` +
       (() => {
         const c = pollClock(d);

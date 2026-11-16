@@ -29,7 +29,10 @@ FIRST TIME IN OBS
 4. You get these scenes:
      DinkDonk Cinema       the auditorium, with the film pinned onto the cinema screen
      Lobby + Poll setup    the lobby (the main screen while people arrive and vote)
-     Lobby (src), Film screen (src)   building blocks, used by the two above
+     Film fullscreen       the film filling the screen: the control panel's "Into the film (T1)" ends here, and
+                           "Out of the film (T2)" brings the auditorium back. The auditorium's browser source has a
+                           colour key (#00ff00) for these shots; leave it on.
+     Lobby (src), Film screen (src)   building blocks, used by the scenes above
    Add your own scenes (camera, the movie itself, ...) to this collection, or copy these into yours.
 5. Open the film in VLC. If the cinema screen stays black: right-click "Film screen (src)" > Game Capture >
    Properties and pick the VLC window, or replace it with a Window Capture of VLC.

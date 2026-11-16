@@ -19,6 +19,9 @@ const STATES = ['building', 'open', 'closed'];
 
 const str = (v, n) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, n) : '');
 const key = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+// one film = its title + year: two films with the same title (Dune 1984, Dune 2021) are two options, and each keeps its
+// own added time (the builder sends no film id; Codex audit 15 Nov 2026, C5)
+const filmKey = (title, year) => `${key(title)}|${/^\d{4}$/.test(String(year || '')) ? year : ''}`;
 const num = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
 
 let drafts = {};
@@ -68,21 +71,23 @@ function set(input, room = 'local') {
     (prev.pollId === pollId || !prev.pollId || !pollId);
   // the same finished poll again (its results page reopened): nothing changes
   if (prev && prev.state === 'closed' && pollId && prev.pollId === pollId) return prev;
-  const before = new Map(same ? prev.options.map((o) => [key(o.title), o]) : []);
+  const before = new Map(same ? prev.options.map((o) => [filmKey(o.title, o.year), o]) : []);
   const seen = new Set();
   // no options at all (the vote page only says "this poll is open now"): keep the list the build page sent
   if (!Array.isArray(input.options) && same) input = { ...input, options: prev.options };
   const options = [];
   for (const o of Array.isArray(input.options) ? input.options.slice(0, 60) : []) {
     const title = str(o && o.title, 120);
-    if (!title || seen.has(key(title))) continue;
-    seen.add(key(title));
+    const year = /^\d{4}$/.test(String(o?.year || '')) ? String(o.year) : '';
+    const id = filmKey(title, year);
+    if (!title || seen.has(id)) continue;
+    seen.add(id);
     const poster = str(o.poster, 400);
     options.push({
       title,
-      year: /^\d{4}$/.test(String(o.year || '')) ? String(o.year) : '',
+      year,
       poster: /^https:\/\//.test(poster) ? poster : '',
-      addedAt: before.get(key(title))?.addedAt || now,
+      addedAt: before.get(id)?.addedAt || now,
     });
   }
   const next = {

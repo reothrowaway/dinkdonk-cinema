@@ -385,6 +385,12 @@ played by `shared/aud-shots.js` over the page on a WebGL canvas, with the real c
 (per-frame camera, depth occlusion, names, emotes animating). Panel buttons: "Into the film (T1)", "Out of the film
 (T2)", "Back to the room (T3)", "Stop shots" (command `shot` t1/t2/t3/stop).
 
+**Stop** ends everything at once (16 Nov 2026, Codex audit C1): every start and every stop takes a new generation, and
+a step that resumes after a wait (the pack loading, the emote atlas, the camera ease, the bridge's warm-up) goes on
+only while its generation is current. Before, a Stop while T1 got ready left the room faded out and the camera locked
+on the screen, and a Stop during T2's warm-up still cut OBS back to the cinema seconds later. Stop never switches the
+OBS program scene itself: stopped in the Film state, OBS stays on "Film fullscreen" until you switch it.
+
 - **T1** (8 s, only in the Film phase with the lights down): from the exact Film framing into the screen until it fills
   the frame; at the end `obs-bridge.js` cuts OBS to the "Film fullscreen" scene.
 - **T2** (10 s): OBS cuts back (after a warm-up of the hidden source) and the camera comes out low over the heads, then

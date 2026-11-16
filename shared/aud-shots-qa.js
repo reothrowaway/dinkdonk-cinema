@@ -72,7 +72,12 @@
   let atlasTex = null, labelTex = null, holdTex = null, holdDepthTex = null, videoTex = null;
   const meta = {}, corners = {}, videos = {};
   let hold = null;          // { cam, corners: [[x,y] x4], img, img2x }
-  let state = 'idle', note = '', cur = null, curFrame = 0, holdRaf = 0, filmTimer = 0, t2Token = 0;
+  let state = 'idle', note = '', cur = null, curFrame = 0, holdRaf = 0, filmTimer = 0;
+  // Every start (T1, T2, T3) and every stop or end takes a new generation; a step that resumes after a wait goes on only
+  // while its generation is the current one. A Stop while T1 got ready (pack, emotes, camera) or T2 warmed up OBS used to
+  // let the old step fade the room out, lock the camera or cut OBS seconds later (Codex audit 15 Nov 2026, C1).
+  let gen = 0;
+  const isCurrent = (my) => my === gen;
   let lastQuadKey = '', cutSent = false, layerSent = false, overSent = false;
 
   // ---------- GL ----------
@@ -752,11 +757,12 @@
       videos[s].requestVideoFrameCallback(onFrame(s));
     };
   }
-  async function play(s) {
+  async function play(s, my) {
     const v = videos[s];
     cur = s;
     if (v.currentTime !== 0 || v.readyState < 2) {
       await new Promise((r) => { const done = () => r(); v.addEventListener('seeked', done, { once: true }); v.currentTime = 0; setTimeout(done, 1500); });
+      if (!isCurrent(my)) return;
     }
     // frame 1 on the canvas first, then the (packed, not presentable) video under it: shown before the canvas, the raw
     // colour + depth picture flashed for two frames at T1's start (OBS recording, 15 Nov)
@@ -764,7 +770,13 @@
     canvas.style.display = 'block';
     v.style.display = 'block';
     v.requestVideoFrameCallback(onFrame(s));
-    try { await v.play(); } catch { await new Promise((r) => setTimeout(r, 400)); await v.play(); }
+    try { await v.play(); } catch {
+      // (a Stop pauses the video, which rejects play(): no second try then, or it played on hidden)
+      if (!isCurrent(my)) return;
+      await new Promise((r) => setTimeout(r, 400));
+      if (!isCurrent(my)) return;
+      await v.play();
+    }
   }
   function cutToFilm() {
     bridgeAsk('cut-film').then((r) => console.log('[shots] cut to the fullscreen film:', JSON.stringify(r)));
@@ -811,6 +823,7 @@
     holdTimer = setInterval(() => { if (state !== 'hold') clearInterval(holdTimer); else if (performance.now() - holdAt > 200) draw(); }, 100);
   }
   function finishShots(wide = false) {
+    gen++;   // whatever step is still waiting stops there (C1)
     if (!wide && state !== 'idle') bridgeAsk('layer-over');   // (a stop or a failure: the film back on top)
     cancelAnimationFrame(holdRaf);
     clearInterval(holdTimer);
@@ -830,9 +843,11 @@
     const P = page();
     const ok = P?.filmReady();
     if (ok !== true) { note = `T1 needs ${ok || 'the auditorium page'}`; return; }
+    const my = ++gen;
     state = 'prep'; note = 'getting ready: the Film shot, then T1';
     try {
       await prepare();
+      if (!isCurrent(my)) return;
       P.shotsOn(true);   // glow, beam, dust (1.5 s fade) and bubbles fade out; no automatic follows
       const fadeEnd = performance.now() + 1700;
       for (const f of P.figures()) { ensure(emKey(f)); for (const it of f.items) ensure(`img:${it.src}`); }
@@ -840,59 +855,70 @@
       await new Promise((r) => {
         const tick = () => {
           const pending = [...emoteInfo.values()].some((i) => i === 'pending');
-          if (!pending || performance.now() > until) r(); else setTimeout(tick, 100);
+          if (!pending || performance.now() > until || !isCurrent(my)) r(); else setTimeout(tick, 100);
         };
         tick();
       });
+      if (!isCurrent(my)) return;
+      // (a Stop during the ease clears it in afterShots, so this wait then simply never ends)
       await P.camera('film');          // eases onto the Film framing if it is not there, then holds it exactly
       await new Promise((r) => setTimeout(r, Math.max(0, fadeEnd - performance.now())));
-      if (state !== 'prep') return;
+      if (!isCurrent(my) || state !== 'prep') return;
       cutSent = false; layerSent = false; overSent = false;
       state = 't1'; note = 'T1: into the film';
-      await play('T1');
+      await play('T1', my);
     } catch (e) {
+      if (!isCurrent(my)) return;   // (a step a Stop already ended: a later Stop/T1 must not be undone by it)
       console.error('[shots] T1', e);
       note = `T1 failed: ${e.message || e}`;
       finishShots();
     }
   }
   async function startT2() {
-    const my = ++t2Token;
+    const my = ++gen;
     state = 't2wait'; note = 'T2: bringing the auditorium back in OBS';
     try {
       clearInterval(filmTimer);
       const v = videos.T2;
       await new Promise((r) => { if (v.currentTime === 0 && v.readyState >= 2) return r(); v.addEventListener('seeked', () => r(), { once: true }); v.currentTime = 0; setTimeout(r, 1500); });
+      if (!isCurrent(my)) return;
       v.style.display = 'block';
       showVideoFrame('T2', 1);   // frame 1: all green = the film full frame, exactly what OBS shows now
       canvas.style.display = 'block';
       if (page()?.inObs()) {
         const w = await bridgeAsk('warm');   // OBS renders the hidden auditorium source off-canvas first (no freeze at the cut)
         console.log('[shots] warm-up:', JSON.stringify(w));
+        // stopped meanwhile: no cut afterwards (the bridge takes its off-canvas warm-up item out by itself after 2 min)
+        if (!isCurrent(my)) return;
         await new Promise((r) => setTimeout(r, w?.ok ? WARM_MS : 300));
+        if (!isCurrent(my)) return;
         showVideoFrame('T2', 1);
         const c = await bridgeAsk('cut-cinema');
         console.log('[shots] cut back to the auditorium:', JSON.stringify(c));
         await new Promise((r) => setTimeout(r, 120));
       }
-      if (my !== t2Token || state !== 't2wait') return;
+      if (!isCurrent(my) || state !== 't2wait') return;
       state = 't2'; note = 'T2: out of the film';
-      await play('T2');
+      await play('T2', my);
     } catch (e) {
+      if (!isCurrent(my)) return;
       console.error('[shots] T2', e);
       note = `T2 failed: ${e.message || e}`;
       finishShots();
     }
   }
   async function startT3() {
+    const my = ++gen;
     cancelAnimationFrame(holdRaf);
     state = 't3'; note = 'T3: back to the room';
     try {
       const P = page();
       await P.camera('wide');   // the page under the canvas: wide shot, held still, painted before T3 ends
+      if (!isCurrent(my)) return;
       P.camHidden(false);
-      await play('T3');
+      await play('T3', my);
     } catch (e) {
+      if (!isCurrent(my)) return;
       console.error('[shots] T3', e);
       note = `T3 failed: ${e.message || e}`;
       finishShots();
@@ -900,7 +926,7 @@
   }
   function command(v) {
     const s = String(v || '').toLowerCase();
-    if (s === 'stop') { t2Token++; finishShots(); note = 'stopped: the live page is back'; return true; }
+    if (s === 'stop') { finishShots(); note = 'stopped: the live page is back'; return true; }
     if (s === 't1' && state === 'idle') { startT1(); return true; }
     if (s === 't2' && state === 'film') { startT2(); return true; }
     if (s === 't3' && state === 'hold') { startT3(); return true; }
