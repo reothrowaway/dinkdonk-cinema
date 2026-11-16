@@ -829,8 +829,8 @@
         where.append(pill);
         const act = document.createElement('td');
         act.style.textAlign = 'right';
-        // Reeducate (owner, 16 Nov 2026): lobby chatters wearing a Yee emote burst into its Pepe version (lobby.html reeducate)
-        const reedu = btn('Reeducate', { cmd: 'reeducate', nick: c.nick, page: 'lobby' });
+        // Reeducate (owner, 16 Nov 2026): chatters wearing a Yee emote burst into its Pepe version (lobby.html, auditorium.html reeducate)
+        const reedu = btn('Reeducate', { cmd: 'reeducate', nick: c.nick });
         reedu.title = 'The camera moves in, the emote shakes, "oh no", it bursts into its Pepe version: PEPE WINS';
         reedu.style.cssText = 'border-color:#2f8f3e;color:#8dff94';
         act.append(btn('Follow', { cmd: 'follow', nick: c.nick }), ' ', reedu, ' ', btn('Remove', { cmd: 'remove', nick: c.nick }, 'danger'));
@@ -844,7 +844,7 @@
       if (tr.cells[1].textContent !== (c.emote || '')) tr.cells[1].textContent = c.emote || '';
       if (tr._pill.textContent !== c.status) tr._pill.textContent = c.status;
       tr._follow.disabled = blocked || c.status === 'waiting outside';
-      tr._reedu.hidden = page !== 'lobby' || !YEE_LOOKS.has(c.emote);
+      tr._reedu.hidden = !YEE_LOOKS.has(c.emote);   // lobby and auditorium (owner, 16 Nov 2026)
       tr._reedu.disabled = blocked;
       // Preserve button identity while someone is pressing it during a one-second state refresh.
       const index = present.size - 1;

@@ -487,8 +487,9 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'left': removeEntry(page, key, 'left'); break;
       case 'gag': if (page === 'lobby') stallGag(true); break;
       case 'reeducate': {
-        // the panel's Reeducate: a Yee wearer becomes the Pepe version for good (every screen plays the show: lobby.html)
-        const e = page === 'lobby' && find(page, key);
+        // the panel's Reeducate: a Yee wearer becomes the Pepe version for good (every screen of that scene plays the show:
+        // lobby.html, auditorium.html)
+        const e = find(page, key);   // lobby and auditorium (owner, 16 Nov 2026: the auditorium too)
         const to = e && PEPE_OF[e.emote];
         if (!to) break;
         const from = e.emote;
