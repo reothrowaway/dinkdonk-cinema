@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DinkDonk poll → cinema lobby
 // @namespace    dinkdonk-cinema
-// @version      0.5
+// @version      0.6
 // @description  While you build a poll on dinkdonk.mov, sends its title and movies to your cinema lobby, so the lobby can show them live. Also says when that poll opens for voting and when it ends. With movie suggestions open (control panel), adds the films chat suggested to the builder.
 // @match        https://dinkdonk.mov/*
 // @grant        GM_xmlhttpRequest
@@ -14,7 +14,7 @@
 // the search is a hidden <input name="options[]"> holding the TMDB item as JSON (title, release_date, poster_path);
 // a typed-in option is a visible <input name="options[]">. After "Create", the site goes to /poll/<id> in the same
 // tab, and the results are at /poll/<id>/results.
-// Sent only to one cinema server and one room. Nothing on dinkdonk.mov is changed, except (0.4, local server only):
+// Sent only to one cinema server and one room. Nothing on dinkdonk.mov is changed, except (0.4; hosted rooms too since 0.6):
 // while movie suggestions are open, films chat suggested are looked up with the builder's own TMDB search
 // (POST /api/tmdb/search, the page's CSRF token) and the approved ones are added to the builder the way the
 // search's Select button does it (a tmdb-search:select event). It never presses Create and never removes anything.
@@ -113,8 +113,8 @@
   setInterval(tick, 1500);
 
   // ---- movie suggestions from chat (movie-suggest.js on the cinema server; docs/movie-suggestions-plan.md)
-  if (ROOM_KEY) return;   // (the hosted edition has no chat suggestions yet)
-  const MS = `${SERVER}/ms/`;
+  // (hosted, 0.6: the room's own suggestions, by room key)
+  const msUrl = (p) => `${SERVER}/ms/${p}${ROOM_KEY ? `?k=${encodeURIComponent(ROOM_KEY)}` : ''}`;
   const raw = new Map();  // tmdb_id -> the search item exactly as the site gave it (what Select would add)
 
   function gm(method, url, body) {
@@ -163,28 +163,28 @@
     if (!items.length && job.year) items = await tmdbSearch(`${job.query} ${job.year}`, null);
     // no film by that name and TV allowed (panel: Films only off): a series
     if (!items.length && !filmsOnly) items = await tmdbSearch(job.query, job.year, 'tv');
-    if (!items.length) return gm('POST', MS + 'lookup', { id: job.id, notFound: true });
+    if (!items.length) return gm('POST', msUrl('lookup'), { id: job.id, notFound: true });
     // the most popular match, unless one is called exactly what chat typed ("Toy Story" is not Toy Story 5); page 2
     // too when page 1 (2 results) has no exact title
     const k = (t) => String(t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
     const exact = (list) => list.find((i) => k(i.title || i.name) === k(job.query) && (!job.year || String(i.release_date || i.first_air_date || '').startsWith(String(job.year))));
     let pick = job.imdb ? items[0] : exact(items);
     if (!pick && !job.imdb && items.length >= 2) pick = exact(await tmdbSearch(job.query, job.year, items[0].type, 2).catch(() => []));
-    return gm('POST', MS + 'lookup', { id: job.id, result: toResult(pick || items[0], form) });
+    return gm('POST', msUrl('lookup'), { id: job.id, result: toResult(pick || items[0], form) });
   }
 
   async function add(job, form) {
     const type = job.type || 'movie';
-    if (inBuilder(form, job.tmdbId, type)) return gm('POST', MS + 'added', { id: job.id, ok: true });
+    if (inBuilder(form, job.tmdbId, type)) return gm('POST', msUrl('added'), { id: job.id, ok: true });
     let item = raw.get(`${type}:${job.tmdbId}`);
     if (!item) item = (await tmdbSearch(job.title, job.year, type)).find((i) => i.tmdb_id === job.tmdbId);
     // a whole series (no season or episode picked), as Select does with nothing chosen
     if (item && type === 'tv') item = { ...item, selected_season: null, selected_start_episode: null, selected_end_episode: null };
     const search = form.querySelector('[data-controller~="tmdb-search"]');
-    if (!item || !search) return gm('POST', MS + 'added', { id: job.id, ok: false });
+    if (!item || !search) return gm('POST', msUrl('added'), { id: job.id, ok: false });
     // what the Select button does: the form's create-poll controller adds it (addFromSearch)
     search.dispatchEvent(new CustomEvent('tmdb-search:select', { bubbles: true, detail: { item, target: null } }));
-    return gm('POST', MS + 'added', { id: job.id, ok: inBuilder(form, job.tmdbId, type) });
+    return gm('POST', msUrl('added'), { id: job.id, ok: inBuilder(form, job.tmdbId, type) });
   }
 
   // a small label on the builder page, so the owner sees it working
@@ -207,17 +207,17 @@
     if (!form || busy) { setTimeout(work, 3000); return; }
     busy = true;
     try {
-      const w = await gm('GET', MS + 'work');
+      const w = await gm('GET', msUrl('work'));
       if (!w) { show(''); wait = 10000; return; }   // a cinema server without suggestions
       show(w.open ? `Chat suggestions open${w.dryRun ? ' (dry run)' : ''}` : '');
       for (const job of w.lookups) {
         try { await lookup(job, form, w.filmsOnly !== false); }
         catch (e) {
-          await gm('POST', MS + 'lookup', { id: job.id, error: String(e.message || e) }).catch(() => {});
+          await gm('POST', msUrl('lookup'), { id: job.id, error: String(e.message || e) }).catch(() => {});
           if (/reauth/.test(e.message)) { show('Chat suggestions: dinkdonk wants you to log in again'); break; }
         }
       }
-      for (const job of w.adds) await add(job, form).catch(() => gm('POST', MS + 'added', { id: job.id, ok: false }).catch(() => {}));
+      for (const job of w.adds) await add(job, form).catch(() => gm('POST', msUrl('added'), { id: job.id, ok: false }).catch(() => {}));
       // removed by the owner in the control panel: its X in the builder, like a click
       for (const job of w.removes || []) {
         for (const input of form.querySelectorAll('input[name="options[]"]')) {
@@ -225,7 +225,7 @@
           try { o = JSON.parse(input.value); } catch { /* typed option */ }
           if (o && o.tmdb_id === job.tmdbId && (o.type || 'movie') === (job.type || 'movie')) input.closest('.create-poll__option')?.querySelector('.remove-option')?.click();
         }
-        await gm('POST', MS + 'removed', { id: job.id }).catch(() => {});
+        await gm('POST', msUrl('removed'), { id: job.id }).catch(() => {});
       }
       wait = w.open || w.lookups.length || w.adds.length ? 2000 : 5000;
     } catch { wait = 10000; /* cinema server not running */ } finally {

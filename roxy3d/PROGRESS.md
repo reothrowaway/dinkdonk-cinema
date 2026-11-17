@@ -3218,3 +3218,11 @@ New standalone prop on the owner's request ("small recirculating water fountain 
 - 17 Nov 2026 (Claude, owner, queue 88): obs-bridge.js/-qa and the hosted shim remove their own leftover warm-up items
   when they link up to OBS (the cinema's browser source in another scene at canvas width + 400, 0; exact matches only).
   Checked in a portable OBS with a planted leftover and a decoy: both paths removed the leftover and kept the decoy.
+- 17 Nov 2026 (Claude, queue 84): lobby lighting pass + bonsai fountain by the snack bar + point 6 perf saving as ONE render. Image search on the owner's wording ("cinema lobby lighting", "bonsai fountain"; shots in lobby104/ref-google-*.jpg: dark ceilings, downlight pools, concession counter brightest; floor-standing 24" cast-stone versions of the bonsai fountain exist). Brief 104 stage 1 (blockout104 with fountain variants A tabletop / B floor-standing + light-source markers, NOTES-104 plan) started on the render agent (Fable 5.2 high, background). Nothing live changed.
+- 17 Nov 2026 (Claude, owner, queue 85): hosted movie suggestions. web/server.js keeps one movie-suggest.js state per
+  room key (DATA/movie-suggest/<key>.json, back after a restart), fed by the shared DGG chat connection; /ms/* routes by
+  room key (poll script: X-DD-Draft header; panel: own origin). Every room takes !rqmovie while suggestions are open;
+  the tag trigger is the streamer's own name from the panel ("Your DGG name", empty by default); no test feed hosted
+  (movie-suggest.js: overrides/omit options, local defaults unchanged). Poll script 0.6 does suggestions for hosted
+  rooms too (streamers reinstall it from the panel; Tampermonkey also updates it from its @updateURL). Checked on a
+  local hosted build: 18 route/module checks and the panel card in headless Edge.

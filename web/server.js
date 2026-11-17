@@ -38,6 +38,10 @@ const dinkdonk = require(path.join(SITE, 'dinkdonk.js'));
 process.env.POLL_DRAFT_FILE = process.env.POLL_DRAFT_FILE || path.join(DATA, 'poll-draft.json');
 const pollDraft = require(path.join(SITE, 'poll-draft.js'));
 const POLL_SCRIPT = path.join(SITE, 'userscripts', 'dinkdonk-poll-draft.user.js');
+// chat movie suggestions, one per room (queue 85, 17 Nov 2026): the same module as the local server's. Every room
+// takes the chat command (!rqmovie) while its streamer has suggestions open; the tag trigger needs the streamer's own
+// name, typed in their control panel (empty by default). The room's poll script does the lookups and adds.
+const { createMovieSuggest } = require(path.join(SITE, 'movie-suggest.js'));
 
 const CDN = 'https://cdn.destiny.gg';
 const CHAT_URL = 'wss://chat.destiny.gg/ws';
@@ -55,7 +59,7 @@ const TYPES = {
 // pages that need a room key; the shim goes into the ones that talk to the server
 const KEYED = new Set(['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', 'setup.html', 'lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']);
 const SHIMMED = new Set(['lobby.html', 'auditorium.html', 'control.html', 'lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']);
-const PRIVATE = /^(dinkdonk\.js|server\.js|poll-draft\.js)$/i;
+const PRIVATE = /^(dinkdonk\.js|server\.js|poll-draft\.js|movie-suggest\.js|movie-test-list\.js)$/i;
 
 // ---------- rooms ----------
 const ROOMS_FILE = path.join(DATA, 'rooms.json');
@@ -94,10 +98,32 @@ function ensureRoom(k) {
   }
   return roomStates.get(k);
 }
+// movie suggestions, one per key (DATA/movie-suggest/<key>.json); made on first use, kept while the server runs
+const suggestStates = new Map();   // key -> movie suggestions
+const suggestFile = (k) => path.join(DATA, 'movie-suggest', `${k}.json`);
+function roomSuggest(k) {
+  if (!suggestStates.has(k)) {
+    suggestStates.set(k, createMovieSuggest({ file: suggestFile(k),
+      historySearch: (t) => dinkdonk.search(String(t).slice(0, 60)).then((r) => r.entries || []),
+      log: (m) => log(`${rooms[k]?.name || '?'}: ${m}`),
+      overrides: { tag: { def: '', label: 'Your DGG name (chat: @name Title)' } },
+      omit: ['testFeed', 'testEvery'] }));
+  }
+  return suggestStates.get(k);
+}
+// rooms whose suggestions file exists come back at start, so an open round keeps taking chat after a restart
+function loadSuggestRooms() {
+  let files = [];
+  try { files = fs.readdirSync(path.join(DATA, 'movie-suggest')); } catch { return; }
+  for (const f of files) { const k = f.replace(/\.json$/, ''); if (f.endsWith('.json') && validKey(k)) roomSuggest(k); }
+}
 function dropRoom(k) {
   roomStates.get(k)?.close();
   roomStates.delete(k);
   settingsStates.delete(k);
+  suggestStates.get(k)?.flush();
+  suggestStates.delete(k);
+  try { fs.rmSync(suggestFile(k), { force: true }); } catch { /* gone */ }
   try { fs.rmSync(roomFile(k), { force: true }); } catch { /* gone */ }
   try { fs.rmSync(settingsFile(k), { force: true }); } catch { /* gone */ }
 }
@@ -198,6 +224,7 @@ function chatConnect() {
     }
     for (const c of chat.clients) if (c.readyState === WebSocket.OPEN && c.bufferedAmount < 1 << 20) c.send(text);
     for (const r of roomStates.values()) { try { r.chatFrame(text); } catch (e) { log(`room: ${e.message}`); } }
+    if (type === 'MSG') for (const s of suggestStates.values()) { try { s.chatFrame(text); } catch (e) { log(`movie suggestions: ${e.message}`); } }
   });
   const down = (why) => {
     if (chat.ws !== ws) return;
@@ -515,7 +542,28 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/dd/draft' && req.method === 'POST') {
       if (!validKey(key)) return json(res, 403, { error: 'unknown or revoked key' });
       if (!/^application\/json\b/.test(req.headers['content-type'] || '') || req.headers['x-dd-draft'] !== '1') return send(res, 403, 'text/plain', 'Forbidden');
-      return json(res, 200, { draft: pollDraft.set(await readJson(req), key) });
+      const draft = pollDraft.set(await readJson(req), key);
+      if (draft?.state === 'building') roomSuggest(key).syncBuilder(draft.options);   // films the streamer took out
+      return json(res, 200, { draft });
+    }
+    // movie suggestions: the room's poll script (same header rule as /dd/draft) ...
+    if (['/ms/work', '/ms/lookup', '/ms/added', '/ms/removed'].includes(pathname)) {
+      if (!validKey(key)) return json(res, 403, { error: 'unknown or revoked key' });
+      if (req.headers['x-dd-draft'] !== '1' || (req.method === 'POST' && !/^application\/json\b/.test(req.headers['content-type'] || ''))) return send(res, 403, 'text/plain', 'Forbidden');
+      const ms = roomSuggest(key);
+      if (pathname === '/ms/work' && req.method === 'GET') return json(res, 200, ms.work());
+      if (req.method !== 'POST') return send(res, 405, 'text/plain', 'Method not allowed');
+      const body = await readJson(req);
+      if (pathname === '/ms/lookup') return json(res, 200, await ms.lookupResult(body));
+      if (pathname === '/ms/added') return json(res, 200, ms.added(body));
+      return json(res, 200, ms.unadded(body));
+    }
+    // ... and the room's control panel (our own pages only, JSON)
+    if (pathname === '/ms/cmd' && req.method === 'POST') {
+      if (!validKey(key)) return json(res, 403, { error: 'unknown or revoked key' });
+      if (foreignOrigin(req) || !/^application\/json\b/.test(req.headers['content-type'] || '')) return send(res, 403, 'text/plain', 'Forbidden');
+      const out = roomSuggest(key).command(await readJson(req));
+      return json(res, out.ok ? 200 : 400, out);
     }
 
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'text/plain', 'Method not allowed');
@@ -537,6 +585,11 @@ const server = http.createServer(async (req, res) => {
       if (!validKey(key)) return json(res, 200, { draft: null, screen: { open: false, at: 0 } });
       checkPollResults(key);
       return json(res, 200, { draft: pollDraft.get(key), screen: pollDraft.getScreen(key) });
+    }
+    if (pathname === '/ms/state.json') {
+      if (!validKey(key)) return json(res, 403, { error: 'unknown or revoked key' });
+      const ms = roomSuggest(key);
+      return json(res, 200, url.searchParams.get('lite') === '1' ? ms.lite() : ms.snapshot());
     }
     if (pathname === '/dd/poll-script.user.js') {
       if (!validKey(key)) return send(res, 403, 'text/plain', 'Room key needed');
@@ -583,7 +636,8 @@ refreshEmoteNames().then(() => {
   for (const k of Object.keys(rooms)) if (validKey(k)) ensureRoom(k);
   if (roomStates.size) chatConnect();
 });
+loadSuggestRooms();
 setInterval(refreshEmoteNames, CACHE_MS).unref();
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { for (const r of roomStates.values()) r.close(); process.exit(0); });
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { for (const r of roomStates.values()) r.close(); for (const s of suggestStates.values()) s.flush(); process.exit(0); });
 
 server.listen(PORT, HOST, () => log(`DinkDonk Cinema on http://${HOST}:${PORT} (${Object.keys(rooms).length} rooms, site ${SITE})`));

@@ -25,7 +25,8 @@
     try {
       const url = new URL(u, location.href);
       // (the poll screen's state is per room too: /dd/draft.json)
-      if (url.origin === location.origin && (url.pathname.startsWith('/ctl/') || url.pathname === '/dd/draft.json')) { url.searchParams.set('k', KEY); return url.href; }
+      // (and the room's movie suggestions: /ms/state.json, /ms/cmd)
+      if (url.origin === location.origin && (url.pathname.startsWith('/ctl/') || url.pathname.startsWith('/ms/') || url.pathname === '/dd/draft.json')) { url.searchParams.set('k', KEY); return url.href; }
     } catch { /* not a URL: leave it */ }
     return u;
   };

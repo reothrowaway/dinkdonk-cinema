@@ -1,6 +1,6 @@
 # Movie suggestions from chat: plan
 
-Status: **live** since 15 Nov 2026 (local 18770, repo, hosted pages, zip). Chat suggestions run on the local server only; the hosted edition has the panel card hidden and no /ms/ routes. Decisions are the owner's, from the brainstorm the same day; later changes (defaults, !rqmovie, test feed, 6 posters scrolling, poll zoom) are in roxy3d/PROGRESS.md.
+Status: **live** since 15 Nov 2026 (local 18770, repo, hosted pages, zip). Since 17 Nov 2026 the hosted edition has them too (queue 85): one suggestions state per room key (DATA/movie-suggest/<key>.json), fed by the shared chat connection; every room takes !rqmovie while its streamer has suggestions open, the tag trigger uses the name the streamer types in the panel ("Your DGG name", empty by default), no test feed. The room's poll script (0.6, Install your poll script) does the lookups and adds. Decisions are the owner's, from the brainstorm the same day; later changes (defaults, !rqmovie, test feed, 6 posters scrolling, poll zoom) are in roxy3d/PROGRESS.md.
 
 ## What it does
 
@@ -156,7 +156,7 @@ nothing, created nothing (0 options in the form afterwards).
 
 ## Later / open
 
-- Hosted edition: each room would need its own relay connection or chat source; local first.
+- Hosted edition: done 17 Nov 2026 (see the status line at the top): per-room state on the server's one chat connection.
 - Abuse: alt accounts can get around the entry limit (owner chose "anyone"); a "chatted before opening" setting can
   be added if it becomes a problem.
 - dinkdonk.mov may limit the number of poll options; the cap must not exceed it (step 0).

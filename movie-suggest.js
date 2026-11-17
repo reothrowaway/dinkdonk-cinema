@@ -126,7 +126,15 @@ function runtimeMinutes(v) {
   return num(v);
 }
 
-function createMovieSuggest({ file = null, historySearch = null, log = () => {}, now = () => Date.now() } = {}) {
+// overrides: { key: { def, label } } per server (the hosted edition: no tag name by default, the streamer types theirs);
+// omit: settings this server doesn't offer (hosted: the test feed); those stay at their default.
+function createMovieSuggest({ file = null, historySearch = null, log = () => {}, now = () => Date.now(), overrides = {}, omit = [] } = {}) {
+  const schema = {};
+  for (const [k, d] of Object.entries(SCHEMA)) {
+    if (omit.includes(k)) continue;
+    const o = overrides[k] || {};
+    schema[k] = [d[0], o.def !== undefined ? o.def : d[1], d[2], d[3], o.label || d[4]];
+  }
   let state = { open: false, round: 0, openedAt: 0, closedAt: 0, seq: 0, items: [], events: [], settings: {} };
   try {
     const disk = file && JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -159,7 +167,8 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
 
   // ---------- settings ----------
   function setting(k) {
-    const [kind, def, lo, hi] = SCHEMA[k];
+    if (!schema[k]) return SCHEMA[k][1];
+    const [kind, def, lo, hi] = schema[k];
     const v = state.settings[k];
     if (v === undefined) return def;
     if (kind === 'num') return Math.min(hi, Math.max(lo, Number(v)));
@@ -167,8 +176,8 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
   }
   const settings = () => Object.fromEntries(Object.keys(SCHEMA).map((k) => [k, setting(k)]));
   function setSetting(k, v) {
-    if (!SCHEMA[k]) return false;
-    const [kind, , lo, hi] = SCHEMA[k];
+    if (!schema[k]) return false;
+    const [kind, , lo, hi] = schema[k];
     if (v === null) { delete state.settings[k]; return true; }
     if (kind === 'num') { const n = num(v); if (n == null) return false; state.settings[k] = Math.min(hi, Math.max(lo, Math.round(n))); }
     else if (kind === 'bool') state.settings[k] = !!v;
@@ -461,7 +470,7 @@ function createMovieSuggest({ file = null, historySearch = null, log = () => {},
     }));
     return {
       rev, open: state.open, round: state.round, openedAt: state.openedAt, closedAt: state.closedAt,
-      settings: settings(), schema: Object.fromEntries(Object.entries(SCHEMA).map(([k, [kind, def, min, max, label]]) => [k, { kind, def, min, max, label }])),
+      settings: Object.fromEntries(Object.keys(schema).map((k) => [k, setting(k)])), schema: Object.fromEntries(Object.entries(schema).map(([k, [kind, def, min, max, label]]) => [k, { kind, def, min, max, label }])),
       counts: { inBuilder: inBuilderCount() + (state.builderExtra || 0), ours: inBuilderCount(), extra: state.builderExtra || 0, bench: items.filter((i) => i.status === 'bench').length, rejected: items.filter((i) => i.status === 'rejected').length },
       items,
       // for the lobby's stamp strip: the newest decisions of this round
