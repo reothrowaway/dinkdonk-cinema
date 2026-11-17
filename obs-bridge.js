@@ -129,6 +129,7 @@ async function setup() {
     obs.itemId = sceneItemId;
     obs.keyed = await keyedSetup().catch(() => false);
     if (obs.keyed) await setLayer(false).catch((e) => log(`film over the auditorium failed: ${e.message}`));
+    await cleanupLeftovers().catch((e) => log(`leftover check failed: ${e.message}`));
     sent.quad = null;
     sent.film = null;
     setReady(true);
@@ -277,6 +278,27 @@ async function warmCinemaNow() {
   clearTimeout(warmTimer);
   warmTimer = setTimeout(() => unwarm('no cut within 2 min'), 120000);
   return { warmed: aud.sourceName, scene };
+}
+// Leftover warm-ups (owner, 17 Nov 2026): if the bridge stops within the 2 minutes a warm-up lasts, its off-canvas copy
+// of the auditorium stays in that scene, OBS saves it with the collection, and from then on the auditorium renders in
+// the background whenever that scene is on (found in "DinkDonk Lobby" on 16 Nov). When the bridge links up it removes
+// exact matches only: the cinema's own browser source, in another scene, at the warm-up's spot (canvas width + 400, 0).
+async function cleanupLeftovers() {
+  const aud = ((await request('GetSceneItemList', { sceneName: SCENE })).sceneItems || []).find((i) => i.inputKind === 'browser_source');
+  if (!aud) return 0;
+  const { baseWidth = 1920 } = await request('GetVideoSettings');
+  let removed = 0;
+  for (const { sceneName } of (await request('GetSceneList')).scenes || []) {
+    if (sceneName === SCENE || (warm && warm.scene === sceneName)) continue;   // (a warm-up of ours in use right now)
+    for (const it of (await request('GetSceneItemList', { sceneName })).sceneItems || []) {
+      const t = it.sceneItemTransform || {};
+      if (it.sourceName !== aud.sourceName || Math.round(t.positionX) !== baseWidth + 400 || Math.round(t.positionY) !== 0) continue;
+      await request('RemoveSceneItem', { sceneName, sceneItemId: it.sceneItemId });
+      log(`removed a leftover warm-up: "${it.sourceName}" off-canvas in "${sceneName}"`);
+      removed++;
+    }
+  }
+  return removed;
 }
 async function unwarm(why) {
   if (!warm) return;
