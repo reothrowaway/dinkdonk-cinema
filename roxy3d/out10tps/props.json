@@ -1,0 +1,380 @@
+{
+  "schema": "dinkdonk.props.layers.v1",
+  "stage_size": [
+    1920,
+    1080
+  ],
+  "scale2x": true,
+  "projection": {
+    "origin": [
+      900,
+      350
+    ],
+    "tile_x": [
+      60,
+      30
+    ],
+    "tile_y": [
+      -60,
+      30
+    ],
+    "vertical_px_per_blender_unit": 73.48469228349535
+  },
+  "brief": 104,
+  "date": "17 Nov 2026",
+  "asset_root": "roxy3d/out10tps/",
+  "source_blend": "lobby104/lobby_draft37.blend (draft 37), production scene of Brief 104e",
+  "tv": {
+    "screen_quad": [
+      [
+        1010.8799743652344,
+        551.3215398788452
+      ],
+      [
+        1040.8799743652344,
+        566.3215148448944
+      ],
+      [
+        1040.8799743652344,
+        592.7760243415833
+      ],
+      [
+        1010.8799743652344,
+        577.7760171890259
+      ]
+    ],
+    "screen_quad_order": [
+      "TL",
+      "TR",
+      "BR",
+      "BL"
+    ]
+  },
+  "render_layers": [
+    {
+      "name": "tv_glow",
+      "prop": "tv",
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tv_glow",
+      "file": "tv_glow.png",
+      "file_2x": "tv_glow@2x.png",
+      "x": 900,
+      "y": 547,
+      "w": 147,
+      "h": 132,
+      "z_index": 2042,
+      "peak": 166,
+      "above": "every depth slice its light falls on (back wall, worktop, counter); z was 2044 in out10ps"
+    },
+    {
+      "name": "jukebox_tube_pink",
+      "prop": "jukebox",
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_pink",
+      "file": "jukebox_tube_pink.png",
+      "file_2x": "jukebox_tube_pink@2x.png",
+      "x": 1286,
+      "y": 717,
+      "w": 205,
+      "h": 226,
+      "z_index": 2558,
+      "peak": 220,
+      "above": "the jukebox piece (its top slice + 1): a walker at the jukebox covers it"
+    },
+    {
+      "name": "jukebox_tube_teal",
+      "prop": "jukebox",
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_teal",
+      "file": "jukebox_tube_teal.png",
+      "file_2x": "jukebox_tube_teal@2x.png",
+      "x": 1312,
+      "y": 740,
+      "w": 119,
+      "h": 183,
+      "z_index": 2558,
+      "peak": 162,
+      "above": "the jukebox piece (its top slice + 1): a walker at the jukebox covers it"
+    },
+    {
+      "name": "jukebox_tube_pink_front",
+      "prop": "jukebox",
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_pink",
+      "file": "jukebox_tube_pink_front.png",
+      "file_2x": "jukebox_tube_pink_front@2x.png",
+      "x": 1329,
+      "y": 729,
+      "w": 157,
+      "h": 148,
+      "z_index": 2745,
+      "peak": 201,
+      "above": "the pieces in front of the jukebox that this light falls on (palm pot, standee foot, bar end)"
+    },
+    {
+      "name": "jukebox_tube_teal_front",
+      "prop": "jukebox",
+      "blend": "plus-lighter",
+      "kind": "anim",
+      "under": false,
+      "anim": "tube_teal",
+      "file": "jukebox_tube_teal_front.png",
+      "file_2x": "jukebox_tube_teal_front@2x.png",
+      "x": 1333,
+      "y": 766,
+      "w": 67,
+      "h": 18,
+      "z_index": 2745,
+      "peak": 5,
+      "above": "the pieces in front of the jukebox that this light falls on (palm pot, standee foot, bar end)"
+    }
+  ],
+  "parents": {},
+  "image_element_count": 5,
+  "image_elements_per_prop": {
+    "jukebox": 4,
+    "tv": 1
+  },
+  "props": {
+    "jukebox": {
+      "label": "jukebox \"JAMS\"",
+      "box_page_uvz": {
+        "u": [
+          11.68,
+          12.18
+        ],
+        "v": [
+          3.4,
+          3.88
+        ],
+        "z_m": [
+          0.0,
+          0.93
+        ],
+        "z_px": [
+          0.0,
+          68.341
+        ]
+      },
+      "footprint_uv": [
+        [
+          11.68,
+          3.4
+        ],
+        [
+          12.18,
+          3.4
+        ],
+        [
+          12.18,
+          3.88
+        ],
+        [
+          11.68,
+          3.88
+        ]
+      ],
+      "front_faces": "+v",
+      "standing_spots_uv": [
+        [
+          11.97,
+          4.14
+        ],
+        [
+          12.36,
+          4.26
+        ],
+        [
+          12.76,
+          4.5
+        ],
+        [
+          12.93,
+          4.18
+        ]
+      ],
+      "standing_spots_stage_px": [
+        [
+          1369.8000000000002,
+          833.3
+        ],
+        [
+          1386.0,
+          848.5999999999999
+        ],
+        [
+          1395.6,
+          867.8
+        ],
+        [
+          1425.0,
+          863.3
+        ]
+      ],
+      "front_depth": 2581,
+      "depth": {
+        "formula": "1000 + round((u + v) * 100)",
+        "front_face_centre_uv": [
+          11.93,
+          3.88
+        ],
+        "front_face_centre": 2581,
+        "nearest_corner_uv": [
+          12.18,
+          3.88
+        ],
+        "nearest_corner": 2606,
+        "farthest_corner": 2508
+      },
+      "occluder": "jukebox",
+      "body": "the depth piece \"jukebox\" of the base pack (tubes dark, pool off)",
+      "layers": [
+        "jukebox_tube_pink",
+        "jukebox_tube_teal",
+        "jukebox_tube_pink_front",
+        "jukebox_tube_teal_front"
+      ],
+      "animated": {
+        "tube_pink": [
+          "jukebox_tube_pink",
+          "jukebox_tube_pink_front"
+        ],
+        "tube_teal": [
+          "jukebox_tube_teal",
+          "jukebox_tube_teal_front"
+        ]
+      }
+    },
+    "tv": {
+      "label": "breaking-news TV",
+      "box_page_uvz": {
+        "u": [
+          5.34,
+          5.96
+        ],
+        "v": [
+          3.13,
+          3.55
+        ],
+        "z_m": [
+          0.5,
+          0.97
+        ],
+        "z_px": [
+          36.742,
+          71.28
+        ]
+      },
+      "footprint_uv": [
+        [
+          5.34,
+          3.13
+        ],
+        [
+          5.96,
+          3.13
+        ],
+        [
+          5.96,
+          3.55
+        ],
+        [
+          5.34,
+          3.55
+        ]
+      ],
+      "front_faces": "+v",
+      "front_depth": 1920,
+      "depth": {
+        "formula": "1000 + round((u + v) * 100)",
+        "front_face_centre_uv": [
+          5.65,
+          3.55
+        ],
+        "front_face_centre": 1920,
+        "nearest_corner_uv": [
+          5.96,
+          3.55
+        ],
+        "nearest_corner": 1951,
+        "farthest_corner": 1847
+      },
+      "screen_quad": [
+        [
+          1010.8799743652344,
+          551.3215398788452
+        ],
+        [
+          1040.8799743652344,
+          566.3215148448944
+        ],
+        [
+          1040.8799743652344,
+          592.7760243415833
+        ],
+        [
+          1010.8799743652344,
+          577.7760171890259
+        ]
+      ],
+      "screen_quad_order": [
+        "TL",
+        "TR",
+        "BR",
+        "BL"
+      ],
+      "screen_depth": [
+        1895,
+        1945
+      ],
+      "shelf_box_page_uvz": {
+        "u": [
+          5.32,
+          5.98
+        ],
+        "v": [
+          3.13,
+          3.57
+        ],
+        "z": [
+          0.47,
+          0.5
+        ]
+      },
+      "body": "part of the depth piece \"partition_right\" of the base pack (screen dark)",
+      "layers": [
+        "tv_glow"
+      ],
+      "animated": {
+        "tv_glow": [
+          "tv_glow"
+        ]
+      }
+    }
+  },
+  "animation": {
+    "rule": "Each animated piece is plus-lighter on top of the base pack's pictures, which hold the props with these emitters dark. All on = draft 37. Fade a piece with opacity (0..1).",
+    "pieces": {
+      "tube_pink": "jukebox pink arch tube with its pink pool on the carpet; off = tube dark, no pool",
+      "tube_teal": "jukebox teal arch tube, what it adds on top of the pink tube; off = tube dark",
+      "tv_glow": "TV screen glow: the faint blue of the picture tube inside the screen quad and its light on shelf, worktop and wall; off = dead screen"
+    }
+  },
+  "shadow_required": false,
+  "integration_status": "Staging only; no page or live pack changed.",
+  "draw_notes": [
+    "All coordinates and z are logical stage units at either resolution. Resolve files against this folder.",
+    "Every layer is RGB on black, plus-lighter, pushed into the occluder stack at its z_index after the base pack's pictures.",
+    "There are no bodies, shadows or always-on light pieces in this pack: the jukebox is the occluder \"jukebox\" of the base pack, the TV is part of \"partition_right\", and their light and shadow are in the scene pictures (manifest.brief104.baked).",
+    "Draw the TV picture above tv_glow, inside tv.screen_quad, as before."
+  ],
+  "brief104": "Solved under the gamer lobby's light: display(scene with the piece dark + the piece's own light) - display(scene with the piece dark)."
+}

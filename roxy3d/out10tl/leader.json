@@ -1,0 +1,74 @@
+{
+  "schema": "dinkdonk.leader.layers.v1",
+  "stage_size": [
+    1920,
+    1080
+  ],
+  "scale2x": true,
+  "projection": {
+    "origin": [
+      900,
+      350
+    ],
+    "tile_x": [
+      60,
+      30
+    ],
+    "tile_y": [
+      -60,
+      30
+    ],
+    "vertical_px_per_blender_unit": 73.48469228349535
+  },
+  "face_quad": [
+    [
+      849.3599510192871,
+      485.0839591026306
+    ],
+    [
+      888.9599990844727,
+      465.2839779853821
+    ],
+    [
+      888.9599990844727,
+      538.0338549613953
+    ],
+    [
+      849.3599510192871,
+      557.8338360786438
+    ]
+  ],
+  "face_quad_order": [
+    "TL",
+    "TR",
+    "BR",
+    "BL"
+  ],
+  "brief": 104,
+  "date": "17 Nov 2026",
+  "asset_root": "roxy3d/out10tl/",
+  "render_layers": [
+    {
+      "name": "leader_body",
+      "file": "leader_body.png",
+      "file_2x": "leader_body@2x.png",
+      "x": 839,
+      "y": 455,
+      "w": 59,
+      "h": 112,
+      "z_index": 1675,
+      "blend": "source-over",
+      "kind": "body",
+      "under": false,
+      "occluder_slice": "restroom_side_wall_00"
+    }
+  ],
+  "parents": {},
+  "image_element_count": 1,
+  "shadow_required": false,
+  "integration_status": "Staging only; no page or live pack changed.",
+  "draw_notes": [
+    "One piece: the poster with its frame and picture light, at its z_index (pinned above its wall slice as in out10l).",
+    "Its shadow on the wall and the light of its picture light on wall, floor and box office are in the base pack's pictures (manifest.brief104.baked): hiding the body (?leader=0) leaves them in the picture."
+  ]
+}

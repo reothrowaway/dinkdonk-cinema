@@ -29,7 +29,10 @@ function artFiles(standby, fail) {
   // item pictures and ?artdir=out10).
   // out10s (Brief 96, 13 Nov 2026) is the lobby's base now (claw machine in the arcade's place, the leftover page
   // drawings as pictures); out10ps its props pack (jukebox and TV). out10r and out10p stay for ?artdir=out10r.
-  for (const dir of ['out10s', 'out10ps', 'out10r', 'out10', 'out10mist', 'out10m', 'out10l', 'out10p']) walkFiles(path.join(standby, 'roxy3d', dir), standby, files);
+  // out10t (Brief 104, 17 Nov 2026) is the second lobby look, the dark magenta/cyan "gamer lobby" (the panel's Lobby look,
+  // or ?look=gamer), with its own mist maps and its layer packs out10tps (jukebox tubes, TV glow), out10tm (marquee body
+  // and chase) and out10tl (poster body), named in its manifest (brief104.layer_packs).
+  for (const dir of ['out10s', 'out10ps', 'out10r', 'out10', 'out10mist', 'out10m', 'out10l', 'out10p', 'out10t', 'out10tps', 'out10tm', 'out10tl']) walkFiles(path.join(standby, 'roxy3d', dir), standby, files);
 
   // The auditorium (roxy3d/qa11, 2 GB of drafts) loads one draft: its layout JSON names every picture it needs.
   const aud = fs.readFileSync(path.join(standby, 'auditorium.html'), 'utf8');

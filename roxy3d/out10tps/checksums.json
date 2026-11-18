@@ -1,0 +1,57 @@
+[
+  {
+    "file": "jukebox_tube_pink.png",
+    "bytes": 20531,
+    "sha256": "7bc6fe1bca6678edb489382ccea09d47f7df5b8417d228d5134e24521733b63c"
+  },
+  {
+    "file": "jukebox_tube_pink@2x.png",
+    "bytes": 66090,
+    "sha256": "3a473229cfb443e3124656a50e4d0eb8d7a8f80ccf085c674edb121246681145"
+  },
+  {
+    "file": "jukebox_tube_pink_front.png",
+    "bytes": 2658,
+    "sha256": "d19c2bb1f5e45ea135bd5bc8712b13f8ceff2d6f2fe429b6e1219121803ae27e"
+  },
+  {
+    "file": "jukebox_tube_pink_front@2x.png",
+    "bytes": 7203,
+    "sha256": "d2cef80aa419b0379d5a5d32b5b068fd949925f5c9446bdbf2eb1c05dbc44e64"
+  },
+  {
+    "file": "jukebox_tube_teal.png",
+    "bytes": 6088,
+    "sha256": "3f99ce8a8065afd29d2fbc06a7a0af6e27ee981d14b48099a7467f0e49be8487"
+  },
+  {
+    "file": "jukebox_tube_teal@2x.png",
+    "bytes": 16966,
+    "sha256": "28898e9b1e4f972a1d052d7c9117af0aebc6f92de7278dd5a9f4a8ee2b8a8120"
+  },
+  {
+    "file": "jukebox_tube_teal_front.png",
+    "bytes": 179,
+    "sha256": "9865d34533ada305ab687af5774ef7591c58852f937e3ee3665007bcd15a8e0c"
+  },
+  {
+    "file": "jukebox_tube_teal_front@2x.png",
+    "bytes": 356,
+    "sha256": "26487e54410220a0b430ccae381ca1ba56002946c038fec3c936513fddf84065"
+  },
+  {
+    "file": "props.json",
+    "bytes": 9020,
+    "sha256": "ccd419188ee6ad45e6d382bf538a20469d6a5e19737b8077f746b2d642139c32"
+  },
+  {
+    "file": "tv_glow.png",
+    "bytes": 6888,
+    "sha256": "509b3af50b7194eec913aa96b9dcb469b6d6f13334484671f7500b4eddb2fd6c"
+  },
+  {
+    "file": "tv_glow@2x.png",
+    "bytes": 22442,
+    "sha256": "b34075a636d3fd5c092576998fb869f4076f7055fec2182222f025701373903a"
+  }
+]

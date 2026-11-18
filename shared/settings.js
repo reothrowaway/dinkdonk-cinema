@@ -30,6 +30,10 @@ const SCHEMA = {
     // the street marquee's letterboard (lobby.html showMarquee): empty = the automatic film text, "-" = a blank line
     text('marquee1', 'Marquee line 1', 40, 'Marquee', 'empty = tonight\'s film ("NOW SHOWING · title"); - = blank'),
     text('marquee2', 'Marquee line 2', 40, 'Marquee', 'empty = screen and rating; - = blank'),
+    // the lobby's look (owner, 17 Nov 2026, queue 90): the normal lobby (roxy3d/out10s) or the dark magenta/cyan gamer
+    // lobby (roxy3d/out10t, Brief 104). The page settles it before its art loads and reloads when it changes; ?look=gamer
+    // is the screen link's default. card: 'lobby' = the panel shows it on its Lobby card, not in Scene settings.
+    { ...pick('look', 'Lobby look', [['normal', 'Normal'], ['gamer', 'Gamer']], 'normal', 'Look', 'the screens reload their art when it changes'), card: 'lobby' },
     BUBSTYLE,
     num('bubbles', 'Bubbles on screen at most', 2, 14, 1, 8, 'Look', 'the oldest fades for a new one'),
     WIDEZOOM,

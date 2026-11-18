@@ -58,7 +58,7 @@ From Git Bash in this repo (needs SSH access to the server, see below):
 bash web/deploy/deploy.sh
 ```
 
-It builds `../dist/web`, uploads it (about 725 MB, all of it each time), and switches the server over to it; the
+It builds `../dist/web`, uploads it (about 885 MB since the gamer lobby, 18 Nov 2026; all of it each time), and switches the server over to it; the
 previous version stays in `/opt/dinkdonk-cinema/previous`. The first run also sets the server up
 (`deploy/setup-server.sh`): Node, Caddy with a Let's Encrypt certificate, a firewall (SSH, HTTP, HTTPS only),
 key-only SSH, automatic security updates, a `dinkdonk` system user and the systemd service.

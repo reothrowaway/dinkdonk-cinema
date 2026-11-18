@@ -1,0 +1,17 @@
+[
+  {
+    "file": "leader.json",
+    "bytes": 1640,
+    "sha256": "9fe41bf5a4bc84d0ba4470ceea60f21826c85771f500141fe83a41ed7624218f"
+  },
+  {
+    "file": "leader_body.png",
+    "bytes": 11882,
+    "sha256": "244c022b823da83468825f36594f2c84c20aad910f3f70f14b94d5cee33be6c7"
+  },
+  {
+    "file": "leader_body@2x.png",
+    "bytes": 39427,
+    "sha256": "423100e70971477f4087027afcefcacd8aafa0fa5c2728621a1956a1e598770d"
+  }
+]

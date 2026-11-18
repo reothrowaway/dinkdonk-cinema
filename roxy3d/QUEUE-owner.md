@@ -479,3 +479,36 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     + 13 Nov ~18:35, the final turned out ~$6.5-8 (measured), so $8 can't cover draft + final; owner: "Go ahead" on my
       recommended option: limit raised to $12 total, finish the draft (fresh run, MAX_HOURS 1.0), then the final.
     + 13 Nov ~19:15, owner after the Cycles draft: "Render the final" (1080p, 5 pods, MAX_HOURS 2.3, inside the $12).
+81. Owner 15 Nov 2026, todo for later (no action now): movie suggestions from chat on the hosted edition too. Today they
+    run on the local 18770 server only; the hosted server has no /ms/ routes, so control.html hides the "Movie
+    suggestions (chat)" card there. Needs a chat source per room (docs/movie-suggestions-plan.md, "Hosted edition").
+82. Owner 17 Nov 2026: DGGWare screens (L25) scrapped ("scrap that"); the arcade cabinet it was meant for became the claw machine on 13 Nov.
+83. Owner 17 Nov 2026: bonsai fountain (Brief 103, draft 1 approved) goes by the snack bar in the lobby. Not now: wait for his go (blockout first).
+84. Owner 17 Nov 2026: do the lobby lighting pass (item 78: darker, light from real sources, more contrast) in ONE
+    render together with the bonsai fountain by the snack bar (item 83) and the art-side perf saving (NOTES-95 point 6).
+    Start after the owner has gone through the rest of the open list (17 Nov review). Draft still first, critique,
+    full render only on his word (RunPod: ask the money limit).
+85. Owner 17 Nov 2026, hosted movie suggestions (item 81) decided: the per-room poll script the hosted panel installs
+    (/dd/poll-script.user.js?k=KEY) also carries the suggestions part; by default every hosted room takes !rqmovie
+    (while that room has suggestions open), and the streamer can enter their name in the control panel so
+    "@name Title" works too. Do after the 17 Nov review of the open list. DONE 17 Nov 2026: live everywhere (poll script 0.6).
+86. Owner 17 Nov 2026: the like-for-like full-house auditorium measurement is scrapped; he will ask for a new performance pass himself later.
+87. Owner 17 Nov 2026: fly-through stutter check (Codex: 7 frames over 40 ms in one run), a multi-hour soak (long GIF
+    emotes vs the picture cache) and the marquee 60 fps clean-up all wait for the performance pass he will ask for later.
+88. Owner 17 Nov 2026: the bridge (obs-bridge.js + hosted shim) removes its own leftover warm-up items when it starts
+    (auditorium source at canvas width + 400 px in a scene other than DinkDonk Cinema). Do right after the 17 Nov review.
+89. Owner 17 Nov 2026: the one-OBS-source idea (lobby + auditorium on one page / wrapper, 9 Nov) is scrapped.
+90. Owner 17 Nov 2026, on draft 35 (Brief 104): "Yeah, it is too subtle. So crank it up. It really needs to be
+    noticeable." -> draft 36 with the critique fixes, pushed much further (darkness, contrast, pools obvious at a glance).
+    + Same day, new decision: the dark look becomes a SECOND lobby option, not a replacement: "On the lobby control panel,
+      there will be a setting to have the normal lobby, and also a setting to have this gamer lobby that we are developing
+      right now." The current lit lobby (out10s + layer packs) stays as the "normal" lobby; the dark one ships as its own
+      art pack beside it; a lobby setting in the control panel switches between them (local and hosted, persisted like
+      the other scene settings). Panel/page work after the art is approved. Open: is the fountain in the normal lobby
+      too (needs a re-render of the normal pack as well)? Ask the owner when the full render is planned.
+    + 17 Nov, owner on the fountain in the normal lobby: "No, the content is just be on the new render. It doesn't
+      make sense to also do it on the other level because it's too expensive to render it again." -> fountain (and all
+      Brief 104 content) only in the gamer lobby pack; the normal lobby is not re-rendered.
+    + 17 Nov, owner approved draft 37 (gamer lobby, magenta/cyan) for the full render: "alrighty go ahead". RunPod; money
+      limit proposed $6, to be confirmed before any pod starts. New pack out10t/ beside out10s.
+    + 17 Nov, RunPod limit for the gamer lobby render: "Yes, $6" (test MAX_HOURS=0.5, final 1.2).

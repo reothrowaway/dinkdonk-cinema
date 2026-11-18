@@ -134,6 +134,7 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | Option | Default | Effect | Where |
 |---|---|---|---|
 | `artdir=<name>` | `out10s` | Art pack folder under `roxy3d/` (non `[a-z0-9_-]` stripped), e.g. `out10` (the pack before Brief 95). With `manifest.brief95` the page hides what that pack bakes (`bakedBy95`) | `ART`, `bakedBy95` |
+| `look=gamer` | `normal` | The gamer lobby (Brief 104, 18 Nov 2026): the dark magenta/cyan pack `roxy3d/out10t/` with its own layer packs (`manifest.brief104.layer_packs`: `out10tps`, `out10tm`, `out10tl`), mist maps and an indoor chatter tint from `manifest.scene_light`. The panel's "Lobby look" (setting `look`, `shared/settings.js`) overrides the link and reloads the page on change; `artdir=` still wins. The boot waits up to 1.5 s for the panel's settings (`ctl=0`: at once) | `settleLook`, `loadSceneLight`, `sceneLook` |
 | `art=flat` | off | Skip the art; flat canvas blockout | `loadArt`, :3461 |
 | `marquee=0` | on | Leave out the street marquee (layer pack `roxy3d/out10m/`, 10 Nov 2026) | `MARQ_ON`, `mergeMarquee` |
 | `mqbody=0` | on | The marquee body as its 24 depth slices only. Default: the whole body picture (`out10m/body.png`) lies under the slices, so no thin lines show across the canopy roof where two slices meet at a fractional zoom (11 Nov 2026) | `mergeMarquee` |

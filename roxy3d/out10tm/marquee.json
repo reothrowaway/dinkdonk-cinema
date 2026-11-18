@@ -1,0 +1,1568 @@
+{
+  "schema": "dinkdonk.marquee.layers.v1",
+  "stage_size": [
+    1920,
+    1080
+  ],
+  "scale2x": true,
+  "projection": {
+    "origin": [
+      900,
+      350
+    ],
+    "tile_x": [
+      60,
+      30
+    ],
+    "tile_y": [
+      -60,
+      30
+    ],
+    "vertical_px_per_blender_unit": 73.48469228349535
+  },
+  "canopy_footprint": {
+    "u_min": 7.2,
+    "u_max": 11.8,
+    "v_min": 9.0,
+    "v_max": 10.2,
+    "polygon_uv": [
+      [
+        7.2,
+        9.0
+      ],
+      [
+        11.8,
+        9.0
+      ],
+      [
+        11.8,
+        10.2
+      ],
+      [
+        7.2,
+        10.2
+      ]
+    ],
+    "soffit_m": 2.05484972866811,
+    "roof_m": 3.05484972866811
+  },
+  "letterboard_quads": {
+    "street": {
+      "quad_px": [
+        [
+          728.6999130249023,
+          661.0577380657196
+        ],
+        [
+          993.8999176025391,
+          793.6577188968658
+        ],
+        [
+          993.8999176025391,
+          842.1576207876205
+        ],
+        [
+          728.6999130249023,
+          709.5576238632202
+        ]
+      ],
+      "order": [
+        "TL",
+        "TR",
+        "BR",
+        "BL"
+      ]
+    },
+    "end": {
+      "quad_px": [
+        [
+          998.0998992919922,
+          793.6576867103577
+        ],
+        [
+          1059.2999267578125,
+          763.0577158927917
+        ],
+        [
+          1059.2999267578125,
+          811.5576338768005
+        ],
+        [
+          998.0998992919922,
+          842.1575886011124
+        ]
+      ],
+      "order": [
+        "TL",
+        "TR",
+        "BR",
+        "BL"
+      ]
+    }
+  },
+  "envelope_quads": {
+    "street": [
+      [
+        719.999942779541,
+        647.5153291225433
+      ],
+      [
+        995.9999084472656,
+        785.5153369903564
+      ],
+      [
+        995.9999084472656,
+        859.0000158548355
+      ],
+      [
+        719.999942779541,
+        721.0000240802765
+      ]
+    ],
+    "end": [
+      [
+        995.9999084472656,
+        785.5153369903564
+      ],
+      [
+        1067.9999542236328,
+        749.5153069496155
+      ],
+      [
+        1067.9999542236328,
+        823.0000180006027
+      ],
+      [
+        995.9999084472656,
+        859.0000158548355
+      ]
+    ]
+  },
+  "depth_contract": {
+    "source": "first-hit world-position AOV; u=X, v=-Y",
+    "band_width_tiles": 0.25,
+    "formula": "1000 + round((u + v) * 100)",
+    "band_formula": "1000 + round((band + 0.5) * 25)",
+    "existing_receiver_parent_rule": "Receiver only: max(nominal ground-depth z, matching existing foreground receiver z + 1). Canopy depth is unchanged.",
+    "order_offsets": {
+      "body": 0,
+      "shadow": 1,
+      "light": 2,
+      "chase": 3
+    }
+  },
+  "prop_loop_contract": {
+    "format": "Use each entry blend and alpha: RGB on black for plus-lighter, straight RGBA for source-over.",
+    "playback": "frame = floor(elapsedSeconds * fps) % frames; source cell (frame % columns, floor(frame / columns)).",
+    "resolution": "All rects, frame_width/frame_height and z_index use the 1920x1080 coordinate system. @2x doubles each cell and the sheet, not CSS placement.",
+    "sorting": "Insert each crop at its z_index in the same walker/prop stack, immediately above its listed parent_slices. Do not place below occluder sprites.",
+    "phase": "Use per-entry fps/frames, including one-cell steady entries and six-second 12fps water/bulbs; do not assume a common sheet length.",
+    "fallback": "Pause at any cell for reduced motion. Omit sheets if unsupported; the static props remain complete.",
+    "popcorn": "Native 2x Cycles geometry, rotating lobed kernels on periodic arcs, attenuated through the existing glass and occluded by kettle/cabinet geometry.",
+    "signs": "Three menu backlights, soda logo and selections, a single E in TICKETS, and original INSERT COIN arcade pixel art."
+  },
+  "timing": {
+    "frames": 48,
+    "fps": 24,
+    "seconds": 2,
+    "master_seconds": 6,
+    "phase_offset": 0,
+    "frame_formula": "floor(masterElapsedSeconds * 24) % 48",
+    "master_repeats": 3,
+    "waveform": "0.35 + 0.65 * (0.5 + 0.5*cos(2*pi*(t/2 - group/4)))"
+  },
+  "brief": 104,
+  "date": "17 Nov 2026",
+  "asset_root": "roxy3d/out10tm/",
+  "render_layers": [
+    {
+      "name": "marquee_body_2613",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2613.png",
+      "file_2x": "slices/marquee_body_2613@2x.png",
+      "x": 787,
+      "y": 609,
+      "w": 10,
+      "h": 6,
+      "z_index": 2613,
+      "blend": "source-over",
+      "depth_sort_key": 2613,
+      "depth_uv_sum": [
+        16.213376998901367,
+        16.249862670898438
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2638",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2638.png",
+      "file_2x": "slices/marquee_body_2638@2x.png",
+      "x": 772,
+      "y": 610,
+      "w": 40,
+      "h": 15,
+      "z_index": 2638,
+      "blend": "source-over",
+      "depth_sort_key": 2638,
+      "depth_uv_sum": [
+        16.250139236450195,
+        16.499937057495117
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2663",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2663.png",
+      "file_2x": "slices/marquee_body_2663@2x.png",
+      "x": 757,
+      "y": 617,
+      "w": 71,
+      "h": 80,
+      "z_index": 2663,
+      "blend": "source-over",
+      "depth_sort_key": 2663,
+      "depth_uv_sum": [
+        16.500036239624023,
+        16.749778747558594
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2688",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2688.png",
+      "file_2x": "slices/marquee_body_2688@2x.png",
+      "x": 742,
+      "y": 625,
+      "w": 100,
+      "h": 80,
+      "z_index": 2688,
+      "blend": "source-over",
+      "depth_sort_key": 2688,
+      "depth_uv_sum": [
+        16.750070571899414,
+        16.999797821044922
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2713",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2713.png",
+      "file_2x": "slices/marquee_body_2713@2x.png",
+      "x": 727,
+      "y": 632,
+      "w": 131,
+      "h": 81,
+      "z_index": 2713,
+      "blend": "source-over",
+      "depth_sort_key": 2713,
+      "depth_uv_sum": [
+        17.00003433227539,
+        17.249828338623047
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2738",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2738.png",
+      "file_2x": "slices/marquee_body_2738@2x.png",
+      "x": 717,
+      "y": 640,
+      "w": 155,
+      "h": 87,
+      "z_index": 2738,
+      "blend": "source-over",
+      "depth_sort_key": 2738,
+      "depth_uv_sum": [
+        17.25005340576172,
+        17.499988555908203
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2763",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2763.png",
+      "file_2x": "slices/marquee_body_2763@2x.png",
+      "x": 723,
+      "y": 648,
+      "w": 164,
+      "h": 86,
+      "z_index": 2763,
+      "blend": "source-over",
+      "depth_sort_key": 2763,
+      "depth_uv_sum": [
+        17.500022888183594,
+        17.749950408935547
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2788",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2788.png",
+      "file_2x": "slices/marquee_body_2788@2x.png",
+      "x": 738,
+      "y": 655,
+      "w": 164,
+      "h": 87,
+      "z_index": 2788,
+      "blend": "source-over",
+      "depth_sort_key": 2788,
+      "depth_uv_sum": [
+        17.75014305114746,
+        17.999771118164062
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2813",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2813.png",
+      "file_2x": "slices/marquee_body_2813@2x.png",
+      "x": 753,
+      "y": 663,
+      "w": 164,
+      "h": 87,
+      "z_index": 2813,
+      "blend": "source-over",
+      "depth_sort_key": 2813,
+      "depth_uv_sum": [
+        18.000059127807617,
+        18.249988555908203
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2838",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2838.png",
+      "file_2x": "slices/marquee_body_2838@2x.png",
+      "x": 768,
+      "y": 670,
+      "w": 164,
+      "h": 87,
+      "z_index": 2838,
+      "blend": "source-over",
+      "depth_sort_key": 2838,
+      "depth_uv_sum": [
+        18.250110626220703,
+        18.49983787536621
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2863",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2863.png",
+      "file_2x": "slices/marquee_body_2863@2x.png",
+      "x": 783,
+      "y": 678,
+      "w": 164,
+      "h": 87,
+      "z_index": 2863,
+      "blend": "source-over",
+      "depth_sort_key": 2863,
+      "depth_uv_sum": [
+        18.500045776367188,
+        18.74995231628418
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2888",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2888.png",
+      "file_2x": "slices/marquee_body_2888@2x.png",
+      "x": 799,
+      "y": 685,
+      "w": 163,
+      "h": 87,
+      "z_index": 2888,
+      "blend": "source-over",
+      "depth_sort_key": 2888,
+      "depth_uv_sum": [
+        18.750131607055664,
+        18.99996566772461
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2913",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2913.png",
+      "file_2x": "slices/marquee_body_2913@2x.png",
+      "x": 813,
+      "y": 692,
+      "w": 164,
+      "h": 87,
+      "z_index": 2913,
+      "blend": "source-over",
+      "depth_sort_key": 2913,
+      "depth_uv_sum": [
+        19.000038146972656,
+        19.24999237060547
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2938",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2938.png",
+      "file_2x": "slices/marquee_body_2938@2x.png",
+      "x": 828,
+      "y": 700,
+      "w": 164,
+      "h": 87,
+      "z_index": 2938,
+      "blend": "source-over",
+      "depth_sort_key": 2938,
+      "depth_uv_sum": [
+        19.25006103515625,
+        19.49999237060547
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2963",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2963.png",
+      "file_2x": "slices/marquee_body_2963@2x.png",
+      "x": 843,
+      "y": 707,
+      "w": 164,
+      "h": 87,
+      "z_index": 2963,
+      "blend": "source-over",
+      "depth_sort_key": 2963,
+      "depth_uv_sum": [
+        19.50003433227539,
+        19.74997901916504
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_2988",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_2988.png",
+      "file_2x": "slices/marquee_body_2988@2x.png",
+      "x": 858,
+      "y": 715,
+      "w": 164,
+      "h": 87,
+      "z_index": 2988,
+      "blend": "source-over",
+      "depth_sort_key": 2988,
+      "depth_uv_sum": [
+        19.750045776367188,
+        19.99979019165039
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3013",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3013.png",
+      "file_2x": "slices/marquee_body_3013@2x.png",
+      "x": 874,
+      "y": 723,
+      "w": 163,
+      "h": 86,
+      "z_index": 3013,
+      "blend": "source-over",
+      "depth_sort_key": 3013,
+      "depth_uv_sum": [
+        20.000003814697266,
+        20.249969482421875
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3038",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3038.png",
+      "file_2x": "slices/marquee_body_3038@2x.png",
+      "x": 888,
+      "y": 730,
+      "w": 164,
+      "h": 87,
+      "z_index": 3038,
+      "blend": "source-over",
+      "depth_sort_key": 3038,
+      "depth_uv_sum": [
+        20.25003433227539,
+        20.4999942779541
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3063",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3063.png",
+      "file_2x": "slices/marquee_body_3063@2x.png",
+      "x": 903,
+      "y": 738,
+      "w": 164,
+      "h": 86,
+      "z_index": 3063,
+      "blend": "source-over",
+      "depth_sort_key": 3063,
+      "depth_uv_sum": [
+        20.500011444091797,
+        20.749980926513672
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3088",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3088.png",
+      "file_2x": "slices/marquee_body_3088@2x.png",
+      "x": 918,
+      "y": 745,
+      "w": 153,
+      "h": 87,
+      "z_index": 3088,
+      "blend": "source-over",
+      "depth_sort_key": 3088,
+      "depth_uv_sum": [
+        20.750078201293945,
+        20.999984741210938
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3113",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3113.png",
+      "file_2x": "slices/marquee_body_3113@2x.png",
+      "x": 933,
+      "y": 753,
+      "w": 125,
+      "h": 86,
+      "z_index": 3113,
+      "blend": "source-over",
+      "depth_sort_key": 3113,
+      "depth_uv_sum": [
+        21.000015258789062,
+        21.249961853027344
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3138",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3138.png",
+      "file_2x": "slices/marquee_body_3138@2x.png",
+      "x": 948,
+      "y": 761,
+      "w": 96,
+      "h": 86,
+      "z_index": 3138,
+      "blend": "source-over",
+      "depth_sort_key": 3138,
+      "depth_uv_sum": [
+        21.250030517578125,
+        21.49980354309082
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3163",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3163.png",
+      "file_2x": "slices/marquee_body_3163@2x.png",
+      "x": 963,
+      "y": 768,
+      "w": 66,
+      "h": 86,
+      "z_index": 3163,
+      "blend": "source-over",
+      "depth_sort_key": 3163,
+      "depth_uv_sum": [
+        21.500009536743164,
+        21.749996185302734
+      ],
+      "existing_receiver_parents": []
+    },
+    {
+      "name": "marquee_body_3188",
+      "parent": "marquee_body",
+      "file": "slices/marquee_body_3188.png",
+      "file_2x": "slices/marquee_body_3188@2x.png",
+      "x": 978,
+      "y": 776,
+      "w": 36,
+      "h": 86,
+      "z_index": 3188,
+      "blend": "source-over",
+      "depth_sort_key": 3188,
+      "depth_uv_sum": [
+        21.750226974487305,
+        21.997085571289062
+      ],
+      "existing_receiver_parents": []
+    }
+  ],
+  "prop_loops": [
+    {
+      "name": "marquee_chase_body_2638",
+      "file": "prop_loops/marquee_chase_body_2638.png",
+      "file_2x": "prop_loops/marquee_chase_body_2638@2x.png",
+      "x": 779,
+      "y": 610,
+      "w": 31,
+      "h": 14,
+      "z_index": 2641,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 31,
+      "frame_height": 14,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2638",
+        "marquee_shadow_2638",
+        "marquee_light_2638"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2663",
+      "file": "prop_loops/marquee_chase_body_2663.png",
+      "file_2x": "prop_loops/marquee_chase_body_2663@2x.png",
+      "x": 762,
+      "y": 620,
+      "w": 60,
+      "h": 77,
+      "z_index": 2666,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 60,
+      "frame_height": 77,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2663",
+        "marquee_shadow_2663",
+        "marquee_light_2663"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2688",
+      "file": "prop_loops/marquee_chase_body_2688.png",
+      "file_2x": "prop_loops/marquee_chase_body_2688@2x.png",
+      "x": 749,
+      "y": 626,
+      "w": 93,
+      "h": 79,
+      "z_index": 2691,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 93,
+      "frame_height": 79,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2688",
+        "marquee_shadow_2688",
+        "marquee_light_2688"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2713",
+      "file": "prop_loops/marquee_chase_body_2713.png",
+      "file_2x": "prop_loops/marquee_chase_body_2713@2x.png",
+      "x": 727,
+      "y": 633,
+      "w": 126,
+      "h": 80,
+      "z_index": 2716,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 126,
+      "frame_height": 80,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2713",
+        "marquee_shadow_2713",
+        "marquee_light_2713"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2738",
+      "file": "prop_loops/marquee_chase_body_2738.png",
+      "file_2x": "prop_loops/marquee_chase_body_2738@2x.png",
+      "x": 717,
+      "y": 640,
+      "w": 149,
+      "h": 87,
+      "z_index": 2741,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 149,
+      "frame_height": 87,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2738",
+        "marquee_shadow_2738",
+        "marquee_light_2738"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2763",
+      "file": "prop_loops/marquee_chase_body_2763.png",
+      "file_2x": "prop_loops/marquee_chase_body_2763@2x.png",
+      "x": 723,
+      "y": 648,
+      "w": 162,
+      "h": 86,
+      "z_index": 2766,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 162,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2763",
+        "marquee_shadow_2763",
+        "marquee_light_2763"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2788",
+      "file": "prop_loops/marquee_chase_body_2788.png",
+      "file_2x": "prop_loops/marquee_chase_body_2788@2x.png",
+      "x": 738,
+      "y": 656,
+      "w": 157,
+      "h": 86,
+      "z_index": 2791,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 157,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2788",
+        "marquee_shadow_2788",
+        "marquee_light_2788"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2813",
+      "file": "prop_loops/marquee_chase_body_2813.png",
+      "file_2x": "prop_loops/marquee_chase_body_2813@2x.png",
+      "x": 753,
+      "y": 663,
+      "w": 157,
+      "h": 87,
+      "z_index": 2816,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 157,
+      "frame_height": 87,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2813",
+        "marquee_shadow_2813",
+        "marquee_light_2813"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2838",
+      "file": "prop_loops/marquee_chase_body_2838.png",
+      "file_2x": "prop_loops/marquee_chase_body_2838@2x.png",
+      "x": 768,
+      "y": 671,
+      "w": 159,
+      "h": 86,
+      "z_index": 2841,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 159,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2838",
+        "marquee_shadow_2838",
+        "marquee_light_2838"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2863",
+      "file": "prop_loops/marquee_chase_body_2863.png",
+      "file_2x": "prop_loops/marquee_chase_body_2863@2x.png",
+      "x": 783,
+      "y": 678,
+      "w": 161,
+      "h": 87,
+      "z_index": 2866,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 161,
+      "frame_height": 87,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2863",
+        "marquee_shadow_2863",
+        "marquee_light_2863"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2888",
+      "file": "prop_loops/marquee_chase_body_2888.png",
+      "file_2x": "prop_loops/marquee_chase_body_2888@2x.png",
+      "x": 799,
+      "y": 686,
+      "w": 155,
+      "h": 86,
+      "z_index": 2891,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 155,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2888",
+        "marquee_shadow_2888",
+        "marquee_light_2888"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2913",
+      "file": "prop_loops/marquee_chase_body_2913.png",
+      "file_2x": "prop_loops/marquee_chase_body_2913@2x.png",
+      "x": 813,
+      "y": 693,
+      "w": 155,
+      "h": 86,
+      "z_index": 2916,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 155,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2913",
+        "marquee_shadow_2913",
+        "marquee_light_2913"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2938",
+      "file": "prop_loops/marquee_chase_body_2938.png",
+      "file_2x": "prop_loops/marquee_chase_body_2938@2x.png",
+      "x": 828,
+      "y": 701,
+      "w": 161,
+      "h": 86,
+      "z_index": 2941,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 161,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2938",
+        "marquee_shadow_2938",
+        "marquee_light_2938"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2963",
+      "file": "prop_loops/marquee_chase_body_2963.png",
+      "file_2x": "prop_loops/marquee_chase_body_2963@2x.png",
+      "x": 843,
+      "y": 708,
+      "w": 158,
+      "h": 86,
+      "z_index": 2966,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 158,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2963",
+        "marquee_shadow_2963",
+        "marquee_light_2963"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_2988",
+      "file": "prop_loops/marquee_chase_body_2988.png",
+      "file_2x": "prop_loops/marquee_chase_body_2988@2x.png",
+      "x": 858,
+      "y": 716,
+      "w": 162,
+      "h": 86,
+      "z_index": 2991,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 162,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_2988",
+        "marquee_shadow_2988",
+        "marquee_light_2988"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3013",
+      "file": "prop_loops/marquee_chase_body_3013.png",
+      "file_2x": "prop_loops/marquee_chase_body_3013@2x.png",
+      "x": 874,
+      "y": 723,
+      "w": 156,
+      "h": 86,
+      "z_index": 3016,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 156,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3013",
+        "marquee_shadow_3013",
+        "marquee_light_3013"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3038",
+      "file": "prop_loops/marquee_chase_body_3038.png",
+      "file_2x": "prop_loops/marquee_chase_body_3038@2x.png",
+      "x": 888,
+      "y": 731,
+      "w": 163,
+      "h": 86,
+      "z_index": 3041,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 163,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3038",
+        "marquee_shadow_3038",
+        "marquee_light_3038"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3063",
+      "file": "prop_loops/marquee_chase_body_3063.png",
+      "file_2x": "prop_loops/marquee_chase_body_3063@2x.png",
+      "x": 903,
+      "y": 738,
+      "w": 164,
+      "h": 86,
+      "z_index": 3066,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 164,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3063",
+        "marquee_shadow_3063",
+        "marquee_light_3063"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3088",
+      "file": "prop_loops/marquee_chase_body_3088.png",
+      "file_2x": "prop_loops/marquee_chase_body_3088@2x.png",
+      "x": 918,
+      "y": 745,
+      "w": 153,
+      "h": 87,
+      "z_index": 3091,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 153,
+      "frame_height": 87,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3088",
+        "marquee_shadow_3088",
+        "marquee_light_3088"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3113",
+      "file": "prop_loops/marquee_chase_body_3113.png",
+      "file_2x": "prop_loops/marquee_chase_body_3113@2x.png",
+      "x": 933,
+      "y": 753,
+      "w": 125,
+      "h": 86,
+      "z_index": 3116,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 125,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3113",
+        "marquee_shadow_3113",
+        "marquee_light_3113"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3138",
+      "file": "prop_loops/marquee_chase_body_3138.png",
+      "file_2x": "prop_loops/marquee_chase_body_3138@2x.png",
+      "x": 948,
+      "y": 761,
+      "w": 96,
+      "h": 86,
+      "z_index": 3141,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 96,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3138",
+        "marquee_shadow_3138",
+        "marquee_light_3138"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3163",
+      "file": "prop_loops/marquee_chase_body_3163.png",
+      "file_2x": "prop_loops/marquee_chase_body_3163@2x.png",
+      "x": 963,
+      "y": 768,
+      "w": 66,
+      "h": 86,
+      "z_index": 3166,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 66,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3163",
+        "marquee_shadow_3163",
+        "marquee_light_3163"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_body_3188",
+      "file": "prop_loops/marquee_chase_body_3188.png",
+      "file_2x": "prop_loops/marquee_chase_body_3188@2x.png",
+      "x": 978,
+      "y": 776,
+      "w": 36,
+      "h": 86,
+      "z_index": 3191,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 36,
+      "frame_height": 86,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "parent_slices": [
+        "marquee_body_3188",
+        "marquee_shadow_3188",
+        "marquee_light_3188"
+      ],
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "canopy"
+    },
+    {
+      "name": "marquee_chase_on_street_lamp_00",
+      "file": "prop_loops/marquee_chase_on_street_lamp_00.png",
+      "file_2x": "prop_loops/marquee_chase_on_street_lamp_00@2x.png",
+      "x": 580,
+      "y": 640,
+      "w": 5,
+      "h": 153,
+      "z_index": 2545,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 5,
+      "frame_height": 153,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "receiver",
+      "peak": 3,
+      "on": "street_lamp_00"
+    },
+    {
+      "name": "marquee_chase_on_glass_right_01",
+      "file": "prop_loops/marquee_chase_on_glass_right_01.png",
+      "file_2x": "prop_loops/marquee_chase_on_glass_right_01@2x.png",
+      "x": 1062,
+      "y": 821,
+      "w": 57,
+      "h": 75,
+      "z_index": 3081,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 57,
+      "frame_height": 75,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "receiver",
+      "peak": 13,
+      "on": "glass_right_01"
+    },
+    {
+      "name": "marquee_chase_on_glass_right_02",
+      "file": "prop_loops/marquee_chase_on_glass_right_02.png",
+      "file_2x": "prop_loops/marquee_chase_on_glass_right_02@2x.png",
+      "x": 1089,
+      "y": 835,
+      "w": 47,
+      "h": 171,
+      "z_index": 3161,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 47,
+      "frame_height": 171,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "receiver",
+      "peak": 3,
+      "on": "glass_right_02"
+    },
+    {
+      "name": "marquee_chase_under_00",
+      "file": "prop_loops/marquee_chase_under_00.png",
+      "file_2x": "prop_loops/marquee_chase_under_00@2x.png",
+      "x": 520,
+      "y": 851,
+      "w": 240,
+      "h": 129,
+      "z_index": 5,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 240,
+      "frame_height": 129,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "receiver",
+      "peak": 27,
+      "under": true
+    },
+    {
+      "name": "marquee_chase_under_01",
+      "file": "prop_loops/marquee_chase_under_01.png",
+      "file_2x": "prop_loops/marquee_chase_under_01@2x.png",
+      "x": 604,
+      "y": 980,
+      "w": 156,
+      "h": 100,
+      "z_index": 5,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 156,
+      "frame_height": 100,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "receiver",
+      "peak": 62,
+      "under": true
+    },
+    {
+      "name": "marquee_chase_under_02",
+      "file": "prop_loops/marquee_chase_under_02.png",
+      "file_2x": "prop_loops/marquee_chase_under_02@2x.png",
+      "x": 760,
+      "y": 980,
+      "w": 240,
+      "h": 100,
+      "z_index": 5,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 240,
+      "frame_height": 100,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "receiver",
+      "peak": 63,
+      "under": true
+    },
+    {
+      "name": "marquee_chase_under_03",
+      "file": "prop_loops/marquee_chase_under_03.png",
+      "file_2x": "prop_loops/marquee_chase_under_03@2x.png",
+      "x": 1000,
+      "y": 1001,
+      "w": 191,
+      "h": 79,
+      "z_index": 5,
+      "blend": "plus-lighter",
+      "format": "png-spritesheet",
+      "frames": 48,
+      "columns": 8,
+      "rows": 6,
+      "fps": 24,
+      "loop_seconds": 2,
+      "frame_width": 191,
+      "frame_height": 79,
+      "frame_order": "row-major",
+      "parent": "marquee",
+      "phase_offset": 0,
+      "clock": "existing-sign/master-6s",
+      "depth_owner": "receiver",
+      "peak": 5,
+      "under": true
+    }
+  ],
+  "parents": {
+    "body": {
+      "name": "marquee_body",
+      "file": "body.png",
+      "file_2x": "body@2x.png",
+      "x": 717,
+      "y": 609,
+      "w": 354,
+      "h": 253,
+      "blend": "source-over",
+      "draw": false,
+      "depth_slices": [
+        "marquee_body_2613",
+        "marquee_body_2638",
+        "marquee_body_2663",
+        "marquee_body_2688",
+        "marquee_body_2713",
+        "marquee_body_2738",
+        "marquee_body_2763",
+        "marquee_body_2788",
+        "marquee_body_2813",
+        "marquee_body_2838",
+        "marquee_body_2863",
+        "marquee_body_2888",
+        "marquee_body_2913",
+        "marquee_body_2938",
+        "marquee_body_2963",
+        "marquee_body_2988",
+        "marquee_body_3013",
+        "marquee_body_3038",
+        "marquee_body_3063",
+        "marquee_body_3088",
+        "marquee_body_3113",
+        "marquee_body_3138",
+        "marquee_body_3163",
+        "marquee_body_3188"
+      ]
+    }
+  },
+  "shadow_required": false,
+  "integration_status": "Staging only; no page or live pack changed.",
+  "draw_notes": [
+    "Resolve this fragment relative to this folder; it replaces out10m for the gamer lobby pack.",
+    "Merge render_layers (24 body slices) and prop_loops into the walker/prop z stack; do NOT load out10m/merged.json or merged2.json with it.",
+    "There are no shadow or light layers: the marquee's light and shadow on the lobby and the street are in the base pack's pictures; its light and shadow on itself are laid into the body slices.",
+    "Chase sheets are plus-lighter: marquee_chase_body_* just above their body slice (as in out10m), marquee_chase_on_<slice> just above that depth slice of the base pack, marquee_chase_under_* under every walker (z 5, \"under\": true).",
+    "letterboard_quads are the inset lit faces; envelope_quads include trim and bulbs.",
+    "Blank boards are intentional. Warp and clip page text to the inset face quads.",
+    "Rain and impact masks need the canopy roof/footprint added by page integration.",
+    "Keep walker name tags and bubbles off the projected canopy; allow routes beneath it."
+  ],
+  "brief104": {
+    "body": "out10m body slices with their own light and shadow pieces (merged2, \"on\": marquee_body_*) laid in; alpha unchanged",
+    "body_chase": "the 23 body chase sheets of out10m, byte for byte",
+    "receiver_chase": {
+      "sheets": 7,
+      "under_tiles": 4,
+      "on_slices": 3,
+      "peak": 63,
+      "left_out_as_noise": [
+        {
+          "name": "marquee_chase_on_glass_left_00",
+          "peak": 1,
+          "pixels_1x": 2
+        },
+        {
+          "name": "marquee_chase_on_glass_right_00",
+          "peak": 1,
+          "pixels_1x": 128
+        },
+        {
+          "name": "marquee_chase_under_01",
+          "peak": 2,
+          "pixels_1x": 1124
+        },
+        {
+          "name": "marquee_chase_under_04",
+          "peak": 1,
+          "pixels_1x": 28
+        }
+      ],
+      "frames_rendered": 48,
+      "own_light_at_the_capture_border_linear": {
+        "0": 0.07689,
+        "1": 0.12897,
+        "2": 0.10505,
+        "3": 0.12947
+      },
+      "was_in_out10m": 37
+    },
+    "body_slices": 24,
+    "light_and_shadow_pieces_laid_into_them": 48,
+    "mean_change_of_a_slice_8bit": 0.35,
+    "body_chase_sheets_carried_over": 23,
+    "body_probe_against_out10m": {
+      "pixels": 33800,
+      "mean": 1.065,
+      "p99": 9.0,
+      "blurred_mean": 0.709,
+      "blurred_p99": 10.68,
+      "alpha_mean_difference": 0.009,
+      "gate": "mean <= 2 and p99 <= 12 (the layer gate of Briefs 83 and 94)",
+      "passed": true,
+      "accepted_by_option": false
+    }
+  }
+}

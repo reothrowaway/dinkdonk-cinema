@@ -14,6 +14,7 @@
   see shared/cinema.js), director=0|<seconds>, zoom=<1.2-3>, ctl=0 (no control panel link), maxres=<height> (cap the art
   resolution, e.g. 1080: no 4K art or loops even at 1440p; off by default), fit=cover (fill a squarer or wider source:
   crop the sides instead of black bars; the wide shot centres on fitx=<stage x>, 1040), rainspeed=<x> / raintune=1,
+  look=gamer (the dark magenta/cyan gamer lobby, roxy3d/out10t; the panel's "Lobby look" overrides it; artdir= still wins),
 -->
 <html lang="en">
 <head>
@@ -551,8 +552,28 @@
   // alley, no ABSOLUTE CINEMA lettering, wall tops in the wall pictures, page-drawn bits baked); ?artdir=out10 = before
   // out10s = Brief 96 (13 Nov 2026: the claw machine as a depth piece where the arcade cabinet stood, the cabinet gone,
   // light linking repaired, the leftover page items as pictures; manifest brief96); ?artdir=out10r = the previous art
-  const ART_DIR = (q.get('artdir') || 'out10s').replace(/[^a-z0-9_-]/gi, '');
-  const ART = `roxy3d/${ART_DIR}/`;
+  // Lobby look (queue 90, Brief 104, 17 Nov 2026): 'normal' = out10s as above; 'gamer' = out10t, the dark magenta/cyan
+  // lobby with its own mist maps and layer packs (manifest.brief104.layer_packs: out10tps, out10tm, out10tl). Chosen by
+  // the panel's "Lobby look" (setting 'look', shared/settings.js) or ?look=gamer (the link's default, which the panel
+  // overrides); ?artdir= still forces a pack. The look is settled before any art or mist map loads: the boot waits for
+  // the panel's settings (the first /ctl/events message; at most 1.5 s, at once with ?ctl=0). A later change reloads the
+  // page (SETTINGS.look): the shared room puts everyone back where they were.
+  const URL_LOOK = q.get('look') === 'gamer' ? 'gamer' : 'normal';
+  const LOOK_DIRS = { normal: 'out10s', gamer: 'out10t' };
+  let LOOK = null, ART_DIR = '', ART = '', MIST_DIR = '';
+  let lookSettled = null;
+  const lookReady = new Promise((ok) => { lookSettled = ok; });
+  function settleLook(v) {
+    if (LOOK) return;
+    LOOK = v === 'gamer' ? 'gamer' : 'normal';
+    ART_DIR = (q.get('artdir') || LOOK_DIRS[LOOK]).replace(/[^a-z0-9_-]/gi, '');
+    ART = `roxy3d/${ART_DIR}/`;
+    // out10s, out10r and out10t carry their own mist maps
+    MIST_DIR = `roxy3d/${(q.get('mistdir') || (['out10s', 'out10r', 'out10t'].includes(ART_DIR) ? ART_DIR : 'out10mist')).replace(/[^a-z0-9_-]/gi, '')}/`;
+    lookSettled();
+  }
+  if (q.get('ctl') === '0' || !location.protocol.startsWith('http')) settleLook(URL_LOOK);   // no panel link
+  else setTimeout(() => settleLook(URL_LOOK), 1500);   // no answer from the server: the link's look
   // L1 street marquee layer pack (roxy3d/out10m, mergeMarquee in the art section); ?marquee=0 leaves it out
   const MARQ_ON = q.get('marquee') !== '0';
   // auto = what the board writes by itself (screen 1's film); custom = the panel's / URL's own lines
@@ -3430,7 +3451,7 @@
   //         3 lamp-lit mist (soft drifting mist that glows under lamps and neon), 4 wind sheets (gusts sweep across).
   let MIST = clamp(Math.round(Number(q.get('mist')) || 0), 0, 4);   // off: style 2 live looked like water boiling off the edges (owner, 04 Nov)
   let MIST_GAIN = clamp(Number(q.get('mistgain')) || 1, 0.1, 4);
-  const MIST_DIR = `roxy3d/${(q.get('mistdir') || (['out10s', 'out10r'].includes(ART_DIR) ? ART_DIR : 'out10mist')).replace(/[^a-z0-9_-]/gi, '')}/`;   // out10s and out10r carry their own mist maps
+  // (MIST_DIR: set with the lobby look, settleLook)
 
   // ---------- chatters take the scene's light (L6) and leave a wet reflection (L7), queue 63 ----------
   // Picked by the owner from the 9 Nov drafts (concepts/improve2/drafts/L6.png, L7.png).
@@ -3462,8 +3483,47 @@
         g.drawImage(im, 0, 0, LIGHT.w, LIGHT.h);
         LIGHT.map = g.getImageData(0, 0, LIGHT.w, LIGHT.h).data;
       };
-      im.src = `${MIST_DIR}light.png`;
+      lookReady.then(() => { im.src = `${MIST_DIR}light.png`; });   // (the mist maps of the lobby look)
     }
+  }
+  // Gamer look (Brief 104, out10t): the interior is lit by its own magenta and cyan sources, and the street light pass
+  // (light.png) has no interior pools. manifest.scene_light (light_floor.png: the light on the interior floors on a grey
+  // card, alpha = interior floor) under an indoor chatter's feet picks their look: a magenta or cyan tint with a lift, or
+  // a plain lift between the pools, so dark emotes stay readable on the dark carpet (critique of draft 37: "a rim or a
+  // 15-20% lift"). A colour matrix with gains and an offset per channel, chosen in lookAt like the street looks. Only art
+  // with scene_light loads it (setupArt); the normal lobby has none and stays as before. ?light=0: off.
+  const SCENE_LT = { map: null, w: 480, h: 270 };
+  function loadSceneLight(sl) {
+    if (!LIGHT_ON || !sl || typeof sl.file !== 'string') return;
+    // [gain r, g, b, lift r, g, b]: 1 = in the dim part of a pool or between pools, 2 = in a bright pool
+    const LOOKS = { gn1: [1.12, 1.1, 1.16, 0.07, 0.07, 0.09], gn2: [1.15, 1.12, 1.18, 0.06, 0.06, 0.07],
+      gm1: [1.14, 0.98, 1.12, 0.11, 0.04, 0.1], gm2: [1.22, 1.0, 1.18, 0.13, 0.04, 0.11],
+      gc1: [0.98, 1.1, 1.16, 0.04, 0.1, 0.12], gc2: [1.0, 1.18, 1.24, 0.04, 0.11, 0.13] };
+    const box = h('div');
+    box.innerHTML = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${Object.entries(LOOKS).map(([k, [r, g, b, lr, lg, lb]]) =>
+      `<filter id="lt-${k}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="${r} 0 0 0 ${lr}  0 ${g} 0 0 ${lg}  0 0 ${b} 0 ${lb}  0 0 0 1 0"/></filter>`).join('')}</defs></svg>` +
+      `<style>${Object.keys(LOOKS).map((k) => `.w[data-lt="${k}"] .em { filter: url(#lt-${k}); }`).join(' ')}</style>`;
+    document.body.append(box);
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = SCENE_LT.w; c.height = SCENE_LT.h;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.filter = 'blur(3px)';
+      g.drawImage(im, 0, 0, SCENE_LT.w, SCENE_LT.h);
+      SCENE_LT.map = g.getImageData(0, 0, SCENE_LT.w, SCENE_LT.h).data;
+    };
+    im.onerror = () => console.warn('[lobby] scene light missing', sl.file);
+    im.src = ART + sl.file;
+  }
+  function sceneLook(w) {
+    const [x, y] = P(w.u, w.v);
+    const m = SCENE_LT.map;
+    const i = (clamp(Math.round(y * SCENE_LT.h / 1080), 0, SCENE_LT.h - 1) * SCENE_LT.w + clamp(Math.round(x * SCENE_LT.w / 1920), 0, SCENE_LT.w - 1)) * 4;
+    if (m[i + 3] < 96) return 'gn1';   // not on the floor map (behind a counter's edge, a doorway): the plain lift
+    const [r, g, b] = [m[i], m[i + 1], m[i + 2]], lum = (r * 0.3 + g * 0.59 + b * 0.11) / 255;
+    const kind = r > g * 1.18 && r >= b * 0.85 ? 'gm' : b > r * 1.12 || g > r * 1.12 ? 'gc' : 'gn';
+    return kind + (lum < 0.3 ? 1 : 2);
   }
   // ---------- the street: "bridge out" board (L30) and the canvasser (L32), queue 65 ----------
   // L30: a roadworks message board on the far sidewalk. Burning and rebuilding bridges with orbiters is the running
@@ -4083,7 +4143,7 @@
 
   function lookAt(w) {
     if (w.staff || w.jan) return null;
-    if (!w.out) return w.v < 2.7 && w.u > 0 ? 'h' : null;
+    if (!w.out) return SCENE_LT.map ? sceneLook(w) : w.v < 2.7 && w.u > 0 ? 'h' : null;
     if (underMarquee(w.u, w.v)) return 'm';
     if (w.v < 10.25 && w.u > 2.9 && w.u < 13.1) return 'p';
     const [x, y] = P(w.u, w.v);
@@ -4122,7 +4182,7 @@
     Promise.all(['catch.png', 'rim.png', 'light.png', 'height.png'].map(load)).then(setupMist)
       .catch((e) => console.warn('[lobby] mist passes missing', e));
   }
-  if (MIST) startMist();
+  lookReady.then(() => { if (MIST) startMist(); });   // (the mist maps of the lobby look)
   // control panel: style 0-4 and brightness, live (the layer stays loaded once used; off just hides it)
   function setMist(style, gain) {
     if (style !== undefined) MIST = clamp(Math.round(Number(style)) || 0, 0, 4);
@@ -4360,7 +4420,7 @@ void main() {
     if (s) startRain2();
   }
   let rain2Started = false;   // the passes load once, the first time the extra rain is on (URL or control panel)
-  if (RAIN2) startRain2();
+  lookReady.then(() => { if (RAIN2) startRain2(); });   // (the mist maps of the lobby look)
   function startRain2() {
     if (rain2Started) return;
     rain2Started = true;
@@ -5564,6 +5624,8 @@ void main() {
     seethru: { get: () => MQ_FADE, set: (v) => { MQ_FADE = clamp(Number(v), 0, 1); if (!Number.isFinite(MQ_FADE)) MQ_FADE = 0.75; } },
     marquee1: { get: () => MARQ.custom[0], set: (v) => { MARQ.custom[0] = mqClean(v); showMarquee(); } },
     marquee2: { get: () => MARQ.custom[1], set: (v) => { MARQ.custom[1] = mqClean(v); showMarquee(); } },
+    // the lobby look (queue 90): settled before the art loads (control 'settings'); a change later reloads the page
+    look: { get: () => LOOK || URL_LOOK, set: (v) => { if (LOOK && (v === 'gamer' ? 'gamer' : 'normal') !== LOOK) location.reload(); } },
   };
   const urlSettings = Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
@@ -5589,7 +5651,10 @@ void main() {
       case 'peek': if (!inRoom()) startPeek(String(c.spot || '')); break;   // (test hook; the room sends a 'peek' event)
       case 'gag': if (!inRoom()) { const pair = pickGagPair(); if (pair) startGag(...pair); } break;   // (test hook; the room sends a 'gag' event)
       case 'fly': window.DD_FLY_PLAY?.({ cut: true }); break;   // fly-through to the auditorium, OBS cuts at the end
-      case 'settings': applySettings(c.values); break;   // the panel's scene settings (on connect and on every change)
+      case 'settings':   // the panel's scene settings (on connect and on every change); the first one settles the lobby look
+        settleLook(c.values && typeof c.values === 'object' && Object.hasOwn(c.values, 'look') ? c.values.look : URL_LOOK);
+        applySettings(c.values);
+        break;
       case 'director': director.on = !!c.on; if (director.on) director.next = Math.min(director.next, now + 20000); break;
       case 'every': if (Number.isFinite(+c.value)) director.every = clamp(+c.value, 30, 1800); break;
       case 'zoom': if (Number.isFinite(+c.value)) { director.zoom = clamp(+c.value, 1.2, 3); rezoomPoll(); } break;
@@ -5879,13 +5944,20 @@ void main() {
   // pack. Body + black shadow slices (source-over) and receiver light slices (plus-lighter) join the occluder stack
   // at their own depth, the 48-cell bulb chase joins the prop loops. The boards are rendered blank; the page writes
   // tonight's film on the street face (MARQ.text). ?marquee=0 leaves it out.
+  // Brief 104 (out10t, the gamer look): the main pack names its own layer packs (manifest.brief104.layer_packs) and says
+  // which light and shadow are baked into its pictures (brief104.baked); other art: the packs below as before.
+  const layerDir = (m, kind, def) => String(m.brief104?.layer_packs?.[kind] || def).replace(/[^a-z0-9_-]/gi, '');
   async function mergeMarquee(m) {
     if (!MARQ_ON) return;
     try {
-      const res = await fetch('roxy3d/out10m/marquee.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      const dir = layerDir(m, 'marquee', 'out10m');
+      // gamer look: the marquee's light and shadow are in the scene pictures; marquee.json brings the body slices and
+      // the chase sheets only (marquee_chase_under_* under every walker at z 5, marquee_chase_on_<slice> above it)
+      const baked = !!m.brief104?.baked?.marquee_light_and_shadow;
+      const res = await fetch(`roxy3d/${dir}/marquee.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
       const f = res.ok ? await res.json() : null;
       if (!f || !Array.isArray(f.render_layers)) return;
-      const rel = (p) => (typeof p === 'string' ? `../out10m/${p}` : p);
+      const rel = (p) => (typeof p === 'string' ? `../${dir}/${p}` : p);
       // Lighter layer sets: the same shadow and light, but what lies on the ground and the background art is one
       // shadow image and one light image under all walkers (MARQ.under, placed in setupArt); only what lies on a
       // sprite sits in the occluder stack. The 135 blended light slices held frames in OBS.
@@ -5897,9 +5969,9 @@ void main() {
       // ?mqmerge=1 = the 451 pieces, ?mqmerge=0 = the original slices.
       let merged = null;
       const mqSet = q.get('mqmerge');
-      for (const name of mqSet === '0' ? [] : mqSet === '1' ? ['merged'] : ['merged2', 'merged']) {
+      for (const name of mqSet === '0' || baked ? [] : mqSet === '1' ? ['merged'] : ['merged2', 'merged']) {
         try {
-          const r2 = await fetch(`roxy3d/out10m/${name}.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+          const r2 = await fetch(`roxy3d/${dir}/${name}.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
           const j = r2.ok ? await r2.json() : null;
           if (j && Array.isArray(j.layers) && j.layers.length) { merged = j.layers; break; }
         } catch { /* the next set, or the slices */ }
@@ -5915,7 +5987,7 @@ void main() {
         m.occluders.push({ name: 'marquee_body_whole', file: rel(whole.file), file_2x: rel(whole.file_2x), x: whole.x, y: whole.y, w: whole.w, h: whole.h, z_index: Math.min(...bodyZ), blend: 'source-over', mqfade: true });
       }
       for (const r of f.render_layers) {
-        if (merged && (r.parent === 'marquee_shadow' || r.parent === 'marquee_light')) continue;
+        if ((merged || baked) && (r.parent === 'marquee_shadow' || r.parent === 'marquee_light')) continue;
         m.occluders.push({ ...r, file: rel(r.file), file_2x: rel(r.file_2x), mqfade: r.parent === 'marquee_body' });
       }
       for (const l of merged || []) {
@@ -5941,10 +6013,11 @@ void main() {
   async function mergeLeader(m) {
     if (!LEADER_ON || q.get('leaderart') === '0') return;
     try {
-      const res = await fetch('roxy3d/out10l/leader.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      const dir = layerDir(m, 'leader', 'out10l');   // (out10tl: one piece, the body; its light and shadow are baked)
+      const res = await fetch(`roxy3d/${dir}/leader.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
       const f = res.ok ? await res.json() : null;
       if (!f || !Array.isArray(f.render_layers) || !f.render_layers.length) return;
-      const rel = (x) => (typeof x === 'string' ? `../out10l/${x}` : x);
+      const rel = (x) => (typeof x === 'string' ? `../${dir}/${x}` : x);
       for (const l of f.render_layers) {
         if (!l || typeof l.file !== 'string' || ![l.x, l.y, l.w, l.h].every(Number.isFinite)) continue;
         if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
@@ -5967,7 +6040,9 @@ void main() {
   async function mergeProps(m) {
     if (!PROPS_ON) return;
     try {
-      const dir = (q.get('propsdir') || (m.claw ? 'out10ps' : 'out10p')).replace(/[^a-z0-9_-]/gi, '');
+      // (out10tps, the gamer look: the jukebox tubes and tv_glow only; the jukebox is the main pack's occluder "jukebox",
+      // the TV part of "partition_right"; their bodies, light and shadow are baked)
+      const dir = (q.get('propsdir') || layerDir(m, 'props', m.claw ? 'out10ps' : 'out10p')).replace(/[^a-z0-9_-]/gi, '');
       const res = await fetch(`roxy3d/${dir}/props.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
       const f = res.ok ? await res.json() : null;
       if (!f || !Array.isArray(f.render_layers) || !f.render_layers.length) return;
@@ -5975,6 +6050,7 @@ void main() {
       for (const l of f.render_layers) {
         if (!l || typeof l.file !== 'string' || ![l.x, l.y, l.w, l.h].every(Number.isFinite)) continue;
         if (m.claw && /^claw/.test(l.name || '')) continue;
+        if (m.brief104?.baked?.jukebox_body_light_and_shadow && !l.anim) continue;   // (an older props pack over out10t: animated light only)
         if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
         else m.occluders.push({ ...l, file: rel(l.file), file_2x: rel(l.file_2x) });
       }
@@ -6246,6 +6322,7 @@ void main() {
     return dead;
   }
   function setupArt(m) {
+    if (m.scene_light) loadSceneLight(m.scene_light);   // the gamer look's interior light for the chatters (Brief 104)
     buildSlop(m);
     document.body.classList.add('art');
     if (m.brief95) bakedBy95(m);
@@ -7229,6 +7306,7 @@ void main() {
   // ===== end POLL SCREEN ==================================================================================
 
   (async () => {
+    await lookReady;   // the lobby look (panel or ?look=) picks the art folder
     art = await loadArt();
     useLayout(Number(q.get('layout')) || (LAYOUTS[art?.layout] ? art.layout : 1));   // ?layout= forces one (testing)
     if (art) setupArt(art); else buildProps();

@@ -1,0 +1,1307 @@
+{
+  "passed": true,
+  "complete": true,
+  "checks": 2283,
+  "failures": [],
+  "brief": 104,
+  "report": {
+    "partial": false,
+    "rehearsal_copies": 0,
+    "reduced_samples": false,
+    "skipped": [],
+    "groups": {
+      "partition_left": {
+        "phases": [
+          0,
+          12
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 38,
+          "largest_3x3_mean_spread": 6.11,
+          "where": "indoors"
+        }
+      },
+      "partition_right": {
+        "phases": [
+          0,
+          12
+        ],
+        "alpha": "from the render; 865 more 1x pixels than the live picture",
+        "slices_before": [
+          "partition_right_00",
+          "partition_right_01",
+          "partition_right_02",
+          "partition_right_03",
+          "partition_right_04",
+          "partition_right_05",
+          "partition_right_06",
+          "partition_right_07",
+          "partition_right_08"
+        ],
+        "slices": [
+          [
+            "partition_right_00",
+            1808
+          ],
+          [
+            "partition_right_01",
+            1903
+          ],
+          [
+            "partition_right_02",
+            1999
+          ],
+          [
+            "partition_right_03",
+            2095
+          ],
+          [
+            "partition_right_04",
+            2190
+          ],
+          [
+            "partition_right_05",
+            2286
+          ],
+          [
+            "partition_right_06",
+            2381
+          ],
+          [
+            "partition_right_07",
+            2477
+          ],
+          [
+            "partition_right_08",
+            2572
+          ]
+        ],
+        "z_index": 2190,
+        "wet": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 17,
+          "largest_spread_8bit": 85,
+          "largest_3x3_mean_spread": 11.22,
+          "where": "indoors"
+        }
+      },
+      "boxoffice": {
+        "phases": [
+          0,
+          12
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 18,
+          "largest_spread_8bit": 73,
+          "largest_3x3_mean_spread": 17.44,
+          "where": "indoors"
+        }
+      },
+      "snack": {
+        "phases": [
+          0,
+          12
+        ],
+        "alpha": "from the render; 726 more 1x pixels than the live picture",
+        "slices_before": [
+          "snack_00",
+          "snack_01",
+          "snack_02",
+          "snack_03",
+          "snack_04",
+          "snack_05"
+        ],
+        "slices": [
+          [
+            "snack_00",
+            2041
+          ],
+          [
+            "snack_01",
+            2141
+          ],
+          [
+            "snack_02",
+            2241
+          ],
+          [
+            "snack_03",
+            2341
+          ],
+          [
+            "snack_04",
+            2441
+          ],
+          [
+            "snack_05",
+            2541
+          ]
+        ],
+        "z_index": 2291,
+        "wet": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 44,
+          "largest_spread_8bit": 56,
+          "largest_3x3_mean_spread": 22.0,
+          "where": "indoors",
+          "sheet": "wet_snack"
+        }
+      },
+      "podium": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "bench": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "standee_1": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "standee_2": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "palm": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "street_lamp": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 8,
+          "largest_spread_8bit": 38,
+          "largest_3x3_mean_spread": 10.67,
+          "where": "outdoors"
+        }
+      },
+      "bus_stop": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 23,
+          "largest_3x3_mean_spread": 6.89,
+          "where": "outdoors"
+        }
+      },
+      "glass_left": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 24,
+          "largest_3x3_mean_spread": 4.67,
+          "where": "outdoors"
+        }
+      },
+      "glass_right": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 49,
+          "largest_3x3_mean_spread": 7.22,
+          "where": "outdoors"
+        }
+      },
+      "entrance_post_1": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 4,
+          "largest_spread_8bit": 35,
+          "largest_3x3_mean_spread": 10.89,
+          "where": "outdoors"
+        }
+      },
+      "entrance_post_2": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 4,
+          "largest_spread_8bit": 36,
+          "largest_3x3_mean_spread": 8.67,
+          "where": "outdoors"
+        }
+      },
+      "entrance_header": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 13,
+          "largest_3x3_mean_spread": 3.33,
+          "where": "outdoors"
+        }
+      },
+      "paste_wall": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "entrance_neon": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 19,
+          "largest_3x3_mean_spread": 5.56,
+          "where": "outdoors"
+        }
+      },
+      "restroom_entry_wall": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_stall_1": {
+        "phases": [
+          0
+        ],
+        "against_the_live_picture": {
+          "pixels": 11211,
+          "mean": 0.703,
+          "p99": 3.0,
+          "blurred_mean": 0.618,
+          "blurred_p99": 2.08
+        },
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_stall_2": {
+        "phases": [
+          0
+        ],
+        "against_the_live_picture": {
+          "pixels": 11213,
+          "mean": 0.754,
+          "p99": 3.0,
+          "blurred_mean": 0.654,
+          "blurred_p99": 2.56
+        },
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_stall_3": {
+        "phases": [
+          0
+        ],
+        "against_the_live_picture": {
+          "pixels": 10511,
+          "mean": 0.721,
+          "p99": 4.0,
+          "blurred_mean": 0.627,
+          "blurred_p99": 3.44
+        },
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_stall_4": {
+        "phases": [
+          0
+        ],
+        "against_the_live_picture": {
+          "pixels": 9221,
+          "mean": 0.721,
+          "p99": 4.0,
+          "blurred_mean": 0.535,
+          "blurred_p99": 2.64
+        },
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_sinks": {
+        "phases": [
+          0
+        ],
+        "against_the_live_picture": {
+          "pixels": 3562,
+          "mean": 2.228,
+          "p99": 20.0,
+          "blurred_mean": 1.746,
+          "blurred_p99": 16.49
+        },
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_dryer": {
+        "phases": [
+          0
+        ],
+        "against_the_live_picture": {
+          "pixels": 1031,
+          "mean": 1.234,
+          "p99": 3.0,
+          "blurred_mean": 1.022,
+          "blurred_p99": 2.34
+        },
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_service": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "front_solid_wall": {
+        "phases": [
+          0,
+          16,
+          32
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false,
+        "wet": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 6,
+          "largest_spread_8bit": 30,
+          "largest_3x3_mean_spread": 9.78,
+          "where": "outdoors"
+        }
+      },
+      "queue_front": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "queue_back": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "corridor_standee_1": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "corridor_standee_2": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "corridor_bench": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "corridor_fountain": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "corridor_bin": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "corridor_extinguisher": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_side_wall": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_closet_wall": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "restroom_entry_leaf": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "bridge_board": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "claw": {
+        "phases": [
+          0
+        ],
+        "alpha": "live (unchanged shape)",
+        "carried_over_byte_identical": false
+      },
+      "jukebox": {
+        "phases": [
+          0
+        ],
+        "alpha": "from the render (new group)",
+        "slices": [
+          [
+            "jukebox_00",
+            2557
+          ]
+        ],
+        "z_index": 2557
+      }
+    },
+    "worker_probes": {
+      "8d4x2uaeac9tz8-w2/679": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002222036477178335
+      },
+      "8d4x2uaeac9tz8-w1/678": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.0022193738259375095
+      },
+      "8d4x2uaeac9tz8-w3/1156": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002219833666458726
+      },
+      "8d4x2uaeac9tz8-w4/1287": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002222255803644657
+      },
+      "omx17ztm7dx2ue-w1/645": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.0022209407761693
+      },
+      "omx17ztm7dx2ue-w2/646": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.0022199240047484636
+      },
+      "omx17ztm7dx2ue-w3/920": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.00221979059278965
+      },
+      "omx17ztm7dx2ue-w4/1050": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002218891866505146
+      },
+      "j9rhve2pyhjux9-w2/653": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002217744244262576
+      },
+      "j9rhve2pyhjux9-w1/652": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002219654619693756
+      },
+      "nvr7bbief5is0p-w1/640": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.0022187447175383568
+      },
+      "nvr7bbief5is0p-w2/641": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002220685360953212
+      },
+      "j9rhve2pyhjux9-w3/1271": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.00221886090002954
+      },
+      "nvr7bbief5is0p-w3/1279": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002219211310148239
+      },
+      "96pjnz62xslazd-w1/643": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002220402704551816
+      },
+      "96pjnz62xslazd-w2/644": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002217958215624094
+      },
+      "nvr7bbief5is0p-w4/1733": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.0022180448286235332
+      },
+      "96pjnz62xslazd-w3/1268": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002220671158283949
+      },
+      "fix104-local/31108": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 5.571906513068825e-05
+      },
+      "8d4x2uaeac9tz8-w5/4116": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002218550071120262
+      },
+      "j9rhve2pyhjux9-w4/2803": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002217098604887724
+      },
+      "96pjnz62xslazd-w4/1726": {
+        "share_of_blocks_over_25_percent": 0.0,
+        "mean_relative_difference": 0.002219769172370434
+      }
+    },
+    "wet": {
+      "threshold_8bit": 8,
+      "few_px_1x": 24,
+      "pieces": {
+        "partition_left": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 38,
+          "largest_3x3_mean_spread": 6.11,
+          "where": "indoors"
+        },
+        "partition_right": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 17,
+          "largest_spread_8bit": 85,
+          "largest_3x3_mean_spread": 11.22,
+          "where": "indoors"
+        },
+        "boxoffice": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 18,
+          "largest_spread_8bit": 73,
+          "largest_3x3_mean_spread": 17.44,
+          "where": "indoors"
+        },
+        "snack": {
+          "phases": [
+            0,
+            12
+          ],
+          "px_over_8_1x": 44,
+          "largest_spread_8bit": 56,
+          "largest_3x3_mean_spread": 22.0,
+          "where": "indoors",
+          "sheet": "wet_snack"
+        },
+        "street_lamp": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 8,
+          "largest_spread_8bit": 38,
+          "largest_3x3_mean_spread": 10.67,
+          "where": "outdoors"
+        },
+        "bus_stop": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 23,
+          "largest_3x3_mean_spread": 6.89,
+          "where": "outdoors"
+        },
+        "glass_left": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 24,
+          "largest_3x3_mean_spread": 4.67,
+          "where": "outdoors"
+        },
+        "glass_right": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 49,
+          "largest_3x3_mean_spread": 7.22,
+          "where": "outdoors"
+        },
+        "entrance_post_1": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 4,
+          "largest_spread_8bit": 35,
+          "largest_3x3_mean_spread": 10.89,
+          "where": "outdoors"
+        },
+        "entrance_post_2": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 4,
+          "largest_spread_8bit": 36,
+          "largest_3x3_mean_spread": 8.67,
+          "where": "outdoors"
+        },
+        "entrance_header": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 13,
+          "largest_3x3_mean_spread": 3.33,
+          "where": "outdoors"
+        },
+        "entrance_neon": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 0,
+          "largest_spread_8bit": 19,
+          "largest_3x3_mean_spread": 5.56,
+          "where": "outdoors"
+        },
+        "front_solid_wall": {
+          "phases": [
+            0,
+            16,
+            32
+          ],
+          "px_over_8_1x": 6,
+          "largest_spread_8bit": 30,
+          "largest_3x3_mean_spread": 9.78,
+          "where": "outdoors"
+        }
+      },
+      "sheets_kept": [
+        {
+          "name": "wet_snack",
+          "px_over_8_1x": 44,
+          "rect": [
+            956,
+            605,
+            402,
+            222
+          ]
+        }
+      ],
+      "live_loops_dropped": 54
+    },
+    "carried_over_after_comparison": [],
+    "rendered_instead_of_carried_over": [
+      "occluder restroom_stall_1",
+      "occluder restroom_stall_2",
+      "occluder restroom_stall_3",
+      "occluder restroom_stall_4",
+      "occluder restroom_sinks",
+      "occluder restroom_dryer",
+      "door stall_1",
+      "door stall_2",
+      "door stall_3",
+      "door stall_4",
+      "restroom light vacant",
+      "restroom light occupied"
+    ],
+    "background": {
+      "phases": 48,
+      "loop_is_exact_complement": true,
+      "wrap_proof": [
+        {
+          "scale": 1,
+          "phase_144_against_0_mean_8bit": 0.005001607510288066,
+          "p99": 0.0
+        },
+        {
+          "scale": 2,
+          "phase_144_against_0_mean_8bit": 0.007451011123971193,
+          "p99": 0.0
+        }
+      ],
+      "mean_step_between_phases_8bit": 0.48587676882743835,
+      "largest_whole_frame_step_8bit": 0.7264866828918457
+    },
+    "against_the_live_background_by_region": {
+      "restroom": {
+        "pixels": 80220,
+        "mean": 6.402,
+        "p99": 50.0,
+        "blurred_mean": 6.161,
+        "blurred_p99": 51.52
+      },
+      "cinema": {
+        "pixels": 516621,
+        "mean": 36.658,
+        "p99": 112.81,
+        "blurred_mean": 35.857,
+        "blurred_p99": 102.24
+      },
+      "wet_ground_by_the_cinema": {
+        "pixels": 120447,
+        "mean": 36.814,
+        "p99": 163.0,
+        "blurred_mean": 36.393,
+        "blurred_p99": 162.04
+      },
+      "street_and_buildings": {
+        "pixels": 582678,
+        "mean": 2.196,
+        "p99": 59.0,
+        "blurred_mean": 1.955,
+        "blurred_p99": 56.29
+      },
+      "roofs_and_upper": {
+        "pixels": 771821,
+        "mean": 3.703,
+        "p99": 84.0,
+        "blurred_mean": 3.486,
+        "blurred_p99": 83.04
+      },
+      "street_and_roofs_with_the_marquee_area": {
+        "pixels": 1354499,
+        "mean": 3.055,
+        "p99": 79.0,
+        "blurred_mean": 2.827,
+        "blurred_p99": 77.84
+      },
+      "street_and_roofs": {
+        "pixels": 1147382,
+        "mean": 0.547,
+        "p99": 5.0,
+        "blurred_mean": 0.338,
+        "blurred_p99": 3.2
+      }
+    },
+    "street_gate": {
+      "mean_under_1": 0.547,
+      "p99_of_5x5_mean_under_4": 3.2,
+      "passed": true,
+      "left_out": "the area the marquee lights [520, 500, 880, 580] and the bridge board",
+      "note": "restroom pixels of the background are the corridor floor and walls seen over the cut walls; the restroom itself is checked piece by piece"
+    },
+    "doors": {
+      "screen_1": {
+        "carried_over_byte_identical": false
+      },
+      "screen_2": {
+        "carried_over_byte_identical": false
+      },
+      "screen_3": {
+        "carried_over_byte_identical": false
+      },
+      "restroom_entry": {
+        "carried_over_byte_identical": false
+      },
+      "stall_1": {
+        "against_the_live_sheet": {
+          "pixels": 100240,
+          "mean": 0.991,
+          "p99": 3.0,
+          "blurred_mean": 0.71,
+          "blurred_p99": 2.16
+        },
+        "carried_over_byte_identical": false
+      },
+      "stall_2": {
+        "against_the_live_sheet": {
+          "pixels": 101584,
+          "mean": 1.179,
+          "p99": 4.0,
+          "blurred_mean": 0.875,
+          "blurred_p99": 2.96
+        },
+        "carried_over_byte_identical": false
+      },
+      "stall_3": {
+        "against_the_live_sheet": {
+          "pixels": 89936,
+          "mean": 1.134,
+          "p99": 4.0,
+          "blurred_mean": 0.852,
+          "blurred_p99": 3.52
+        },
+        "carried_over_byte_identical": false
+      },
+      "stall_4": {
+        "against_the_live_sheet": {
+          "pixels": 64480,
+          "mean": 2.819,
+          "p99": 53.0,
+          "blurred_mean": 2.372,
+          "blurred_p99": 23.32
+        },
+        "carried_over_byte_identical": false
+      }
+    },
+    "restroom_light": {
+      "vacant": {
+        "against_the_live_picture": {
+          "pixels": 55,
+          "mean": 50.491,
+          "p99": 59.46,
+          "blurred_mean": 41.119,
+          "blurred_p99": 52.9
+        },
+        "carried_over_byte_identical": false
+      },
+      "occupied": {
+        "against_the_live_picture": {
+          "pixels": 41,
+          "mean": 86.805,
+          "p99": 98.0,
+          "blurred_mean": 70.977,
+          "blurred_p99": 81.55
+        },
+        "carried_over_byte_identical": false
+      }
+    },
+    "mist_maps_at_pack_root": [
+      "catch.png",
+      "catch@2x.png",
+      "height.png",
+      "height@2x.png",
+      "rim.png",
+      "rim@2x.png",
+      "light.png",
+      "light@2x.png"
+    ],
+    "mist_against_the_live_maps": {
+      "catch.png": {
+        "pixels": 2073600,
+        "mean": 0.136,
+        "p99": 0.0,
+        "blurred_mean": 0.136,
+        "blurred_p99": 0.0
+      },
+      "height.png": {
+        "pixels": 2073600,
+        "mean": 0.004,
+        "p99": 0.0,
+        "blurred_mean": 0.004,
+        "blurred_p99": 0.0
+      },
+      "rim.png": {
+        "pixels": 2073600,
+        "mean": 0.0,
+        "p99": 0.0,
+        "blurred_mean": 0.0,
+        "blurred_p99": 0.0
+      },
+      "light.png": {
+        "pixels": 2073600,
+        "mean": 0.921,
+        "p99": 12.0,
+        "blurred_mean": 0.736,
+        "blurred_p99": 9.08
+      }
+    },
+    "scene_light": {
+      "floor_px_1x": 421844,
+      "mean_rgb": [
+        70.95,
+        61.71,
+        65.42
+      ],
+      "p99_luma": 195.6
+    },
+    "claw_chase": {
+      "pieces": [
+        [
+          "claw_chase_0",
+          89,
+          163,
+          194
+        ],
+        [
+          "claw_chase_1",
+          90,
+          163,
+          195
+        ],
+        [
+          "claw_chase_2",
+          45,
+          33,
+          184
+        ],
+        [
+          "claw_chase_3",
+          68,
+          39,
+          192
+        ]
+      ],
+      "z_index": 3021,
+      "own_light_at_the_capture_border_linear": [
+        0.00547,
+        0.0057,
+        0.00105,
+        0.00169
+      ]
+    },
+    "props_pack": {
+      "folder": "out10tps",
+      "layers": [
+        [
+          "tv_glow",
+          2042,
+          147,
+          132,
+          166
+        ],
+        [
+          "jukebox_tube_pink",
+          2558,
+          205,
+          226,
+          220
+        ],
+        [
+          "jukebox_tube_teal",
+          2558,
+          119,
+          183,
+          162
+        ],
+        [
+          "jukebox_tube_pink_front",
+          2745,
+          157,
+          148,
+          201
+        ],
+        [
+          "jukebox_tube_teal_front",
+          2745,
+          67,
+          18,
+          5
+        ]
+      ],
+      "pieces": {
+        "jukebox_tube_pink": {
+          "rect": [
+            1286,
+            717,
+            205,
+            226
+          ],
+          "peak": 220,
+          "own_light_at_the_capture_border_linear": 0.00076,
+          "front_piece": true
+        },
+        "jukebox_tube_teal": {
+          "rect": [
+            1312,
+            740,
+            119,
+            183
+          ],
+          "peak": 162,
+          "own_light_at_the_capture_border_linear": 2e-05,
+          "front_piece": true
+        },
+        "tv_glow": {
+          "rect": [
+            900,
+            547,
+            147,
+            132
+          ],
+          "peak": 166,
+          "z_index": 2042,
+          "own_light_at_the_capture_border_linear": 0.00129
+        }
+      },
+      "was_in_out10ps": 10
+    },
+    "marquee_pack": {
+      "folder": "out10tm",
+      "body_slices": 24,
+      "light_and_shadow_pieces_laid_into_them": 48,
+      "mean_change_of_a_slice_8bit": 0.35,
+      "body_chase_sheets_carried_over": 23,
+      "body_probe_against_out10m": {
+        "pixels": 33800,
+        "mean": 1.065,
+        "p99": 9.0,
+        "blurred_mean": 0.709,
+        "blurred_p99": 10.68,
+        "alpha_mean_difference": 0.009,
+        "gate": "mean <= 2 and p99 <= 12 (the layer gate of Briefs 83 and 94)",
+        "passed": true,
+        "accepted_by_option": false
+      },
+      "receiver_chase": {
+        "sheets": 7,
+        "under_tiles": 4,
+        "on_slices": 3,
+        "peak": 63,
+        "left_out_as_noise": [
+          {
+            "name": "marquee_chase_on_glass_left_00",
+            "peak": 1,
+            "pixels_1x": 2
+          },
+          {
+            "name": "marquee_chase_on_glass_right_00",
+            "peak": 1,
+            "pixels_1x": 128
+          },
+          {
+            "name": "marquee_chase_under_01",
+            "peak": 2,
+            "pixels_1x": 1124
+          },
+          {
+            "name": "marquee_chase_under_04",
+            "peak": 1,
+            "pixels_1x": 28
+          }
+        ],
+        "frames_rendered": 48,
+        "own_light_at_the_capture_border_linear": {
+          "0": 0.07689,
+          "1": 0.12897,
+          "2": 0.10505,
+          "3": 0.12947
+        },
+        "was_in_out10m": 37
+      }
+    },
+    "leader_pack": {
+      "folder": "out10tl",
+      "layers": 1,
+      "rect": [
+        839,
+        455,
+        59,
+        112
+      ],
+      "opaque_px_1x": 3549,
+      "was_in_out10l": 6
+    },
+    "sprites": {
+      "wet_floor_sign": {
+        "against_the_live_sprite": {
+          "pixels": 368,
+          "mean": 32.848,
+          "p99": 54.0,
+          "blurred_mean": 32.892,
+          "blurred_p99": 53.77
+        },
+        "replaced": true
+      },
+      "buddy": {
+        "against_the_live_sprite": {
+          "pixels": 172,
+          "mean": 90.61,
+          "p99": 121.0,
+          "blurred_mean": 83.501,
+          "blurred_p99": 116.62
+        },
+        "replaced": true
+      },
+      "clipboard": {
+        "against_the_live_sprite": {
+          "pixels": 192,
+          "mean": 76.219,
+          "p99": 89.0,
+          "blurred_mean": 70.819,
+          "blurred_p99": 83.83
+        },
+        "replaced": true
+      }
+    },
+    "sprites_not_rendered": "popcorn, soda, stub, ticket, cap_cashier, cap_usher, wet_print: their models are not in the scene (earlier sprite renders); carried over",
+    "videos": {
+      "light_loop": {
+        "bytes": 11007826,
+        "sha256": "f79c0a170ae14a2700bc4794be3e1bcaade1c179511688944333b7cfd8d9f609",
+        "passed": true,
+        "decoded_black_max": 0
+      },
+      "light_loop_2x": {
+        "bytes": 36586902,
+        "sha256": "114779cae1b266a715a8fdd00a44690a560d90c35dee48413bf75dc43a9ad668",
+        "passed": true,
+        "decoded_black_max": 1
+      }
+    },
+    "byte_identical_carry_over": {
+      "files_checked": 391,
+      "changed": 0,
+      "parts": [
+        "vehicles/",
+        "umbrella/",
+        "cat/",
+        "janitor/",
+        "items/",
+        "rain_fg",
+        "sheets/",
+        "police/",
+        "street/",
+        "tyre_spray/",
+        "prop_loops/"
+      ]
+    }
+  },
+  "seconds": 344.6482711999997,
+  "items": 172,
+  "render_gpus": [
+    "NVIDIA GeForce RTX 4090",
+    "RTX 3050 local (fix104)"
+  ]
+}

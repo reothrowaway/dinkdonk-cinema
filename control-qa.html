@@ -320,6 +320,17 @@
                 title="Needs Tampermonkey or Violentmonkey in your browser. Then build your poll on dinkdonk.mov as usual: the movies show up on your lobby's poll screen as you add them">Install your poll script</a>
             </div>
           </div>
+          <!-- queue 90 (17 Nov 2026): the lobby's look, a scene setting ('look', shared/settings.js); the screens reload their art -->
+          <div class="grp" id="lookgrp" hidden>
+            <div class="grp-l">Lobby look</div>
+            <div class="btns">
+              <div class="seg" role="group" aria-label="Lobby look">
+                <button id="look-normal" title="The normal lobby (roxy3d/out10s)">Normal</button>
+                <button id="look-gamer" title="The dark magenta and cyan gamer lobby (roxy3d/out10t). The lobby screens reload their art (a few seconds); the room keeps everyone where they were">Gamer</button>
+              </div>
+              <span id="lookstate" style="align-self: center; color: var(--dim); font-size: 12.5px;"></span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -633,6 +644,7 @@
     setBuiltFor = page;
     let group = '';
     for (const def of setSchema[page] || []) {
+      if (def.card) continue;   // shown on its scene's own card (the Lobby look: showLook)
       if (def.group !== group) { group = def.group; box.append(Object.assign(document.createElement('h3'), { textContent: group })); }
       const lab = Object.assign(document.createElement('div'), { className: 'lab', textContent: def.label });
       const cell = document.createElement('div');
@@ -684,10 +696,27 @@
       const j = await res.json();
       setSchema = j.schema;
       setValues = j.values;
-    } catch { $('setcard').hidden = true; return; }   // an older server: no scene settings
+    } catch { $('setcard').hidden = true; $('lookgrp').hidden = true; return; }   // an older server: no scene settings
     $('setcard').hidden = false;
     if (setBuiltFor !== $('page').value) buildSettings($('page').value); else showSettings();
+    showLook();
   }
+  // the Lobby card's "Lobby look" (queue 90): the lobby's 'look' setting, always sent to the lobby screens; a server
+  // whose shared/settings.js has no 'look' yet (started before 17 Nov 2026) hides it
+  const LOOK_NAMES = { normal: 'Normal', gamer: 'Gamer' };
+  function showLook() {
+    const def = setSchema?.lobby?.find((d) => d.key === 'look');
+    $('lookgrp').hidden = !def;
+    if (!def) return;
+    const set = Object.hasOwn(setValues.lobby || {}, 'look');
+    // what the lobby screen shown in the panel uses now (its link's ?look= while the panel has not set one)
+    const scr = $('page').value === 'lobby' ? setScreen?.settings?.look : undefined;
+    const shown = set ? setValues.lobby.look : scr || 'normal';
+    for (const v of ['normal', 'gamer']) $(`look-${v}`).classList.toggle('on', shown === v);
+    $('lookstate').textContent = set ? (scr && scr !== shown ? `the lobby screen still shows ${LOOK_NAMES[scr] || scr}: reloading its art…` : '')
+      : 'from the screen links (Normal unless ?look=gamer)';
+  }
+  for (const v of ['normal', 'gamer']) $(`look-${v}`).onclick = () => Promise.resolve(send({ cmd: 'setting', page: 'lobby', key: 'look', value: v })).then(refreshSettings);
   $('wide').onclick = () => send({ cmd: 'wide' });
   $('next').onclick = () => send({ cmd: 'next' });
   $('random').onclick = () => send({ cmd: 'random' });
@@ -749,6 +778,7 @@
     const s = screens.sort((a, b) => (b.obs === true) - (a.obs === true) || b.size[0] * b.size[1] - a.size[0] * a.size[1])[0];
     setScreen = s?.settings ? s : null;   // the scene settings show what this screen uses
     if (setBuiltFor === page) showSettings();
+    if (setSchema) showLook();
     const house = s?.house;
     $('housestate').hidden = page !== 'auditorium' || !house;
     $('housestate').textContent = house ? `${house.occupied}/${house.capacity} seats reserved or occupied · ${house.waiting} waiting outside (up to ${house.queueLimit}). A free seat admits the next arrival; the front row is for Yee only.` : '';
