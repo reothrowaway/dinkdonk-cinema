@@ -20,6 +20,10 @@ const bool = (key, label, def, group, hint = '') => ({ key, label, kind: 'bool',
 // free text, at most `max` characters; an empty field clears the setting
 const text = (key, label, max, group, hint = '') => ({ key, label, kind: 'text', max, def: '', group, hint });
 
+// where a chat bubble sits (owner, 18 Nov 2026): static = right above its chatter, newer ones may cover older ones
+// (the default); leash = moves aside to stay free but at most ~170 px away, with a line to the chatter; stack = the old
+// free layout (bubbles could end up far from their chatter)
+const BUBMODE = pick('bubmode', 'Bubble placement', [['static', 'Above the chatter (may overlap)'], ['leash', 'Kept free, on a short leash'], ['stack', 'Old free layout']], 'static', 'Look');
 const BUBSTYLE = pick('bubstyle', 'Bubble look', [[0, 'Old dialog box'], [1, 'Marquee'], [2, 'Ticket stub'], [3, 'Neon'], [4, 'Comic'], [5, 'RPG window']], 3, 'Look');
 const JANIDLE = num('janidle', 'Janny clocks off after', 20, 3600, 10, 600, 'People', 's without a message');
 // the wide shot's own zoom (owner, 11 Nov 2026): the camera's resting view; follows and the film push are not changed
@@ -35,6 +39,7 @@ const SCHEMA = {
     // is the screen link's default. card: 'lobby' = the panel shows it on its Lobby card, not in Scene settings.
     { ...pick('look', 'Lobby look', [['normal', 'Normal'], ['gamer', 'Moody']], 'normal', 'Look', 'the screens reload their art when it changes'), card: 'lobby' },
     BUBSTYLE,
+    BUBMODE,
     num('bubbles', 'Bubbles on screen at most', 2, 14, 1, 8, 'Look', 'the oldest fades for a new one'),
     WIDEZOOM,
     num('seethru', 'See-through when zoomed in', 0, 1, 0.05, 0.75, 'Look', 'street marquee and front glass; 0 = solid, 1 = gone'),
@@ -55,6 +60,7 @@ const SCHEMA = {
   ],
   auditorium: [
     BUBSTYLE,
+    BUBMODE,
     bool('screen', 'Screen always green', false, 'Look', 'never the pre-show slides'),
     pick('slidefade', 'Pre-show slide change', [['cross', 'Cross-fade'], ['seq', 'Fade out, then in']], 'cross', 'Look'),
     num('sitscale', 'Seated emote size', 0.5, 2, 0.05, 1.2, 'Look'),

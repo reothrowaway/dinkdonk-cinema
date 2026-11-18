@@ -263,6 +263,14 @@
     text-shadow: 2px 2px 0 #000; padding: 6px 12px 8px; font: 700 18px/1.28 Verdana, Tahoma, sans-serif; }
   .bs5 .bub .bn { padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1px solid rgba(232, 236, 255, .35); }
   .bs5 .bub .bn .rbt { filter: drop-shadow(2px 2px 0 #000); }
+
+  /* bubble modes (18 Nov 2026, ?bubmode=leash|static|stack): in leash mode an older bubble that is crowded out near
+     its speaker shrinks to a one-line chip (name + start of the message) on its speaker's head (after the looks: wins) */
+  html .bub.chip { display: flex; align-items: baseline; gap: 6px; max-width: 220px; padding: 2px 8px 3px; white-space: nowrap; font-size: 15px; }
+  html .bub.chip::before { display: none; }
+  html .bub.chip .bn { flex: none; margin: 0; }
+  html .bub.chip .bt { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #tethers { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
 </style>
 </head>
 <body>
@@ -338,6 +346,56 @@
     document.documentElement.classList.remove(`bs${BUB_STYLE}`);
     BUB_STYLE = Math.min(5, Math.max(0, Math.round(Number(v)) || 0));
     if (BUB_STYLE) document.documentElement.classList.add(`bs${BUB_STYLE}`);
+  }
+  // bubble placement (owner, 18 Nov 2026: bubbles drifted far from their speakers in busy chat), ?bubmode= / panel 'bubmode':
+  //  leash  = never more than LEASH px from the speaker. With no room that close, the oldest full bubble nearby (this
+  //           one included) shrinks to a one-line chip; a bubble moved off its speaker gets a tether line to them
+  //  static = classic: right over the head (below the seat over the film), bubbles may overlap (the newest on top)
+  //  stack  = the stacking layout up to 18 Nov
+  const BUB_MODES = ['leash', 'static', 'stack'];
+  let BUB_MODE = BUB_MODES.includes(q.get('bubmode')) ? q.get('bubmode') : 'static';   // owner 18 Nov 2026: static is the default
+  const LEASH = clamp(Number(q.get('leash')) || 150, 60, 400);   // ?leash=N (px) for tuning
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const tetherSvg = document.createElementNS(SVGNS, 'svg');
+  tetherSvg.id = 'tethers';
+  tetherSvg.setAttribute('viewBox', '0 0 1920 1080');
+  bubLayer.prepend(tetherSvg);   // under the bubbles
+  const tethered = new Set();    // drawn this frame (tick)
+  function setBubMode(v) {
+    v = BUB_MODES.includes(v) ? v : 'static';
+    if (v === BUB_MODE) return;
+    BUB_MODE = v;
+    for (const w of bubOrder) if (w.bub) w.bubFresh = true;   // next placement snaps
+  }
+  function chipBubble(w) {
+    if (!w.bub || w.bubChip) return;
+    w.bubChip = true;
+    w.bub.classList.add('chip');
+    w.bubbleMeasured = null;   // re-measured in the next tick
+  }
+  const boxDist = (px, py, l, t, r, b) => Math.hypot(Math.max(l - px, 0, px - r), Math.max(t - py, 0, py - b));
+  // a line from the bubble's tail tip to the speaker, in their name color; null = hide
+  function tether(w, x1, y1, x2, y2, op) {
+    let t = w.teth;
+    if (x1 == null) { if (t?.on) { t.g.style.display = 'none'; t.on = false; } return; }
+    if (!tetherSvg.isConnected) bubLayer.prepend(tetherSvg);   // (a reset empties the bubble layer)
+    if (!t) {
+      const g = document.createElementNS(SVGNS, 'g');
+      const a = document.createElementNS(SVGNS, 'line'), b = document.createElementNS(SVGNS, 'line'), c = document.createElementNS(SVGNS, 'circle');
+      a.setAttribute('stroke', 'rgba(0,0,0,.65)'); a.setAttribute('stroke-width', '5'); a.setAttribute('stroke-linecap', 'round');
+      b.setAttribute('stroke', w.bubCol || '#9fd0ff'); b.setAttribute('stroke-width', '2.2'); b.setAttribute('stroke-linecap', 'round');
+      c.setAttribute('r', '3.5'); c.setAttribute('fill', w.bubCol || '#9fd0ff'); c.setAttribute('stroke', 'rgba(0,0,0,.65)'); c.setAttribute('stroke-width', '1.5');
+      g.append(a, b, c);
+      tetherSvg.append(g);
+      t = w.teth = { g, a, b, c, on: true, key: '' };
+    }
+    if (!t.on) { t.g.style.display = ''; t.on = true; }
+    const key = `${x1.toFixed(0)},${y1.toFixed(0)},${x2.toFixed(0)},${y2.toFixed(0)},${op}`;
+    if (key === t.key) return;   // write only on a change (perf)
+    t.key = key;
+    for (const l of [t.a, t.b]) { l.setAttribute('x1', x1.toFixed(1)); l.setAttribute('y1', y1.toFixed(1)); l.setAttribute('x2', x2.toFixed(1)); l.setAttribute('y2', y2.toFixed(1)); }
+    t.c.setAttribute('cx', x2.toFixed(1)); t.c.setAttribute('cy', y2.toFixed(1));
+    t.g.setAttribute('opacity', op);
   }
 
   // ---------- pre-show + house lights ----------
@@ -2434,9 +2492,11 @@
     who.style.color = w.nm.style.color;
     if (w.rainbow) { who.textContent = ''; who.append(h('span', 'rbt', w.nick)); }
     SB.renderTokens(b.appendChild(h('div', 'bt')), tokens, 22, 64);
-    b.style.setProperty('--nc', w.rainbow ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff'));   // (always: the look can change live)
+    w.bubCol = w.rainbow ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff');
+    b.style.setProperty('--nc', w.bubCol);   // (always: the look can change live)
     bubLayer.append(b);
     w.bub = b;
+    w.bubChip = false;
     w.bubFresh = true;   // first placement snaps, later moves glide (placeBubble)
     w.bubAge = 0;
     w.bubT = 6;
@@ -2475,6 +2535,7 @@
     setTimeout(() => old.remove(), 400);   // animations pause in a hidden tab: removed anyway
     w.bub = null;
     w.bubbleMeasured = null;
+    if (w.teth) { w.teth.g.remove(); w.teth = null; }
     const i = bubOrder.indexOf(w);
     if (i >= 0) bubOrder.splice(i, 1);
   }
@@ -2521,28 +2582,45 @@
       if (w.flipT >= BUB_HOLD) { w.below = wantBelow; w.flipT = 0; }
     } else w.flipT = 0;
     const below = w.below;
+    const leash = BUB_MODE === 'leash';
+    const stat = BUB_MODE === 'static';
+    // the leash is measured from the head (bubble above) or the feet (below the seat)
+    const anchorY = below ? y + 4 : head + 4;
     const hitAt = (t) => placed.find((r) => left < r.x1 + 6 && left + bw > r.x0 - 6 && t < r.y1 + 6 && t + bh > r.y0 - 6);
     let top = below ? y + 18 : natural;
-    for (let i = 0; i < 6; i++) {
+    let overlap = stat;   // static: always right at the speaker, overlapping
+    for (let i = 0; i < 6 && !stat; i++) {
       const hit = hitAt(top);
       if (!hit) break;
       top = below ? hit.y1 + 6 : hit.y0 - bh - 6;
     }
+    if (leash && boxDist(x, anchorY, left, top, left + bw, top + bh) > LEASH) {
+      // no room within the leash: the oldest full bubble close by (this one included) shrinks to a chip, and meanwhile
+      // (or when only chips are left) this one stays at its natural spot and may overlap (the newest on top)
+      let oldest = w.bubChip ? null : w;
+      for (const r of placed) {
+        if (!r.w || r.w.bubChip || boxDist(x, anchorY, r.x0, r.y0, r.x1, r.y1) > LEASH + 40) continue;
+        if (!oldest || bubOrder.indexOf(r.w) < bubOrder.indexOf(oldest)) oldest = r.w;
+      }
+      if (oldest) chipBubble(oldest);
+      top = below ? y + 18 : natural;
+      overlap = true;
+    }
     // hold a stacked spot (further from the speaker) until the closer one stayed free BUB_HOLD s
     let dy = top - natural;
     const away = (d) => (below ? d : -d);   // larger = further from the speaker
-    if (w.bubFresh || below !== w.holdBelow || away(dy) >= away(w.holdDy)) { w.holdDy = dy; w.dropT = 0; } else {
+    if (overlap || w.bubFresh || below !== w.holdBelow || away(dy) >= away(w.holdDy)) { w.holdDy = dy; w.dropT = 0; } else {
       w.dropT += dt;
       const held = natural + w.holdDy;
       if (w.dropT < BUB_HOLD && !hitAt(held) && held >= 8 && held <= 1072 - bh) dy = w.holdDy; else { w.holdDy = dy; w.dropT = 0; }
     }
     w.holdBelow = below;
     top = clamp(natural + dy, 8, 1072 - bh);
-    placed.push({ x0: left, y0: top, x1: left + bw, y1: top + bh });
+    placed.push({ x0: left, y0: top, x1: left + bw, y1: top + bh, w });
     // eased offsets from the natural spot (x: from the clamped left edge; y: from over the head)
     const ox = left - (x - bw / 2);
     const oy = top - natural;
-    if (w.bubFresh) { w.offX = ox; w.offY = oy; w.offVX = 0; w.offVY = 0; w.bubFresh = false; b.classList.toggle('below', below); } else {
+    if (w.bubFresh || stat) { w.offX = ox; w.offY = oy; w.offVX = 0; w.offVY = 0; w.bubFresh = false; b.classList.toggle('below', below); } else {
       [w.offX, w.offVX] = spring(w.offX, ox, w.offVX, BUB_GLIDE, dt);
       [w.offY, w.offVY] = spring(w.offY, oy, w.offVY, BUB_GLIDE, dt);
     }
@@ -2552,8 +2630,17 @@
     b.classList.toggle('below', dt2 > (head + y) / 2);
     style(b, 'transform', `translate(${dl.toFixed(1)}px, ${dt2.toFixed(1)}px)`);  // QA perf: cached
     w.bubAge = (w.bubAge || 0) + dt;
-    style(b, 'opacity', String(Math.min(1, w.bubAge / 0.25, Math.max(0, w.bubT) / 0.4).toFixed(3)));
-    { const tl = `${clamp(x - (dl + bw / 2), -bw / 2 + 12, bw / 2 - 12).toFixed(0)}px`; if (w.bubTail !== tl || w.bubTailEl !== b) { w.bubTail = tl; w.bubTailEl = b; b.style.setProperty('--tail', tl); } }  // QA perf: write only on change
+    const op = String(Math.min(1, w.bubAge / 0.25, Math.max(0, w.bubT) / 0.4).toFixed(3));
+    style(b, 'opacity', op);
+    const tailX = clamp(x - (dl + bw / 2), -bw / 2 + 12, bw / 2 - 12);
+    { const tl = `${tailX.toFixed(0)}px`; if (w.bubTail !== tl || w.bubTailEl !== b) { w.bubTail = tl; w.bubTailEl = b; b.style.setProperty('--tail', tl); } }  // QA perf: write only on change
+    // the tail can't reach the speaker (moved sideways, up or down): a tether line from its tip to them
+    if (leash && op !== '0.000') {
+      const isBelow = dt2 > (head + y) / 2;
+      const tipY = isBelow ? dt2 - 8 : dt2 + bh + 8;
+      const toY = isBelow ? y + 4 : head + 4;
+      if (Math.abs(x - (dl + bw / 2)) > bw / 2 - 12 || Math.abs(toY - tipY) > 40) { tether(w, dl + bw / 2 + tailX, tipY, x, toY, op); tethered.add(w); }
+    }
   }
 
   // ---------- frame ----------
@@ -2619,7 +2706,9 @@
     }
     const placed = [];
     for (const [l, t, r, b] of reeduKeeps) { const [x0, y0] = toScreen(l, t), [x1, y1] = toScreen(r, b); placed.push({ x0, y0, x1, y1 }); }
+    tethered.clear();
     for (const w of bubOrder) if (w.bub && w.bub.style.visibility !== 'hidden') placeBubble(w, placed, dt);
+    for (const w of bubOrder) if (w.teth?.on && !tethered.has(w)) tether(w, null);
   }
 
   // Neighbours who sit down together both showed their names on top of each other (QA 04 Nov: 16 clashes in 5 min,
@@ -3246,6 +3335,7 @@
   // setting the panel clears goes back to this screen's URL value. Units as in the panel (seconds/minutes, not ms).
   const SETTINGS = {
     bubstyle: { get: () => BUB_STYLE, set: (v) => setBubStyle(v) },
+    bubmode: { get: () => BUB_MODE, set: (v) => setBubMode(v) },
     screen: { get: () => alwaysGreen, set: (v) => { alwaysGreen = !!v; applyPhase(); } },
     slidefade: { get: () => (SEQ_FADE ? 'seq' : 'cross'), set: (v) => setSeqFade(v === 'seq') },
     sitscale: { get: () => SIT_SCALE, set: (v) => { SIT_SCALE = clamp(Number(v) || 1.2, 0.5, 2); } },

@@ -390,6 +390,14 @@
   .bs5 .bub .bn { padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1px solid rgba(232, 236, 255, .35); }
   /* (15 Nov: the see-through rainbow letters took the bubble's hard text-shadow over them; drawn behind instead) */
   .bs5 .bub .bn .rbt { filter: drop-shadow(2px 2px 0 #000); }
+
+  /* bubble modes (18 Nov 2026, ?bubmode=leash|static|stack): in leash mode an older bubble that is crowded out near
+     its speaker shrinks to a one-line chip (name + start of the message) on its speaker's head (after the looks: wins) */
+  html .bub.chip { display: flex; align-items: baseline; gap: 6px; max-width: 230px; padding: 2px 8px 3px; white-space: nowrap; font-size: 15px; }
+  html .bub.chip::before { display: none; }
+  html .bub.chip .bn { flex: none; margin: 0; }
+  html .bub.chip .bt { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #tethers { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
 </style>
 </head>
 <body>
@@ -1276,6 +1284,53 @@
     BUB_STYLE = Math.min(5, Math.max(0, Math.round(Number(v)) || 0));
     if (BUB_STYLE) document.documentElement.classList.add(`bs${BUB_STYLE}`);
   }
+  // bubble placement (owner, 18 Nov 2026: bubbles drifted far from their speakers in busy chat), ?bubmode= / panel 'bubmode':
+  //  leash  = never more than LEASH px from the speaker's head. With no room that close, the oldest full bubble nearby
+  //           (this one included) shrinks to a one-line chip; a bubble moved off its speaker gets a tether line to them
+  //  static = classic: right over the head, bubbles may overlap (the newest on top)
+  //  stack  = the stacking layout up to 18 Nov (could end up hundreds of px away in a crowd)
+  const BUB_MODES = ['leash', 'static', 'stack'];
+  let BUB_MODE = BUB_MODES.includes(q.get('bubmode')) ? q.get('bubmode') : 'static';   // owner 18 Nov 2026: static is the default
+  const LEASH = clamp(Number(q.get('leash')) || 170, 60, 400);   // ?leash=N (px) for tuning
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const tetherSvg = document.createElementNS(SVGNS, 'svg');
+  tetherSvg.id = 'tethers';
+  tetherSvg.setAttribute('viewBox', '0 0 1920 1080');
+  bubLayer.prepend(tetherSvg);   // under the bubbles
+  function setBubMode(v) {
+    v = BUB_MODES.includes(v) ? v : 'static';
+    if (v === BUB_MODE) return;
+    BUB_MODE = v;
+    for (const w of bubOrder) { w.bubShown = false; w.pushOff = 0; w.pushV = 0; }   // next placement snaps
+  }
+  function chipBubble(w) {
+    if (!w.bub || w.bubChip) return;
+    w.bubChip = true;
+    w.bub.classList.add('chip');
+    w.bubW = 0;   // re-measured at the top of the next frame (measurePending)
+  }
+  // a line from the bubble's tail tip to the speaker's head, in their name color; null = hide
+  function tether(w, x1, y1, x2, y2, op) {
+    let t = w.teth;
+    if (x1 == null) { if (t?.on) { t.g.style.display = 'none'; t.on = false; } return; }
+    if (!t) {
+      const g = document.createElementNS(SVGNS, 'g');
+      const a = document.createElementNS(SVGNS, 'line'), b = document.createElementNS(SVGNS, 'line'), c = document.createElementNS(SVGNS, 'circle');
+      a.setAttribute('stroke', 'rgba(0,0,0,.65)'); a.setAttribute('stroke-width', '5'); a.setAttribute('stroke-linecap', 'round');
+      b.setAttribute('stroke', w.bubCol || '#9fd0ff'); b.setAttribute('stroke-width', '2.2'); b.setAttribute('stroke-linecap', 'round');
+      c.setAttribute('r', '3.5'); c.setAttribute('fill', w.bubCol || '#9fd0ff'); c.setAttribute('stroke', 'rgba(0,0,0,.65)'); c.setAttribute('stroke-width', '1.5');
+      g.append(a, b, c);
+      tetherSvg.append(g);
+      t = w.teth = { g, a, b, c, on: true, key: '' };
+    }
+    if (!t.on) { t.g.style.display = ''; t.on = true; }
+    const key = `${x1.toFixed(0)},${y1.toFixed(0)},${x2.toFixed(0)},${y2.toFixed(0)},${op}`;
+    if (key === t.key) return;   // write only on a change (perf)
+    t.key = key;
+    for (const l of [t.a, t.b]) { l.setAttribute('x1', x1.toFixed(1)); l.setAttribute('y1', y1.toFixed(1)); l.setAttribute('x2', x2.toFixed(1)); l.setAttribute('y2', y2.toFixed(1)); }
+    t.c.setAttribute('cx', x2.toFixed(1)); t.c.setAttribute('cy', y2.toFixed(1));
+    t.g.setAttribute('opacity', op);
+  }
   const fx = $('fx');
   let wcBusy = null;
   // lobby props (queue 64: L18 TV, L23 jukebox, L24 claw machine): state; the block itself is further down ("lobby props")
@@ -1595,9 +1650,11 @@
     who.style.color = w.nm.style.color;
     if (w.nm.querySelector('.rbt')) { who.textContent = ''; who.append(h('span', 'rbt', w.nick)); }
     SB.renderTokens(b.appendChild(h('div', 'bt')), tokens, 24, 64);
-    b.style.setProperty('--nc', w.nm.querySelector('.rbt') ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff'));   // (always: the look can change live)
+    w.bubCol = w.nm.querySelector('.rbt') ? '#ff5fd2' : (w.nm.style.color || '#9fd0ff');
+    b.style.setProperty('--nc', w.bubCol);   // (always: the look can change live)
     bubLayer.append(b);
     w.bub = b;
+    w.bubChip = false;
     w.bubW = 0;      // measured at the top of the next frame (perf QA 07 Nov: no layout read mid-frame)
     w.bubH = 0;
     b.style.opacity = '0'; w.bubO = '0';
@@ -1611,6 +1668,7 @@
   function dropBubble(w) {
     if (!w.bub) return;
     fadeOut(w.bub); w.bub = null;
+    if (w.teth) { w.teth.g.remove(); w.teth = null; }
     const i = bubOrder.indexOf(w);
     if (i >= 0) bubOrder.splice(i, 1);
   }
@@ -3323,7 +3381,15 @@
   // A spot is kept until another one has been better for BUB_HOLD s; moving away from an overlap is immediate.
   const BUB_HOLD = 0.6;
   const BUB_GLIDE = 0.32;   // spring time for a change of spot (was 0.2: read as a jump)
+  // distance from a point to a box (screen px; 0 inside)
+  const boxDist = (px, py, l, t, r, b) => Math.hypot(Math.max(l - px, 0, px - r), Math.max(t - py, 0, py - b));
   function layoutBubbles(dt) {
+    if (BUB_MODE === 'static') { layoutStatic(); return; }
+    const leash = BUB_MODE === 'leash';
+    const tethered = new Set();
+    // the leash: how far a bubble with its bottom edge at (x, by) is from its speaker's head
+    const headY = (w) => w.by + 22;
+    const reach = (w, x, by) => boxDist(w.sx, headY(w), x - w.bubW / 2, by - w.bubH, x + w.bubW / 2, by);
     const list = stackOrder();
     const placed = [];
     // where the bubbles placed so far are drawn this frame (target + gliding offset + push). A later one that would
@@ -3348,13 +3414,31 @@
         if (over([r], w.bx, by, w)) cands.push([`l${i}`, fit(r[0] - half - 6), by], [`r${i}`, fit(r[2] + half + 6), by]);
       });
       const low = Math.max(w.by, vy0 + 8 + w.bubH);
-      cands.push(['R', fit(w.bx + 2 * half + 12), low], ['L', fit(w.bx - 2 * half - 12), low]);
-      const ok = cands.filter(([, x, y]) => y - w.bubH >= vy0 + 8 &&!hitAt(x, y, w) && !over(HARD_RECTS, x, y, w));
+      if (leash) {
+        // beside the head (its near edge 20 px past the speaker's middle), stacked there too if need be
+        const stackAt = (x) => { let y = low; for (let g = 0; g < 4; g++) { const hit = hitAt(x, y, w); if (!hit) break; y = hit.top - 6; } return y; };
+        const xr = fit(w.sx + half + 20), xl = fit(w.sx - half - 20);
+        cands.push(['R', xr, stackAt(xr)], ['L', xl, stackAt(xl)]);
+      } else cands.push(['R', fit(w.bx + 2 * half + 12), low], ['L', fit(w.bx - 2 * half - 12), low]);
+      const ok = cands.filter(([, x, y]) => y - w.bubH >= vy0 + 8 &&!hitAt(x, y, w) && !over(HARD_RECTS, x, y, w) && (!leash || reach(w, x, y) <= LEASH));
       const best = ok.find(([, x, y]) => !over(soft, x, y, w)) || ok[0];
       // stay on last frame's kind of spot while it still works; switch only after the better one held BUB_HOLD s
       const prev = w.bubShown && ok.find((c) => c[0] === w.slotKind && !over(soft, c[1], c[2], w));
       if (best && prev && best[0] !== prev[0]) w.slotT = (w.slotT || 0) + dt; else w.slotT = 0;
-      const pick = prev && w.slotT < BUB_HOLD ? prev : best;
+      let pick = prev && w.slotT < BUB_HOLD ? prev : best;
+      let overlap = false;
+      if (!pick && leash) {
+        // no free spot within the leash: the oldest full bubble close by (this one included) shrinks to a chip, and
+        // meanwhile (or when only chips are left) this one sits over the head and may overlap (the newest on top)
+        let oldest = w.bubChip ? null : w;
+        for (const p of placed) {
+          if (p.w.bubChip || boxDist(w.sx, headY(w), p.x - p.half, p.top, p.x + p.half, p.bottom) > LEASH + 40) continue;
+          if (!oldest || bubOrder.indexOf(p.w) < bubOrder.indexOf(oldest)) oldest = p.w;
+        }
+        if (oldest) chipBubble(oldest);
+        pick = ['up', w.bx, low];
+        overlap = true;
+      }
       w.bubBlocked = !pick;
       if (!pick) { w.bub.style.opacity = '0'; w.bubO = '0'; w.bubShown = false; w.slotKind = null; continue; }
       const [kind, bx, bYfree] = pick;
@@ -3366,8 +3450,9 @@
         if (w.dropT >= BUB_HOLD) { w.holdDy = dyWant; w.dropT = 0; } else if (!hitAt(bx, w.by + w.holdDy, w) && w.by + w.holdDy - w.bubH >= vy0 + 8) dyWant = w.holdDy; else w.holdDy = dyWant;
       }
       w.holdKind = kind;
+      if (overlap) dyWant = bYfree - w.by;   // (no held spot: it is over the head)
       const bY = w.by + dyWant;
-      placed.push({ x: bx, half, top: bY - w.bubH, bottom: bY });
+      placed.push({ x: bx, half, top: bY - w.bubH, bottom: bY, w });
       // the offset from the speaker's natural spot eases; the speaker's own movement is followed 1:1
       const dx = bx - w.bx;
       const dy = bY - w.by;
@@ -3384,12 +3469,13 @@
       const y1 = cy0 + relaxed;
       if (!drawn.some((p) => Math.abs(p.x - cx) < p.half + half + 4 && y1 > p.top - 4 && y1 - w.bubH < p.bottom + 4)) { w.pushOff = relaxed; w.pushV = rv; } else w.pushV = 0;
       let cy = cy0 + w.pushOff;
-      for (let guard = 0; guard < 7; guard++) {
+      for (let guard = 0; guard < 7 && !overlap; guard++) {
         // pushed only on a real overlap and placed 6 px clear: a dead band, so small moves never start a push
         const hit = drawn.find((p) => Math.abs(p.x - cx) < p.half + half && cy > p.top + 2 && cy - w.bubH < p.bottom - 2);
         if (!hit) break;
         cy = hit.top - 6;
       }
+      if (leash) cy = Math.max(cy, w.by - LEASH);   // a push never takes it off the leash either (overlaps instead)
       cy = Math.max(cy, vy0 + 8 + w.bubH);   // never above the top edge either (a glide down from a high stacked spot)
       if (cy !== cy0 + w.pushOff) {
         // pushed up at most 600 px/s: a quick slide, never a jump (a bubble gliding in sideways underneath)
@@ -3404,7 +3490,53 @@
       w.bub.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) translate(-50%, -100%)`;
       const tail = Math.round(clamp(w.sx - cx, -half + 12, half - 12));
       if (tail !== w.bubTail) { w.bubTail = tail; w.bub.style.setProperty('--tail', `${tail}px`); }
+      // the tail can't reach the speaker (moved sideways or up): a tether line from its tip to their head
+      if (leash && w.bubO !== '0' && (Math.abs(w.sx - cx) > half - 12 || headY(w) - (cy + 8) > 40)) {
+        tether(w, cx + tail, cy + 8, w.sx, headY(w), w.bubO);
+        tethered.add(w);
+      }
     }
+    for (const w of bubOrder) if (w.teth?.on && !tethered.has(w)) tether(w, null);
+    if (BUB_DEBUG) bubStats();
+  }
+  // QA readout (?bubdebug=1): per frame, how far each shown bubble is from its speaker's head and how many overlap;
+  // window.__bubStats keeps the worst seen since the last reset (window.__bubStats = null)
+  const BUB_DEBUG = q.get('bubdebug') === '1';
+  function bubStats() {
+    const shown = bubOrder.filter((w) => w.bub && !w.bubHidden && w.bubW && w.bubO !== '0');
+    const rects = shown.map((w) => {
+      const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(w.bub.style.transform);
+      const cx = Number(m?.[1]), cy = Number(m?.[2]);
+      return [cx - w.bubW / 2, cy - w.bubH, cx + w.bubW / 2, cy, w];
+    });
+    let maxD = 0, sumD = 0, overlaps = 0;
+    for (const [l, t, r, b, w] of rects) { const d = boxDist(w.sx, w.by + 22, l, t, r, b); maxD = Math.max(maxD, d); sumD += d; }
+    for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+      const a = rects[i], c = rects[j];
+      if (a[0] < c[2] && a[2] > c[0] && a[1] < c[3] && a[3] > c[1]) overlaps++;
+    }
+    const s = window.__bubStats ||= { frames: 0, maxD: 0, sumD: 0, n: 0, over: 0, chips: 0, framesOver150: 0 };
+    s.frames++; s.maxD = Math.max(s.maxD, Math.round(maxD)); s.sumD += sumD; s.n += rects.length; s.over += overlaps ? 1 : 0;
+    s.chips = Math.max(s.chips, shown.filter((w) => w.bubChip).length);
+    if (maxD > 150) s.framesOver150++;
+    s.mode = BUB_MODE; s.avgD = Math.round(s.sumD / Math.max(1, s.n)); s.overlapPct = Math.round(100 * s.over / s.frames);
+  }
+  // static mode: right over the head, no making room (overlaps allowed; later bubbles are later in the DOM: on top)
+  function layoutStatic() {
+    const [vx0, vy0, vx1] = view();
+    for (const w of bubOrder) {
+      if (w.teth?.on) tether(w, null);
+      if (!w.bub || w.bubHidden || !w.bubW) continue;
+      const half = w.bubW / 2;
+      const cx = clamp(w.bx, vx0 + half + 8, vx1 - 8 - half);
+      const cy = Math.max(w.by, vy0 + 8 + w.bubH);
+      w.bubBlocked = false;
+      w.bubShown = false;   // (a switch back to leash/stack snaps)
+      w.bub.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) translate(-50%, -100%)`;
+      const tail = Math.round(clamp(w.sx - cx, -half + 12, half - 12));
+      if (tail !== w.bubTail) { w.bubTail = tail; w.bub.style.setProperty('--tail', `${tail}px`); }
+    }
+    if (BUB_DEBUG) bubStats();
   }
 
   // ---------- rain (outside the building only) ----------
@@ -5607,6 +5739,7 @@ void main() {
   // setting the panel clears goes back to this screen's URL value. Units as in the panel (seconds, not ms).
   const SETTINGS = {
     bubstyle: { get: () => BUB_STYLE, set: (v) => setBubStyle(v) },
+    bubmode: { get: () => BUB_MODE, set: (v) => setBubMode(v) },
     bubbles: { get: () => MAX_BUB, set: (v) => { MAX_BUB = clamp(Number(v) || 8, 2, 14); } },
     pollscreen: { get: () => POLLSCREEN, set: (v) => setPollScreenOn(v) },
     pollzoomx: { get: () => POLL_ZX, set: (v) => { POLL_ZX = clamp(Number(v) || 1, 0.5, 2.5); rezoomPoll(); } },
