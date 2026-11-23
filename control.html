@@ -839,11 +839,13 @@
     if (dir && !editing) { $('every').value = dir.every; $('zoom').value = dir.zoom; $('zoomv').textContent = Number(dir.zoom).toFixed(2); }
     $('dirstate').innerHTML = '';
     if (dir) {
-      const parts = [dir.following ? `Following <b></b>` : 'Wide shot', dir.wantNext ? ' · waiting for the next arrival' : '',
-        dir.on && !dir.following ? ` · next automatic follow in ~${dir.nextIn}s (at the next arrival after that)` : ''];
-      $('dirstate').innerHTML = parts.join('');
-      const b = $('dirstate').querySelector('b');
-      if (b) b.textContent = dir.following;
+      // text nodes only: the screen's report is data, never markup (security review 23 Nov 2026)
+      const out = $('dirstate');
+      if (dir.following) { const b = document.createElement('b'); b.textContent = String(dir.following); out.append('Following ', b); }
+      else out.append('Wide shot');
+      if (dir.wantNext) out.append(' · waiting for the next arrival');
+      const nextIn = Number.isFinite(dir.nextIn) ? Math.max(0, Math.round(dir.nextIn)) : null;
+      if (dir.on && !dir.following && nextIn !== null) out.append(` · next automatic follow in ~${nextIn}s (at the next arrival after that)`);
     }
     const list = $('list');
     const present = new Set();

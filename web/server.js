@@ -63,14 +63,26 @@ const PRIVATE = /^(dinkdonk\.js|server\.js|poll-draft\.js|movie-suggest\.js|movi
 
 // ---------- rooms ----------
 const ROOMS_FILE = path.join(DATA, 'rooms.json');
-let rooms = {};
-try { rooms = JSON.parse(fs.readFileSync(ROOMS_FILE, 'utf8')); } catch { rooms = {}; }
+// No prototype: a key such as "propertyIsEnumerable" or "__defineGetter__" (long enough for the key pattern) used to
+// find Object.prototype's members and pass as a room (security review 23 Nov 2026).
+let rooms = Object.create(null);
+try {
+  const saved = JSON.parse(fs.readFileSync(ROOMS_FILE, 'utf8'));
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) Object.assign(rooms, saved);
+} catch { /* no rooms yet */ }
 function saveRooms() {
   fs.mkdirSync(DATA, { recursive: true });
   fs.writeFileSync(`${ROOMS_FILE}.tmp`, JSON.stringify(rooms, null, 2));
   fs.renameSync(`${ROOMS_FILE}.tmp`, ROOMS_FILE);
 }
-const validKey = (k) => typeof k === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(k) && !!rooms[k] && !rooms[k].revoked;
+// An issued room: the key's own entry in rooms.json, shaped like the records /api/admin/rooms writes. Every keyed HTTP
+// path and both WebSocket paths go through validKey.
+function roomRecord(k) {
+  if (typeof k !== 'string' || !Object.prototype.hasOwnProperty.call(rooms, k)) return null;
+  const r = rooms[k];
+  return r !== null && typeof r === 'object' && !Array.isArray(r) && typeof r.name === 'string' ? r : null;
+}
+const validKey = (k) => typeof k === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(k) && !!roomRecord(k) && !roomRecord(k).revoked;
 const sameToken = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && crypto.timingSafeEqual(x, y); };
 
 // ---------- shared room state, one per key (web/PLAN-shared-rooms.md, shared/room.js) ----------
@@ -249,7 +261,7 @@ wss.on('connection', (client, req, key) => {
   clearTimeout(chat.idleTimer);
   if (chat.ws?.readyState === WebSocket.OPEN && chat.users.size) client.send(namesFrame());
   chatConnect();
-  client.on('message', () => { /* screens are read-only */ });
+  guardSocket(client, 'chat screen', () => { /* screens are read-only */ });
   client.on('close', () => {
     room.chat.delete(client);
     chat.clients.delete(client);
@@ -269,6 +281,26 @@ function roomBridge(key) {
   return room.bridge;
 }
 const sendIfOpen = (ws, text) => { if (ws?.readyState === WebSocket.OPEN) ws.send(text); };
+// A bridge message is one text frame holding a JSON object ({...}); anything else (binary, null, numbers, strings,
+// arrays, broken JSON) is dropped. Returns [text, object] or null. (Security review 23 Nov 2026: a bare `null` used to
+// throw inside the handler, which took the whole server and every room down.)
+function bridgeMessage(data, isBinary) {
+  if (isBinary || !Buffer.isBuffer(data)) return null;
+  const text = data.toString('utf8');
+  let m;
+  try { m = JSON.parse(text); } catch { return null; }
+  return m !== null && typeof m === 'object' && !Array.isArray(m) ? [text, m] : null;
+}
+// Every accepted socket gets its own error listener and a guarded message handler, so a bad frame (too large, invalid
+// UTF-8, a handler bug) closes only that socket. Without an 'error' listener the ws library's error event throws and
+// the process exits.
+function guardSocket(ws, what, onMessage) {
+  ws.on('error', (e) => { log(`${what}: ${e.message}`); try { ws.terminate(); } catch { /* gone */ } });
+  if (!onMessage) return;
+  ws.on('message', (data, isBinary) => {
+    try { onMessage(data, isBinary); } catch (e) { log(`${what}: ${e.message}`); try { ws.close(1011, 'bad message'); } catch { /* gone */ } }
+  });
+}
 bridgeWss.on('connection', (ws, req, key, role) => {
   const b = roomBridge(key);
   const tellHost = () => sendIfOpen(b.host, JSON.stringify({ pages: b.pages.size }));
@@ -277,9 +309,10 @@ bridgeWss.on('connection', (ws, req, key, role) => {
     b.host = ws;
     b.ready = false;
     tellHost();
-    ws.on('message', (data) => {
-      let m;
-      try { m = JSON.parse(data.toString()); } catch { return; }
+    guardSocket(ws, 'bridge host', (data, isBinary) => {
+      const msg = bridgeMessage(data, isBinary);
+      if (!msg) return;
+      const m = msg[1];
       // queue 58: the film's average colour, for the screen glow (numbers only, passed on to the pages)
       if (Array.isArray(m.glow) && m.glow.length === 3 && m.glow.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
         const text = JSON.stringify({ glow: m.glow });
@@ -314,7 +347,12 @@ bridgeWss.on('connection', (ws, req, key, role) => {
   b.driver = ws;
   sendIfOpen(ws, JSON.stringify({ obs: b.ready, keyed: b.keyed }));
   tellHost();
-  ws.on('message', (data) => { if (ws === b.driver) sendIfOpen(b.host, data.toString()); });
+  // the page's corners and shot requests go to the panel as they came, but only well-formed JSON objects
+  guardSocket(ws, 'bridge page', (data, isBinary) => {
+    if (ws !== b.driver) return;
+    const msg = bridgeMessage(data, isBinary);
+    if (msg) sendIfOpen(b.host, msg[0]);
+  });
   ws.on('close', () => {
     b.pages.delete(ws);
     if (b.driver === ws) {
@@ -330,7 +368,20 @@ bridgeWss.on('connection', (ws, req, key, role) => {
 // Server-sent events must never be compressed: Caddy's encode (zstd/gzip) holds back everything over 512 bytes until
 // its buffer fills, so browsers got the room's snapshot and walk-ins late or never (7 Nov 2026). no-transform and an
 // explicit Content-Encoding both make Caddy pass the stream through as it is.
-const SSE_HEADERS = { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', 'Content-Encoding': 'identity',
+// A screen's state report as the panel may show it: a JSON object, and the director's countdown (seconds to the next
+// automatic follow) only as a finite number from 0 to MAX_NEXT_IN, rounded. Anything else in that field is dropped,
+// and a director that is not an object goes too (security review 23 Nov 2026: the panel printed it as HTML).
+const MAX_NEXT_IN = 24 * 60 * 60;
+function screenStateIn(st) {
+  if (st === null || typeof st !== 'object' || Array.isArray(st)) return null;
+  const d = st.director;
+  if (d === undefined || d === null) return st;
+  if (typeof d !== 'object' || Array.isArray(d)) { const { director, ...rest } = st; return rest; }
+  const { nextIn, ...dir } = d;
+  if (typeof nextIn === 'number' && Number.isFinite(nextIn) && nextIn >= 0 && nextIn <= MAX_NEXT_IN) dir.nextIn = Math.round(nextIn);
+  return { ...st, director: dir };
+}
+const SSE_HEADERS = {'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', 'Content-Encoding': 'identity',
   Connection: 'keep-alive', 'X-Accel-Buffering': 'no' };
 async function controlRoute(req, res, pathname, key) {
   if (foreignOrigin(req)) return send(res, 403, 'text/plain', 'Forbidden');
@@ -400,7 +451,7 @@ async function controlRoute(req, res, pathname, key) {
     return json(res, 200, { screens: count });
   }
   if (pathname === '/ctl/state' && req.method === 'POST') {
-    const st = await readJson(req, 256 * 1024);
+    const st = screenStateIn(await readJson(req, 256 * 1024));
     if (st && typeof st.id === 'string' && (room.states.has(st.id.slice(0, 16)) || room.states.size < MAX_SCREENS_PER_ROOM)) {
       room.states.set(st.id.slice(0, 16), { at: Date.now(), state: st });
       try { ensureRoom(key).screenState(st); } catch (e) { log(`room: ${e.message}`); }
@@ -437,7 +488,7 @@ async function adminRoute(req, res, pathname) {
   }
   if (pathname === '/api/admin/revoke' && req.method === 'POST') {
     const body = await readJson(req);
-    if (!rooms[body.key]) return json(res, 404, { error: 'no such room' });
+    if (!roomRecord(body.key)) return json(res, 404, { error: 'no such room' });
     rooms[body.key].revoked = new Date().toISOString();
     saveRooms();
     for (const c of live.get(body.key)?.chat || []) c.close(4003, 'room revoked');
