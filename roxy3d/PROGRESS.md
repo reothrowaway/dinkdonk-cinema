@@ -3389,3 +3389,8 @@ were: `backups/2026-11-23-perf/lobby.before-promote-24nov.html`, `auditorium.bef
 - Checked on a test server (18771) with real chat, headless Edge at 2560x1440: lobby Normal 129 canvases (was 240),
   47 folded pictures, Moody unchanged (no fold, its base is out10t), auditorium 134 seated with 33 on their own layer;
   no script errors, no failed requests. Not checked in the owner's own OBS collection.
+- Shipped the same morning: commit 5b8051fe pushed; hosted edition deployed (`web/deploy/deploy.sh`) and checked by
+  SHA-256 on the server (lobby.html, auditorium.html, loop-peaks.json, fold3.json and all 94 folded pictures the same
+  as the local build; service active); zip rebuilt (1337 MB) and its own server smoke-tested on 18773 with real chat
+  (new files served, both pages without errors, fresh room 135 seats). Test servers stopped by exact PID, the test
+  room's record restored. 18770 was down throughout and was not started.
