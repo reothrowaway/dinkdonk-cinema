@@ -1,0 +1,1701 @@
+{
+ "schema": "marquee-fold-1",
+ "date": "2026-11-24",
+ "built_by": "marquee/fold_light3.mjs",
+ "note": "For each entry of \"layers\": the base pack picture \"replaces\" is shown as \"file\" instead (the same picture with the marquee's shadow and light on it), and the merged2 pieces named in \"pieces\" are left out. Applies only with the base pack named in \"base\" and with out10m/merged2.json; everything in \"skipped\" stays as merged2 has it.",
+ "base": {
+  "dir": "out10s",
+  "manifest_sha256": "af30285ffd4aad2aaf754ed91ff787fc9a18761f8cb6778fa90acf1424809979"
+ },
+ "merged2_sha256": "db8ea87718ea59ee13b7a59706c12f3199d18688180688566eebb32f107e31e0",
+ "tolerance": 2,
+ "layers": [
+  {
+   "on": "restroom_stall_3_whole",
+   "replaces": "occ_restroom_stall_3.png",
+   "file": "fold3/occ_restroom_stall_3.png",
+   "file_2x": "fold3/occ_restroom_stall_3@2x.png",
+   "x": 479,
+   "y": 436,
+   "w": 141,
+   "h": 155,
+   "z_index": 1674,
+   "pieces": [
+    "shadow_on_restroom_stall_3_whole"
+   ],
+   "max_difference": 0,
+   "values_clipped": 0
+  },
+  {
+   "on": "restroom_side_wall_whole",
+   "replaces": "occ_restroom_side_wall.png",
+   "file": "fold3/occ_restroom_side_wall.png",
+   "file_2x": "fold3/occ_restroom_side_wall@2x.png",
+   "x": 532,
+   "y": 431,
+   "w": 378,
+   "h": 199,
+   "z_index": 1674,
+   "pieces": [
+    "shadow_on_restroom_side_wall_whole",
+    "light_on_restroom_side_wall_whole"
+   ],
+   "max_difference": 2,
+   "values_clipped": 25
+  },
+  {
+   "on": "restroom_side_wall_00",
+   "replaces": "slices/occ_restroom_side_wall_00.png",
+   "file": "fold3/occ_restroom_side_wall_00.png",
+   "file_2x": "fold3/occ_restroom_side_wall_00@2x.png",
+   "x": 721,
+   "y": 437,
+   "w": 182,
+   "h": 139,
+   "z_index": 1674,
+   "pieces": [
+    "shadow_on_restroom_side_wall_00",
+    "light_on_restroom_side_wall_00"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "restroom_stall_3_01",
+   "replaces": "slices/occ_restroom_stall_3_01.png",
+   "file": "fold3/occ_restroom_stall_3_01.png",
+   "file_2x": "fold3/occ_restroom_stall_3_01@2x.png",
+   "x": 486,
+   "y": 460,
+   "w": 128,
+   "h": 124,
+   "z_index": 1729,
+   "pieces": [
+    "shadow_on_restroom_stall_3_01",
+    "light_on_restroom_stall_3_01"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "corridor_standee_2_00",
+   "replaces": "slices/occ_corridor_standee_2_00.png",
+   "file": "fold3/occ_corridor_standee_2_00.png",
+   "file_2x": "fold3/occ_corridor_standee_2_00@2x.png",
+   "x": 1293,
+   "y": 487,
+   "w": 41,
+   "h": 98,
+   "z_index": 1747,
+   "pieces": [
+    "shadow_on_corridor_standee_2_00",
+    "light_on_corridor_standee_2_00"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_left_00",
+   "replaces": "slices/occ_partition_left_00.png",
+   "file": "fold3/occ_partition_left_00.png",
+   "file_2x": "fold3/occ_partition_left_00@2x.png",
+   "x": 667,
+   "y": 480,
+   "w": 159,
+   "h": 124,
+   "z_index": 1789,
+   "pieces": [
+    "shadow_on_partition_left_00",
+    "light_on_partition_left_00"
+   ],
+   "max_difference": 0,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_right_00",
+   "replaces": "slices/occ_partition_right_00.png",
+   "file": "fold3/occ_partition_right_00.png",
+   "file_2x": "fold3/occ_partition_right_00@2x.png",
+   "x": 974,
+   "y": 477,
+   "w": 165,
+   "h": 124,
+   "z_index": 1808,
+   "pieces": [
+    "shadow_on_partition_right_00",
+    "light_on_partition_right_00"
+   ],
+   "max_difference": 2,
+   "values_clipped": 2
+  },
+  {
+   "on": "restroom_stall_4_01",
+   "replaces": "slices/occ_restroom_stall_4_01.png",
+   "file": "fold3/occ_restroom_stall_4_01.png",
+   "file_2x": "fold3/occ_restroom_stall_4_01@2x.png",
+   "x": 426,
+   "y": 490,
+   "w": 128,
+   "h": 124,
+   "z_index": 1828,
+   "pieces": [
+    "shadow_on_restroom_stall_4_01"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "podium_00",
+   "replaces": "slices/occ_podium_00.png",
+   "file": "fold3/occ_podium_00.png",
+   "file_2x": "fold3/occ_podium_00@2x.png",
+   "x": 931,
+   "y": 551,
+   "w": 58,
+   "h": 71,
+   "z_index": 1855,
+   "pieces": [
+    "shadow_on_podium_00",
+    "light_on_podium_00"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_right_whole",
+   "replaces": "occ_partition_right.png",
+   "file": "fold3/occ_partition_right.png",
+   "file_2x": "fold3/occ_partition_right@2x.png",
+   "x": 968,
+   "y": 471,
+   "w": 546,
+   "h": 371,
+   "z_index": 1808,
+   "pieces": [
+    "shadow_on_partition_right_whole",
+    "light_on_partition_right_whole"
+   ],
+   "max_difference": 1,
+   "values_clipped": 5
+  },
+  {
+   "on": "partition_left_01",
+   "replaces": "slices/occ_partition_left_01.png",
+   "file": "fold3/occ_partition_left_01.png",
+   "file_2x": "fold3/occ_partition_left_01@2x.png",
+   "x": 612,
+   "y": 508,
+   "w": 159,
+   "h": 124,
+   "z_index": 1881,
+   "pieces": [
+    "shadow_on_partition_left_01",
+    "light_on_partition_left_01"
+   ],
+   "max_difference": 1,
+   "values_clipped": 7
+  },
+  {
+   "on": "partition_right_01",
+   "replaces": "slices/occ_partition_right_01.png",
+   "file": "fold3/occ_partition_right_01.png",
+   "file_2x": "fold3/occ_partition_right_01@2x.png",
+   "x": 1026,
+   "y": 507,
+   "w": 170,
+   "h": 103,
+   "z_index": 1903,
+   "pieces": [
+    "shadow_on_partition_right_01",
+    "light_on_partition_right_01"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_left_whole",
+   "replaces": "occ_partition_left.png",
+   "file": "fold3/occ_partition_left.png",
+   "file_2x": "fold3/occ_partition_left@2x.png",
+   "x": 526,
+   "y": 472,
+   "w": 306,
+   "h": 250,
+   "z_index": 1789,
+   "pieces": [
+    "shadow_on_partition_left_whole",
+    "light_on_partition_left_whole"
+   ],
+   "max_difference": 1,
+   "values_clipped": 1
+  },
+  {
+   "on": "boxoffice_00",
+   "replaces": "slices/occ_boxoffice_00.png",
+   "file": "fold3/occ_boxoffice_00.png",
+   "file_2x": "fold3/occ_boxoffice_00@2x.png",
+   "x": 747,
+   "y": 537,
+   "w": 120,
+   "h": 122,
+   "z_index": 1953,
+   "pieces": [
+    "shadow_on_boxoffice_00",
+    "light_on_boxoffice_00"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "boxoffice_whole",
+   "replaces": "occ_boxoffice.png",
+   "file": "fold3/occ_boxoffice.png",
+   "file_2x": "fold3/occ_boxoffice@2x.png",
+   "x": 615,
+   "y": 530,
+   "w": 258,
+   "h": 212,
+   "z_index": 1953,
+   "pieces": [
+    "shadow_on_boxoffice_whole",
+    "light_on_boxoffice_whole"
+   ],
+   "max_difference": 1,
+   "values_clipped": 7
+  },
+  {
+   "on": "partition_left_02",
+   "replaces": "slices/occ_partition_left_02.png",
+   "file": "fold3/occ_partition_left_02.png",
+   "file_2x": "fold3/occ_partition_left_02@2x.png",
+   "x": 558,
+   "y": 536,
+   "w": 169,
+   "h": 123,
+   "z_index": 1973,
+   "pieces": [
+    "shadow_on_partition_left_02",
+    "light_on_partition_left_02"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "restroom_side_wall_03",
+   "replaces": "slices/occ_restroom_side_wall_03.png",
+   "file": "fold3/occ_restroom_side_wall_03.png",
+   "file_2x": "fold3/occ_restroom_side_wall_03@2x.png",
+   "x": 556,
+   "y": 533,
+   "w": 158,
+   "h": 81,
+   "z_index": 1974,
+   "pieces": [
+    "shadow_on_restroom_side_wall_03",
+    "light_on_restroom_side_wall_03"
+   ],
+   "max_difference": 1,
+   "values_clipped": 7
+  },
+  {
+   "on": "partition_right_02",
+   "replaces": "slices/occ_partition_right_02.png",
+   "file": "fold3/occ_partition_right_02.png",
+   "file_2x": "fold3/occ_partition_right_02@2x.png",
+   "x": 1070,
+   "y": 536,
+   "w": 184,
+   "h": 103,
+   "z_index": 1999,
+   "pieces": [
+    "shadow_on_partition_right_02",
+    "light_on_partition_right_02"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "snack_whole",
+   "replaces": "occ_snack.png",
+   "file": "fold3/occ_snack.png",
+   "file_2x": "fold3/occ_snack@2x.png",
+   "x": 951,
+   "y": 583,
+   "w": 414,
+   "h": 262,
+   "z_index": 2041,
+   "pieces": [
+    "shadow_on_snack_whole",
+    "light_on_snack_whole"
+   ],
+   "max_difference": 2,
+   "values_clipped": 38
+  },
+  {
+   "on": "partition_left_03",
+   "replaces": "slices/occ_partition_left_03.png",
+   "file": "fold3/occ_partition_left_03.png",
+   "file_2x": "fold3/occ_partition_left_03@2x.png",
+   "x": 532,
+   "y": 563,
+   "w": 143,
+   "h": 124,
+   "z_index": 2065,
+   "pieces": [
+    "shadow_on_partition_left_03",
+    "light_on_partition_left_03"
+   ],
+   "max_difference": 0,
+   "values_clipped": 0
+  },
+  {
+   "on": "restroom_side_wall_04",
+   "replaces": "slices/occ_restroom_side_wall_04.png",
+   "file": "fold3/occ_restroom_side_wall_04.png",
+   "file_2x": "fold3/occ_restroom_side_wall_04@2x.png",
+   "x": 538,
+   "y": 561,
+   "w": 121,
+   "h": 63,
+   "z_index": 2066,
+   "pieces": [
+    "shadow_on_restroom_side_wall_04",
+    "light_on_restroom_side_wall_04"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "front_solid_wall_whole",
+   "replaces": "occ_front_solid_wall.png",
+   "file": "fold3/occ_front_solid_wall.png",
+   "file_2x": "fold3/occ_front_solid_wall@2x.png",
+   "x": 346,
+   "y": 448,
+   "w": 211,
+   "h": 272,
+   "z_index": 1934,
+   "pieces": [
+    "shadow_on_front_solid_wall_whole"
+   ],
+   "max_difference": 0,
+   "values_clipped": 0
+  },
+  {
+   "on": "front_solid_wall_02",
+   "replaces": "slices/occ_front_solid_wall_02.png",
+   "file": "fold3/occ_front_solid_wall_02.png",
+   "file_2x": "fold3/occ_front_solid_wall_02@2x.png",
+   "x": 445,
+   "y": 501,
+   "w": 104,
+   "h": 190,
+   "z_index": 2085,
+   "pieces": [
+    "shadow_on_front_solid_wall_02"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_right_03",
+   "replaces": "slices/occ_partition_right_03.png",
+   "file": "fold3/occ_partition_right_03.png",
+   "file_2x": "fold3/occ_partition_right_03@2x.png",
+   "x": 1127,
+   "y": 565,
+   "w": 184,
+   "h": 103,
+   "z_index": 2095,
+   "pieces": [
+    "shadow_on_partition_right_03",
+    "light_on_partition_right_03"
+   ],
+   "max_difference": 1,
+   "values_clipped": 1
+  },
+  {
+   "on": "restroom_closet_wall_01",
+   "replaces": "slices/occ_restroom_closet_wall_01.png",
+   "file": "fold3/occ_restroom_closet_wall_01.png",
+   "file_2x": "fold3/occ_restroom_closet_wall_01@2x.png",
+   "x": 417,
+   "y": 518,
+   "w": 158,
+   "h": 144,
+   "z_index": 1986,
+   "pieces": [
+    "shadow_on_restroom_closet_wall_01",
+    "light_on_restroom_closet_wall_01"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "boxoffice_02",
+   "replaces": "slices/occ_boxoffice_02.png",
+   "file": "fold3/occ_boxoffice_02.png",
+   "file_2x": "fold3/occ_boxoffice_02@2x.png",
+   "x": 630,
+   "y": 589,
+   "w": 134,
+   "h": 121,
+   "z_index": 2124,
+   "pieces": [
+    "shadow_on_boxoffice_02",
+    "light_on_boxoffice_02"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "restroom_service_00",
+   "replaces": "slices/occ_restroom_service_00.png",
+   "file": "fold3/occ_restroom_service_00.png",
+   "file_2x": "fold3/occ_restroom_service_00@2x.png",
+   "x": 563,
+   "y": 589,
+   "w": 98,
+   "h": 66,
+   "z_index": 1957,
+   "pieces": [
+    "shadow_on_restroom_service_00",
+    "light_on_restroom_service_00"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "restroom_closet_wall_02",
+   "replaces": "slices/occ_restroom_closet_wall_02.png",
+   "file": "fold3/occ_restroom_closet_wall_02.png",
+   "file_2x": "fold3/occ_restroom_closet_wall_02@2x.png",
+   "x": 508,
+   "y": 568,
+   "w": 67,
+   "h": 124,
+   "z_index": 2082,
+   "pieces": [
+    "shadow_on_restroom_closet_wall_02"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "snack_01",
+   "replaces": "slices/occ_snack_01.png",
+   "file": "fold3/occ_snack_01.png",
+   "file_2x": "fold3/occ_snack_01@2x.png",
+   "x": 1018,
+   "y": 608,
+   "w": 132,
+   "h": 109,
+   "z_index": 2141,
+   "pieces": [
+    "shadow_on_snack_01",
+    "light_on_snack_01"
+   ],
+   "max_difference": 1,
+   "values_clipped": 1
+  },
+  {
+   "on": "front_solid_wall_03",
+   "replaces": "slices/occ_front_solid_wall_03.png",
+   "file": "fold3/occ_front_solid_wall_03.png",
+   "file_2x": "fold3/occ_front_solid_wall_03@2x.png",
+   "x": 490,
+   "y": 523,
+   "w": 59,
+   "h": 190,
+   "z_index": 2161,
+   "pieces": [
+    "shadow_on_front_solid_wall_03",
+    "light_on_front_solid_wall_03"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_right_04",
+   "replaces": "slices/occ_partition_right_04.png",
+   "file": "fold3/occ_partition_right_04.png",
+   "file_2x": "fold3/occ_partition_right_04@2x.png",
+   "x": 1185,
+   "y": 593,
+   "w": 183,
+   "h": 103,
+   "z_index": 2190,
+   "pieces": [
+    "shadow_on_partition_right_04",
+    "light_on_partition_right_04"
+   ],
+   "max_difference": 1,
+   "values_clipped": 2
+  },
+  {
+   "on": "boxoffice_03",
+   "replaces": "slices/occ_boxoffice_03.png",
+   "file": "fold3/occ_boxoffice_03.png",
+   "file_2x": "fold3/occ_boxoffice_03@2x.png",
+   "x": 621,
+   "y": 615,
+   "w": 112,
+   "h": 120,
+   "z_index": 2209,
+   "pieces": [
+    "shadow_on_boxoffice_03",
+    "light_on_boxoffice_03"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "bus_stop_12",
+   "replaces": "slices/occ_bus_stop_15.png",
+   "file": "fold3/occ_bus_stop_15.png",
+   "file_2x": "fold3/occ_bus_stop_15@2x.png",
+   "x": 452,
+   "y": 591,
+   "w": 78,
+   "h": 145,
+   "z_index": 2227,
+   "pieces": [
+    "shadow_on_bus_stop_12"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "snack_02",
+   "replaces": "slices/occ_snack_02.png",
+   "file": "fold3/occ_snack_02.png",
+   "file_2x": "fold3/occ_snack_02@2x.png",
+   "x": 1078,
+   "y": 651,
+   "w": 132,
+   "h": 96,
+   "z_index": 2241,
+   "pieces": [
+    "shadow_on_snack_02",
+    "light_on_snack_02"
+   ],
+   "max_difference": 2,
+   "values_clipped": 1
+  },
+  {
+   "on": "partition_right_05",
+   "replaces": "slices/occ_partition_right_05.png",
+   "file": "fold3/occ_partition_right_05.png",
+   "file_2x": "fold3/occ_partition_right_05@2x.png",
+   "x": 1243,
+   "y": 622,
+   "w": 183,
+   "h": 103,
+   "z_index": 2286,
+   "pieces": [
+    "shadow_on_partition_right_05",
+    "light_on_partition_right_05"
+   ],
+   "max_difference": 2,
+   "values_clipped": 2
+  },
+  {
+   "on": "snack_03",
+   "replaces": "slices/occ_snack_03.png",
+   "file": "fold3/occ_snack_03.png",
+   "file_2x": "fold3/occ_snack_03@2x.png",
+   "x": 1138,
+   "y": 681,
+   "w": 131,
+   "h": 96,
+   "z_index": 2341,
+   "pieces": [
+    "shadow_on_snack_03",
+    "light_on_snack_03"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_right_06",
+   "replaces": "slices/occ_partition_right_06.png",
+   "file": "fold3/occ_partition_right_06.png",
+   "file_2x": "fold3/occ_partition_right_06@2x.png",
+   "x": 1300,
+   "y": 650,
+   "w": 183,
+   "h": 100,
+   "z_index": 2381,
+   "pieces": [
+    "shadow_on_partition_right_06",
+    "light_on_partition_right_06"
+   ],
+   "max_difference": 2,
+   "values_clipped": 10
+  },
+  {
+   "on": "snack_04",
+   "replaces": "slices/occ_snack_04.png",
+   "file": "fold3/occ_snack_04.png",
+   "file_2x": "fold3/occ_snack_04@2x.png",
+   "x": 1198,
+   "y": 700,
+   "w": 132,
+   "h": 107,
+   "z_index": 2441,
+   "pieces": [
+    "shadow_on_snack_04",
+    "light_on_snack_04"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "partition_right_07",
+   "replaces": "slices/occ_partition_right_07.png",
+   "file": "fold3/occ_partition_right_07.png",
+   "file_2x": "fold3/occ_partition_right_07@2x.png",
+   "x": 1364,
+   "y": 679,
+   "w": 144,
+   "h": 127,
+   "z_index": 2477,
+   "pieces": [
+    "shadow_on_partition_right_07",
+    "light_on_partition_right_07"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "queue_front_whole",
+   "replaces": "occ_queue_front.png",
+   "file": "fold3/occ_queue_front.png",
+   "file_2x": "fold3/occ_queue_front@2x.png",
+   "x": 723,
+   "y": 681,
+   "w": 282,
+   "h": 194,
+   "z_index": 2332,
+   "pieces": [
+    "shadow_on_queue_front_whole",
+    "light_on_queue_front_whole"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "snack_05",
+   "replaces": "slices/occ_snack_05.png",
+   "file": "fold3/occ_snack_05.png",
+   "file_2x": "fold3/occ_snack_05@2x.png",
+   "x": 1258,
+   "y": 729,
+   "w": 99,
+   "h": 108,
+   "z_index": 2541,
+   "pieces": [
+    "shadow_on_snack_05",
+    "light_on_snack_05"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "street_lamp_00",
+   "replaces": "slices/occ_street_lamp_00.png",
+   "file": "fold3/occ_street_lamp_00.png",
+   "file_2x": "fold3/occ_street_lamp_00@2x.png",
+   "x": 573,
+   "y": 621,
+   "w": 18,
+   "h": 197,
+   "z_index": 2544,
+   "pieces": [
+    "shadow_on_street_lamp_00",
+    "light_on_street_lamp_00"
+   ],
+   "max_difference": 2,
+   "values_clipped": 3
+  },
+  {
+   "on": "queue_front_03",
+   "replaces": "slices/occ_queue_front_03.png",
+   "file": "fold3/occ_queue_front_03.png",
+   "file_2x": "fold3/occ_queue_front_03@2x.png",
+   "x": 887,
+   "y": 772,
+   "w": 102,
+   "h": 55,
+   "z_index": 2584,
+   "pieces": [
+    "shadow_on_queue_front_03",
+    "light_on_queue_front_03"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "standee_1_00",
+   "replaces": "slices/occ_standee_1_00.png",
+   "file": "fold3/occ_standee_1_00.png",
+   "file_2x": "fold3/occ_standee_1_00@2x.png",
+   "x": 1319,
+   "y": 772,
+   "w": 48,
+   "h": 114,
+   "z_index": 2744,
+   "pieces": [
+    "shadow_on_standee_1_00",
+    "light_on_standee_1_00"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "bench_00",
+   "replaces": "slices/occ_bench_00.png",
+   "file": "fold3/occ_bench_00.png",
+   "file_2x": "fold3/occ_bench_00@2x.png",
+   "x": 1187,
+   "y": 837,
+   "w": 95,
+   "h": 58,
+   "z_index": 2775,
+   "pieces": [
+    "shadow_on_bench_00",
+    "light_on_bench_00"
+   ],
+   "max_difference": 2,
+   "values_clipped": 0
+  },
+  {
+   "on": "bench_whole",
+   "replaces": "occ_bench.png",
+   "file": "fold3/occ_bench.png",
+   "file_2x": "fold3/occ_bench@2x.png",
+   "x": 1180,
+   "y": 830,
+   "w": 124,
+   "h": 94,
+   "z_index": 2775,
+   "pieces": [
+    "shadow_on_bench_whole"
+   ],
+   "max_difference": 1,
+   "values_clipped": 0
+  },
+  {
+   "on": "bench_01",
+   "replaces": "slices/occ_bench_01.png",
+   "file": "fold3/occ_bench_01.png",
+   "file_2x": "fold3/occ_bench_01@2x.png",
+   "x": 1229,
+   "y": 859,
+   "w": 68,
+   "h": 58,
+   "z_index": 2845,
+   "pieces": [
+    "shadow_on_bench_01",
+    "light_on_bench_01"
+   ],
+   "max_difference": 2,
+   "values_clipped": 1
+  }
+ ],
+ "skipped": [
+  {
+   "on": "leader_body",
+   "pieces": [
+    "shadow_on_leader_body"
+   ],
+   "why": "a pack picture (it has states of its own)"
+  },
+  {
+   "on": "door_stall_2",
+   "pieces": [
+    "shadow_on_door_stall_2",
+    "light_on_door_stall_2"
+   ],
+   "why": "a door picture (it has states of its own)"
+  },
+  {
+   "on": "door_screen_2",
+   "pieces": [
+    "shadow_on_door_screen_2",
+    "light_on_door_screen_2"
+   ],
+   "why": "a door picture (it has states of its own)"
+  },
+  {
+   "on": "door_stall_3",
+   "pieces": [
+    "shadow_on_door_stall_3",
+    "light_on_door_stall_3"
+   ],
+   "why": "a door picture (it has states of its own)"
+  },
+  {
+   "on": "tv_body",
+   "pieces": [
+    "shadow_on_tv_body",
+    "light_on_tv_body"
+   ],
+   "why": "a pack picture (it has states of its own)"
+  },
+  {
+   "on": "door_stall_4",
+   "pieces": [
+    "shadow_on_door_stall_4",
+    "light_on_door_stall_4"
+   ],
+   "why": "a door picture (it has states of its own)"
+  },
+  {
+   "on": "leader_shadow_boxoffice_00",
+   "pieces": [
+    "shadow_on_leader_shadow_boxoffice_00"
+   ],
+   "why": "a pack picture (it has states of its own)"
+  },
+  {
+   "on": "boxoffice_01",
+   "pieces": [
+    "shadow_on_boxoffice_01",
+    "light_on_boxoffice_01"
+   ],
+   "why": "light falls on a see-through part of the picture (differs by up to 4 of 255)"
+  },
+  {
+   "on": "snack_00",
+   "pieces": [
+    "shadow_on_snack_00",
+    "light_on_snack_00"
+   ],
+   "why": "light falls on a see-through part of the picture (differs by up to 37 of 255)"
+  },
+  {
+   "on": "front_solid_wall_01",
+   "pieces": [
+    "shadow_on_front_solid_wall_01",
+    "light_on_front_solid_wall_01"
+   ],
+   "why": "light falls on a see-through part of the picture (differs by up to 4 of 255)"
+  },
+  {
+   "on": "glass_left_00",
+   "pieces": [
+    "shadow_on_glass_left_00",
+    "light_on_glass_left_00"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_left_whole",
+   "pieces": [
+    "shadow_on_glass_left_whole",
+    "light_on_glass_left_whole"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_left_01",
+   "pieces": [
+    "shadow_on_glass_left_01",
+    "light_on_glass_left_01"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_left_02",
+   "pieces": [
+    "shadow_on_glass_left_02",
+    "light_on_glass_left_02"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_left_03",
+   "pieces": [
+    "shadow_on_glass_left_03",
+    "light_on_glass_left_03"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "jukebox_body",
+   "pieces": [
+    "shadow_on_jukebox_body",
+    "light_on_jukebox_body"
+   ],
+   "why": "a pack picture (it has states of its own)"
+  },
+  {
+   "on": "glass_left_04",
+   "pieces": [
+    "shadow_on_glass_left_04",
+    "light_on_glass_left_04"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2613",
+   "pieces": [
+    "shadow_on_marquee_body_2613",
+    "light_on_marquee_body_2613"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2638",
+   "pieces": [
+    "shadow_on_marquee_body_2638",
+    "light_on_marquee_body_2638"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2663",
+   "pieces": [
+    "shadow_on_marquee_body_2663",
+    "light_on_marquee_body_2663"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "queue_front_04",
+   "pieces": [
+    "shadow_on_queue_front_04",
+    "light_on_queue_front_04"
+   ],
+   "why": "light falls on a see-through part of the picture (differs by up to 36 of 255)"
+  },
+  {
+   "on": "marquee_body_2688",
+   "pieces": [
+    "shadow_on_marquee_body_2688",
+    "light_on_marquee_body_2688"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_left_05",
+   "pieces": [
+    "shadow_on_glass_left_05",
+    "light_on_glass_left_05"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2713",
+   "pieces": [
+    "shadow_on_marquee_body_2713",
+    "light_on_marquee_body_2713"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2738",
+   "pieces": [
+    "shadow_on_marquee_body_2738",
+    "light_on_marquee_body_2738"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "entrance_post_1_00",
+   "pieces": [
+    "shadow_on_entrance_post_1_00",
+    "light_on_entrance_post_1_00"
+   ],
+   "why": "light falls on a see-through part of the picture (differs by up to 140 of 255)"
+  },
+  {
+   "on": "marquee_body_2763",
+   "pieces": [
+    "shadow_on_marquee_body_2763",
+    "light_on_marquee_body_2763"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2788",
+   "pieces": [
+    "shadow_on_marquee_body_2788",
+    "light_on_marquee_body_2788"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2813",
+   "pieces": [
+    "shadow_on_marquee_body_2813",
+    "light_on_marquee_body_2813"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2838",
+   "pieces": [
+    "shadow_on_marquee_body_2838",
+    "light_on_marquee_body_2838"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2863",
+   "pieces": [
+    "shadow_on_marquee_body_2863",
+    "light_on_marquee_body_2863"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2888",
+   "pieces": [
+    "shadow_on_marquee_body_2888",
+    "light_on_marquee_body_2888"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2913",
+   "pieces": [
+    "shadow_on_marquee_body_2913",
+    "light_on_marquee_body_2913"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2938",
+   "pieces": [
+    "shadow_on_marquee_body_2938",
+    "light_on_marquee_body_2938"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2963",
+   "pieces": [
+    "shadow_on_marquee_body_2963",
+    "light_on_marquee_body_2963"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_2988",
+   "pieces": [
+    "shadow_on_marquee_body_2988",
+    "light_on_marquee_body_2988"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "claw_body",
+   "pieces": [
+    "shadow_on_claw_body",
+    "light_on_claw_body"
+   ],
+   "why": "a pack picture (it has states of its own)"
+  },
+  {
+   "on": "glass_right_00",
+   "pieces": [
+    "shadow_on_glass_right_00",
+    "light_on_glass_right_00"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_right_whole",
+   "pieces": [
+    "shadow_on_glass_right_whole",
+    "light_on_glass_right_whole"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_3013",
+   "pieces": [
+    "shadow_on_marquee_body_3013",
+    "light_on_marquee_body_3013"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "arcade_00",
+   "pieces": [
+    "shadow_on_arcade_00",
+    "light_on_arcade_00"
+   ],
+   "why": "not shown with the claw machine art"
+  },
+  {
+   "on": "marquee_body_3038",
+   "pieces": [
+    "shadow_on_marquee_body_3038",
+    "light_on_marquee_body_3038"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_3063",
+   "pieces": [
+    "shadow_on_marquee_body_3063",
+    "light_on_marquee_body_3063"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_right_01",
+   "pieces": [
+    "shadow_on_glass_right_01",
+    "light_on_glass_right_01"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_3088",
+   "pieces": [
+    "shadow_on_marquee_body_3088",
+    "light_on_marquee_body_3088"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_3113",
+   "pieces": [
+    "shadow_on_marquee_body_3113",
+    "light_on_marquee_body_3113"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_3138",
+   "pieces": [
+    "shadow_on_marquee_body_3138",
+    "light_on_marquee_body_3138"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "glass_right_02",
+   "pieces": [
+    "shadow_on_glass_right_02",
+    "light_on_glass_right_02"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_3163",
+   "pieces": [
+    "shadow_on_marquee_body_3163",
+    "light_on_marquee_body_3163"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "marquee_body_3188",
+   "pieces": [
+    "shadow_on_marquee_body_3188",
+    "light_on_marquee_body_3188"
+   ],
+   "why": "fades when the camera zooms in (set fold3f)"
+  },
+  {
+   "on": "entrance_post_2_00",
+   "pieces": [
+    "light_on_entrance_post_2_00"
+   ],
+   "why": "light falls on a see-through part of the picture (differs by up to 150 of 255)"
+  }
+ ],
+ "validation": {
+  "receivers_folded": 47,
+  "pieces_left_out": 87,
+  "pieces_kept": 99,
+  "max_difference": 2,
+  "backdrops": [
+   "black",
+   "grey",
+   "white"
+  ],
+  "scales": [
+   1,
+   2
+  ],
+  "pass": true
+ },
+ "files": [
+  {
+   "file": "fold3/occ_restroom_stall_3.png",
+   "bytes": 12785,
+   "sha256": "b48695eafe4f99124df1a96190bb5ae3e18a9516f0d35487683aaa5da4170edc"
+  },
+  {
+   "file": "fold3/occ_restroom_stall_3@2x.png",
+   "bytes": 43244,
+   "sha256": "7ee3705a65e7c6cd90639f8b3fe3b351cc537cae1adcb82ccad0ea4edb9ee7f4"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall.png",
+   "bytes": 32161,
+   "sha256": "8f440c9aac84fea788a3690cc2471d4a33baf365766a8ef9c58b0573930db9a1"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall@2x.png",
+   "bytes": 118979,
+   "sha256": "658247f67ae42535b730efa9c36e62ecbc35bc734f1b0d9d06e63a37a66bf03b"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall_00.png",
+   "bytes": 18261,
+   "sha256": "301c24128200426cbdaf4ec7a06f693856641324e94d88309f6ea5ed220adb3f"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall_00@2x.png",
+   "bytes": 64445,
+   "sha256": "88d448abda1cad7b2a187a0bf6b3d9bd151ac93e904b02c57d0fefa6d5de38f1"
+  },
+  {
+   "file": "fold3/occ_restroom_stall_3_01.png",
+   "bytes": 8211,
+   "sha256": "c2aac7614a23682d4ed6ed514f9b6cc16934945f9dc1372bcfb910a8b63b4a91"
+  },
+  {
+   "file": "fold3/occ_restroom_stall_3_01@2x.png",
+   "bytes": 28298,
+   "sha256": "04dbe9734bac3aa2fec09088a998c15b769cc6c71e4f717d488eb2a2e6c1f1d1"
+  },
+  {
+   "file": "fold3/occ_corridor_standee_2_00.png",
+   "bytes": 6355,
+   "sha256": "c99c3ec347dbf304cee41179bad5e86ac8e66199f30bd9df30f53564705f9a55"
+  },
+  {
+   "file": "fold3/occ_corridor_standee_2_00@2x.png",
+   "bytes": 21523,
+   "sha256": "45a2c6b216ba47126124803b19fc8b394a43b096ce463e0485c58882f79377ec"
+  },
+  {
+   "file": "fold3/occ_partition_left_00.png",
+   "bytes": 12133,
+   "sha256": "abbef5455f353b631852e40c8c2a3337b5d83ff825e1d8460c04678f2f427932"
+  },
+  {
+   "file": "fold3/occ_partition_left_00@2x.png",
+   "bytes": 42129,
+   "sha256": "2ea4665b28ede3fac2a3c81d5bd9996c6ab69bb6b298f4f725701981d77a114e"
+  },
+  {
+   "file": "fold3/occ_partition_right_00.png",
+   "bytes": 15422,
+   "sha256": "a08643f19d51412c74bfdc3420e7d472cea54bef31c161d4becbf78118a608f7"
+  },
+  {
+   "file": "fold3/occ_partition_right_00@2x.png",
+   "bytes": 53481,
+   "sha256": "2b0b501e98bf5a616c8de3ea5c8673b7a4b37f29100d8eb075231c308ab99d59"
+  },
+  {
+   "file": "fold3/occ_restroom_stall_4_01.png",
+   "bytes": 9706,
+   "sha256": "88e7128d2624c1378f0f55e1a609f129480731d83c8fde3b8dd69168bdc57ec3"
+  },
+  {
+   "file": "fold3/occ_restroom_stall_4_01@2x.png",
+   "bytes": 31688,
+   "sha256": "7dfed4e55a13359b82f1cb8988f13b321b2efba31c983ba7ddf907f585e534fa"
+  },
+  {
+   "file": "fold3/occ_podium_00.png",
+   "bytes": 7445,
+   "sha256": "f96ac8111ee9fcde6f8277cf75256151e360eccda95103a8bfcd1979475337ef"
+  },
+  {
+   "file": "fold3/occ_podium_00@2x.png",
+   "bytes": 25716,
+   "sha256": "abb38b06c61363a46d1807c7fa93942ea5cb2ea52d026c94465f3370577c30f7"
+  },
+  {
+   "file": "fold3/occ_partition_right.png",
+   "bytes": 125659,
+   "sha256": "e452dfca70266145d517aa14ec627c23a4f44c090f988fe758d9435ed923714e"
+  },
+  {
+   "file": "fold3/occ_partition_right@2x.png",
+   "bytes": 460973,
+   "sha256": "e7bdbc3a1212b2fdbee2f117240f926c06ddfa1200e347263da3ecd828d34c9e"
+  },
+  {
+   "file": "fold3/occ_partition_left_01.png",
+   "bytes": 9935,
+   "sha256": "c5833d9a91621dc7564ab7bab3261892c87816ebf1b3d98bcba309c28a0a9add"
+  },
+  {
+   "file": "fold3/occ_partition_left_01@2x.png",
+   "bytes": 34377,
+   "sha256": "144a428280bdcf428c14bd825dcd20b741c2d2e6a3eaf6c46cbf9a1bf3613e5d"
+  },
+  {
+   "file": "fold3/occ_partition_right_01.png",
+   "bytes": 11406,
+   "sha256": "67eca6a8ebb9c84751565346c24fbd1f9d12748d51113e13c2473298148ea8f4"
+  },
+  {
+   "file": "fold3/occ_partition_right_01@2x.png",
+   "bytes": 40183,
+   "sha256": "1ccb1d9afc907a965d0609372c6f691239d3dd1e7c0f740ef8cddabc7f2d7c47"
+  },
+  {
+   "file": "fold3/occ_partition_left.png",
+   "bytes": 53025,
+   "sha256": "333b23a18041ef687a7a68062c8790aeb3fef91bc9f399eadbaa8b8eb8192b5a"
+  },
+  {
+   "file": "fold3/occ_partition_left@2x.png",
+   "bytes": 191773,
+   "sha256": "04594bafe89c69273d8d0a5386f6654b08ab36ad0b99795f29647e9962ff0cd9"
+  },
+  {
+   "file": "fold3/occ_boxoffice_00.png",
+   "bytes": 19211,
+   "sha256": "f3ed4cdc3b963edd1848a25a76bfb3b656e613271a22af3654dea9dba890a8d6"
+  },
+  {
+   "file": "fold3/occ_boxoffice_00@2x.png",
+   "bytes": 68674,
+   "sha256": "f0d6176022bda69fe9a54ae77eb9140498934a1f15a71c1da9f0c74bc5d33096"
+  },
+  {
+   "file": "fold3/occ_boxoffice.png",
+   "bytes": 67289,
+   "sha256": "c84891adf4e87ef526608bcf7133846666159e75fdb1c5e0cfe36fe8dffa505d"
+  },
+  {
+   "file": "fold3/occ_boxoffice@2x.png",
+   "bytes": 247109,
+   "sha256": "52dad5e0b876f9bc5cbc7ad13b518823ef024c14be08e427293b0194ba7bb489"
+  },
+  {
+   "file": "fold3/occ_partition_left_02.png",
+   "bytes": 12358,
+   "sha256": "97734294347331c482886126ed907eaa575ebb8231e1d8860f087179a8524c77"
+  },
+  {
+   "file": "fold3/occ_partition_left_02@2x.png",
+   "bytes": 43400,
+   "sha256": "4eb7428f6ca81198fd1000f84966b1a7f6b18cad3de87c89072184c8a1398d52"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall_03.png",
+   "bytes": 2748,
+   "sha256": "c2a91580787b997d2093d40327526caf5e33aeee2252bc9265b7fdcb8e66efa8"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall_03@2x.png",
+   "bytes": 9832,
+   "sha256": "395e63ef857ee72f22739703b1d8920b12b3a98af212286b5854e35ebc767f0b"
+  },
+  {
+   "file": "fold3/occ_partition_right_02.png",
+   "bytes": 15393,
+   "sha256": "15d022161ee2146bf1cc34654663d4466e025c3e3afbf5e24f340f2756e9ea64"
+  },
+  {
+   "file": "fold3/occ_partition_right_02@2x.png",
+   "bytes": 56351,
+   "sha256": "1c51cea14f1525b7c98378d9e5b3e984e7292ffc2b2b4ae1b7c74740200a6c6a"
+  },
+  {
+   "file": "fold3/occ_snack.png",
+   "bytes": 95753,
+   "sha256": "a26fc1f4bc084afc73f52248e814398164e586f34a967e9d3ad2b9965c051387"
+  },
+  {
+   "file": "fold3/occ_snack@2x.png",
+   "bytes": 347803,
+   "sha256": "18f1cd0daffb759c81c3636257f78f12c06b87f7dd95f430932ba2b1e22dfced"
+  },
+  {
+   "file": "fold3/occ_partition_left_03.png",
+   "bytes": 9750,
+   "sha256": "29ae4c67a3ca97d16432eea4dc37aa52383a70171c47181c7253a1eff7d90ac4"
+  },
+  {
+   "file": "fold3/occ_partition_left_03@2x.png",
+   "bytes": 33399,
+   "sha256": "1065d1d43c275ea778f6f50ea76137d7d0e515fed58912005c629b0919669914"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall_04.png",
+   "bytes": 2743,
+   "sha256": "af69e1c14c95bb6b1f05ebfd6ef963ec084d37630b213f8e8befbeb65fc5268b"
+  },
+  {
+   "file": "fold3/occ_restroom_side_wall_04@2x.png",
+   "bytes": 9418,
+   "sha256": "047c880688857eb9f01d6a0fadd9c256b492fff3433745397c1cc913e8f01de0"
+  },
+  {
+   "file": "fold3/occ_front_solid_wall.png",
+   "bytes": 59542,
+   "sha256": "f69af1645515e3e000376d6304343756ea1ad61abc48b043566fa0d379899380"
+  },
+  {
+   "file": "fold3/occ_front_solid_wall@2x.png",
+   "bytes": 198480,
+   "sha256": "38e635a2c3420c5adb78353e3cd99164f93ffef311380e6e5e50f001ee07ddcc"
+  },
+  {
+   "file": "fold3/occ_front_solid_wall_02.png",
+   "bytes": 15706,
+   "sha256": "f7e982e7ccd0d3c7a85d5b7b328c2e13be1b2ca12b4b360220c5099f903b2c64"
+  },
+  {
+   "file": "fold3/occ_front_solid_wall_02@2x.png",
+   "bytes": 49354,
+   "sha256": "834b497794503f5024b118e6fe02b9890094e2c9e5fcde34cd13f114019d1ecf"
+  },
+  {
+   "file": "fold3/occ_partition_right_03.png",
+   "bytes": 15666,
+   "sha256": "38650502459fe20883aa22774e8c2996e3e8087ea9efc8aac2ccdef23f2edfed"
+  },
+  {
+   "file": "fold3/occ_partition_right_03@2x.png",
+   "bytes": 56934,
+   "sha256": "c30bbf6950987f7cee2fd0b42d200b44b422df9d0f45f34979f33e6ebf1721e1"
+  },
+  {
+   "file": "fold3/occ_restroom_closet_wall_01.png",
+   "bytes": 4823,
+   "sha256": "ee5d3a4358d5425230a155bc2e3e0f209a04cc83692d61c004c0df6c505e37a8"
+  },
+  {
+   "file": "fold3/occ_restroom_closet_wall_01@2x.png",
+   "bytes": 16411,
+   "sha256": "8b49c87fa149a3875e7f6dcf1ce0d072f77cab3894c30469dadcebc76dab26c3"
+  },
+  {
+   "file": "fold3/occ_boxoffice_02.png",
+   "bytes": 17057,
+   "sha256": "9eb546c58c7cd5414b2c94970e6de0f4885bf4278df606a782ea5536948de330"
+  },
+  {
+   "file": "fold3/occ_boxoffice_02@2x.png",
+   "bytes": 59621,
+   "sha256": "b09949aea008cac6b830be6679c937d64997463f2f661e1055429f344d2a53aa"
+  },
+  {
+   "file": "fold3/occ_restroom_service_00.png",
+   "bytes": 2829,
+   "sha256": "871328c411c948ac813956076cfa85e0d31a297941855deaea71c3e41f7b1311"
+  },
+  {
+   "file": "fold3/occ_restroom_service_00@2x.png",
+   "bytes": 9425,
+   "sha256": "64c576519daa6d88672e969f3c1104bd217dafb89635640e105496b43fccc68b"
+  },
+  {
+   "file": "fold3/occ_restroom_closet_wall_02.png",
+   "bytes": 4126,
+   "sha256": "148f0e885a41448602255d68ba68528ef7a2674316524efe9709d63374787be9"
+  },
+  {
+   "file": "fold3/occ_restroom_closet_wall_02@2x.png",
+   "bytes": 13888,
+   "sha256": "9e799af43c0222a80860469a0e4bb4db266b4516821b993412cbb52547518a1b"
+  },
+  {
+   "file": "fold3/occ_snack_01.png",
+   "bytes": 16815,
+   "sha256": "4efbe04de71109841fd6377337448312a53d0adba44a693e2c033c15d9f3100a"
+  },
+  {
+   "file": "fold3/occ_snack_01@2x.png",
+   "bytes": 58352,
+   "sha256": "d8d61d8855ad9ffd0b254955c14bc916a83be71d851bd78b628a32d86fad1ea6"
+  },
+  {
+   "file": "fold3/occ_front_solid_wall_03.png",
+   "bytes": 17243,
+   "sha256": "0b67a5197bcef2e4b038805d4dc0ce97dba08f2c59a38f03741b5fac7823b38b"
+  },
+  {
+   "file": "fold3/occ_front_solid_wall_03@2x.png",
+   "bytes": 55195,
+   "sha256": "3dfe8104f60fd2369aeaafe2bedce3d9bfdea54c7df4a7111bcdd31433892c1b"
+  },
+  {
+   "file": "fold3/occ_partition_right_04.png",
+   "bytes": 15675,
+   "sha256": "46d46dc53b5a473957ae1cabfbd44b2c765fe6cb6249a7d5ce1a1e066ea8fd65"
+  },
+  {
+   "file": "fold3/occ_partition_right_04@2x.png",
+   "bytes": 55332,
+   "sha256": "6bd18f3af2645f36329f7ebce07a0888ec085cffd6f39407d7774afa5e684f76"
+  },
+  {
+   "file": "fold3/occ_boxoffice_03.png",
+   "bytes": 18350,
+   "sha256": "6b78365db58a91588def786f5973c9669ee06b7514f6fcd9d4679d2fb52a89a1"
+  },
+  {
+   "file": "fold3/occ_boxoffice_03@2x.png",
+   "bytes": 62701,
+   "sha256": "95ad714457c8d7a2609ec479f9d5b3dc39e4aef0bd0db59ccff505a7ea86d06a"
+  },
+  {
+   "file": "fold3/occ_bus_stop_15.png",
+   "bytes": 15414,
+   "sha256": "f3a25998fe2f443f9edd19eff4bc14c03056132ebf5a07ce1c092dfc580e5f92"
+  },
+  {
+   "file": "fold3/occ_bus_stop_15@2x.png",
+   "bytes": 53702,
+   "sha256": "68ee1d29779f142a62770df6d5e9b789638b90a1610314978eeab5b2fa63cfb1"
+  },
+  {
+   "file": "fold3/occ_snack_02.png",
+   "bytes": 15787,
+   "sha256": "542d8ef993002b060ab6682c39cbe648d3706212536bf3d8e5b63d279d700f25"
+  },
+  {
+   "file": "fold3/occ_snack_02@2x.png",
+   "bytes": 56223,
+   "sha256": "5edadd06faba8e34251de9bc6dcd893a8aeace9af865f54e7f614dc2dabedf0c"
+  },
+  {
+   "file": "fold3/occ_partition_right_05.png",
+   "bytes": 13745,
+   "sha256": "f59b06bd7799e03f1e439e896338f834647cebf4722b550fd1e11e87355157a7"
+  },
+  {
+   "file": "fold3/occ_partition_right_05@2x.png",
+   "bytes": 50610,
+   "sha256": "793bc8290aee5428e6016f02d506a12c0154aff4d218061f03cb98c962888e46"
+  },
+  {
+   "file": "fold3/occ_snack_03.png",
+   "bytes": 14338,
+   "sha256": "c578857e7b4ee26d81dd962ef4f00e9c6ba87c0e88adac40e395698e90738188"
+  },
+  {
+   "file": "fold3/occ_snack_03@2x.png",
+   "bytes": 49780,
+   "sha256": "a517779c1f34e31d13afd3733a2d301948d1db2f97876ac8e8870476feaf9110"
+  },
+  {
+   "file": "fold3/occ_partition_right_06.png",
+   "bytes": 15594,
+   "sha256": "9a6457e57cda80c5041e8a373d4fae8a9a58f1c1f68c704342f680fbc66a07e7"
+  },
+  {
+   "file": "fold3/occ_partition_right_06@2x.png",
+   "bytes": 55368,
+   "sha256": "0d983840b09fc54d524568322a45aa0244d59e69479490ca89bc7ca8715dedc7"
+  },
+  {
+   "file": "fold3/occ_snack_04.png",
+   "bytes": 17151,
+   "sha256": "4f06a2f639c195586be470ab0781f6f87ac51a6a5197ee139e48c4074df0122a"
+  },
+  {
+   "file": "fold3/occ_snack_04@2x.png",
+   "bytes": 60820,
+   "sha256": "d913cdbe1daffb9179546c1256eeff223fc439902670de5be792f4dee64c6970"
+  },
+  {
+   "file": "fold3/occ_partition_right_07.png",
+   "bytes": 12899,
+   "sha256": "0bf9293cf9e71d5bdc900191c286c20ec654604def4a306bef6b6e49a8148781"
+  },
+  {
+   "file": "fold3/occ_partition_right_07@2x.png",
+   "bytes": 44035,
+   "sha256": "720369588f8fa129f1d749c6ba4bbda9e01ff9505aaa96d13671a3f8acbbebcc"
+  },
+  {
+   "file": "fold3/occ_queue_front.png",
+   "bytes": 14344,
+   "sha256": "48443611d50dabebc84e7dddd159cb084d6d0838dd0d16d7af2f56061ed80885"
+  },
+  {
+   "file": "fold3/occ_queue_front@2x.png",
+   "bytes": 50340,
+   "sha256": "ebc43b42116a63510882c7b59c6a800cfe32b65d6e47a95f6af86205a4888e81"
+  },
+  {
+   "file": "fold3/occ_snack_05.png",
+   "bytes": 18840,
+   "sha256": "1847cdfc278ea6c1d5c953a83dcfef63e4c7473dddccb24c2e0157fa90fd80d5"
+  },
+  {
+   "file": "fold3/occ_snack_05@2x.png",
+   "bytes": 66534,
+   "sha256": "1fdd49869bdb37c9d995a37d4d023911f3a61cc8909027b281441728a0271b4b"
+  },
+  {
+   "file": "fold3/occ_street_lamp_00.png",
+   "bytes": 5468,
+   "sha256": "cba920ceab51251600f46444a58aebec45cb20d3dddbacc3b1f13f2e5510af4d"
+  },
+  {
+   "file": "fold3/occ_street_lamp_00@2x.png",
+   "bytes": 19045,
+   "sha256": "84d2902e138df69dad8820555a3c36267f5704e07daec8519ca959c25962ab29"
+  },
+  {
+   "file": "fold3/occ_queue_front_03.png",
+   "bytes": 3252,
+   "sha256": "6e485f4e32990583c6eace549bc77a2f59161d5bca160a434ffa6e41a9e7cac3"
+  },
+  {
+   "file": "fold3/occ_queue_front_03@2x.png",
+   "bytes": 10978,
+   "sha256": "805845c663c2d849d60973ac2044f7e5cf2df209b2443912c90b8692d3cc6f4a"
+  },
+  {
+   "file": "fold3/occ_standee_1_00.png",
+   "bytes": 8068,
+   "sha256": "aa3408f21c3d30a1005f5a00e6be9c42f077c4625f029fdb1a555de33c5c7cff"
+  },
+  {
+   "file": "fold3/occ_standee_1_00@2x.png",
+   "bytes": 28073,
+   "sha256": "8cba86b3f8a0cb68515f8a6827d7de9a0fd75df844be4d65fb2286b640baa8bd"
+  },
+  {
+   "file": "fold3/occ_bench_00.png",
+   "bytes": 5715,
+   "sha256": "cc830afc14e76bebbea17400f24a4852d51c16203568b06d050170417a32ddd0"
+  },
+  {
+   "file": "fold3/occ_bench_00@2x.png",
+   "bytes": 19647,
+   "sha256": "313bba3ef6631f1e0d0699b64ed90466ed0c443a179947b5fa6ebebe8a64c73c"
+  },
+  {
+   "file": "fold3/occ_bench.png",
+   "bytes": 10686,
+   "sha256": "b7684b0825b4af7a649e5d54f40d9064c42a2bb667189bbc46e1859c9c333a90"
+  },
+  {
+   "file": "fold3/occ_bench@2x.png",
+   "bytes": 36004,
+   "sha256": "3dd1670b2ff88270d657782ed91e7d2491851759901b401f5449becea44016fe"
+  },
+  {
+   "file": "fold3/occ_bench_01.png",
+   "bytes": 5796,
+   "sha256": "9ab44390748ce238c543496afcde2cc9b10a9f322da7061e2029e5da0cd14da6"
+  },
+  {
+   "file": "fold3/occ_bench_01@2x.png",
+   "bytes": 19834,
+   "sha256": "2c29847a3a2dbf72ccecba8ea91593243ba93e80f3e8efc9863d5c153f783c49"
+  }
+ ]
+}

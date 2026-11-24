@@ -76,6 +76,8 @@ after.
 | `qbname=<name>` | `Test feature` | testing: the pretend torrent's name (with `qb=`) | `pollDownloadOnce()` |
 | `janidle=<s>` | `600` | testing: seconds without a message before a janny clocks off (20-3600) | `JAN_IDLE` |
 | `doze=<s>` | `600` | testing: quiet seconds before a seated chatter nods off (10-7200; actual is ×0.8-1.6) | `DOZE` |
+| `breath=<n>` / `breath=off` | by zoom | Steps of a sleeper's breathing squash each way. Default (24 Nov 2026): 2 in the wide shot, 8 once the camera is closer than 1.25x. `8` = as before at any zoom; `off` = no breathing | `BREATH`, `breathZoom` |
+| `animlayer=0` | on | No own layer for chatters whose emote animates (see Performance notes) | `ANIMLAYER`, `animLayers()` |
 | `chatty=<n>` | `3` | messages within a minute that get the phone out in the dark (2-20) | `CHATTY` |
 | `kick=<0-1>` | `0.5` | chance an usher visit ends in a kick | `KICK` |
 | `phones=<0-1>` | `0.3` | share of chatters who carry a phone (not in the header comment) | `PHONE_SHARE` |
@@ -466,6 +468,8 @@ the connection (an old server without `/ctl/`).
 | Once the dim set is fully up, the lit set is hidden (`dim-done`) so only one set is decoded | `scheduleDimDone()` |
 | `style()` caches every style write per element; bubble sizes are measured in one batch after writes; name widths measured once | lines 194-199, `tick()`, `showNames()` |
 | The rAF loop requests the next frame before running `tick()`, so an exception can't end it; a 40 ms timer drives `tick()` if rAF stalls (background tabs, headless screenshots) | `frame()` |
+| Chatters wearing an animated emote (a GIF or a DGG sprite animation, not asleep) get `will-change: transform` on their body, so the emote's frames repaint that small layer instead of the whole seat-row layer: about -15% CPU with a full lit house, same pixels (24 Nov 2026). Only these (37 of 135 in the test): a layer for every chatter is the 3 fps case above. Checked 40 chatters every 0.5 s | `animLayers()` |
+| A sleeper's breath step redraws every seat-row layer with a sleeper in it, so the wide shot breathes in 2 steps each way and the 8 steps return closer than 1.25x: about -12% CPU with a sleeping house (24 Nov 2026) | dozing code in `step()`, `breathZoom` |
 | Bounded memory: chat-emote list trimmed to 3 min, avatar checks capped at 256, queue at 270 | various |
 | Full render resolution must stay (project rule): 2x art and devicePixelRatio × zoom are there so zoom-ins stay sharp. `maxres` exists but is off by default. | `dpr()` |
 

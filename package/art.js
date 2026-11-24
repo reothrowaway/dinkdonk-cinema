@@ -33,6 +33,11 @@ function artFiles(standby, fail) {
   // or ?look=gamer), with its own mist maps and its layer packs out10tps (jukebox tubes, TV glow), out10tm (marquee body
   // and chase) and out10tl (poster body), named in its manifest (brief104.layer_packs).
   for (const dir of ['out10s', 'out10ps', 'out10r', 'out10', 'out10mist', 'out10m', 'out10l', 'out10p', 'out10t', 'out10tps', 'out10tm', 'out10tl']) walkFiles(path.join(standby, 'roxy3d', dir), standby, files);
+  // lobby.html (24 Nov 2026): how bright each light loop ever gets, so the page leaves out the ones that add next to
+  // nothing (?loopmin=). Without the file every loop is drawn, as before. out10m/fold3 (the marquee's light folded
+  // into the wall pictures) comes with out10m above.
+  if (!fs.existsSync(path.join(standby, 'roxy3d/loop-peaks.json'))) fail('roxy3d/loop-peaks.json missing (node roxy3d/marquee/loop_peaks.mjs)');
+  files.push('roxy3d/loop-peaks.json');
 
   // The auditorium (roxy3d/qa11, 2 GB of drafts) loads one draft: its layout JSON names every picture it needs.
   const aud = fs.readFileSync(path.join(standby, 'auditorium.html'), 'utf8');

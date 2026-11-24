@@ -6101,14 +6101,45 @@ void main() {
       //   right above it: 89 blended pieces. Same picture against everything that stands still; a walker between a
       //   sprite and the depth of the light on it now covers that light instead of having it drawn over him.
       // ?mqmerge=1 = the 451 pieces, ?mqmerge=0 = the original slices.
-      let merged = null;
+      let merged = null, mergedName = '';
       const mqSet = q.get('mqmerge');
       for (const name of mqSet === '0' || baked ? [] : mqSet === '1' ? ['merged'] : ['merged2', 'merged']) {
         try {
           const r2 = await fetch(`roxy3d/${dir}/${name}.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
           const j = r2.ok ? await r2.json() : null;
-          if (j && Array.isArray(j.layers) && j.layers.length) { merged = j.layers; break; }
+          if (j && Array.isArray(j.layers) && j.layers.length) { merged = j.layers; mergedName = name; break; }
         } catch { /* the next set, or the slices */ }
+      }
+      // - out10m/fold3.json (marquee/fold_light3.mjs, perf 23 Nov 2026): for 47 plain wall pictures the shadow and the
+      //   light piece are in the picture itself (one ordinary picture instead of a picture, an <img> and a canvas
+      //   layer; checked against the old stack, max difference 2/255). Only with merged2 and with the art pack the
+      //   pictures were made from; the canopy, the glass, doors and the other packs keep their pieces.
+      //   ?mqfold=0 = the pieces as before.
+      const foldGone = new Set();
+      if (mergedName === 'merged2' && q.get('mqfold') !== '0') {
+        try {
+          const r3 = await fetch(`roxy3d/${dir}/fold3.json`, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+          const j = r3.ok ? await r3.json() : null;
+          if (j && j.base?.dir === ART_DIR && Array.isArray(j.layers)) {
+            // the pack's pictures under the names the layer sets use (as marquee/merge_light2.mjs names them)
+            const byName = new Map();
+            for (const o of m.occluders) {
+              if (!o || typeof o !== 'object') continue;
+              const sl = Array.isArray(o.depth_slices) && o.depth_slices.length ? o.depth_slices : null;
+              const whole = sl && typeof o.file === 'string' && [o.x, o.y, o.w, o.h].every(Number.isFinite);
+              if (!sl || whole) byName.set(sl ? `${o.name}_whole` : o.name, o);
+              (sl || []).forEach((s, i) => { if (s) byName.set(`${o.name}_${String(i).padStart(2, '0')}`, s); });
+            }
+            for (const l of j.layers) {
+              const s = byName.get(l?.on);
+              if (!s || s.file !== l.replaces || typeof l.file !== 'string' || !/^[\w./@-]+\.png$/.test(l.file) || l.file.includes('..')
+                || s.x !== l.x || s.y !== l.y || s.w !== l.w || s.h !== l.h || !Array.isArray(l.pieces)) continue;
+              s.file = `../${dir}/${l.file}`;
+              if (s.file_2x) s.file_2x = s.file.replace(/\.png$/, '@2x.png');
+              for (const p of l.pieces) foldGone.add(p);
+            }
+          }
+        } catch { /* no folded pictures: the pieces as before */ }
       }
       // The whole body picture goes underneath at the body's lowest slice depth (body.png is exactly the 24 slices put
       // together). Where two slices meet, both edges are soft, and at any zoom that is not a whole number the floor
@@ -6129,6 +6160,7 @@ void main() {
         // (art with the Brief 96 claw machine has neither the arcade cabinet nor the old machine behind the glass:
         // the marquee's shadow and light on those two stay out)
         if (m.claw && /^(arcade|claw_body)/.test(l.on || '')) continue;
+        if (foldGone.has(l.name)) continue;   // in its wall picture (fold3)
         if (l.under) MARQ.under.push({ ...l, file: rel(l.file) });
         else m.occluders.push({ ...l, file: rel(l.file), file_2x: rel(l.file_2x) });
       }
@@ -6411,12 +6443,40 @@ void main() {
       const res = await fetch(`${ART}manifest.json`, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
       const m = res.ok ? await res.json() : null;
       if (!(m && (m.bg || m.base) && Array.isArray(m.occluders))) return null;
+      const peaks = loadLoopPeaks();   // (asked for now, awaited after the packs: no extra wait)
       await mergeMarquee(m);
       await mergeLeader(m);
       merge96(m);
       await mergeProps(m);
+      await peaks;
       return m;
     } catch { return null; }
+  }
+  // Light loops that add next to nothing are left out (perf, 23 Nov 2026). Every prop loop is a canvas layer that
+  // steps 24 times a second; 73 of the normal lobby's 127 (48 wet-wall highlight loops, 25 of the bulb chase's light
+  // on far walls) never add more than 8 of 255 to any pixel, yet cost about a sixth of the page's CPU.
+  // roxy3d/loop-peaks.json (marquee/loop_peaks.mjs) holds the most each loop ever adds; a loop under ?loopmin=<0-255>
+  // is not built (QA default 9; 3 = only loops that never exceed 2/255, the packs' own noise level; 0 = all loops).
+  // Without the file every loop is built, as before.
+  const LOOPMIN = q.has('loopmin') ? clamp(Number(q.get('loopmin')) || 0, 0, 255) : 9;
+  let LOOP_PEAKS = null;
+  async function loadLoopPeaks() {
+    if (!LOOPMIN) return;
+    try {
+      const r = await fetch('roxy3d/loop-peaks.json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+      const j = r.ok ? await r.json() : null;
+      if (j && j.peaks && typeof j.peaks === 'object') LOOP_PEAKS = j.peaks;
+    } catch { /* all loops */ }
+  }
+  function loopTooFaint(p) {
+    if (!LOOP_PEAKS || p.blend === 'source-over') return false;
+    // "out10s/prop_loops/x.png" from the pack folder and the loop's file ("../out10m/prop_loops/y.png" for the marquee's)
+    const parts = [];
+    for (const s of `${ART_DIR}/${p.file}`.split('/')) { if (s === '..') parts.pop(); else if (s && s !== '.') parts.push(s); }
+    const k = LOOP_PEAKS[parts.join('/')];
+    if (!k || !Number.isFinite(k.p1)) return false;
+    const wet1x = /(^|\/)wet_/.test(p.file) && q.get('wet2x') !== '1';   // (the wet sheets are shown at 1x only)
+    return (wet1x ? k.p1 : Math.max(k.p1, k.p2 || 0)) < LOOPMIN;
   }
   // A pre-rendered video loop: first frame within 6 s or it's dropped; a stall while visible is nudged to
   // play again, and still stuck after three nudges (~18 s) it's dropped too. onOk/onDead run at most once.
@@ -6608,6 +6668,7 @@ void main() {
       for (const p of m.prop_loops) {
         if (!p || typeof p.file !== 'string' || ![p.x, p.y, p.w, p.h, p.frames, p.columns].every(Number.isFinite)) continue;
         if (/arcade.*(play|hiscore|high)/i.test(p.name || '')) continue;
+        if (loopTooFaint(p)) continue;   // adds next to nothing (?loopmin=)
         const el = h(LOOPCV === 1 ? 'canvas' : 'div', p.mqfade || /^wet_glass_/.test(p.name || '') ? 'proploop mqfade' : 'proploop');
         if (p.blend === 'source-over') el.style.mixBlendMode = 'normal';   // straight-RGBA water on the glass (pass 8)
         Object.assign(el.style, { left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`, zIndex: String(p.z_index ?? 3) });

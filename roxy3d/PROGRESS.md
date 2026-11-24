@@ -3250,3 +3250,142 @@ New standalone prop on the owner's request ("small recirculating water fountain 
 - 18 Nov 2026 (Claude, owner via the QA session): "it shouldnt be called gamer, just moody": the look is "Moody" on the panel (Lobby look: Normal / Moody), ?look=moody on links, docs (AGENTS.md, docs/lobby.md, web/README.md). The stored setting value stays 'gamer' (alias; ?look=gamer still works), so the running 18770 needed no restart and his saved choice (Moody) was not touched. Folder names (out10t...) unchanged. Backups backups/*.before-moody-18nov. Checked live: ?look=moody loads out10t only, chatters tinted, console clean.
 - 18 Nov 2026 (Claude Opus, owner: "chat bubbles move really far away from the chatter"): bubble modes in the QA copies only (`lobby-qa.html`, `auditorium-qa.html`; backups backups/2026-11-18-bubmode/). `?bubmode=` (also a page setting `bubmode`, not on the panel yet): **leash** (QA default) = a bubble is never more than LEASH px (lobby 170, auditorium 150; `?leash=N` to tune) from its speaker's head; with no free spot that close, the oldest full bubble nearby (this one included) shrinks to a one-line chip (name + start of the message) and the new one may overlap over the head; a bubble moved off its speaker gets a tether line (name color, dark outline, dot at the head) from the tail tip; side spots now sit 20 px past the speaker instead of a whole bubble width away. **static** = classic: right over the head (auditorium: below the seat when it would cover the film, as before), no making room, overlaps allowed, newest on top. **stack** = the layout up to today. Cause found: unlimited upward stacking (7 levels lobby / 6 auditorium), side spots a full bubble width away, and a tail that can only point inside its own box. Measured with real chat on test server 18771 (`?room=0&bubdebug=1`, headless Edge via edgeguard, 1920x1080, ~150 s each, three modes side by side; audit/2026-11-18-bubmode/run.mjs): stack max 755 px / avg 142 px from the head, a bubble >150 px away in 42% of frames; leash max 182 / avg 49, 3% of frames, overlaps 2%; static max 67 / avg 22, overlaps in 17% of frames. Chips checked with ?leash=70 (up to 6 at once) and in the auditorium tunnel at the default leash. Console clean, 18771 stopped (exact PID), no test Edge left. Screenshots audit/2026-11-18-bubmode/*.png. Not promoted, nothing committed.
 - 18 Nov 2026 (Claude Opus, owner picked "Static" after the two OBS videos roxy3d/qa-night/rec/bubbles-leash-18nov.mp4 / bubbles-static-18nov.mp4): bubble modes PROMOTED to `lobby.html` / `auditorium.html` (same patch as the QA copies; live-only lines kept; backups backups/2026-11-18-bubmode-live/). Default is now **static** everywhere (QA copies too; an unknown value also falls back to static); leash and the old layout stay as `?bubmode=leash|stack`. Panel: new scene setting "Bubble placement" (Static / Leash / Old free layout, group Look) for lobby and auditorium in `shared/settings.js` (checked on a copy, backup in the same folder); the running 18770 server shows it on the panel only after its next restart (settings.js is read at start), the pages already default to static. Checked on test server 18771 with real chat: both pages static by default, panel setting leash -> cleared reaches both screens (ends in static), console clean, 18771 stopped by PID, no test Edge left.
+
+### 18 Nov 2026 (10:50-) - perf + stutter pass while the owner is away; no live page changed (Claude Opus, perf)
+
+Owner: AFK ~8 h, "further do performance and stutter tests"; clean fixes may ship everywhere. Plan:
+`qa-night/PLAN-perf-18nov.md`. Test server 18771 (copy of the live room), portable OBS (4466 / CDP 9333), real chat,
+2560x1440. 18770, the relay and the bridge untouched. Tools added in `qa-night/tools`: `flytime.mjs` (one fly-through
+in OBS, frame timing per stage; the page gets `flybridge=127.0.0.1:18799` so it can never reach the real bridge),
+`gap30.mjs` / `bmfwhy.mjs` / `pipe18.mjs` (main-frame gaps in an OBS trace and what they contain), `emocorr.mjs`,
+`camab.mjs`, `netopen.mjs`, `poolwatch.mjs`, `pageval18.mjs`, `sum18.sh` (obsbench result table).
+
+- Baseline (GPU on "Balanced", 562 MHz, ~7.5 W): lobby (Normal and Moody) at 30 dropped single frames, 1-15 per 30 s
+  (13 Nov log: 0); auditorium ~1.2 cores. The 13 Nov code (git worktree of bea97440 on 18772, side by side) did the
+  same today, so not a code regression. Moody costs no more than Normal. A blank test page was steady.
+- Cause traced at 30 in OBS: a dropped frame follows a 31-79 ms main frame (p50 14 ms): ~14 ms of the page's rAF
+  script (most often the extra-rain block: rain_fg video upload + full-screen draw blocked 14-23 ms) plus ~19 ms
+  waiting on the compositor's draw of ~600 layers. Zoomed shots drop ~2x more than the wide shot. Not the weather
+  style, not particular emotes.
+- Tried, not kept: the extra-rain pass in a worker (OffscreenCanvas + VideoFrame; pixels byte-identical to the old
+  path, checked with a read-back hook): no clear gain in 5 alternating pairs (the drop rate followed the GPU's state,
+  not the rain path). Kept as `backups/2026-11-18-perf/lobby-qa.rain2worker-ftime.html` (with `?ftime=1` per-part frame
+  timing); `lobby-qa.html` is back to = live.
+- Fly-through at 30 (3 flights): 15-18 single dropped frames per 53 s flight, the same rate as the lobby around it;
+  nothing specific to the flight. Recording: `qa-night/rec/2026-11-18 11-38-04.mp4`.
+- Owner switched the GPU to performance (~13:20). Baseline v2 (P0, 1,492 MHz, ~14 W): Normal / Moody / auditorium at
+  30: 0 late frames in every run, 0.55-0.85 cores (was 1.1-1.4). OBS 60 (custom fps off): Moody and auditorium clean,
+  Normal 1-4 late per 30 s. Uncapped (headless Edge, UNCAP=1): Normal 191-228 fps (~590 layers, 106 Mpx), Moody
+  293-345 (~290 layers), auditorium 255-300. So the scattered drops were the GPU's power state.
+- Soak finding (first soak, 3 pages in the test OBS): the lobby's vehicle images piled up (300 after 30 min), none ever
+  loaded; a fresh request from inside the page timed out. Chrome allows 6 connections per server and every local page
+  holds 2 for good (/ctl/events + /ctl/room); a leftover `auditorium-qa` source in the QA collection made 3 pages = 6,
+  so nothing new could load (taxis/buses keep the old sprite set until the new one decodes). The owner's collection
+  has 2 local pages (lobby, auditorium; no docks): checked with exactly that, 10 min, fresh image 2-4 ms, nothing stuck.
+  Margin is thin: any third local page in his OBS would freeze all new loads. Not changed (server + page protocol
+  change; for the owner to decide). The extra QA source was blanked for the tests (settings saved in
+  `qa-night/tools/res/obs-qa-browser-sources-18nov.json`).
+- Soak (exactly the owner's 2 pages, at 30, GPU on performance): lobby 60 min, 1 late frame (67 ms, min 41), heap
+  6-9 MB, nodes ~1,450, images ~450, all flat; auditorium 60 min, 0 late, heap 8-14 MB, images 4,910 flat, nodes
+  6,270 -> ~6,800 in the first 15 min while the animations ramp up, then flat. No leaks. Results:
+  `qa-night/tools/res/soak3_lobby_18nov.txt`, `soak3_aud_18nov.txt` (soak 1 and 2 were spoiled by a third page).
+- Why Moody runs lighter than Normal: Brief 104 baked the marquee, Dear Leader, jukebox and TV light and shadow into
+  the pictures and dropped the wet loops (prop loops 14 vs 67; no out10m merged/merged2 = 188 blended pieces).
+  ~290 vs ~590 layers. The same baking for Normal is queue 84 (lobby re-render, RunPod, owner's call); page-side
+  tricks can't close it (13 Nov: each <=0.1 core).
+- Owner, 18 Nov: connection-pool fix (one live stream per page + a time limit on vehicle sprite swaps) "Not now".
+- Clean-up: QA `aud` source back to its URL (QA.json checked), room-state-18771.json restored from the backup
+  (SHA-256 same), test server 18771 and portable OBS stopped by PID, no test Edge left. 18770 untouched all day.
+
+### 23-24 Nov 2026 (22:00-03:15) - performance pass: lower CPU/GPU load on both pages; QA copies only, no live page changed (Claude Fable, perf)
+
+Owner, 23 Nov ~22:20 (AFK): the lobby and the auditorium "use way too much CPU and GPU compute for what it's really
+presenting"; reduce both, keep working until 50% weekly usage. Test server 18771 (copy of the live room), portable
+OBS (4466 / CDP 9333), real chat, 2560x1440, GPU on performance (P0), no Blender. 18770 was down before the session
+and stays down; the chat relay 18765 was down too and was started in its own window (start-windows.bat) for real chat.
+
+**Baseline (live files; `qa-night/tools/res/base_23nov.txt`), the same as 18 Nov**
+
+| page | OBS 30 fps | OBS 60 (custom rate off) | uncapped (headless Edge) |
+|---|---|---|---|
+| lobby Normal | 0.77-0.84 cores, 0 late | 1.33-1.40 cores, 1-3 late per 30 s | 255-257 fps, 550-580 layers |
+| lobby Moody | 0.61-0.64, 0-1 late | 0.82-1.12, 0-1 late | 351-382 fps, 250-295 layers |
+| auditorium (135 seated) | 0.61-0.64, 0 late | 1.06-1.12, 0 late | 260-268 fps, 170 layers |
+
+**How it was measured.** New tool `tools/tracestate.mjs`: page states switched on ONE page load, CPU from a Chromium
+trace (thread CPU time per second, summed over the browser's threads) instead of process CPU samples; noise about
++-40 ms/s against +-80-110 before. `runab.sh` = the same reading on alternating fresh loads. Numbers below are ms of
+CPU per second at 30 fps in OBS (1000 = one core).
+
+**Where the load goes**
+- Lobby Normal, ~730-830 ms/s: an empty page in OBS costs 65, and 300 plain moving layers only +82, so the lobby's
+  ~570 layers cost about four times a plain one each (every one its own texture; ~446 separately drawn pieces a frame,
+  25-30 repaints a frame). Hidden on one load: the 240 light canvases -185..-210, the walkers -100..-150, everything
+  outside the camera (rain, mist, bubbles) ~100, the script and video floor ~125. With the script frozen the page
+  still costs ~500 of ~680: showing the layers costs more than changing them. Render passes are not it (6 a frame,
+  5 trivial), nor rain / mist / the light-loop video (~0), nor the loops' stepping rate (60 loops on a test page:
+  +25 ms/s stepped 24 or 12 times a second; a CSS animation is worse).
+- Auditorium, ~600-700 lit, ~870 dark: the chatters are 65% of it (570 -> 203 hidden). It is repaint-driven: the
+  chatters have no layers of their own (on purpose), so anything that changes in one redraws the whole seat-row layer
+  it sits in (~0.7 ms each, 20-27 a frame). What changes: animated emotes (37 of 137 chatters; frozen -196), the
+  sleepers' breath (-115 with 105 asleep), rainbow names (-46), the usher's torch (-16). In the dark also the
+  brightness filters (-67..-89, needed) and 30 layouts a second (48 ms/s) from seat pieces switched on and off near
+  moving chatters (~80 toggles a second, 2.5 ms a layout with 3,583 objects): open lead, not touched.
+
+**Built in the QA copies** (backups `backups/2026-11-23-perf/*.before-perf-23nov.html`)
+
+| fix | where | effect at 30 fps | look |
+|---|---|---|---|
+| faint light loops left out: `?loopmin=` (QA default 9) | lobby-qa.html, data `roxy3d/loop-peaks.json` (`marquee/loop_peaks.mjs`) | with the next: 726 -> 622 (-14%); alone about -11% | 73 of the Normal look's 127 loops (48 wet-wall, 25 chase light on far walls) never add more than 8/255; in all 927 pixels ever get more than 2/255. `loopmin=3` = only the 11 that never exceed 2/255; `0` = all |
+| marquee shadow + light folded into 47 plain wall pictures: `roxy3d/out10m/fold3/` + `fold3.json` (`marquee/fold_light3.mjs`), `?mqfold=0` = as before | lobby-qa.html | alone about -3% | checked in a real browser (`perf-fold-test.html` + `tools/pngcmp.mjs`): within 2/255 at 1x and 2x; at the stream's 1.333 scale 98 of 3.7 M pixels (wall edges) differ by 3-9/255. A walker exactly between a wall's depth and its light's depth (2 units for most) now covers that light |
+| animated emotes on a layer of their own (`animLayers()`, `?animlayer=0` off): a chatter whose emote animates and who is awake gets `will-change` on the body | auditorium-qa.html | lit, wide: 625 -> 532 (-15%); zoomed 1.85x on changing chatters: 743 -> 614 (-17%), 30 fps held; dark: 875 -> 806 (-8%) | same pixels. Fades: at 60 about 10 dropped frames a fade against 37 on live; at 30 no difference on one page load (3 against 4 late frames in 8 fades) |
+| sleepers breathe in 2 steps each way in the wide shot, the usual 8 once the camera is closer than 1.25x (`?breath=<n>` any zoom, `?breath=off`) | auditorium-qa.html | lit, 128 of 135 asleep: 635 -> 559 (-12%); off: 538 | the squash is under 2 screen pixels in the wide shot; it now moves in ~0.9 px steps there |
+
+QA copies against live, fresh loads (`res/qa_23nov.txt`): lobby Normal 0.68-0.79 cores at 30 (was 0.77-0.84), 1.11-1.17
+at 60 (1.33-1.40), uncapped 280-339 fps (255-257), 390 layers (550-580); Moody unchanged (its light is baked; only 4 of
+its loops are faint); no script errors on either QA page.
+
+**Tried, not kept (do not retry)**
+- A plain (software) 2D canvas holds "colour, alpha 0" light pixel-exact, but is still a layer of its own in OBS's
+  browser (CEF 127): no gain. Test page `perf-addsw-test.html`.
+- Canopy and front glass in the fold: only 11 of 35 pictures fold within 2/255 (glass is see-through).
+- Lobby walkers: body / shadow on own layers halves their repaints but adds ~100 layers (0); no layers at all (0);
+  name tags or speech bubbles on own layers (0). On a test page a hop on the layer's own transform costs no repaint
+  (40 walkers: 179 -> 110), but the shadow and the name must stay on the ground, so it would take two layers a walker.
+- Auditorium: every sleeper on a layer (+105 layers, -27 only); the animated emote itself as the layer (render passes
+  12 -> 41, 0); hiding the paused projector dust, the zzz or the hidden credits roll (0).
+- Merging the canopy's 22 bulb-chase loops: they cost only ~-12..-40 together (not built).
+
+**Ideas for later:** the dark room's piece toggling (above); each sleeper's "z z Z" is three layers (about -8% with a
+whole house asleep); a rebuilt lobby renderer (one canvas for the still world, chatters on top) would be about half
+the load by these numbers, but is a rewrite.
+
+Tools added in `qa-night/tools`: tracestate.mjs, runab.sh, base23.sh, walkpaints.mjs, pageerrs.mjs, pv.mjs, obsurl.mjs,
+layers1.mjs, pngcmp.mjs, pnggrid.mjs, foldshots.sh, addsw-cmp.mjs; the test pages are in tools/pages/ (copy one into
+standby/ to serve it); qa.mjs and snap.mjs no longer tree-kill Edge (exact
+PIDs). To promote: lobby.html needs `roxy3d/loop-peaks.json` in `package/art.js` (out10m/fold3 goes with its folder).
+- Later the same night, also measured and not kept: rainbow names on own layers (0 with 4 of them), walking chatters
+  on own layers in the dark (0), hiding the credits roll (it is the active slide in the dark; 0). Clean-up: test server
+  and portable OBS stopped by exact PID, room-state-18771.json and ctl-settings-18771.json restored (SHA-256 same), no
+  test Edge left. The chat relay (18765) is still running in its own window; 18770 untouched (down).
+
+### 24 Nov 2026 (morning) - the four load fixes of the 23-24 Nov pass promoted to the live pages (Claude Fable, perf)
+
+Owner's OK, 24 Nov ("1" = all four, after asking whether they change the picture). Backups of the live pages as they
+were: `backups/2026-11-23-perf/lobby.before-promote-24nov.html`, `auditorium.before-promote-24nov.html` (local).
+
+- `lobby.html`: `?loopmin=` (default 9: 73 faint light loops are not built; data `roxy3d/loop-peaks.json`) and the
+  marquee fold (`roxy3d/out10m/fold3/` + `fold3.json`, 47 wall pictures carry their marquee shadow and light, 87 pieces
+  fewer; `?mqfold=0` = as before). Measured in the QA copy: 726 -> 622 ms/s of CPU at 30 fps in OBS (-14%).
+- `auditorium.html`: chatters with an animated emote on a layer of their own (`?animlayer=0` = as before; -15% lit,
+  -8% dark, same pixels) and the sleepers' breath in 2 steps in the wide shot, 8 closer than 1.25x (`?breath=8` = as
+  before; -12% with a sleeping house).
+- The changes went in as the exact diff of the QA copies against their state before the pass (`patch`), so the live
+  pages differ from the QA copies only by the QA test hooks, as before.
+- `package/art.js` ships `roxy3d/loop-peaks.json` (the fold comes with `out10m`). Docs: the four options in
+  `docs/lobby.md` and `docs/auditorium.md`. New scripts in the repo: `roxy3d/marquee/loop_peaks.mjs` (rerun when a
+  pack's loops change), `fold_light3.mjs` (rerun when out10s' wall pictures or the marquee's merged2 set change; the
+  page checks every folded picture against the pack's file name and box and falls back to the pieces), `fold_check.mjs`.
+- Checked on a test server (18771) with real chat, headless Edge at 2560x1440: lobby Normal 129 canvases (was 240),
+  47 folded pictures, Moody unchanged (no fold, its base is out10t), auditorium 134 seated with 33 on their own layer;
+  no script errors, no failed requests. Not checked in the owner's own OBS collection.

@@ -321,6 +321,8 @@
 (() => {
   'use strict';
   const q = new URLSearchParams(location.search);
+  const BREATH = q.get('breath') === 'off' ? 0.001 : Math.max(0, Number(q.get('breath')) || 0);   // sleepers' breath steps (0 = by zoom; see the dozing code)
+  let breathZoom = 1;   // the camera's zoom, kept by the camera step (walkers are drawn before the camera exists)
   const QB_TEST = q.has('qb') && Number.isFinite(Number(q.get('qb'))) ? Math.max(0, Math.min(1, Number(q.get('qb')))) : null;
   const $ = (id) => document.getElementById(id);
   const h = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text != null) el.textContent = text; return el; };
@@ -2817,7 +2819,11 @@
       // times a second, which redrew the whole seating 20 times a second for as long as the house dozed: over half of
       // the GPU process's main thread with a full house, the headroom a lights fade or a camera move then lacked
       // (perf 9 Nov). window.__breathSteps = 0 (test only): the smooth sine, as before.
-      const bs = window.__breathSteps ?? 8;
+      // (perf 23 Nov 2026) A breath step redraws every seat-row layer with a sleeper in it: with a sleepy house (105 of
+      // 135 asleep) about a sixth of the page's CPU, for a squash of under 2 screen pixels in the wide shot. So the wide
+      // shot breathes in 2 steps each way; the 8 steps are back once the camera is closer than 1.25x, where they can be
+      // seen and few sleepers are in the picture. ?breath=<n>: that many steps at any zoom (8 = as before); ?breath=off.
+      const bs = window.__breathSteps ?? (BREATH || (breathZoom > 1.25 ? 8 : 2));
       const ph = 0.5 + 0.5 * Math.sin(performance.now() / 700);
       if (bs && (w.breath === undefined || (bandClock.mask >> (w.band || 0)) & 1)) w.breath = Math.round(ph * bs) / bs;
       sq = 1 - 0.035 * w.dozeK * (bs ? w.breath : ph);
@@ -3290,6 +3296,7 @@
     ty = fit(ty, 540 / tz, 1080);
     const zT = slow ? 3.5 : 1.5, pT = slow ? 3.5 : director.follow ? 0.75 : 1.4;
     [cam.z, cam.vz] = damp(cam.z, cam.vz, tz, zT, dt);
+    breathZoom = cam.z;
     [cam.x, cam.vx] = damp(cam.x, cam.vx, tx, pT, dt);
     [cam.y, cam.vy] = damp(cam.y, cam.vy, ty, pT, dt);
     cam.x = fit(cam.x, 960 / cam.z, 1920);
@@ -4117,7 +4124,32 @@
     SB.start();
     pollDownload();
     setInterval(audience, 2000);
+    setInterval(animLayers, 500);
   })();
+
+  // ---------- animated emotes on a layer of their own (perf, 24 Nov 2026; ?animlayer=0 = as before) ----------
+  // A chatter wearing an animated emote (a GIF, or one of DGG's sprite animations) is repainted with every frame of
+  // it, and without a layer of their own that repaint redraws the whole seat-row layer they sit in: 37 such chatters
+  // of 137 cost a third of the page's CPU. So while their emote animates (not asleep: a sleeper's emote stands still),
+  // their body is a layer of its own and only that small layer is redrawn: about -18% CPU with a full house, the same
+  // pixels. Only these chatters: a layer for every chatter thrashed tile memory when zoomed in (see .w in the styles).
+  // Checked 40 chatters at a time, so a new emote or a nap is picked up within about 2 s.
+  const ANIMLAYER = q.get('animlayer') !== '0';
+  let animAt = 0;
+  function animLayers() {
+    if (!ANIMLAYER || !walkers.size) return;
+    const list = [...walkers.values()];
+    for (let i = 0; i < Math.min(40, list.length); i++) {
+      const w = list[animAt++ % list.length];
+      const inner = w.em?.querySelector(':scope > .emote');
+      let on = false;
+      if (inner && !w.em.classList.contains('sb-asleep')) {
+        const cs = getComputedStyle(inner);
+        on = cs.visibility !== 'hidden' && cs.display !== 'none' && (cs.animationName !== 'none' || /\.gif\b/i.test(cs.backgroundImage));
+      }
+      if (on !== !!w.animLayer) { w.animLayer = on; w.bod.style.willChange = on ? 'transform' : ''; }
+    }
+  }
 })();
 </script>
 </body>
