@@ -3394,3 +3394,23 @@ were: `backups/2026-11-23-perf/lobby.before-promote-24nov.html`, `auditorium.bef
   as the local build; service active); zip rebuilt (1337 MB) and its own server smoke-tested on 18773 with real chat
   (new files served, both pages without errors, fresh room 135 seats). Test servers stopped by exact PID, the test
   room's record restored. 18770 was down throughout and was not started.
+
+### 24 Nov 2026 (17:45-18:30) - the promoted load fixes measured again on the live pages, busier real chat (Claude Fable, perf)
+
+Owner asked for a rerun with live chat. Test server 18771, portable OBS at 30 fps, the live `lobby.html` /
+`auditorium.html` with the fixes off by their switches ("old": `loopmin=0&mqfold=0`, `animlayer=0&breath=8`) against
+the pages as they are ("new"), alternating fresh loads, trace CPU in ms per second (`tools/live24.sh`,
+`res/ab_live_lobby_24nov.txt`, `ab_live_aud_24nov.txt`, `ab_live_aud2_24nov.txt`, `live_uncap_24nov.txt`).
+
+| Page | Chat | OBS 30 fps, old -> new | Uncapped (headless Edge), old -> new |
+|---|---|---|---|
+| Lobby Normal | 31-45 chatters at 30, 51-57 uncapped | 711 -> 567 (-20%; loads 723/753/657 -> 584/576/541) | 266 -> 323 fps (+21%), 570 -> 386 layers |
+| Auditorium | 135 seated, 134 queued outside, 0 asleep, 33 on their own layer | 518 -> 471 (-9%) over 6 pairs: -15, -15, +8, -6, -13, -14% | 270 -> 254 fps (-6%), 179 -> 225 layers |
+
+- Lobby: better than the night's -14% (then 47-58 chatters; fewer chatters make the fixed part of the page a larger
+  share).
+- Auditorium: -13..-15% in the four quiet pairs; in the two pairs where chatters were walking in (136-138 on the page)
+  the gain was small or negative. Nobody was asleep, so the coarser breath did nothing in this run.
+- Auditorium uncapped is about 6% slower with the 33 extra layers (each drawn frame costs a little more; the saving
+  is per emote frame, not per page frame). No effect at the owner's 30 fps; noted in case 60+ is wanted later.
+- No late frames at 30 on either page in any load. Test stack stopped by exact PID, test room record restored.
