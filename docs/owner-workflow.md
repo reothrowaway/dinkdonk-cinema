@@ -59,6 +59,8 @@ For a break, open **Auditorium → Intermission clock**, choose 5, 10 or 15 minu
 
 In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film. In **Pass the popcorn**, two guests in neighboring seats share one bucket during Seating or Lights up. The director waits until one guest has popcorn and the other has a free hand or a drink.
 
+For a festival-style discussion, choose **Lights up** and leave the projector on **Auto**. **Audience Q&A microphone** sends a capped volunteer down the stair to a real chatter in an aisle seat. The projector shows who has the microphone. The volunteer collects it and walks back through the entrance. The event can run automatically or from **Run event** with Auto events switched off.
+
 ### Movie-night extras
 
 The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk sessions in your time zone or the published cinema time zone. Choose **Save .ics** beside a session or download the whole upcoming schedule. Untitled slots retain their published start and end times.

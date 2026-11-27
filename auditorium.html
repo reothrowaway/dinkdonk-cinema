@@ -145,6 +145,17 @@
     background: radial-gradient(closest-side, rgba(0,0,0,.5), rgba(0,0,0,0)); }
   .w.sit .sh { display: none; }
   .w .bod { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+  .festival-mic { position:absolute; z-index:4; width:7px; height:24px; background:#25262b; border:1px solid #e2d6ac;
+    border-radius:3px; transform:rotate(var(--angle,15deg)); transform-origin:50% 80%; pointer-events:none }
+  .festival-mic i { position:absolute; display:block }
+  .mic-grille { left:-3px; top:-6px; width:11px; height:12px; border:1px solid #21222a; border-radius:50%;
+    background:repeating-linear-gradient(25deg,#a8afad 0 1px,#495356 1px 2px) }
+  .mic-flag { left:-4px; top:5px; width:13px; height:9px; background:#f5cf6b; border:1px solid #362a23; color:#291f23; text-align:center; font:bold 8px/9px Arial,sans-serif }
+  .mic-grip { left:-3px; top:15px; width:9px; height:5px; border:1px solid #534139; border-radius:4px; background:#e9ba91 }
+  .festival-program { position:absolute; inset:0; z-index:3; display:grid; place-content:center; gap:20px; text-align:center; background:#232c30; color:#f3e6c1 }
+  .festival-program strong { font:italic bold 80px/1 Georgia,serif }
+  .festival-program span { font:34px/1.15 Georgia,serif; overflow-wrap:anywhere }
+  .festival-program small { color:#f4ca70; font:bold 20px/1.2 sans-serif; text-transform:uppercase; letter-spacing:.15em }
   .w .em { position: absolute; bottom: 0; }
   /* golden WEOW (queue 65, L50), as in the lobby: DGG's own gold cell of the emote's sheet, a pulsing aura with
      sparkles behind the emote and a gold name. No filter on the emote, so the dark-room brightness rule above still
@@ -4406,17 +4417,25 @@
           if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
+          if (kind === 'mic-runner') return HALL_ON && show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           return !alwaysGreen && !filmOnScreen() && (show.phase === 'seating' || show.phase === 'up');
         },
         canStart: () => !hall.snacker && !walkers.has('#vendor') && !hall.cleaning,
         startNative: startHallEvent,
+        staff: () => crewWalker('mic-runner', SB.emotes?.names?.has('FeelsOkayMan') ? 'FeelsOkayMan' : Cinema.defaultEmote('roxy-usher'), {cap:true, pace:1.65}),
+        present: w => walkers.get(w.key) === w,
+        toAisle: (runner, seat, aisle) => [[...runner.pos], ...aisleTo(seat.row, aisle > 10 ? 'right' : 'main', aisle).slice(0, -1),
+          [aisle, seat.v + .12, seat.z]],
+        go, hold, face: faceToward, out: crewOut,
+        exitEntry: (w, entry) => goOut(w, [[...w.pos], ...entry.slice(0, w.seg + 1).reverse()], crewDone),
+        label: w => floatAt(w, 'Audience Q&A', '#ffe5a8', 21),
         active,
         seats: () => seats,
         seated: () => [...walkers.values()].filter(w => active(w) && !w.jan && !w.usher && !w.crew),
         screen: () => screenPoly,
         point: w => P(...w.pos),
         apex: () => { const su = L.screen?.u || [4.9,13.9]; return P((su[0]+su[1])/2-2.3,L.room?.v[1] ?? 14.9,580); }
-      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass'], automatic: timedPreshows, enabled: timedEventsEnabled });
+      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner'], automatic: timedPreshows, enabled: timedEventsEnabled });
       window.auditoriumEvents = preshowEvents;
       SB.on('msg', m => preshowEvents.message(m));
     }).catch(err => console.warn('[preshow]',err));

@@ -1,4 +1,5 @@
 import {startPopcornPass} from './popcorn-pass.js';
+import {startMicRunner} from './mic-runner.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const clamp = x => Math.max(0, Math.min(1, x));
@@ -150,7 +151,7 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   let sourceVisible=true, sourceActive=true, lastAuto=null;
   let cue=null, expires=0, retry=0;
   const recent=new Set();
-  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run','popcorn-pass'].filter(kind=>allowed.includes(kind));
+  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner'].filter(kind=>allowed.includes(kind));
   const visible=()=>!document.hidden&&sourceVisible&&sourceActive;
   const next=()=>performance.now()+180000+Math.random()*180000;
   let due=pending?performance.now()+2200:next();
@@ -183,8 +184,9 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   }
   function start(kind,cueId=null) {
     if(live||!allowed.includes(kind)||!visible()||!host.ready(kind)||host.canStart?.()===false)return false;
-    if(kind==='aisle-vendor'||kind==='popcorn-run'||kind==='popcorn-pass'){
-      const native=kind==='popcorn-pass'?startPopcornPass(host,motion.matches):host.startNative?.(kind);
+    if(['aisle-vendor','popcorn-run','popcorn-pass','mic-runner'].includes(kind)){
+      const startGuestEvent={'popcorn-pass':startPopcornPass,'mic-runner':startMicRunner}[kind];
+      const native=startGuestEvent?startGuestEvent(host,motion.matches):host.startNative?.(kind);
       if(!native)return false;
       live={kind,native,cueId,at:performance.now(),t:0};return true;
     }
