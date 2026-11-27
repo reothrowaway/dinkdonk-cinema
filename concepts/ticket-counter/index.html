@@ -25,6 +25,7 @@
   :focus-visible { outline: 3px solid #fff; outline-offset: 3px }
   #status { color: #e2dfd1; margin: 12px 0 }
   #status:empty { margin: 0 }
+  header a { color: #e3d5ae }
   #passport { margin-top: 32px; padding: 24px; color: #303c32; background: #f1e6c8; border-radius: 3px; }
   .passport-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid #89927e; padding-bottom: 14px }
   #passport h2 { font: normal clamp(26px, 5vw, 36px)/1.1 Georgia, serif; margin: 0 }
@@ -51,7 +52,7 @@
 </style>
 </head>
 <body><main>
-  <header><h1>Ticket counter</h1><small>DinkDonk Cinema</small></header>
+  <header><h1>Ticket counter</h1><small><a href="../cinema-guide/index.html">Cinema guide</a></small></header>
   <div class="counter"><canvas id="ticket" hidden width="1400" height="540" role="img" aria-label="Screening ticket"></canvas></div>
   <div class="controls">
     <label>Screening<select id="screenings" disabled></select></label>

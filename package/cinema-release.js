@@ -9,6 +9,11 @@ const eventFiles = [
   'incidents/marquee-photo.js', 'incidents/shared-umbrella.js', 'events.html',
   'preshow/transition-cues.js', 'preshow/house-events.js', 'preshow/popcorn-pass.js',
 ].map(file => base + file);
+const extrasFiles = [
+  'ticket-counter/index.html', 'ticket-counter/ticket.js',
+  'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js',
+  'cinema-guide/index.html', 'cinema-guide/guide.js',
+].map(file => 'concepts/' + file);
 
 const looksDir = 'concepts/vaporwave/';
 const shaderFile = looksDir + 'cinema-looks.shader';
@@ -23,4 +28,4 @@ function lookFilters(room, shaderText) {
   }));
 }
 
-module.exports = { eventFiles, shaderFile, lookGuide, lookFilters };
+module.exports = { eventFiles, extrasFiles, shaderFile, lookGuide, lookFilters };

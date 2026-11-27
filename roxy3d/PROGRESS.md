@@ -3529,3 +3529,11 @@ Verified with the actual 200-entry watch log in headless Chromium. Two tabs adde
 Moviegoers describe passing a bucket down the row while waiting for a screening. The auditorium director selects two real seated neighbors from the seat layout and borrows the first guest's existing popcorn sprite for a handoff. The second guest reaches, takes a handful and returns the bucket. The show requires a lit pre-show, stops on operator interruption, and keeps the camera wide for reduced motion.
 
 In the first capture the two hand positions were too close. The revised 19.9-second video shows the bucket crossing the rainbow guest at 4–7 seconds, the guest lifting at nine seconds and the original owner reclaiming it at 12–14 seconds. The protected name-label area kept both faces visible. The independent reviewer confirmed camera return and a clear handoff. Private recording: audit/feature-night/popcorn-pass-revised.mp4.
+
+### 27 Nov 2026 · Session guide and calendar files
+
+The New Beverly's printed calendar and Nippon Connection's downloadable screening times informed an experimental schedule page. It reads DinkDonk's published sessions, converts them to the viewer's or cinema's zone, distinguishes overnight end dates, and exports single sessions or all upcoming sessions as iCalendar files. Ticket counter and trivia now link back to the guide. Both builders use one list of movie-night extras.
+
+Checked 27 actual upcoming slots, all without announced titles. Confirmed the same UTC instants in local and cinema display modes, daylight-saving fallback, Unicode folding to 75 octets, escaping, invalid and duplicate entries, retry, empty schedules and 360 px layout. The local offline guide, ticket counter and trivia previews link to each other.
+
+Package QA: the reserved port became available. Fresh shared rooms from builds de76495596 and c60cb2ec99 seated actual relay guests in a 135-seat house. In the second package its real panel cued Pass the popcorn with Auto off. Escape restored the original prop and cleared the event. No script errors, and every listed release asset matched the packaged file byte for byte. The QA package used the private prior package's immutable art and sanitized OBS template. The server and headless browser closed after verification.
