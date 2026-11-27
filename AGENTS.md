@@ -44,8 +44,8 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
    synthetic chat floods. That applies to screenshots, QA and performance runs.
 3. **Keep the full render resolution.** The 1920x1080 layout, the 2x art and the canvases sized to
    devicePixelRatio × zoom are there so director zoom-ins stay sharp. A performance fix must not lower them.
-4. **Don't stop the server on port 18770** while the owner may be streaming. To test a package build, use another
-   port (`STANDBY_PORT=18771`) and stop it afterwards.
+4. **Don't stop the server on port 18770** while the owner may be streaming. For a package smoke test, pick a
+   free port from your assigned range under “Working together” and stop your test process afterwards.
 5. **OBS.** The live scene collection is the owner's. Edit only a copy of its JSON (under
    `%APPDATA%\obs-studio\basic\scenes`), and only while OBS has a different collection loaded, because OBS
    overwrites the file it has loaded.
@@ -66,7 +66,9 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
    conversion. Don't re-save, re-encode or reformat art or manifests by hand.
 9. **No computer use.** Agents (Codex included) must not drive other apps on the owner's PC (browser, history, media players); check videos by decoding frames.
 10. **This repo is public.** No passwords, tokens, API keys, stream keys, OBS websocket passwords, account IDs or
-   billing details, in code or in docs.
+   billing details, in code or in docs. The parent folder contains the owner's private OBS and server files.
+   Open or copy one of those files only when the owner asks for that exact file. Keep it out of this public repo
+   unless the owner explicitly asks to commit that file and it meets the requirements above.
 11. **Git.** Owner, 13 Nov 2026: a finished, checked change goes everywhere in the same turn (see "Shipping"
     below); half-done work is not committed. Auditorium art in `roxy3d/qa11/` is ignored as a folder;
     add exactly the files the page loads with the recipe in [README.md](README.md). Draft, QA and old pack folders
@@ -163,6 +165,12 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
   symptoms.
 - After any change to a transition (`shared/transition*.js`, the fly-through), record it in the portable QA OBS
   (`roxy3d/qa-night/obs-portable`) with real chat and give the owner the video. Never touch the owner's live OBS.
+- For timed lobby and auditorium events, show the owner a video of the full event. Have a second reviewer watch
+  the recorded action at stream size, including where the chatters stand and whether their reactions are readable.
+  The QA event screening room is `concepts/cinema-mods/events.html`. It lists automatic events and named previews.
+- The original vaporwave looks are OBS filters. Compare them in `concepts/vaporwave/index.html`; the
+  **DinkDonk Cinema Looks QA** collection holds the selected presets and strengths for each room. Promotion to QA
+  puts a look in that collection or an event in the QA room. Identify which events run on the timer.
 
 ### Design and content
 - Any new design starts with a Google Images search of the owner's exact wording; use the results as reference.
