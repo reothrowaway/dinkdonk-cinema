@@ -1274,6 +1274,7 @@
 
   // ---------- walkers ----------
   let lobbyEvents;
+  let timedEventsEnabled = true;
   const walkers = new Map();   // lowercase nick -> their current walker
   const figures = new Set();   // every walker on screen, incl. ones finishing a door/purge (insertion order = age)
   const queue = [];
@@ -5971,6 +5972,7 @@ void main() {
   // to every lobby screen ({cmd: 'settings', values}), also right after it connects, so a reload keeps them; a
   // setting the panel clears goes back to this screen's URL value. Units as in the panel (seconds, not ms).
   const SETTINGS = {
+    timedEvents: { get: () => timedEventsEnabled, set: (v) => { timedEventsEnabled = !!v; lobbyEvents?.setEnabled(timedEventsEnabled); } },
     bubstyle: { get: () => BUB_STYLE, set: (v) => setBubStyle(v) },
     bubmode: { get: () => BUB_MODE, set: (v) => setBubMode(v) },
     bubbles: { get: () => MAX_BUB, set: (v) => { MAX_BUB = clamp(Number(v) || 8, 2, 14); } },
@@ -7807,7 +7809,7 @@ void main() {
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
       };
       lobbyEvents = createLobbyEvents({
-        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event'), timed,
+        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event'), timed, enabled: timedEventsEnabled,
         blocked: () => !lobbyReady ? 'room loading' : director.follow ? 'director follow' : director.spot ? 'director spot' :
           director.wantNext ? 'director next' : gag ? 'restroom gag' : fight ? 'fight' : pollScreen.open ? 'poll open' : null,
         anchors: () => ({

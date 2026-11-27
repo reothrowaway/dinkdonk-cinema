@@ -50,9 +50,9 @@ For your existing collection, open obs\obs-looks.html for instructions and eight
 The standalone obs\cinema-looks.shader contains all thirteen presets.
 
 EVERY STREAM
-The lobby timers choose Photo Booth, Horizon Drive, Black Hole, Laser Topography and Mirrorball.
-Infinity Foyer and Glyph Cascade are named lobby previews (?event=infinity-foyer or ?event=glyph-cascade).
-Laser Choir runs automatically in the eligible auditorium preshow.
+Timed events are on by default in each room. Use the Timed events switch on the Lobby or Auditorium card to pause or resume that room's shows.
+The lobby chooses Photo Booth, Horizon Drive, Infinity Foyer, Glyph Cascade (eight chatters spelling PEPE WINS), Black Hole and Mirrorball.
+Laser Choir runs in the auditorium during seating and lights-up.
 1. Double-click START.bat (before or after OBS, either works).
 2. Use the control panel (http://127.0.0.1:18770/control.html) to follow a chatter, go back to the wide
    shot, switch the automatic camera director on or off, or move the auditorium through its phases

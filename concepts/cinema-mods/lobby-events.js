@@ -207,17 +207,29 @@ function cries(stage){
     const line=g.lastChild;line.setAttribute('x',at(bx+61));line.setAttribute('y',at(by+27));
   }};
 }
-export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,blocked,preview,timed=true,incidents={}}) {
+export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,blocked,preview,timed=true,enabled=true,incidents={}}) {
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
-  const photoBooth=Object.hasOwn(incidents,'contact-printer'),horizon=Object.hasOwn(incidents,'horizon-drive');
+  const smallEvents=['contact-printer','horizon-drive','infinity-foyer','glyph-cascade'].filter(kind=>Object.hasOwn(incidents,kind));
   const smallDelay=()=>(3+3*Math.random())*60000;
   const known=kind=>Object.hasOwn(duration,kind)||Object.hasOwn(incidents,kind)||kind==='laser-topography';
-  let active=null,requested=known(preview)?preview:null,next=performance.now()+cooldown();
+  let active=null,requested=enabled&&known(preview)?preview:null,next=performance.now()+cooldown();
   let nextSmall=performance.now()+smallDelay(),retryAt=performance.now()+2000;
   let camera=null, phase='', checked=-Infinity, querying=null, generation=0, lastFinished='', lastStop='', lastEventStop=null, obsActive=true, obsVisible=true;
   const visible=()=>!document.hidden&&obsActive&&obsVisible;
   let holesBeforeDance=1+Math.floor(Math.random()*2);
-  let lastSmall='';
+  let lastSmall='', smallQueue=[], castDeadline=0;
+  function drawSmall(now){
+    // Try another story if this room cannot supply the cast. Put the previous
+    // story last so a small room can still run its only eligible event.
+    smallQueue=smallEvents.filter(kind=>kind!==lastSmall);
+    for(let i=smallQueue.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [smallQueue[i],smallQueue[j]]=[smallQueue[j],smallQueue[i]];
+    }
+    if(lastSmall)smallQueue.push(lastSmall);
+    nextSmall=now+smallDelay();
+    castDeadline=now+30000;
+  }
   const phaseOK=()=>['seating','up'].includes(phase) && performance.now()-checked<16000;
   function readPhase(){
     if(!querying)querying=fetch('/ctl/room-state',{cache:'no-store',signal:AbortSignal.timeout(2500)})
@@ -236,18 +248,25 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
     }
     camera=null;lastStop=reason;retryAt=performance.now()+15000;
   }
-  function interrupt(cause='manual stop'){requested=null;finish('interrupted',cause);}
+  function interrupt(cause='manual stop'){requested=null;smallQueue=[];finish('interrupted',cause);}
+  function setEnabled(on){
+    if(enabled===on)return;
+    enabled=on;
+    if(!enabled){interrupt('timed events disabled');return;}
+    const now=performance.now();
+    next=now+cooldown();nextSmall=now+smallDelay();
+  }
   function suspend(cause){if(active)interrupt(cause);else generation++;}
   document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend('page hidden');});
   window.addEventListener('obsSourceActiveChanged',e=>{obsActive=e.detail?.active!==false;if(!obsActive)suspend('OBS source inactive');});
   window.addEventListener('obsSourceVisibleChanged',e=>{obsVisible=e.detail?.visible!==false;if(!obsVisible)suspend('OBS source hidden');});
   window.addEventListener('pagehide',()=>interrupt('page unloaded'));
-  async function play(label){
-    if(!known(label)||active||blocked()||!visible())return false;
+  async function start(label,named){
+    if(!enabled||!known(label)||active||blocked()||!visible())return false;
     const definition=incidents[label];
     // A named doorway preview waits for a real ticket holder to clear the usher.
     // A short corridor leg may last less than the usual three-second retry.
-    if(definition?.waitForCast){requested=label;retryAt=performance.now()+250;}
+    if(named&&definition?.waitForCast){requested=label;retryAt=performance.now()+250;}
     const startGeneration=generation;
     if(!definition?.waitForCast||performance.now()-checked>1000)await readPhase();
     if(startGeneration!==generation||active||blocked()||!visible()||!phaseOK())return false;
@@ -288,14 +307,16 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
     const paint=scene?scene.paint:singularity(root,[prize[0]-center[0],prize[1]-center[1]],label==='laser-topography');
     active={kind,label,scene,staging:!!scene?.ready,seconds:definition?.duration??duration[kind],center,z,prize,cast,root,paint,start:performance.now(),t:0,drawn:-1,
       reactions:kind==='black-hole'?cries(document.getElementById('stage')):null};
-    requested=null;
+    requested=null;smallQueue=[];
     if(kind==='black-hole')holesBeforeDance=Math.max(0,holesBeforeDance-1);
     else if(kind==='mirrorball')holesBeforeDance=2+Math.floor(Math.random()*2);
-    else if(label==='horizon-drive'||label==='contact-printer')lastSmall=label;
+    else if(smallEvents.includes(label))lastSmall=label;
     paint(0,motion.matches);
     return true;
   }
+  const play=label=>start(label,true);
   function step(now){
+    if(!enabled)return;
     if(active && now-checked>1000)void readPhase();
     if(!active){
       if(now<retryAt||(!requested&&!timed))return;
@@ -304,13 +325,18 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
         kind=holesBeforeDance===0?'mirrorball':Math.random()<.25?'laser-topography':'black-hole';
         next=now+30000;
       }
-      if(!kind&&(photoBooth||horizon)&&now>=nextSmall){
-        const pickHorizon=horizon&&(!photoBooth||(lastSmall!=='horizon-drive'&&Math.random()<1/3));
-        kind=pickHorizon?'horizon-drive':'contact-printer';
-        // Draw once per opportunity, even if this room lacks the necessary guests.
-        nextSmall=now+smallDelay();
+      let retry=3000;
+      if(!kind&&smallEvents.length){
+        if(now>=nextSmall)drawSmall(now);
+        kind=smallQueue[0];
+        if(kind){
+          // The ticket holder's natural corridor leg is short. Give it a bounded
+          // casting window, then let another story use the slot.
+          if(incidents[kind].waitForCast&&now<castDeadline)retry=250;
+          else smallQueue.shift();
+        }
       }
-      if(kind){retryAt=now+3000;void play(kind).catch(console.error);}
+      if(kind){retryAt=now+retry;void start(kind,!!requested).catch(console.error);}
       return;
     }
     const block=blocked();
@@ -383,7 +409,7 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
     const reaction=active.t-(3.6+active.cast.get(w)*.72);
     return (reaction>=-.48&&reaction<1.48)||(pull>.9&&out<.4);
   }
-  return {step,pose,concealed,play,interrupt,syncGuestTravel,get camera(){return camera;},
+  return {step,pose,concealed,play,interrupt,setEnabled,syncGuestTravel,get camera(){return camera;},
     get actionRect(){
       if(!active)return null;
       const [x,y]=active.center;
@@ -396,6 +422,6 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
       if(active.label==='infinity-foyer'&&active.t>=1.6&&active.t<10.54)return [...toScreen(x-38,y-137),...toScreen(x+89,y+54)];
       return null;
     },
-    status:()=>({event:active?.label||null,queued:requested,staging:!!active?.staging,seconds:active?.t||0,duration:active?.seconds||0,participants:active?.cast.size||0,
-      camera,phase,lastFinished,lastStop,lastEventStop:lastEventStop&&{...lastEventStop},nextIn:requested||timed?Math.max(0,(requested?retryAt:Math.max(retryAt,Math.min(next,photoBooth||horizon?nextSmall:Infinity)))-performance.now())/1000:null})};
+    status:()=>({enabled,event:active?.label||null,queued:requested,staging:!!active?.staging,seconds:active?.t||0,duration:active?.seconds||0,participants:active?.cast.size||0,
+      camera,phase,lastFinished,lastStop,lastEventStop:lastEventStop&&{...lastEventStop},nextIn:enabled&&(requested||timed)?Math.max(0,(requested||smallQueue.length?retryAt:Math.max(retryAt,Math.min(next,smallEvents.length?nextSmall:Infinity)))-performance.now())/1000:null})};
 }

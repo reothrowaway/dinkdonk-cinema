@@ -142,9 +142,9 @@ function plotter(s) {
 }
 const build={'laser-choir':choir,'prism-cathedral':prism,'ribbon-plotter':plotter};
 
-export function createHouseEvents(host, query, { allowed = ids, automatic = query.get('events') === '1' } = {}) {
+export function createHouseEvents(host, query, { allowed = ids, automatic = query.get('events') === '1', enabled = true } = {}) {
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
-  let live=null, reason='', pending=allowed.includes(query.get('event'))?query.get('event'):null;
+  let live=null, reason='', pending=enabled&&allowed.includes(query.get('event'))?query.get('event'):null;
   let sourceVisible=true, sourceActive=true;
   const next=()=>performance.now()+180000+Math.random()*180000;
   let due=pending?performance.now()+2200:next();
@@ -152,8 +152,14 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
     if(live){ live.light.ownerSVGElement.remove(); live.screenLayer?.remove(); live.poses.clear(); live=null; reason=why; }
     due=next();
   }
+  function setEnabled(on) {
+    if(enabled===on)return;
+    enabled=on;
+    if(!enabled){pending=null;stop('disabled');}
+    else due=next();
+  }
   function play(kind) {
-    if(live||!allowed.includes(kind)||!host.ready()||document.hidden||!sourceVisible||!sourceActive)return false;
+    if(!enabled||live||!allowed.includes(kind)||!host.ready()||document.hidden||!sourceVisible||!sourceActive)return false;
     const rows=cast(host,kind); if(!rows)return false;
     const screen=host.screen();
     const layer=overlay(document.getElementById('cam'),1920,1080);
@@ -169,6 +175,7 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
     pending=null;return true;
   }
   function step(now) {
+    if(!enabled)return;
     if(!live){
       if((pending||automatic)&&now>=due){
         if(!play(pending||'laser-choir'))due=now+5000;
@@ -187,8 +194,9 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   window.addEventListener('pagehide',interrupt);
   window.addEventListener('obsSourceVisibleChanged',e=>{sourceVisible=e.detail?.visible!==false;if(!sourceVisible)interrupt();});
   window.addEventListener('obsSourceActiveChanged',e=>{sourceActive=e.detail?.active!==false;if(!sourceActive)interrupt();});
-  return {play,step,stop,interrupt,playing:()=>!!live,pose:w=>live?.poses.get(w),
+  return {play,step,stop,interrupt,setEnabled,playing:()=>!!live,pose:w=>live?.poses.get(w),
     message(m){if(live?.kind==='laser-choir'&&live.t>10&&live.t<13.5&&m?.nick)live.encore=true;},
-    status:()=>({event:live?.kind||null,seconds:live?.t||0,cast:live?.rows.map(row=>row.map(w=>w.nick))||[],
-      encore:!!live?.encore,reduced:!!live?.reduced,lastStop:reason})};
+    status:()=>({enabled,event:live?.kind||null,seconds:live?.t||0,cast:live?.rows.map(row=>row.map(w=>w.nick))||[],
+      encore:!!live?.encore,reduced:!!live?.reduced,lastStop:reason,
+      nextIn:enabled&&(pending||automatic)?Math.max(0,due-performance.now())/1000:null})};
 }

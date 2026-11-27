@@ -115,6 +115,8 @@
   label { color: var(--dim); }
   label > input, label > select { margin-left: 6px; }
   .filter-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 0; margin: 0; border: 0; min-width: 0; }
+  .room-event-toggle { display: inline-flex; align-items: center; gap: 6px; }
+  .room-event-toggle input { min-height: 0; margin: 0; }
   .filter-controls label { display: inline-flex; align-items: center; gap: 6px; }
   .filter-controls input, .filter-controls select { margin: 0; }
   .filter-controls input[type=checkbox] { min-height: 0; }
@@ -325,6 +327,9 @@
                 title="Needs Tampermonkey or Violentmonkey in your browser. Then build your poll on dinkdonk.mov as usual: the movies show up on your lobby's poll screen as you add them">Install your poll script</a>
             </div>
           </div>
+          <div class="grp">
+            <label class="room-event-toggle"><input type="checkbox" data-timed-events="lobby" checked disabled> Timed events</label>
+          </div>
           <div class="grp" data-filter-room="lobby">
             <div class="grp-l">Cinema filters</div>
             <fieldset class="filter-controls" aria-label="Lobby cinema filters" disabled>
@@ -352,6 +357,9 @@
       <section class="card scene-card" id="preshow" hidden>
         <div class="card-h"><h2>Auditorium show</h2><button id="phaseauto" class="tog">Auto: on</button></div>
         <div class="grps">
+          <div class="grp">
+            <label class="room-event-toggle"><input type="checkbox" data-timed-events="auditorium" checked disabled> Timed events</label>
+          </div>
           <div class="grp" data-filter-room="auditorium">
             <div class="grp-l">Cinema filters</div>
             <fieldset class="filter-controls" aria-label="Auditorium cinema filters" disabled>
@@ -655,13 +663,31 @@
   let setValues = { lobby: {}, auditorium: {} };
   let settingsRead = 0;
   let settingsUnavailable = false;
-  const filterCards = [];
+  const roomSettingCards = [];
   let setBuiltFor = '';
   let setScreen = null;   // the shown screen's { settings, urlSettings }
   const setRows = new Map();   // key -> { lab, input, undo, note, def }
   const fmt = (v) => (typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v));
   const optLabel = (def, v) => (def.kind === 'select' ? (def.options.find((o) => String(o[0]) === String(v))?.[1] ?? fmt(v)) : fmt(v));
   const sendSetting = (key, value) => Promise.resolve(send({ cmd: 'setting', key, value })).then(refreshSettings);
+  for (const input of document.querySelectorAll('[data-timed-events]')) {
+    const page = input.dataset.timedEvents;
+    let saving = false;
+    function render() {
+      const def = setSchema?.[page]?.find(d => d.key === 'timedEvents');
+      input.disabled = saving || !def || (page === 'auditorium' && controlVersion < 2);
+      if (!saving) input.checked = setValues[page]?.timedEvents ?? def?.def ?? true;
+    }
+    input.onchange = async () => {
+      saving = true;
+      render();
+      try {
+        await send({ page, cmd: 'setting', key: 'timedEvents', value: input.checked });
+        await refreshSettings();
+      } finally { saving = false; render(); }
+    };
+    roomSettingCards.push(render);
+  }
   for (const group of document.querySelectorAll('[data-filter-room]')) {
     const page = group.dataset.filterRoom;
     const field = group.querySelector('fieldset'), choice = group.querySelector('[data-filter-choice]');
@@ -715,7 +741,7 @@
       return save('filterSeconds', seconds.valueAsNumber);
     };
     seconds.onblur = () => { if (!seconds.checkValidity() || seconds.value === '') seconds.value = setValues[page]?.filterSeconds ?? 30; };
-    filterCards.push(render);
+    roomSettingCards.push(render);
   }
   $('setreset').onclick = () => { if (confirm('Every setting of this scene goes back to the screen links?')) Promise.resolve(send({ cmd: 'settingsReset' })).then(refreshSettings); };
   function buildSettings(page) {
@@ -784,10 +810,10 @@
       if (request !== settingsRead) return;
       settingsUnavailable = true;
       setSchema = null;
-      for (const render of filterCards) render();
+      for (const render of roomSettingCards) render();
       $('setcard').hidden = true; $('lookgrp').hidden = true; return;
     }
-    for (const render of filterCards) render();
+    for (const render of roomSettingCards) render();
     $('setcard').hidden = false;
     if (setBuiltFor !== $('page').value) buildSettings($('page').value); else showSettings();
     showLook();
@@ -854,7 +880,7 @@
     let data;
     try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
     controlVersion = data.controlVersion || 0;
-    for (const render of filterCards) render();
+    for (const render of roomSettingCards) render();
     const page = $('page').value;
     const all = data.screens || [];
     const screens = all.filter((s) => (s.page || 'lobby') === page);

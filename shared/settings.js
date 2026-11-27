@@ -42,6 +42,8 @@ function cinemaFilters(initial) {
   ].map(def => ({ ...def, card: 'filters' }));
 }
 
+const TIMED_EVENTS = { ...bool('timedEvents', 'Timed events', true, 'Director'), card: 'events' };
+
 const SCHEMA = {
   lobby: [
     // the street marquee's letterboard (lobby.html showMarquee): empty = the automatic film text, "-" = a blank line
@@ -51,6 +53,7 @@ const SCHEMA = {
     // lobby (roxy3d/out10t, Brief 104). The page settles it before its art loads and reloads when it changes; ?look=moody (or the old ?look=gamer; the stored value stays 'gamer')
     // is the screen link's default. card: 'lobby' = the panel shows it on its Lobby card, not in Scene settings.
     { ...pick('look', 'Lobby look', [['normal', 'Normal'], ['gamer', 'Moody']], 'normal', 'Look', 'the screens reload their art when it changes'), card: 'lobby' },
+    TIMED_EVENTS,
     ...cinemaFilters('12'),
     BUBSTYLE,
     BUBMODE,
@@ -73,6 +76,7 @@ const SCHEMA = {
     num('mistgain', 'Mist brightness', 0.1, 4, 0.1, 1, 'Weather'),
   ],
   auditorium: [
+    TIMED_EVENTS,
     ...cinemaFilters('1'),
     BUBSTYLE,
     BUBMODE,

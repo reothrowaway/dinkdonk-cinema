@@ -49,12 +49,9 @@ OBS filter on the room's browser source. The auditorium keeps the film cutout al
 
 ### Cinema events
 
-The lobby's timers choose Black Hole Matinee, Mirrorball Ballroom, Contact Printer (the photo booth), and Horizon
-Drive. Sometimes the Black Hole opens with a laser scan. The auditorium's Laser Choir can perform during seating
-and lights-up. Each waits for the real guests it needs. To disable a scene's timers, add `events=0` to its URL.
+The **Timed events** switch on each room’s control-panel card starts on. Switch it off to stop the current show and pause future shows in that room. Switch it on to resume the director’s schedule. The cinema filters have their own controls.
 
-For a single lobby performance, add `event=infinity-foyer` to send a ticket holder to Screen 3 or `event=glyph-cascade`
-to have eight guests spell **PEPE WINS**. Add `events=1` alongside a named preview to resume rotation after it.
+The lobby director chooses Black Hole Matinee, Mirrorball Ballroom, Contact Printer (the photo booth), Horizon Drive, Infinity Foyer and Glyph Cascade. Infinity Foyer follows a guest through the Screen 3 corridor. Glyph Cascade needs eight eligible chatters to spell **PEPE WINS**. The Black Hole sometimes opens with a laser scan. In the auditorium, Laser Choir can run during seating and lights-up.
 
 ### Who shows up
 
