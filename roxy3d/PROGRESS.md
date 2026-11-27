@@ -3481,3 +3481,12 @@ In the final pixel test a real Wowee wearer needed 3.333 CSS pixels of foot padd
 
 All 16,025 entries in the final ZIP matched after extraction (SHA-256 3181851c770b2d08928d5f91697b4df14f163fb8b64cab4f5acc2601f41fc7f4). A fresh packaged auditorium seated 11 real guests, and the lobby showed all eight cards in order. The source smoke saw 91 seated. Both validated the same-origin image read with zero JavaScript exceptions.
 The local scenes and distributed ZIP were published. All 16,029 hosted production files matched the final build’s SHA-256 manifest; the service and chat were healthy, and its same-origin pixel endpoint returned a real PNG. Owner processes were left running.
+
+
+### 27 Nov 2026 – Released scenes, aggressive zooms and auditorium light fades
+
+Measured release a2078454 at 2560 × 1440 on the RTX 3050 Laptop GPU with real chat in a private room. Each scene ran three 1× to 3× round trips and three rapid reversal pairs in portable OBS at 60 and 30 fps and in uncapped Edge. The auditorium also ran two wide-shot fades and all four zoom direction and fade direction combinations per host. All camera and fade checks passed. Camera and opacity moved together for 3.28–3.38 seconds in the twelve combined samples. Lobby counts ranged from 33 to 62 on-screen figures across runs. Auditorium occupancy was 134–135.
+
+The first full lobby close-up peaked at 100 ms at 60 fps, 66.7 ms at 30 fps and 65.7 ms uncapped. The second close peaked at 16.8, 33.5 and 17.1 ms respectively. At 30 fps all auditorium actions averaged 30 fps and the longest frame was 33.5 ms. At 60 fps, wide-shot lights-down and lights-up peaked at 50 and 66.6 ms. Zooming out while dimming was the slowest simultaneous move at 54.1 fps. Uncapped Edge had a 118.2 ms gap on the wide-shot lights-down. OBS skipped zero compositor frames across 14,497 measured frames. This run measured scene rendering without stream encoding. The lobby first close and the auditorium fades at 60 fps remain open performance findings.
+
+The QA OBS process was closed after the two capped passes. The owner saw Windows private/public network prompts when QA used a new portable executable path. AGENTS.md now calls for stable executable paths across runs. The extra Moody lobby pass was dropped. Frame-by-frame measurements, camera and fade endpoints, and per-action tables are local under roxy3d/qa-night/perf-live-27nov/results.md. The released scenes and the owner’s services required no changes.

@@ -159,6 +159,8 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
 - The owner's OBS browser sources run at a steady 30 fps on purpose (style). Never suggest changing that. Test at 60 (the
   stricter test), confirm at 30 in the portable QA OBS, and add an uncapped leg (no fps limit) to every perf pass.
   Report all three.
+- Keep QA runs free of Windows private/public network access prompts. Reuse the established portable OBS and browser
+  helper executable paths across runs. Keep run-specific configurations and measurements separate from the binaries.
 - During performance checks, repeatedly zoom from a wide shot to a tight close-up and back in both rooms. In the
   auditorium, also measure the lights going down and coming up, including zooms during the fades. Report frame
   timing during the moves and fades separately from the settled-room baseline.
