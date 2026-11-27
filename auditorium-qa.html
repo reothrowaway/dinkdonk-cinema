@@ -2432,6 +2432,7 @@
   // Never blocks anyone (and isn't blocked); leaves when the lights come up.
   let usher = null;
   let usherDue = 0;
+  let lastRowGuide = -Infinity;
   const guests = () => walkers.size - jannies.size - (usher ? 1 : 0) - crewCount();   // (crew: the hall-life staff below)
   function addUsher() {
     const w = makeWalker({ nick: 'usher', emote: Cinema.defaultEmote('roxy-usher'), color: '#fff' });   // the lobby usher's emote
@@ -2453,6 +2454,9 @@
   function usherNext(w) {
     w.sweep = null;
     if (w.leaving || !dark()) { usherLeave(w); return; }
+    const finishedGuide = w.task === 'guide';
+    w.task = null;
+    if (!finishedGuide && guideLateGuest(w)) return;
     if (w.queued) {
       const t = w.queued;
       w.queued = null;
@@ -2465,7 +2469,6 @@
       t.spotBy = null;
       if (walkers.get(t.key) === t && t.sitting && !t.out) { spotVisit(w, t); return; }
     }
-    w.task = null;
     w.pace = 0.7;   // a slow patrol
     if (Math.random() < 0.45) {
       // up a stair aisle to a row, shine along it, back down
@@ -2488,10 +2491,49 @@
       });
     }
   }
+  // Meet an arriving guest at the aisle. Their assigned seat and ordinary walk-in route stay theirs.
+  function guideLateGuest(u) {
+    const now = performance.now();
+    if (!HALL_ON || houseOut || now - lastRowGuide < 55000) return false;
+    // Pick a guest still coming through the entrance so the usher can reach the row first.
+    const g = [...walkers.values()].find(w => w.late && !w.sorry && !w.guided && !w.sitting && !w.out && !w.leaving &&
+      w.seat && !w.pendingSeat && w.seg <= CORRIDOR.length && w.seg < w.path.length - 3);
+    if (!g) return false;
+    const seat = g.seat, aisleU = seat.block === 'right' ? 15.15 : 3.475;
+    const there = [[...u.pos], ...aisleTo(seat.row, seat.block, aisleU).slice(0, -1)];
+    g.guided = true;
+    lastRowGuide = now;
+    u.task = 'guide';
+    u.pace = 1.35;
+    u.round = {out: there};
+    function atRow() {
+      const valid = walkers.get(g.key) === g && g.seat === seat && !g.out && !g.leaving &&
+        !g.sitting && dark() && !houseOut && !u.leaving && performance.now() - now < 60000;
+      if (!valid) {
+        u.guideSeat = null;
+        u.guideGuest = null;
+        u.round = null;
+        go(u, [...there].reverse(), usherNext);
+        return;
+      }
+      // Only point once the arrival is in sight of this row. Keep the beam below seated faces.
+      if (!u.guideSeat && Math.abs(g.pos[0] - aisleU) < 1.2 && Math.abs(g.pos[1] - seat.v) < 2.5) {
+        u.guideSeat = seat;
+        u.guideGuest = g;
+        g.nameT = 4;
+        floatAt(u, 'This way · row ' + seat.row.name, '#ffe3a9', 23);
+      }
+      hold(u, .4, atRow);
+    }
+    go(u, there, atRow);
+    return true;
+  }
   // a talker needs a visit: break off the look round, back to the cross-aisle the way it came, and go
   function usherRecall(u) {
     const r = u.round;
     if (!r) return;   // coming in, heading back already, or busy: the visit waits for usherNext
+    u.guideSeat = null;
+    u.guideGuest = null;
     u.round = null;
     u.sweep = null;
     u.wait = 0;
@@ -2499,6 +2541,8 @@
     go(u, [[...u.pos], ...[...walked].reverse()], usherNext);
   }
   function usherLeave(w) {
+    w.guideSeat = null;
+    w.guideGuest = null;
     w.leaving = true;
     w.round = null;
     w.sweep = null;
@@ -2524,6 +2568,7 @@
     if (!u || u.leaving || !u.seen || !dark() || w.out || w.spotBy || u.spotQ) return;
     u.spotQ = w;   // next in line after a visit, shush or kick in progress
     w.spotBy = u;
+    if (u.task === 'guide') return;   // finish showing the row before visiting an ordinary talker
     if (!u.task) u.pace = 1;   // on its way back from a round: hurries
     usherRecall(u);
   }
@@ -2569,6 +2614,14 @@
         const [sx, sy] = P(...s.pos);
         t = [sx, sy - s.emH * (s.sitting ? SIT_SCALE : 1) * 0.55];
         w.wait = Math.max(w.wait || 0, 0.05);   // stops to shine on them
+      } else if (w.guideSeat && w.guideGuest?.seat === w.guideSeat && !w.guideGuest.sitting && !w.guideGuest.out) {
+        const seat = w.guideSeat;
+        // Walk the light along the legroom one step ahead, then pick out the empty cushion.
+        const inRow = w.guideGuest.seg >= w.guideGuest.path.length - 2;
+        const fromU = inRow ? w.guideGuest.pos[0] : w.pos[0];
+        const remaining = seat.u - fromU;
+        t = inRow && Math.abs(remaining) <= 1.3 ? P(seat.u, seat.v + SIT_DV, seat.z + SIT_Z)
+          : P(fromU + clamp(remaining, -1.3, 1.3), seat.v - LEG_DV, seat.z);
       } else if (w.sweep) {
         const sw = w.sweep, k = 0.5 - 0.5 * Math.cos((now - sw.t0) / 1000 * 0.9);
         t = P(sw.u0 + (sw.u1 - sw.u0) * k, sw.row.v + SIT_DV, sw.row.z + SIT_Z + 36);

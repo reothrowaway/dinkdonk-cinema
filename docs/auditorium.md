@@ -360,6 +360,8 @@ cross-aisle (`usherNext()`). A seated chatter who talks in the dark gets a visit
 the time (`kick`) they are walked out. Shushes go to the usher when no janny is on duty. The usher never blocks
 anyone and leaves when the lights come up. The beam is an SVG in `#names` (`updateBeam()`).
 
+During a dark-house patrol the usher can meet a late arrival at their assigned row. The usher lights the legroom, calls out the row and points to the empty cushion as the guest turns into the row. The guest follows their usual seating route. The usher then returns to the cross-aisle for queued duties. This runs with hall life enabled.
+
 **Everyone leaves** (`stepHouseOut()`). Seated guests stand up one at a time (every 0.35-0.9 s) and walk out the way
 they came, except that the middle block splits at its centre (`exitRoute()`, owner 15 Nov 2026): its left half goes
 down the left stair aisle, its right half down the right stairs and along the cross-aisle to the exit. That holds for
