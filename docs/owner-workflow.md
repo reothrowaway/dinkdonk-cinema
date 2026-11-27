@@ -61,6 +61,8 @@ In the auditorium, Laser Choir performs during seating or lights-up, the aisle v
 
 The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk sessions in your time zone or the published cinema time zone. Choose **Save .ics** beside a session or download the whole upcoming schedule. Untitled slots retain their published start and end times.
 
+Open **Projection booth** from the guide to practice a 35 mm reel change. Guided mode holds each cue. In timed mode the upper-right dot appears for four frames at 24 fps. Press **M** to start the incoming motor and **C** to change projectors, or use the two buttons. Leaving the tab pauses the reel.
+
 In a server running the experimental branch, open `/concepts/ticket-counter/index.html` to make a souvenir PNG for a screening from the DinkDonk watch log. Pick the title and screening time, then choose **Save ticket PNG**. Each stub uses the screening's watch-log number and New York time. Choose **Stamp passport** for a screening you attended. Your browser keeps one stamp per screening. You can remove individual stamps or print the collection.
 
 Play **Which came out first?** at `/concepts/preshow-quiz/index.html` before the film. Pick a title to guess or click **Reveal years** to let chat guess aloud. **Next pair** deals two more films from the watch log. You can open the page separately or add its URL as an OBS browser source and use **Interact**.

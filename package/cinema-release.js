@@ -13,6 +13,7 @@ const extrasFiles = [
   'ticket-counter/index.html', 'ticket-counter/ticket.js',
   'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js',
   'cinema-guide/index.html', 'cinema-guide/guide.js',
+  'projection-booth/index.html', 'projection-booth/booth.js',
 ].map(file => 'concepts/' + file);
 
 const looksDir = 'concepts/vaporwave/';

@@ -3543,3 +3543,9 @@ Package QA: the reserved port became available. Fresh shared rooms from builds d
 DOC NYC's festival rush line inspired a 15-second house update on the existing street letterboard. The second line uses the auditorium’s seat assignments and waiting count, with separate messages during lights down, the feature and house clearing. Operator text and the deliberate blank take precedence, and stale, sleeping or unavailable rooms fall back to the film information.
 
 Checked the staged lobby with real chat. One read-only room snapshot put 161 on standby. An independent fresh package on port 18788 showed 112 unassigned seats. Both kept Gosford Park on line one. Verified manual text, blank, unavailable data, stale data and the phase messages. The previous calendar build also passed its fresh-room check with 20 release files served byte for byte and a real guest seated. No page errors.
+
+### 27 Nov 2026 — Projection booth practice (experimental branch)
+
+Milwaukee Film's projection booth demonstration and the Broadway Cinema in Prestwick's changeover notes informed the two-projector exercise. The guide opens a self-contained optical test card. Start the incoming motor at the first cue and change over at the second. The guided run holds each mark. The timed run uses four-frame cues at 24 fps, seven seconds apart, and reports the operator's response times. A successful switch reverses the projector roles for the next run.
+
+The offline preview passed guided and timed runs, early and missed cues, keyboard and buttons, hidden-tab pause and resume, 360 px layout and round-trip guide navigation. The timing check measured the cue window independently with a controlled browser clock. This extra uses no room connection.
