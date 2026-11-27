@@ -3517,3 +3517,9 @@ Checked both experimental auditorium pages against the real feed. Gosford Park d
 The Viennale's shared-umbrella festival photo, SIFF's rainy queue at the Egyptian, and a commuter's account of being offered shelter informed the action. Two actual guests move along public pavement. A native gust inverts one canopy. Its owner walks under the other umbrella, then reopens their own and leaves. Automatic rotation and the control panel can both cue this event.
 
 The reviewer found the first take crowded. The director now selects the clearest of five sidewalk spots and settles before the gust. In the 29.9-second revised take, the red canopy inverts at 15.5–17.5 seconds. Two faces are visible under the same canopy at 25.5–26.5 seconds and the pair separates by 28 seconds. Passing traffic briefly hides the smaller gestures. Verified on real chat with zero missing local assets or scene errors. A Wide cue during reduced-motion playback restored both umbrellas and ended the event. Full recording is audit/feature-night/shared-umbrella.mp4.
+
+### 27 Nov 2026 · Screening passport at the ticket counter
+
+Seattle International Film Festival's venue stamping stations and Alamo's movie book club passports inspired a local screening collection. Each saved stamp includes a watch-log screening ID, film title and New York screening date. Stamps are sorted by screening time. Printing shows only the passport. A browser that disables storage keeps stamps for the current visit.
+
+Verified with the actual 200-entry watch log in headless Chromium. Two tabs added distinct stamps, duplicates were disabled, removal propagated and remained available during a feed outage. Reload, 360 px layout, print styling, existing ticket PNG download, blocked storage and the portable offline preview all passed. Private interactive preview and screenshot are in audit/feature-night.

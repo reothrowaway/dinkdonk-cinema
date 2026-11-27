@@ -25,6 +25,29 @@
   :focus-visible { outline: 3px solid #fff; outline-offset: 3px }
   #status { color: #e2dfd1; margin: 12px 0 }
   #status:empty { margin: 0 }
+  #passport { margin-top: 32px; padding: 24px; color: #303c32; background: #f1e6c8; border-radius: 3px; }
+  .passport-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid #89927e; padding-bottom: 14px }
+  #passport h2 { font: normal clamp(26px, 5vw, 36px)/1.1 Georgia, serif; margin: 0 }
+  #passport button { background: transparent; color: #334a3d; border-color: #627763 }
+  #passport :focus-visible { outline-color: #275244 }
+  #passport-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 18px; list-style: none; padding: 0; margin: 20px 0 }
+  #passport-list:empty { display: none }
+  .stamp { display: grid; align-content: center; gap: 7px; min-height: 118px; padding: 12px; text-align: center; color: #405e4e; border: 3px double currentColor; border-radius: 22px 5px }
+  .stamp:nth-child(3n + 2) { color: #854733; border-radius: 5px 22px }
+  .stamp:nth-child(3n) { color: #405877; border-radius: 20px }
+  .stamp strong { font: bold 20px/1.12 Georgia, serif; overflow-wrap: anywhere }
+  .stamp small, #passport-count { font: bold 12px/1.35 'Courier New', monospace }
+  #passport .stamp button { justify-self: center; min-height: 32px; padding: 1px 8px; border: 0; font-size: 12px; text-decoration: underline; }
+  #passport-note { margin: 12px 0 0 }
+  @media print {
+    :root, body, #passport { color: #111; background: white }
+    main { width: auto; padding: 0 }
+    main > :not(#passport), #passport button, #passport-note { display: none }
+    #passport { margin: 0; padding: 0 }
+    #passport-list { grid-template-columns: repeat(3, 1fr) }
+    .stamp { break-inside: avoid }
+    .passport-head::before { content: "DinkDonk Cinema"; font: bold 14px Georgia, serif }
+  }
 </style>
 </head>
 <body><main>
@@ -33,9 +56,15 @@
   <div class="controls">
     <label>Screening<select id="screenings" disabled></select></label>
     <button id="save" type="button" disabled>Save ticket PNG</button>
+    <button id="stamp" type="button" disabled>Stamp passport</button>
     <button id="retry" type="button" hidden>Try again</button>
   </div>
   <p id="status" role="status">Opening the watch log…</p>
+  <section id="passport" aria-labelledby="passport-heading">
+    <div class="passport-head"><h2 id="passport-heading">Screening passport</h2>
+      <span id="passport-count"></span><button id="print-passport" type="button" hidden>Print passport</button></div>
+    <ul id="passport-list"></ul><p id="passport-note" role="status"></p>
+  </section>
 </main>
 <script src="./ticket.js"></script>
 </body></html>

@@ -12,6 +12,89 @@ const timeFormat = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
 });
 let films = [];
+const passport = createPassport();
+
+function createPassport() {
+  const prefix = 'dinkdonk:passport:v1:';
+  const stamps = new Map();
+  const button = document.getElementById('stamp');
+  const list = document.getElementById('passport-list');
+  const print = document.getElementById('print-passport');
+  const note = document.getElementById('passport-note');
+  let selected = null, persistent = true;
+
+  function readSaved() {
+    try {
+      const stored = new Map();
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith(prefix)) continue;
+        let stamp;
+        try { stamp = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+        if (!Number.isSafeInteger(stamp?.id) || key !== prefix + stamp.id || typeof stamp.title !== 'string' || !stamp.title.trim()) continue;
+        stored.set(stamp.id, stamp);
+      }
+      stamps.clear();
+      for (const [id, stamp] of stored) stamps.set(id, stamp);
+    } catch { persistent = false; }
+  }
+  function syncButton() {
+    const saved = selected && stamps.has(selected.id);
+    button.disabled = !selected || !!saved;
+    button.textContent = saved ? 'Stamped' : 'Stamp passport';
+  }
+  function render() {
+    const sorted = [...stamps.values()].sort((a, b) => (b.watchedTs || 0) - (a.watchedTs || 0) || b.id - a.id);
+    const items = sorted.map(stamp => {
+      const item = document.createElement('li');
+      item.className = 'stamp';
+      const date = document.createElement('small'), title = document.createElement('strong'), serial = document.createElement('small');
+      date.textContent = Number.isFinite(stamp.watchedTs) && Number.isFinite(new Date(stamp.watchedTs).getTime())
+        ? dateFormat.format(stamp.watchedTs).toUpperCase() : 'DATE UNLISTED';
+      title.textContent = stamp.title;
+      serial.textContent = 'No. ' + String(stamp.id).padStart(6, '0');
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = 'Remove';
+      remove.setAttribute('aria-label', 'Remove stamp for ' + stamp.title + ', ' + serial.textContent);
+      remove.addEventListener('click', () => {
+        stamps.delete(stamp.id);
+        if (persistent) {
+          try { localStorage.removeItem(prefix + stamp.id); } catch { persistent = false; }
+        }
+        render();
+        (list.querySelector('button') || (button.disabled ? screenings : button)).focus();
+      });
+      item.append(date, title, serial, remove);
+      return item;
+    });
+    list.replaceChildren(...items);
+    document.getElementById('passport-count').textContent = sorted.length + (sorted.length === 1 ? ' stamp' : ' stamps');
+    print.hidden = !sorted.length;
+    note.textContent = !persistent ? 'Browser storage is unavailable. Your stamps last for this visit.'
+      : sorted.length ? 'Saved in this browser.' : 'Select a screening you attended, then stamp your passport.';
+    syncButton();
+  }
+  button.addEventListener('click', () => {
+    if (!selected || stamps.has(selected.id)) return;
+    const id = selected.id;
+    const stamp = {id, title: selected.title, watchedTs: selected.watchedTs};
+    stamps.set(id, stamp);
+    if (persistent) {
+      try {
+        localStorage.setItem(prefix + id, JSON.stringify(stamp));
+      } catch { persistent = false; }
+    }
+    render();
+  });
+  window.addEventListener('storage', event => {
+    if (persistent && (event.key === null || event.key.startsWith(prefix))) { readSaved(); render(); }
+  });
+  print.addEventListener('click', () => window.print());
+  readSaved();
+  render();
+  return {select(film) { selected = film; syncButton(); }};
+}
 
 function screeningTime(film) {
   if (!Number.isFinite(film.watchedTs)) return 'Time unlisted';
@@ -86,6 +169,7 @@ function drawTicket(film) {
   g.restore();
   ticket.setAttribute('aria-label', film.title + ', ' + screeningTime(film) + ', ticket ' + serial);
   ticket.hidden = false;
+  passport.select(film);
 }
 
 async function load() {
