@@ -73,6 +73,8 @@ Play **Which came out first?** at `/concepts/preshow-quiz/index.html` before the
 
 ### Who shows up
 
+Open **Seating plan** in the control panel's Room card to find a chatter by name or inspect any seat. The chart uses the auditorium's actual rows and aisle gaps. Seats are counted from the left within each block, facing the screen. The room assigns seats before guests finish walking to them. Use the arrow keys to move between seats and Enter to select one. The chart refreshes while it is open.
+
 By default only chatters who tag the streamer's DGG name walk in. `everyone=1` lets all chatters in. When the owner
 is shown a scene (a screenshot or a link), it is always with `everyone=1` and real chat, never the scripted
 `demo=1`.

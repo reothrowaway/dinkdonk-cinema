@@ -14,6 +14,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cinema control</title>
+<link rel="stylesheet" href="./concepts/seating-plan/plan.css">
+<script defer src="./concepts/seating-plan/plan.js"></script>
 <style>
   :root {
     color-scheme: dark;
@@ -296,7 +298,7 @@
   <section class="now" id="now" aria-label="Now">
     <h2 class="now-h">Now</h2>
     <div class="tiles">
-      <div class="tile tile-room" id="roomcard" hidden><div class="tile-l">Room</div><div id="roomstate"></div></div>
+      <div class="tile tile-room" id="roomcard" hidden><div class="tile-l">Room</div><div id="roomstate"></div><button id="open-seating-plan" type="button">Seating plan</button></div>
       <div class="tile"><div class="tile-l">Camera</div><div class="val" id="dirstate"></div></div>
       <div class="tile lobby-only"><div class="tile-l">Poll</div><div class="val" id="pollstate"></div></div>
       <div class="tile aud-only"><div class="tile-l">Show</div><div class="val" id="phasestate"></div></div>
@@ -1255,5 +1257,16 @@
   }
 })();
 </script>
+<dialog id="seating-plan" aria-labelledby="plan-heading">
+  <header><h2 id="plan-heading">Auditorium seating plan</h2><form method="dialog"><button type="submit">Close</button></form></header>
+  <label for="plan-name">Find a chatter</label>
+  <input id="plan-name" type="search" list="plan-names" placeholder="Chatter name" autocomplete="off" maxlength="40">
+  <datalist id="plan-names"></datalist>
+  <p id="plan-selection" role="status">Select a seat or enter a name.</p>
+  <p class="plan-screen">Screen</p>
+  <div id="plan-rows" role="group" aria-label="Auditorium seats"></div>
+  <p class="plan-legend"><span class="plan-assigned">Assigned</span><span class="plan-free">Unassigned</span></p>
+  <p id="plan-count"></p><p id="plan-status" role="status"></p>
+</dialog>
 </body>
 </html>

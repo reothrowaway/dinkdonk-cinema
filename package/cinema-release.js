@@ -14,6 +14,7 @@ const extrasFiles = [
   'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js',
   'cinema-guide/index.html', 'cinema-guide/guide.js',
   'double-bill/index.html', 'double-bill/bill.js',
+  'seating-plan/plan.js', 'seating-plan/plan.css',
   'projection-booth/index.html', 'projection-booth/booth.js',
 ].map(file => 'concepts/' + file);
 

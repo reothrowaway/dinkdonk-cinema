@@ -3575,3 +3575,9 @@ Packaged Dish Night on 6c6f9d15d1: a fresh room's first manual cue timed out wai
 The cinema guide opens a printable two-film program inspired by the New Beverly's repertory double bills (https://thenewbev.com/about/). Programmers can select the opener and closer, swap the order, or find two different watch-log films that share a published genre or release year. The full running time includes the chosen intermission when both features have a listed runtime.
 
 Checked 173 distinct films from 200 watch-log rows in a headless browser. Gosford Park plus Heart of the Beast shared Thriller and ran 4h 9m with a ten-minute break. Checked repeated screenings, incomplete metadata, stale and failed feeds, retry, alternate suggestions, a long title at 360px, and a one-page A4 print. An offline preview also opens through the guide. Branch only.
+
+### 27 Nov 2026 — Experimental operator seating plan
+
+The Room card opens a read-only chart built from the same auditorium layout as the room allocator. Search for a chatter to find their assignment or waiting status, or pick a cushion by pointer or arrow key. The chart preserves the aisle gaps and missing seats in rows C through E. Refreshes stop while the chart is closed or its tab is hidden.
+
+Tested the control panel with a real snapshot of 135 assigned seats and 270 waiting chatters. Verified assigned and waiting name searches, keyboard selection across rows, focus restoration, recovery after a failed refresh, draft 13 layout fallback, and the phone layout. The offline proof includes only the seat locations and public display names. Inspired by Forum Theatre's seating plan (https://www.forumtheatrebillingham.co.uk/seating-plan/) and moviegoers describing missing aisles on booking charts. Branch only.
