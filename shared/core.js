@@ -796,7 +796,7 @@
 
   window.SB = {
     cfg, on, emit, start, mountStage, fitCanvas, mountChat, command, stats, ...api,
-    emoteEl, emoteSize, emoteFacing, faceEmote, loadSleep, sleepInfo, sleepEmote, drawSleepLids, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
+    emoteEl, emoteSize, emoteFacing, emoteBackgroundRect: bgRect, faceEmote, loadSleep, sleepInfo, sleepEmote, drawSleepLids, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
     rand, pick, get status() { return status; }, get emotes() { return emotes; }, get view() { return stage.view; }, W, H,
     // For testing from the console: SB.say('someone', '!claw')
     say: (nick, data, features = []) => handleFrame(`MSG ${JSON.stringify({ nick, data, features })}`),

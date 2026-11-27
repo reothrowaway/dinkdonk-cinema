@@ -8074,11 +8074,13 @@ void main() {
     Promise.all([
       import('./concepts/cinema-mods/lobby-events.js'),
       import('./concepts/cinema-mods/incidents/paper-stage.js'),
-      import('./concepts/cinema-mods/incidents/sidewalk.js')
-    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }]) => {
+      import('./concepts/cinema-mods/incidents/sidewalk.js'),
+      import('./concepts/cinema-mods/incidents/marquee-photo.js')
+    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }]) => {
       const incidents = {
         ...nativeIncidents,
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
+        'marquee-photo': marqueePhoto,
         ...lobbyLifeIncidents,
       };
       lobbyEvents = createLobbyEvents({
