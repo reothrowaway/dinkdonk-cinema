@@ -179,6 +179,19 @@
      filter in the lit room; in the dark it shows its dark picture (.dk), also without a filter. The third rule is the
      dark look relative to the lit picture (.42 / .9, .8 / .9), for a baked piece whose dark picture is not there. */
   .litter { position: absolute; pointer-events: none; transition: opacity 2s; }
+  .lost-glasses { position: absolute; width: 32px; height: 12px; pointer-events: none; color: #f1ae5c;
+    background: linear-gradient(currentColor,currentColor) center 3px / 8px 3px no-repeat; }
+  .lost-glasses::before, .lost-glasses::after { content: ''; position: absolute; top: 0; width: 10px; height: 7px;
+    border: 3px solid currentColor; border-radius: 4px 4px 7px 7px; background: #293541; }
+  .lost-glasses::before { left: 0; } .lost-glasses::after { right: 0; }
+  .lost-glasses.in-hand { left: 8px; top: -36px; transform: rotate(-8deg); animation: show-found-glasses 3s ease-in-out; }
+  .lost-tag { position: absolute; bottom: 12px; left: 10px; padding: 2px 5px; color: #302a21; background: #f1ddad;
+    font: bold 14px/1 monospace; white-space: nowrap; border-left: 2px solid #ac7950; }
+  @keyframes show-found-glasses {
+    0%, 100% { transform: rotate(-8deg); }
+    18%, 78% { transform: translateY(-18px) rotate(-4deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .lost-glasses.in-hand { animation: none; } }
   .litter:not(.baked) { filter: brightness(.9) saturate(.9); }
   .lights-down .litter:not(.baked) { filter: brightness(.42) saturate(.8); }
   .lights-down .litter.baked:not(.dk) { filter: brightness(.4667) saturate(.8889); }
@@ -2261,10 +2274,13 @@
       ? (x) => { floatAt(x, 'DINK DONK!', '#ffe27a'); go(x, [[...x.pos], [15.0, cross[1], 24], [...cross]], crewOut); }
       : (x) => { x.bounce = 1; floatAt(x, '\u{1F3AC} roll it!', '#ffe27a'); hold(x, 2.5, crewOut); };
   }
+  let cleanupGeneration = 0;
   function startCleanup() {
+    const generation = ++cleanupGeneration;
     hall.cleaning = true;
     const cross = L.walk_route.rear_portal_to_cross_aisle.at(-1);
     [0, 1].forEach((k) => setTimeout(() => {
+      if (generation !== cleanupGeneration) return;
       const w = crewWalker(`mop${k}`, null, { mop: true });
       if (!w) return;
       w.mopping = true;
@@ -2281,11 +2297,43 @@
       };
     }, k * 2500));
   }
+  // Leave one pair in the legroom of a vacated seat on the crew's actual sweep route.
+  // Keep the same prop on the cleaner's hand from pickup to the exit.
+  let lostProperty = null;
+  function clearLostProperty() {
+    lostProperty?.el.remove();
+    lostProperty = null;
+  }
+  function leaveGlasses(seat) {
+    if (!HALL_ON || lostProperty || !seat || seat.block !== 'main' || dark()) return;
+    const v = seat.v - LEG_DV;
+    const [x, y] = P(seat.u, v, seat.z);
+    const el = h('div', 'lost-glasses');
+    Object.assign(el.style, { left: (x - 16) + 'px', top: (y - 7) + 'px', transform: 'rotate(-12deg)',
+      zIndex: String(layers ? depthZ(seat.u, v, seat.z) : Math.round((seat.u + v) * 100) + 5) });
+    world.append(el);
+    lostProperty = { el, u: seat.u, v, row: seat.row, collected: false };
+  }
+  function collectGlasses(w) {
+    const item = lostProperty;
+    if (!item || item.collected || Math.abs(w.pos[0] - item.u) > .48 ||
+        Math.abs(w.pos[1] - item.v) > .32 || Math.abs(w.pos[2] - item.row.z) > 2) return;
+    item.collected = true;
+    item.el.removeAttribute('style');
+    item.el.classList.add('in-hand');
+    item.el.append(h('span', 'lost-tag', 'ROW ' + item.row.name));
+    w.bod.append(item.el);
+    w.wait = 3;
+    floatAt(w, 'Found glasses · row ' + item.row.name, '#ffdeaa', 23);
+  }
   function stepHallLife(now) {
     if (!HALL_ON || !L) return;
+    if (!houseOut && lostProperty) clearLostProperty();
     // litter goes where a mop passes (every frame: two mops, a few dozen pieces)
     for (const w of crewSet) {
-      if (!w.mopping || !litterList) continue;
+      if (!w.mopping) continue;
+      if (lostProperty && !lostProperty.collected) collectGlasses(w);
+      if (!litterList) continue;
       for (let i = 0; i < litterEls.length; i++) {
         const el = litterEls[i], pc = litterList[i];
         if (el.swept || !pc) continue;
@@ -2304,7 +2352,8 @@
     if (hall.lastPhase !== null && show.phase === 'film' && hall.lastPhase !== 'film') setTimeout(() => sendConductor(false), 2500);
     hall.lastPhase = show.phase;
     // A17 clean-up once the hall is empty
-    if (houseOut && !hall.cleaning && guests() === 0 && litterEls.some((el) => !el.swept)) startCleanup();
+    if (houseOut && !hall.cleaning && guests() === 0 &&
+        ((lostProperty && !lostProperty.collected) || litterEls.some((el) => !el.swept))) startCleanup();
   }
   SB.on('combo', ({ emote, count }) => {
     if (!HALL_ON || emote !== 'DinkDonk' || count < 3 || count % 3 || show.phase !== 'film') return;
@@ -2320,6 +2369,7 @@
     const seated = [...walkers.values()].filter((w) => w.sitting && !w.out && !w.jan && !w.usher && !w.leaving);
     if (!seated.length) return;
     const w = seated[Math.floor(Math.random() * seated.length)];
+    leaveGlasses(w.seat);
     w.leaving = true;
     doze(w, false);
     w.pending.length = 0;
@@ -3481,6 +3531,9 @@
     }
   }
   function resetHall() {
+    clearLostProperty();
+    cleanupGeneration++;
+    hall.cleaning = false;
     preshowEvents?.interrupt();
     houseOut = false;
     show.fullAt = 0;   // a reset also sweeps the litter (the room does the same)

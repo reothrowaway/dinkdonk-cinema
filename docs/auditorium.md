@@ -320,6 +320,8 @@ Results are kept in `localStorage` for a week per release name; a failed lookup 
 
 ## Staff: jannies and the usher
 
+On the experimental branch, in either auditorium page, **Everyone leaves** can start a lost-and-found pickup. During Seating or Lights up, the first departing guest from the center block leaves a pair of glasses in the legroom. After the last guest exits, the ordinary cleanup crew follows its row routes. The cleaner who reaches the glasses picks them up, tags them with the row letter and carries them out. Canceling the walkout clears the prop. This runs as part of the walkout and cleanup, including on a clean floor.
+
 **Jannies (DGG moderators)** (lines 1020-1121). Any chat message from a user with the `moderator` feature, tagged or
 not, brings a `cpMOP` penguin wearing their name in through the entrance (`onModMessage()`, `addJanny()`). If the mod
 was already seated as a chatter, that figure is removed. Up to 6 jannies, one per front-floor spot (`JAN_U`, `JAN_V`
