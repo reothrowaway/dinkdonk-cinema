@@ -3499,3 +3499,9 @@ Checked reachability for all 104 center-block seats across eight rows. A reset c
 A lobby guest takes an instant photo of one or two real guests outside. Staff photos at the Roxy Regional Theatre and a movie-theater employee discussion about marquee photos informed the scene. The named preview, automatic rotation and Run event control share the same cast and phase checks. The experimental event screening room lists the named previews.
 
 Verified the control panel's one-shot button with Auto off using isolated command transport. The second reviewer found the first printed sprites still moving. The revised print draws each portrait onto its own canvas. The 25-second solo take holds the guest's pose at 19.5–22.2 seconds. The three-person take shows two separate portraits at 22–23 seconds and clears by 25.3 seconds. Both completed with real chat and zero scene errors or missing local assets. Private QA videos are in audit/feature-night. The two guests in the group take used similar emotes.
+
+### 27 Nov 2026 · Projected watch-log trivia
+
+Inspired by National CineMedia's Noovie theatrical trivia and audience recollections of pre-show slides, the auditorium projects a question from the same deduplicated deck as the standalone game. The projector gives eight seconds to guess, then eight to read both years and the marked answer. Auto skips unavailable pairs. The film override clears the question; an operator's held slide stays held.
+
+Real-chat checks of both experimental auditorium entry points showed the correct earlier release, kept the same two titles through the reveal, handed the screen over to Film and held Audience for a full rotation interval. Neither run reported script errors or missing local assets. Screenshots are in audit/feature-night.

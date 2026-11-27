@@ -69,7 +69,7 @@ for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-serve
 copyTree(path.join(STANDBY, 'shared'), path.join(SCREENS, 'shared'));
 copyTree(path.join(STANDBY, 'assets'), path.join(SCREENS, 'assets'));
 for (const file of eventFiles) copy(path.join(STANDBY, file), path.join(SCREENS, file));
-for (const f of ['ticket-counter/index.html', 'ticket-counter/ticket.js', 'preshow-quiz/index.html', 'preshow-quiz/quiz.js']) {
+for (const f of ['ticket-counter/index.html', 'ticket-counter/ticket.js', 'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js']) {
   copy(path.join(STANDBY, 'concepts', f), path.join(SCREENS, 'concepts', f));
 }
 copy(path.join(STANDBY, shaderFile), path.join(SCREENS, shaderFile)); // the running OBS bridge reads its own copy

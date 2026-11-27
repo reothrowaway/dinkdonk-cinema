@@ -73,6 +73,12 @@
     flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;
     opacity: 0; transition: opacity .8s; text-shadow: 0 0 3px #d8c39444; }
   .ps-slide.active { opacity: 1; }
+  #ps-quiz { gap: 15px; padding: 32px 46px; }
+  #ps-quiz h2 { font-size: 60px; }
+  #ps-quiz p { width: 100%; font-size: 48px; font-weight: 600; line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; }
+  #ps-quiz p.earlier { color: #ffd285; }
+  #ps-quiz .earlier::before { content: "✓ "; }
+  #ps-quiz .long-title { font-size: 36px; }
   .ps-small { font-size: 26px; letter-spacing: .16em; text-transform: uppercase; }
   .ps-slide h2 { margin: 0; font-size: 72px; font-weight: 500; line-height: 1.08; }
   .ps-slide p { margin: 0; font-size: 34px; line-height: 1.25; }
@@ -318,6 +324,9 @@
         </div>
         <div class="ps-small">Thank you for your patience</div></div>
       <div class="ps-slide"><div class="ps-small">In the audience</div><div id="ps-audience"><div id="ps-credits"></div></div></div>
+      <div class="ps-slide" id="ps-quiz"><h2>Which came out first?</h2>
+        <p></p><span aria-hidden="true">◆</span><p></p>
+      </div>
       <div id="ps-pops"></div>
     </div>
   </div>
@@ -329,6 +338,7 @@
 <script>window.DD_ROOM_PAGE = 'auditorium';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
+<script src="concepts/preshow-quiz/deck.js"></script>
 <script src="shared/live.js"></script>
 <script src="shared/aud-shots.js"></script>
 <script>
@@ -469,6 +479,7 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    if (green && show.slide === SLIDES.length) showSlide(0);
     holdSlide();
     $('screenq').style.display = screenPoly && green ? 'block' : 'none';
     $('preshow').style.display = screenPoly && !green ? 'block' : 'none';
@@ -713,7 +724,9 @@
   // Up next: the poll winner (said as such); without one, what is downloading (once it is found on Cinemeta); without
   // either, no title is claimed
   let pollFilm = null;
+  let quizHistory = [], quizPairs = [], quizRound = null, quizRevealed = false;
   Cinema.onRooms((rooms, data) => {
+    if (Array.isArray(data?.history)) quizHistory = data.history;
     const film = upcomingFilm(data);
     const card = film && [...(data?.ratings || []), ...(data?.best || []), ...(data?.worst || [])].find((r) => titleKey(r.title) === titleKey(film.title));
     pollFilm = film && { title: film.title, poster: film.poster || card?.poster };
@@ -748,14 +761,29 @@
     if (SEQ_FADE) setTimeout(() => { if (show.slide === i) next.classList.add('active'); }, 400); else next.classList.add('active');
   }
   function holdSlide() { const i = SLIDES.indexOf(show.screen); if (i >= 0) showSlide(i); }
+  function drawQuiz(reveal) {
+    const first = quizRound[0].year < quizRound[1].year ? 0 : 1;
+    const rows = $('ps-quiz').querySelectorAll('p');
+    quizRound.forEach((film, i) => {
+      const row = rows[i];
+      row.textContent = reveal ? film.title + ' · ' + film.year : film.title;
+      row.classList.toggle('earlier', reveal && i === first);
+      row.classList.toggle('long-title', row.textContent.length > 36);
+    });
+    $('ps-quiz').querySelector('h2').textContent = reveal ? 'Earlier release' : 'Which came out first?';
+    quizRevealed = reveal;
+  }
   setInterval(() => {
-    if (show.screen !== 'auto') return;
-    const slides = document.querySelectorAll('.ps-slide');
-    slides[show.slide].classList.remove('active');
-    show.slide = (show.slide + 1) % slides.length;
-    if (slides[show.slide].contains($('ps-meme'))) nextMeme();
-    const next = slides[show.slide];
-    if (SEQ_FADE) setTimeout(() => next.classList.add('active'), 400); else next.classList.add('active');
+    if (show.screen !== 'auto' || alwaysGreen || filmOnScreen()) return;
+    const trivia = SLIDES.length;
+    if (show.slide === trivia && !quizRevealed) { drawQuiz(true); return; }
+    let next = (show.slide + 1) % (trivia + 1);
+    if (next === trivia) {
+      if (!quizPairs.length && quizHistory.length) quizPairs = CinemaQuizDeck.makeDeck(quizHistory);
+      quizRound = quizPairs.pop();
+      if (quizRound) drawQuiz(false); else next = 0;
+    }
+    showSlide(next);
   }, 8000);
   function audience() {
     const seated = [...walkers.values()].filter((w) => w.sitting);

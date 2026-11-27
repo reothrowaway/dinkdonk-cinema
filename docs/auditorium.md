@@ -26,7 +26,7 @@ stable way to find things.
       img#bg-dim          dim twin of the background (added at start if the layout has dim art)
       svg#screenq         polygon over the screen: chroma green, or black when the OBS bridge drives the film
       #preshow            960x540 "projector" div, affine-mapped onto the screen quad
-        .ps-slide x3      Up next / Now loading / In the audience
+        .ps-slide x4      Up next / Now loading / In the audience / Watch-log trivia
         #ps-pops          emotes floating up the screen edges
       img.slice (+ .dim-art twins)   banded depth-slice pieces, hidden unless something is behind them
       div.sheet           the entrance door's sprite sheet while it swings
@@ -293,7 +293,7 @@ Changing phase resets both.
 
 **The pre-show** (`#preshow`, lines 164-178 and 294-520). A 960x540 flat page mapped onto the screen with
 `matrix()` built from TL, TR and BL (the screen corners form an exact parallelogram, so BR matches too). It shows
-whenever the phase is not `film` and `screen=green` is off. Three slides rotate every 8 s:
+whenever the phase is not `film` and `screen=green` is off. The projector advances every eight seconds.
 
 1. **Up next.** The winner of the newest film poll on dinkdonk.mov (`upcomingFilm()`: film polls only, skipped if
    it already shows up in ratings or history). Without one, the downloading title once Cinemeta found it. Without
@@ -301,6 +301,7 @@ whenever the phase is not `film` and `screen=green` is off. Three slides rotate 
 2. **Now loading.** The download: title, season/year/genres, poster and IMDb rating, percent (held at 99% until
    qBittorrent says complete), progress bar, ETA, a DGG meme, and chat's top emote riding the bar.
 3. **In the audience.** End-credits roll of everyone seated, in their chat colours.
+4. **Which came out first?** Auto displays a pair of films from the watch log for eight seconds, then marks the earlier release and shows both years for eight seconds. It skips this slide when the log has no suitable pair.
 
 **Release lookup** (`parseRelease()`, `lookupRelease()`, `featureInfo()`). The torrent name is parsed (tracker
 style "Russian / English (…) [year, …]" or scene style "Title.S03.1080p…"), then looked up on Cinemeta

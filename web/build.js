@@ -61,7 +61,7 @@ for (const f of ['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', '
 // QA copies, for testing changes on the hosted server before they go live (same room key)
 for (const f of ['lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']) copy(path.join(STANDBY, f), path.join(SITE, f));
 for (const f of [...eventFiles, shaderFile, lookGuide, 'concepts/vaporwave/scene-looks.json']) copy(path.join(STANDBY, f), path.join(SITE, f));
-for (const f of ['ticket-counter/index.html', 'ticket-counter/ticket.js', 'preshow-quiz/index.html', 'preshow-quiz/quiz.js']) {
+for (const f of ['ticket-counter/index.html', 'ticket-counter/ticket.js', 'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js']) {
   copy(path.join(STANDBY, 'concepts', f), path.join(SITE, 'concepts', f));
 }
 copyTree(path.join(STANDBY, 'shared'), path.join(SITE, 'shared'));
