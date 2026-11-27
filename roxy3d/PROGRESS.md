@@ -3523,3 +3523,9 @@ The reviewer found the first take crowded. The director now selects the clearest
 Seattle International Film Festival's venue stamping stations and Alamo's movie book club passports inspired a local screening collection. Each saved stamp includes a watch-log screening ID, film title and New York screening date. Stamps are sorted by screening time. Printing shows only the passport. A browser that disables storage keeps stamps for the current visit.
 
 Verified with the actual 200-entry watch log in headless Chromium. Two tabs added distinct stamps, duplicates were disabled, removal propagated and remained available during a feed outage. Reload, 360 px layout, print styling, existing ticket PNG download, blocked storage and the portable offline preview all passed. Private interactive preview and screenshot are in audit/feature-night.
+
+### 27 Nov 2026 · Pass the popcorn
+
+Moviegoers describe passing a bucket down the row while waiting for a screening. The auditorium director selects two real seated neighbors from the seat layout and borrows the first guest's existing popcorn sprite for a handoff. The second guest reaches, takes a handful and returns the bucket. The show requires a lit pre-show, stops on operator interruption, and keeps the camera wide for reduced motion.
+
+In the first capture the two hand positions were too close. The revised 19.9-second video shows the bucket crossing the rainbow guest at 4–7 seconds, the guest lifting at nine seconds and the original owner reclaiming it at 12–14 seconds. The protected name-label area kept both faces visible. The independent reviewer confirmed camera return and a clear handoff. Private recording: audit/feature-night/popcorn-pass-revised.mp4.

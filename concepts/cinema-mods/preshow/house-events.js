@@ -1,3 +1,5 @@
+import {startPopcornPass} from './popcorn-pass.js';
+
 const NS = 'http://www.w3.org/2000/svg';
 const clamp = x => Math.max(0, Math.min(1, x));
 const pulse = (t, start, width) => Math.sin(Math.PI * clamp((t-start)/width));
@@ -148,7 +150,7 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   let sourceVisible=true, sourceActive=true, lastAuto=null;
   let cue=null, expires=0, retry=0;
   const recent=new Set();
-  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run'].filter(kind=>allowed.includes(kind));
+  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run','popcorn-pass'].filter(kind=>allowed.includes(kind));
   const visible=()=>!document.hidden&&sourceVisible&&sourceActive;
   const next=()=>performance.now()+180000+Math.random()*180000;
   let due=pending?performance.now()+2200:next();
@@ -181,8 +183,8 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   }
   function start(kind,cueId=null) {
     if(live||!allowed.includes(kind)||!visible()||!host.ready(kind)||host.canStart?.()===false)return false;
-    if(kind==='aisle-vendor'||kind==='popcorn-run'){
-      const native=host.startNative?.(kind);
+    if(kind==='aisle-vendor'||kind==='popcorn-run'||kind==='popcorn-pass'){
+      const native=kind==='popcorn-pass'?startPopcornPass(host,motion.matches):host.startNative?.(kind);
       if(!native)return false;
       live={kind,native,cueId,at:performance.now(),t:0};return true;
     }
@@ -240,7 +242,9 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   window.addEventListener('pagehide',interrupt);
   window.addEventListener('obsSourceVisibleChanged',e=>{sourceVisible=e.detail?.visible!==false;if(!sourceVisible)interrupt();});
   window.addEventListener('obsSourceActiveChanged',e=>{sourceActive=e.detail?.active!==false;if(!sourceActive)interrupt();});
-  return {play,request,step,stop,interrupt,checkPhase,setEnabled,playing:()=>!!live,pose:w=>live?.poses?.get(w),
+  return {play,request,step,stop,interrupt,checkPhase,setEnabled,playing:()=>!!live,pose:w=>live?.native?.pose?.(w) ?? live?.poses?.get(w),
+    camera:()=>live?.native?.camera?.(),
+    actionBounds:()=>live?.native?.bounds,
     message(m){if(live?.kind==='laser-choir'&&live.t>10&&live.t<13.5&&m?.nick)live.encore=true;},
     status:()=>({enabled,cue:cue&&{...cue},event:live?.kind||null,seconds:live?.t||0,cast:live?.rows?.map(row=>row.map(w=>w.nick))||[],
       encore:!!live?.encore,reduced:!!live?.reduced,lastStop:reason,

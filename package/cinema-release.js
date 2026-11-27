@@ -7,7 +7,7 @@ const eventFiles = [
   'lobby-events.js', 'guest-routes.js', 'guest-travel.js',
   'incidents/arcade.js', 'incidents/paper-stage.js', 'incidents/sidewalk.js', 'incidents/stage.js',
   'incidents/marquee-photo.js', 'incidents/shared-umbrella.js', 'events.html',
-  'preshow/transition-cues.js', 'preshow/house-events.js',
+  'preshow/transition-cues.js', 'preshow/house-events.js', 'preshow/popcorn-pass.js',
 ].map(file => base + file);
 
 const looksDir = 'concepts/vaporwave/';

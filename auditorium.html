@@ -2862,6 +2862,8 @@
   const nameRank = (w) => (director.follow?.w === w ? 1e6 : 0) + (w.jan ? 1e5 : 0) + w.nameT;
   function showNames() {
     const shown = [];
+    const action = preshowEvents?.actionBounds();
+    if (action) shown.push(action);
     const list = [];
     for (const w of walkers.values()) if (w.nameWant) list.push(w);
     list.sort((a, b) => nameRank(b) - nameRank(a));
@@ -3446,6 +3448,8 @@
     if (director.outro && (director.follow || onScreen(now))) director.outro = false;
     const slow = !director.follow && (onScreen(now) || director.outro);
     if (slow && !director.outro) [tx, ty, tz] = screenShot();
+    const eventCamera = !f && !slow && preshowEvents?.camera();
+    if (eventCamera) [tx, ty, tz] = eventCamera;
     const fit = (c, half, size) => clamp(c, half, size - half);
     tx = fit(tx, 960 / tz, 1920);
     ty = fit(ty, 540 / tz, 1080);
@@ -3471,7 +3475,10 @@
     const k = e.key.toLowerCase();
     if (k === 'f') director.wantNext = true;
     else if (k === 'r') followSomeone();
-    else if (k === 'w' || k === 'escape') { director.wantNext = false; director.screenAt = 0; endFollow(); }
+    else if (k === 'w' || k === 'escape') {
+      if (preshowEvents?.camera()) preshowEvents.interrupt();
+      director.wantNext = false; director.screenAt = 0; endFollow();
+    }
     else if (k === 'd') director.on = !director.on;
   });
 
@@ -4315,11 +4322,12 @@
         canStart: () => !hall.snacker && !walkers.has('#vendor') && !hall.cleaning,
         startNative: startHallEvent,
         active,
+        seats: () => seats,
         seated: () => [...walkers.values()].filter(w => active(w) && !w.jan && !w.usher && !w.crew),
         screen: () => screenPoly,
         point: w => P(...w.pos),
         apex: () => { const su = L.screen?.u || [4.9,13.9]; return P((su[0]+su[1])/2-2.3,L.room?.v[1] ?? 14.9,580); }
-      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run'], automatic: timedPreshows, enabled: timedEventsEnabled });
+      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass'], automatic: timedPreshows, enabled: timedEventsEnabled });
       window.auditoriumEvents = preshowEvents;
       SB.on('msg', m => preshowEvents.message(m));
     }).catch(err => console.warn('[preshow]',err));

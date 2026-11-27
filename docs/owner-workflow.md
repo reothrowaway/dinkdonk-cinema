@@ -55,7 +55,7 @@ The eleven lobby choices are Black Hole Matinee, Mirrorball Ballroom, Infinity F
 
 On **Lights up** with the projector on **Auto**, the auditorium shows the latest rated film in the DinkDonk watch log. The card uses its recorded score and vote count.
 
-In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film.
+In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film. In **Pass the popcorn**, two guests in neighboring seats share one bucket during Seating or Lights up. The director waits until one guest has popcorn and the other has a free hand or a drink.
 
 ### Movie-night extras
 
