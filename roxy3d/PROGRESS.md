@@ -3481,3 +3481,9 @@ In the final pixel test a real Wowee wearer needed 3.333 CSS pixels of foot padd
 
 All 16,025 entries in the final ZIP matched after extraction (SHA-256 3181851c770b2d08928d5f91697b4df14f163fb8b64cab4f5acc2601f41fc7f4). A fresh packaged auditorium seated 11 real guests, and the lobby showed all eight cards in order. The source smoke saw 91 seated. Both validated the same-origin image read with zero JavaScript exceptions.
 The local scenes and distributed ZIP were published. All 16,029 hosted production files matched the final build’s SHA-256 manifest; the service and chat were healthy, and its same-origin pixel endpoint returned a real PNG. Owner processes were left running.
+
+### 27 Nov 2026 · Experimental movie-night features
+
+The ticket counter exports a PNG for a screening in the watch log. Its serial comes from the screening ID and its date uses the log's New York time. The Capitol Theatre ticket roll in the National Film and Sound Archive and collectors' accounts of fading stubs informed the design. Pre-show trivia pairs films with distinct release years. Cineplex's pre-show format and moviegoers' accounts of the old trivia slides informed the game.
+
+Checked both pages against the 200-entry feed. One deck produced 86 distinct pairs. Checked correct and incorrect guesses, reveal, next pair, unavailable and empty feeds, ticket download, and a 360 px layout. Local QA images are in the experimental checkout under audit/feature-night. The experimental zip built from the previously extracted package. Fresh-room seating verification is pending while the performance session holds the test ports. The owner requested branch-only development. Production and the regular distribution are on main.

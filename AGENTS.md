@@ -140,6 +140,7 @@ in `roxy3d/QUEUE-owner.md`, area details in `docs/`.
 From the owner, 7-18 Nov 2026. They apply to every agent.
 
 ### Shipping
+- Owner, 27 Nov 2026: develop new ideas from the overnight research session in a separate experimental branch and checkout. Share that branch for review. Promotion to main, the hosted cinema and the release zip waits for the owner's direction.
 - A finished, checked change goes to all four copies in the same turn: the local live files, the GitHub repo
   (commit + push), the hosted edition (`bash web/deploy/deploy.sh`, then compare the server's files with the local
   build by SHA-256), and the zip (`node package/build.js`, then smoke-test it on a spare port: a fresh room's
