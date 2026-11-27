@@ -68,6 +68,11 @@
   .umb::after { content: ''; position: absolute; left: 29px; top: 20px; width: 2px; height: 30px; background: #222; }
   .w.out .umb { display: block; }
   .w.event-indoors .umb, .w.event-indoors .umbs { visibility: hidden; }
+  .w.umbrella-offer :is(.umb, .umbs) { translate: 14px -4px; scale: 1.14 1; rotate: 5deg; }
+  .w.umbrella-stowed :is(.umb, .umbs, .umbio) { opacity: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .w[data-event-walk] :is(.umb, .umbs) { transition: translate .6s, scale .6s, rotate .6s, opacity .4s, transform .25s; }
+  }
   .w.out:not([data-lt]) .em { filter: brightness(.84) saturate(.9); }   /* night street: dimmer than the lobby (when the scene light, L6, is off or not loaded) */
   /* Mirror the live body around the pavement. The stationary box holds the contact line while the body jumps. */
   .figure-ground { position: absolute; left: -48px; top: -96px; width: 96px; height: 96px; pointer-events: none; }
@@ -4534,12 +4539,12 @@
   }
   // an umbrella blown inside out for 1.3 s: the rendered inside-out sprite of its colour (manifest
   // umbrella.inside_out, Brief 96, same cell and grip as the open one) stands in for it; older art: the CSS flip
-  function blowUmbrella(w) {
+  function blowUmbrella(w, duration = 1300) {
     const u = w.umb, io = w.umbColor && UMB?.inside_out?.[w.umbColor];
     if (!u) return;
     if (!(io?.file && Array.isArray(io.anchor) && [io.w, io.h, ...io.anchor].every(Number.isFinite))) {
       u.classList.add('blown');
-      setTimeout(() => u.classList.remove('blown'), 1300);
+      setTimeout(() => u.classList.remove('blown'), duration);
       return;
     }
     if (w.umbIo) return;
@@ -4549,7 +4554,7 @@
     Object.assign(im.style, { width: `${io.w}px`, height: `${io.h}px`, left: `${UMB_GRIP[0] - io.anchor[0]}px`, top: `${UMB_GRIP[1] - io.anchor[1]}px` });
     w.bod.append(im);
     u.style.visibility = 'hidden';
-    setTimeout(() => { im.remove(); u.style.visibility = ''; w.umbIo = null; }, 1300);
+    setTimeout(() => { im.remove(); u.style.visibility = ''; w.umbIo = null; }, duration);
   }
   // (test hook __street2.gust(): one umbrella outside blown inside out now; returns where, stage px)
   function street2Gust() {
@@ -8075,12 +8080,14 @@ void main() {
       import('./concepts/cinema-mods/lobby-events.js'),
       import('./concepts/cinema-mods/incidents/paper-stage.js'),
       import('./concepts/cinema-mods/incidents/sidewalk.js'),
-      import('./concepts/cinema-mods/incidents/marquee-photo.js')
-    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }]) => {
+      import('./concepts/cinema-mods/incidents/marquee-photo.js'),
+      import('./concepts/cinema-mods/incidents/shared-umbrella.js')
+    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }, { sharedUmbrella }]) => {
       const incidents = {
         ...nativeIncidents,
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
         'marquee-photo': marqueePhoto,
+        'shared-umbrella': sharedUmbrella(blowUmbrella, walkers, P),
         ...lobbyLifeIncidents,
       };
       lobbyEvents = createLobbyEvents({

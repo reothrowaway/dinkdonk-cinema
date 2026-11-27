@@ -3511,3 +3511,9 @@ Real-chat checks of both experimental auditorium entry points showed the correct
 CinemaScore's accounts of polling audiences at the theater inspired a projected rating card. It displays DinkDonk's own five-point scale, matches each ballot by rating ID, and selects the newest rated film by watch timestamp. The card takes the trivia slot only during Lights up. A held slide and film override take precedence.
 
 Checked both experimental auditorium pages against the real feed. Gosford Park displayed 2.83/5 from 9 votes, matching the published rating. Tested entry from Seating, Film override, a manually held Audience slide and removal of empty results. Neither capture reported script errors or missing local assets. The full-resolution image with real guests is audit/feature-night/audience-ballot.png.
+
+### 27 Nov 2026 · Sharing an umbrella on the sidewalk
+
+The Viennale's shared-umbrella festival photo, SIFF's rainy queue at the Egyptian, and a commuter's account of being offered shelter informed the action. Two actual guests move along public pavement. A native gust inverts one canopy. Its owner walks under the other umbrella, then reopens their own and leaves. Automatic rotation and the control panel can both cue this event.
+
+The reviewer found the first take crowded. The director now selects the clearest of five sidewalk spots and settles before the gust. In the 29.9-second revised take, the red canopy inverts at 15.5–17.5 seconds. Two faces are visible under the same canopy at 25.5–26.5 seconds and the pair separates by 28 seconds. Passing traffic briefly hides the smaller gestures. Verified on real chat with zero missing local assets or scene errors. A Wide cue during reduced-motion playback restored both umbrellas and ended the event. Full recording is audit/feature-night/shared-umbrella.mp4.
