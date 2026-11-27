@@ -85,6 +85,12 @@
   .ballot-card .ps-small { margin: 0 0 12px; color: #48533d; font-weight: 700; }
   #ps-ballot h2 { font-size: 52px; overflow-wrap: anywhere; line-height: 1.06; }
   #ps-ballot h2.long-title { font-size: 38px; }
+  #ps-break { position:absolute;inset:18px;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:7px double #884c34;background:#efe6c8;color:#3b3029;gap:8px;text-align:center }
+  #ps-break[hidden], #preshow.on-break .ps-slide, #preshow.on-break #ps-pops { display:none }
+  #ps-break h2 { margin:0;color:#803d2a;font:italic bold 80px/1 Georgia,serif;text-transform:none }
+  #ps-break-time { font:bold 136px/1 "Courier New",monospace;color:#263d37 }
+  #ps-break-caption { margin:0;font:32px/1.2 Georgia,serif }
   #ps-ballot-score { display: block; font: bold 79px/1.1 Georgia, serif; margin: 12px 0 4px; }
   #ps-ballot-count { font: 30px/1.2 "Courier New", monospace; }
   .ps-small { font-size: 26px; letter-spacing: .16em; text-transform: uppercase; }
@@ -339,6 +345,8 @@
         <div class="ps-small">Last rated film</div><h2 id="ps-ballot-title"></h2>
         <strong id="ps-ballot-score"></strong><span id="ps-ballot-count"></span>
       </div></div>
+      <section id="ps-break" hidden><h2>Intermission</h2><strong id="ps-break-time"></strong>
+        <p id="ps-break-caption">Time remaining</p></section>
       <div id="ps-pops"></div>
     </div>
   </div>
@@ -451,7 +459,21 @@
   const SLIDES = ['upnext', 'loading', 'audience'];
   const QUIZ_SLIDE = SLIDES.length, BALLOT_SLIDE = QUIZ_SLIDE + 1;
   let ballot = null, lastProjectorPhase = '';
-  const filmOnScreen = () => show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film');
+  show.intermissionUntil = 0;
+  let roomHasBreakClock = false;
+  const filmOnScreen = () => !show.intermissionUntil && (show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film'));
+  function breakSeconds() {
+    return show.intermissionUntil ? Math.max(0, Math.ceil((show.intermissionUntil - Date.now()) / 1000)) : null;
+  }
+  function drawBreakClock() {
+    const seconds = breakSeconds();
+    if (seconds === null) return;
+    const digits = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+    const time = $('ps-break-time'), caption = $('ps-break-caption');
+    if (time.textContent !== digits) time.textContent = digits;
+    const message = seconds ? 'Time remaining' : 'Please take your seats';
+    if (caption.textContent !== message) caption.textContent = message;
+  }
   // litter (queue 60, see stepLitter)
   const LITTER = { DELAY: 10 * 60000, GROW: 25 * 60000, MAX: 140, FULL: 0.6 };
   const LITTER_PREVIEW = q.has('littermin') ? Math.max(0, Number(q.get('littermin')) || 0) * 60000 : null;
@@ -493,6 +515,9 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    $('ps-break').hidden = !show.intermissionUntil;
+    $('preshow').classList.toggle('on-break', !!show.intermissionUntil);
+    drawBreakClock();
     if (show.screen === 'auto' && !green && show.phase === 'up' && lastProjectorPhase !== 'up' && ballot) {
       showSlide(BALLOT_SLIDE);
     } else if ((green && show.slide >= QUIZ_SLIDE) || (show.slide === BALLOT_SLIDE && show.phase !== 'up')) {
@@ -814,7 +839,7 @@
     quizRevealed = reveal;
   }
   setInterval(() => {
-    if (show.screen !== 'auto' || alwaysGreen || filmOnScreen()) return;
+    if (show.intermissionUntil || show.screen !== 'auto' || alwaysGreen || filmOnScreen()) return;
     if (show.slide === QUIZ_SLIDE && !quizRevealed && show.phase !== 'up') { drawQuiz(true); return; }
     let next = show.slide >= QUIZ_SLIDE ? 0 : show.slide + 1;
     if (next === QUIZ_SLIDE && show.phase === 'up') {
@@ -3600,16 +3625,24 @@
         // Film again after Movie / Film outro: push in now (the lights are already down, so no 10 s wait)
         const again = c.value === 'film' && show.phase === 'film' && (show.shot !== 'push' || show.lightsOn);
         if (c.value === show.phase) show.lightsOn = false;   // the phase's own button dims the house lights again
-        if (c.value === 'film') show.screen = 'auto';   // Film puts the film on the screen
+        if (c.value === 'film') { show.screen = 'auto'; show.intermissionUntil = 0; }   // Film puts the film on the screen
         setPhase(c.value, true);
         if (again) { director.screenAt = now; director.outro = false; endFollow(); pushWanted = true; }
         show.shot = 'push';
         break;
       }
       // Movie: the film starts on the screen with no push in (the wide shot stays; follows still work)
-      case 'movie': show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
+      case 'movie': show.intermissionUntil = 0; show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
       // the panel's screen picker (the room sends the same as a 'show' event)
-      case 'screen': if (['auto', ...SLIDES, 'film'].includes(c.value)) { show.screen = c.value; applyPhase(); } break;
+      case 'screen': if (['auto', ...SLIDES, 'film'].includes(c.value)) { show.intermissionUntil = 0; show.screen = c.value; applyPhase(); } break;
+      case 'intermission':
+        // A shared room broadcasts one authoritative deadline; isolated and older screens use the local clock.
+        if (!(inRoom() && roomHasBreakClock) && [0, 5, 10, 15].includes(c.minutes)) {
+          if (c.minutes && show.intermissionUntil) break;
+          show.intermissionUntil = c.minutes ? Date.now() + c.minutes * 60000 : 0;
+          applyPhase();
+        }
+        break;
       // Litter off sweeps it up; on again: the clock restarts at the next 60% full house (the room decides it)
       case 'litter': show.litter = !!c.on; if (!inRoom()) show.fullAt = 0; stepLitter(); break;
       // Film outro: the push in reversed - the film keeps playing while the camera eases back out to the wide shot,
@@ -3641,7 +3674,7 @@
       case 'lights': show.lightsOn = !!c.on && show.phase === 'film'; applyPhase(); break;
       // Show over: everyone stands up and leaves, new arrivals wait until the next Seating (on: false stops it)
       case 'houseOut': houseOut = !!c.on; nextLeaver = 0; break;
-      case 'reset': resetHall(); break;
+      case 'reset': show.intermissionUntil = 0; applyPhase(); resetHall(); break;
       case 'remove': removeNick(key); break;
       case 'reeducate': if (!inRoom()) reeducate(key); break;   // (in the room it comes back as a room event, on every screen)
       case 'add':
@@ -3712,13 +3745,13 @@
     if (['auto', ...SLIDES, 'film'].includes(s.screen)) show.screen = s.screen;
     if (typeof s.litter === 'boolean') show.litter = s.litter;
     const off = Number.isFinite(serverNow) ? Date.now() - serverNow : 0;
+    roomHasBreakClock = Object.hasOwn(s, 'intermissionUntil');
+    if (roomHasBreakClock) show.intermissionUntil = Number.isFinite(s.intermissionUntil) && s.intermissionUntil > 0 ? s.intermissionUntil + off : 0;
     show.fullAt = Number.isFinite(s.fullAt) && s.fullAt > 0 ? s.fullAt + off : 0;
     stepLitter();
   }
   let pendingSnapshot = null;
   function applySnapshot(ev) {
-    if (!L || !seats.length) { pendingSnapshot = ev; return; }
-    pendingSnapshot = null;
     const s = ev.show;
     if (s) {
       if (s.phase !== show.phase) setPhase(s.phase);
@@ -3727,6 +3760,9 @@
       roomShow(s, ev.now);
       applyPhase();
     }
+    // Apply the projector state at receipt. Seat placement can wait for the art without shifting the room clock.
+    if (!L || !seats.length) { pendingSnapshot = {...ev, show:null}; return; }
+    pendingSnapshot = null;
     if (ev.director) {
       director.on = !!ev.director.on;
       if (Number.isFinite(ev.director.every)) director.every = clamp(ev.director.every, 30, 1800);
@@ -3796,7 +3832,7 @@
         timedShow: preshowEvents && { event: preshowEvents.status().event, cue: preshowEvents.status().cue },
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         preshow: { phase: show.phase, shot: show.shot, lightsOn: show.lightsOn, houseOut, auto: show.auto, download: show.download, alwaysGreen,
-          screen: show.screen, litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
+          screen: show.screen, intermissionRemaining: breakSeconds(), litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
         house: { capacity: seats.length, occupied: guests(), waiting: arrivals.length, queueLimit: MAX_QUEUE },
         shots: window.DD_SHOTS?.state?.() || null,   // Brief 102: the panel enables T1 / T2 / T3 from this
         jannies: L ? { area: janArea(), setting: JAN_AREA, duty: dutyActive(), count: [...jannies.values()].filter((j) => !j.leaving).length } : null,
@@ -4243,7 +4279,7 @@
     }
     litterShown = litterEls.length;
   }
-  setInterval(stepLitter, 1000);
+  setInterval(() => { stepLitter(); if (show.intermissionUntil) drawBreakClock(); }, 1000);
 
   // ---------- start ----------
   Cinema.onWalkIn(onMessage);

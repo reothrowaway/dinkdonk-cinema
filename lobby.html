@@ -608,6 +608,7 @@
     const a = room?.auditorium;
     if (room?.asleep || !a || !a.show) return '';
     if (a.show.houseOut) return 'SCREEN 1 · HOUSE CLEARING';
+    if (Number.isFinite(a.show.intermissionUntil) && a.show.intermissionUntil > 0) return 'SCREEN 1 · INTERMISSION';
     if (a.show.phase === 'film') return 'SCREEN 1 · FEATURE IN PROGRESS';
     if (a.show.phase === 'dim') return 'SCREEN 1 · LIGHTS DOWN';
     if (!['seating', 'up'].includes(a.show.phase)) return '';

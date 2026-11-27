@@ -116,7 +116,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       lobby: { roster: [], director: freshDirector() },
       auditorium: { roster: [], director: freshDirector(),
         show: { phase: 'seating', shot: 'push', lightsOn: false, houseOut: false, auto: true,
-          screen: 'auto', litter: true, fullAt: 0 } },
+          screen: 'auto', intermissionUntil: 0, litter: true, fullAt: 0 } },
     },
   };
   // chat memory (not saved): last emotes and room per nick, like shared/cinema.js
@@ -558,7 +558,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'peek': if (page === 'lobby') peek(typeof c.spot === 'string' ? c.spot : 'any'); break;   // (test hook too)   // (no panel button: a test hook, /ctl/cmd {cmd: 'gag'})
       case 'reset':
         P.roster = [];
-        if (page === 'auditorium') { P.show.houseOut = false; P.show.fullAt = 0; emitShow(); }   // a reset also sweeps the litter
+        if (page === 'auditorium') { P.show.houseOut = false; P.show.fullAt = 0; P.show.intermissionUntil = 0; emitShow(); }
         d.wantNext = false;
         emit(page, { t: 'clear' });
         log(`room: ${page} cleared from the panel`);
@@ -609,13 +609,20 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         if (c.value === s.phase) s.lightsOn = false;
         s.phase = c.value; s.shot = 'push'; s.auto = false;
         if (c.value === 'seating' && s.houseOut) { s.houseOut = false; seatQueue(); }   // as the page's setPhase
-        if (c.value === 'film' && s.screen !== 'auto') { s.screen = 'auto'; emitShow(); }   // Film puts the film on
+        if (c.value === 'film' && (s.screen !== 'auto' || s.intermissionUntil)) { s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); }
         break;
-      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; if (s.screen !== 'auto') { s.screen = 'auto'; emitShow(); } break;
+      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; if (s.screen !== 'auto' || s.intermissionUntil) { s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); } break;
       case 'outro': if (s.phase === 'film') s.shot = 'outro'; break;
       case 'phaseAuto': s.auto = !!c.on; break;
       // the panel's cinema screen picker: auto follows the phase (slides, then the film), or one slide / the film held
-      case 'screen': if (SCREENS.includes(c.value)) { s.screen = c.value; emitShow(); } break;
+      case 'screen': if (SCREENS.includes(c.value)) { s.screen = c.value; s.intermissionUntil = 0; emitShow(); } break;
+      case 'intermission':
+        if ([0, 5, 10, 15].includes(c.minutes)) {
+          if (c.minutes && s.intermissionUntil) break;
+          s.intermissionUntil = c.minutes ? Date.now() + c.minutes * 60000 : 0;
+          emitShow();
+        }
+        break;
       // litter toggle: off sweeps it all up; back on, the 10 min clock starts again from the next 60% full house
       case 'litter': s.litter = !!c.on; s.fullAt = 0; checkFull(); emitShow(); break;
       case 'lights': s.lightsOn = !!c.on && s.phase === 'film'; break;
