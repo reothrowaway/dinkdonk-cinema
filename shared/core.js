@@ -46,6 +46,42 @@
   // view = the part of the stage the window shows, in stage px [x0, y0, x1, y1]
   const stage = { scale: 1, el: null, view: [0, 0, W, H] };
 
+  // A close-up can ask Chromium to decode a large still again at a new scale.
+  // Draw the selected source once in native pixels. Masked wall and marquee
+  // elements keep just their visible rectangle, with the existing CSS mask.
+  function cacheArtPlate(im, x = 0, y = 0, width = W, height = H) {
+    const surface = document.createElement('canvas');
+    surface.setAttribute('aria-hidden', 'true');
+    surface.hidden = true;
+    Object.assign(surface.style, { position: 'absolute', left: '0', top: '0',
+      width: width + 'px', height: height + 'px', pointerEvents: 'none' });
+    im.after(surface);
+    function showImage() {
+      surface.hidden = true;
+      im.style.visibility = '';
+    }
+    function paint() {
+      if (!im.complete || !im.naturalWidth) return;
+      const sx = im.naturalWidth / W, sy = im.naturalHeight / H;
+      // Leave nonstandard art packs in their original image geometry.
+      if (!Number.isInteger(sx) || !Number.isInteger(sy)) { showImage(); return; }
+      try {
+        surface.width = width * sx;
+        surface.height = height * sy;
+        const ctx = surface.getContext('2d');
+        if (!ctx || ctx.isContextLost?.()) { showImage(); return; }
+        ctx.drawImage(im, -x * sx, -y * sy);
+        surface.hidden = false;
+        im.style.visibility = 'hidden';
+      } catch { showImage(); }
+    }
+    im.addEventListener('load', paint);
+    im.addEventListener('error', showImage);
+    surface.addEventListener('contextlost', showImage);
+    surface.addEventListener('contextrestored', paint);
+    if (im.complete && im.naturalWidth) paint();
+  }
+
   // cover: fill the window and crop the stage's overflowing sides (centred) instead of letterboxing
   function mountStage(el, { cover = false } = {}) {
     stage.el = el;
@@ -795,7 +831,7 @@
   }
 
   window.SB = {
-    cfg, on, emit, start, mountStage, fitCanvas, mountChat, command, stats, ...api,
+    cfg, on, emit, start, mountStage, cacheArtPlate, fitCanvas, mountChat, command, stats, ...api,
     emoteEl, emoteSize, emoteFacing, faceEmote, loadSleep, sleepInfo, sleepEmote, drawSleepLids, tokenize, parseMessage, renderTokens, nickColor, hashHue, timerText, clockText,
     rand, pick, get status() { return status; }, get emotes() { return emotes; }, get view() { return stage.view; }, W, H,
     // For testing from the console: SB.say('someone', '!claw')

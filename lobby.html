@@ -6919,6 +6919,7 @@ void main() {
     im.decoding = 'async';
     Object.assign(im.style, { position: 'absolute', left: `${-x0}px`, top: `${-y0}px`, width: '1920px', height: '1080px' });
     box.append(im);
+    SB.cacheArtPlate(im, x0, y0, bw, bh);
     $('loop').after(box);
     artImgs.push([im, file]);
     MARQ.dry = box;
@@ -7042,6 +7043,7 @@ void main() {
     // the still for "no video": lit without baked rain when the art has one (procedural rain is drawn on top)
     const lit = m.lit_bg_dry || m.lit_bg || m.full;
     const wantLoop = !!m.light_loop && q.get('loop') !== '0';
+    SB.cacheArtPlate($('bgimg'));
     artImgs.push([$('bgimg'), wantLoop ? m.base || m.bg : (m.light_loop && lit) || m.bg || m.base]);
     if (wantLoop) {
       // One foreground rain at a time: the rain_fg video while both videos run, else the procedural rain.
@@ -7110,6 +7112,7 @@ void main() {
         im.decoding = 'async';
         Object.assign(im.style, { position: 'absolute', left: `${-x0}px`, top: `${-y0}px`, width: '1920px', height: '1080px' });
         box.append(im);
+        SB.cacheArtPlate(im, x0, y0, bw, bh);
         artImgs.push([im, topFile]);
       }
       world.append(box);

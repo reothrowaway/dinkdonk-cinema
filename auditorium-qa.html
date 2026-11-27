@@ -60,7 +60,7 @@
      of decoding; no cost in the dark at rest). */
   /* emotes and items at rest; the 6 s dimming between is stepped from script (stepDim): a 6 s CSS filter transition on
      every chatter repainted each one every frame of the fade (perf 8 Nov: ~94 -> ~136 fps uncapped without it) */
-  .lights-down .w .em { filter: brightness(var(--rb, .5)); }   /* --rb: a seated chatter's row light (rowLight) */
+  .crowd-dark .w .em { filter: brightness(var(--rb, .5)); }   /* --rb: a seated chatter's row light (rowLight) */
 
   /* A flat projection, clipped before its affine mapping into the matte screen. */
   #preshow { position: absolute; left: 0; top: 0; width: 960px; height: 540px; overflow: hidden;
@@ -144,7 +144,7 @@
   /* popcorn / soda (the lobby's rendered item sprites) and the phone some seated chatters check */
   .w .item { position: absolute; pointer-events: none; }
   /* (.dk: the item shows its dark picture while the room rests dark, see restPic) */
-  .lights-down .w .item:not(.dk) { filter: brightness(.5); }
+  .crowd-dark .w .item:not(.dk) { filter: brightness(.5); }
   /* screen glow (queue 58): the film's light around the screen (bloom) and spilling onto the floor, seats and people */
   #glowbloom { position: absolute; left: 0; top: 0; width: 960px; height: 540px; transform-origin: 0 0; pointer-events: none;
     z-index: 69990; mix-blend-mode: screen; opacity: 0; transition: opacity 1.5s; }
@@ -153,7 +153,7 @@
   /* aisle lights (queue 61, A2): step-nosing strips, row-end lamps, the stage cove strip and exit-sign halos.
      Depth-sorted like the walkers; they come up as the house lights go down */
   .alamp { position: absolute; pointer-events: none; opacity: 0; }   /* the 6 s fade: stepDim */
-  .lights-down .alamp { opacity: 1; }
+  .crowd-dark .alamp { opacity: 1; }
   .alamp.nose { height: 2px; border-radius: 1px; background: #ffc061; transform-origin: 0 50%;
     box-shadow: 0 0 3px 1px rgba(255, 170, 70, .7), 0 0 9px 3px rgba(255, 150, 50, .22); }
   .alamp.dot { width: 4px; height: 3px; margin: -1.5px 0 0 -2px; border-radius: 2px; background: #ffd08a;
@@ -179,8 +179,8 @@
      dark look relative to the lit picture (.42 / .9, .8 / .9), for a baked piece whose dark picture is not there. */
   .litter { position: absolute; pointer-events: none; transition: opacity 2s; }
   .litter:not(.baked) { filter: brightness(.9) saturate(.9); }
-  .lights-down .litter:not(.baked) { filter: brightness(.42) saturate(.8); }
-  .lights-down .litter.baked:not(.dk) { filter: brightness(.4667) saturate(.8889); }
+  .crowd-dark .litter:not(.baked) { filter: brightness(.42) saturate(.8); }
+  .crowd-dark .litter.baked:not(.dk) { filter: brightness(.4667) saturate(.8889); }
   .w .phone { position: absolute; width: 5px; height: 8px; border-radius: 1px; background: #0d0f14; display: none;
     border: 1px solid #0d0f14; box-sizing: content-box; }
   .w .phone::after { content: ''; position: absolute; inset: 0; border-radius: 1px; background: #bfe0ff;
@@ -926,7 +926,7 @@
   const CELL = 64;
   const pieces = [];
   const pieceGrid = new Map();
-  let cullStamp = 0;
+  let cullStamp = 0, coverQuery = 0;
   // Keeping the shown pieces' pictures in Chrome's picture cache (perf 10 Nov). Chrome drops a decoded and uploaded
   // picture about 30 s after it was last drawn, and a shown piece is only drawn again when something in its place
   // changes. After a quiet minute the first frame of a lights-down (the whole room is drawn again) then decoded
@@ -984,8 +984,8 @@
   // the dark turned the same pieces on in one frame (door swing after 41 s unused: 46 and 65 ms held in 2 of 3
   // loads, 150-170 decodes). Shown pieces are kept warm by keepWarm. ?entrykeep=0 (test only): off.
   const ENTRYKEEP = new URLSearchParams(location.search).get('entrykeep') !== '0';
-  const entry = { set: null, from: 0, until: 0, n: 0 };
-  function entryAhead(at) {   // someone will appear at the portal at <at> (performance.now() ms)
+  const entry = { set: null, from: 0, until: 0, n: 0, warmCount: 0, nextWarm: 0 };
+  function prepareEntryPieces() {
     if (!ENTRYRAMP || !L || !layers || !pieces.length) return;
     if (!entry.set) {
       const p0 = L.walk_route.rear_portal_to_cross_aisle[0];
@@ -994,6 +994,10 @@
       if (door) boxes.push([door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index]);
       entry.set = pieces.filter((p) => boxes.some(([x0, y0, x1, y1, z]) => p.z > z && p.x0 < x1 && p.x1 > x0 && p.y0 < y1 && p.y1 > y0));
     }
+    return entry.set;
+  }
+  function entryAhead(at) {
+    if (!prepareEntryPieces()) return;
     entry.from = at - 3500; entry.until = at + 500; entry.n = 0;
   }
   window.__doorTest = () => playDoor();   // test only: the door swings with nobody behind it (what its pieces cost)
@@ -1037,6 +1041,7 @@
   // fades each way), more raster and more tiles than the whole room at once every 125 ms, so the whole room at once is
   // the default again; the strips stay as the breath's clock. window.__dimBands = 0 (test only): strip by strip.
   const BANDS = 8, LAMP_BAND = 3, LITTER_BAND = 6;
+  const visibleDim = Array.from({ length: BANDS }, () => new Set());
   const bandOf = (zi) => clamp(Math.floor((zi - 2000) / 250), 0, BANDS - 1);
   const bandClock = { at: -1e9, next: 0, first: 0, n: 0, mask: 0 };   // this frame's strips: n from first (mask = bits)
   function tickBands(now) {
@@ -1070,6 +1075,9 @@
     // window.__bgWarm = 0 (test only): rest at 0 as before.
     const bgText = Math.max(window.__bgWarm === 0 ? 0 : DIM_WARM, dimFade.level).toFixed(3);
     if (bgText !== dimFade.bgText) { dimFade.bgText = bgText; const bgDim = $('bg-dim'); if (bgDim) bgDim.style.opacity = bgText; }
+    // Resting CSS takes over when the fade reaches its endpoint. Applying the
+    // dark filters on the first frame used to paint the end state before the fade.
+    if (!emoFading && dimClock.fading) st.toggle('crowd-dark', down);
     const fading = artFading || emoFading;
     // band updates: on the clock while fading, and one more round when a fade ends (the exact end values / CSS take over)
     // A fade's first frame takes the whole room at once: the lights-down class has just flipped, and a strip still
@@ -1094,14 +1102,15 @@
       if (text !== dimClock.text[b]) {
         dimClock.text[b] = text;
         if (b === 0) { dimFade.text = text; if (doorShot?.dim) doorShot.dim.style.opacity = text; }
-        for (const p of pieces) if (p.dimOn && p.band === b) p.dim.style.opacity = text;
+        for (const p of visibleDim[b]) syncDimPiece(p);
       }
       // (the last update after a fade takes every chatter still off the end value, whatever strip they have walked into)
       const sweep = !fading && !dimClock.left && i === n - 1;
       for (const w of walkers.values()) {
         // (a seated chatter fades to their row's light, everyone else to 50%: rowLight)
+        if (!sweep && (w.band || 0) !== b) continue;
         const wF = emoFading && w.rb != null ? `brightness(${(1 - (1 - w.rb) * emoFade.level).toFixed(3)})` : emoF;
-        if ((!sweep && (w.band || 0) !== b) || (w.dimF ?? '') === wF) continue;
+        if ((w.dimF ?? '') === wF) continue;
         w.dimF = wF;
         if (w.em) w.em.style.filter = wF;
         if (w.item) { w.item.style.filter = emoF; restPic(w.item); }
@@ -1127,19 +1136,54 @@
       }
     }
   }
+  // Only the opacity of off-camera seat pieces can fall behind. A guard band
+  // synchronizes them before they enter the stage, including a cut to a new shot.
+  const dimView = { x0: -Infinity, x1: Infinity, y0: -Infinity, y1: Infinity };
+  function syncDimPiece(p) {
+    if (p.x1 < dimView.x0 || p.x0 > dimView.x1 || p.y1 < dimView.y0 || p.y0 > dimView.y1) return;
+    const value = dimClock.text[p.band];
+    if (p.dimLevel !== value) { p.dimLevel = value; p.dim.style.opacity = value; }
+  }
   function cullPieces() {
     if (!pieces.length) return;
+    const pad = 96, hw = 960 / cam.z + pad, hh = 540 / cam.z + pad;
+    dimView.x0 = cam.x - hw; dimView.x1 = cam.x + hw;
+    dimView.y0 = cam.y - hh; dimView.y1 = cam.y + hh;
     const stamp = ++cullStamp;
-    const cover = (x0, y0, x1, y1, z) => {
+    const cover = (holder, bounds) => {
+      const [x0, y0, x1, y1, z] = bounds;
+      const prev = holder.coverBounds;
+      if (prev && x0 === prev[0] && y0 === prev[1] && x1 === prev[2] && y1 === prev[3] && z === prev[4]) {
+        for (const p of holder.coverPieces) p.stamp = stamp;
+        return;
+      }
+      const query = ++coverQuery;
+      holder.coverBounds = bounds;
+      const found = holder.coverPieces || (holder.coverPieces = []);
+      found.length = 0;
       for (let cy = Math.floor(y0 / CELL); cy <= Math.floor(y1 / CELL); cy++) {
         for (let cx = Math.floor(x0 / CELL); cx <= Math.floor(x1 / CELL); cx++) {
           const list = pieceGrid.get(cy * 1000 + cx);
-          if (list) for (const p of list) if (p.z > z && p.x0 < x1 && p.x1 > x0 && p.y0 < y1 && p.y1 > y0) p.stamp = stamp;
+          if (list) for (const p of list) if (p.coverQuery !== query && p.z > z && p.x0 < x1 && p.x1 > x0 && p.y0 < y1 && p.y1 > y0) {
+            p.coverQuery = query; found.push(p); p.stamp = stamp;
+          }
         }
       }
     };
-    for (const w of walkers.values()) if (w.box) cover(...w.box);
-    if (doorShot) cover(door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index);
+    for (const w of walkers.values()) if (w.box) cover(w, w.box);
+    if (doorShot) cover(doorShot, [door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index]);
+    // Cold portal tiles used to start rasterizing half a second into the
+    // first lights-down. Bring up two at a time while the lit house is seating.
+    // These are the original depth pieces already pictured in the backdrop.
+    if (ENTRYRAMP && ENTRYKEEP && !houseOut && show.phase === 'seating' && $('stage').classList.contains('dim-ready')
+        && (!entry.set || entry.warmCount < entry.set.length)) {
+      const now = performance.now();
+      if (now >= entry.nextWarm && prepareEntryPieces()) {
+        entry.nextWarm = now + 120;
+        entry.warmCount = Math.min(entry.warmCount + 2, entry.set.length);
+      }
+    }
+    if (!houseOut && entry.set) for (let i = 0; i < entry.warmCount; i++) entry.set[i].stamp = stamp;
     if (entry.until) {   // the way in, ahead of the usher (entryAhead)
       const now = performance.now();
       if (now > entry.until) entry.until = 0;
@@ -1160,7 +1204,13 @@
       const on = p.stamp === stamp;
       if (on !== p.on) { p.on = on; p.im.style.display = on ? '' : 'none'; if (on) p.drawn = performance.now(); }
       const d = on && twins;
-      if (p.dim && d !== p.dimOn) { p.dimOn = d; if (d) p.dim.style.opacity = dimClock.text[p.band]; p.dim.style.display = d ? '' : 'none'; }
+      if (p.dim && d !== p.dimOn) {
+        p.dimOn = d;
+        if (d) { visibleDim[p.band].add(p); p.dimLevel = null; }
+        else visibleDim[p.band].delete(p);
+        p.dim.style.display = d ? '' : 'none';
+      }
+      if (p.dimOn && p.dimLevel !== dimClock.text[p.band]) syncDimPiece(p);
     }
     keepWarm();
   }
@@ -2698,8 +2748,8 @@
     showNames();
     updateBeam(now);
     stepDim(now);
-    cullPieces();
     stepCamera(dt);
+    cullPieces();
     autoPhase(now);
     capBubbles();
     // Read all new bubble sizes together after the writes; unchanged bubbles never force layout per frame.
@@ -4128,9 +4178,14 @@
     artImgs.push({ im: $('bg'), file: layers?.image || `cinema_draft_${DRAFT}.png`, file_2x: layers?.image_2x });
     if (layers?.dim?.image) {
       const im = h('img', 'dim-art');
-      im.id = 'bg-dim';
+      const plate = h('div', 'dim-art');
+      plate.id = 'bg-dim';
+      im.className = '';
+      Object.assign(im.style, { width: '100%', height: '100%', display: 'block' });
       im.alt = '';
-      $('bg').after(im);
+      $('bg').after(plate);
+      plate.append(im);
+      SB.cacheArtPlate(im);
       dimImgs.push({ im, file: layers.dim.image, file_2x: layers.dim.image_2x });
     }
     SB.mountStage($('stage'));

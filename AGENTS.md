@@ -164,6 +164,8 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
 - During performance checks, repeatedly zoom from a wide shot to a tight close-up and back in both rooms. In the
   auditorium, also measure the lights going down and coming up, including zooms during the fades. Report frame
   timing during the moves and fades separately from the settled-room baseline.
+- Preserve visual fidelity when fixing stutter. Compare the original and candidate at wide and close framing and during lighting changes before promoting a performance fix.
+- During extended Codex runs, check the account’s weekly usage and stop with at least 10% remaining.
 - More RAM or VRAM for less stutter is fine; note the memory cost in `PROGRESS.md`.
 - Check the baseline against what a normal scene should look like (people outside, chatting, at the jukebox), using
   a page that has been open a while and the room record (`/ctl/room-state`, `/ctl/room-roster`). Fix causes, not
