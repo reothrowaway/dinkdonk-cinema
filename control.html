@@ -684,12 +684,12 @@
   const sendSetting = (key, value) => Promise.resolve(send({ cmd: 'setting', key, value })).then(refreshSettings);
   const eventNames = {
     lobby: {
-      'black-hole': 'Black Hole Matinee', 'laser-topography': 'Black Hole · Laser Topography opening',
-      mirrorball: 'Mirrorball Ballroom', 'contact-printer': 'Contact Printer', 'horizon-drive': 'Horizon Drive',
+      'black-hole': 'Black Hole Matinee',
+      mirrorball: 'Mirrorball Ballroom',
       'infinity-foyer': 'Infinity Foyer', 'glyph-cascade': 'Glyph Cascade · PEPE WINS',
       'yee-vs-pepe': 'PEPE vs. YEE fight', 'restroom-gag': 'Restroom rendezvous',
       quickdraw: 'PARDNER vs. YEEHAW quickdraw', 'nothing-burger': 'Nothing Burger',
-      aristortle: 'Aristortle crossing', canvasser: 'The canvasser', 'missed-bus': 'Missed the bus'
+      aristortle: 'Aristortle crossing'
     },
     auditorium: { 'laser-choir': 'Laser Choir', 'aisle-vendor': 'Aisle vendor', 'popcorn-run': 'Popcorn run' }
   };

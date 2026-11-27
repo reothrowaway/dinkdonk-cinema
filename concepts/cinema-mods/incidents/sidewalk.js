@@ -12,45 +12,51 @@ function wave(el,t,start,life,x,y,radius){
   const p=ramp(t,start,start+life);
   attrs(el,{cx:x,cy:y,rx:f(.2+radius*p),ry:f(.2+radius*p*.25),opacity:f(Math.sin(Math.PI*p)*.75)});
 }
-const victoryWords=['PEPE','WINS'];
-const victoryLetters=Array.from(victoryWords.join(''));
+const victoryLetters=Array.from('PEPEWINS');
 
-// The title controller continues updating both real lines under this short marquee message.
-function victoryMarquee(bands,world,center){
-  const faces=bands.map(band=>{
-    const title=band.firstElementChild;
-    const face=document.createElement('div');
-    face.className='mq1 victory-message';
-    face.style.top=title.offsetTop+'px';
-    face.style.visibility='hidden';
-    const letters=[];
-    for(const [index,word] of victoryWords.entries()){
-      if(index)face.append(document.createTextNode(' '));
-      for(const ch of word){
-        const letter=document.createElement('span');
-        letter.textContent=ch;face.append(letter);letters.push(letter);
-      }
+// A sign belongs to its carrier's body, so walk cycles, occlusion, camera moves and
+// cleanup all follow the same real figure. The face rotates edge-on as it is stowed.
+function victorySign(w,ch,i){
+  const layer=node(w.bod,'svg',{width:1,height:1,'aria-hidden':'true','data-glyph-carrier':ch});
+  layer.style.cssText='position:absolute;left:0;top:0;overflow:visible;pointer-events:none;visibility:hidden';
+  w.bod.insertBefore(layer,w.em);
+  const swing=group(layer);
+  const board=group(swing,{'data-marquee-letter':ch});
+  rect(board,-2.5,-19,5,23,'#765743',{rx:1,stroke:'#432d30','stroke-width':1});
+  rect(board,-24,-62,48,48,'#654b47',{rx:3});
+  rect(board,-25,-64,48,48,'#fff2c6',{rx:2,stroke:'#50394a','stroke-width':2});
+  rect(board,-20,-22,38,2,i<4?'#a64b76':'#377e74');
+  type(board,-1,-26,ch,40,'#342739','900');
+  const side=i%2?-1:1;
+  const height=parseFloat(w.em.style.height)||44;
+  const width=Number(w.em.dataset.w)||40;
+  const shoulder=Math.min(18,width*.36);
+  let canopy=null;
+  return {layer,dispose(){canopy?.cancel();delete w.bod.dataset.glyphBusy;layer.remove();},paint(t,reduced){
+    const folded=ease(ramp(t,.05,.88))*(1-ease(ramp(t,12.9,13.55)));
+    if(!canopy&&folded>0&&w.umb){
+      canopy=w.umb.animate([
+        {scale:'1 1',translate:'0 0',opacity:1},
+        {scale:'.15 .65',translate:'0 18px',opacity:1,offset:.64},
+        {scale:'.09 .48',translate:'0 23px',opacity:0}
+      ],{duration:1000,fill:'both'});
+      canopy.pause();
     }
-    band.append(face);
-    return {band,face,letters};
-  });
-  const worldBox=world.getBoundingClientRect(),scale=worldBox.width/1920;
-  const sockets=faces[0].letters.map(letter=>{
-    const box=letter.getBoundingClientRect();
-    return [(box.left+box.width/2-worldBox.left)/scale-center[0],(box.top+box.height/2-worldBox.top)/scale-center[1]];
-  });
-  const lifted=[];
-  let displayed=false;
-  return {sockets,valid:()=>faces[0].face.isConnected,reveal(){
-    if(displayed)return;
-    displayed=true;
-    for(const {band,face} of faces){band.classList.add('victory-marquee');face.style.visibility='';}
-  },show(i,away){
-    if(lifted[i]===away)return;
-    for(const face of faces)face.letters[i].style.visibility=away?'hidden':'';
-    lifted[i]=away;
-  },release(){
-    for(const {band,face} of faces){face.remove();band.classList.remove('victory-marquee');}
+    if(canopy)canopy.currentTime=1000*folded;
+    if(folded>.5)w.bod.dataset.glyphBusy='';else delete w.bod.dataset.glyphBusy;
+    const pull=ease(ramp(t,.55+i*.12,2.05+i*.12));
+    const lower=ease(ramp(t,10.1+i*.11,12.15+i*.11));
+    const raised=pull*(1-lower);
+    layer.style.visibility=raised>.015?'visible':'hidden';
+    if(raised<=.015)return null;
+    const sway=(reduced?0:2.4*Math.sin(t*2.2+i*.45))*ramp(raised,.82,1);
+    const x=side*mix(-shoulder*.5,4,raised)+side*shoulder*Math.sin(Math.PI*raised);
+    const y=mix(-height*.23,-height+7,raised);
+    const angle=side*mix(69,0,raised)+sway;
+    const face=mix(.08,1,raised);
+    place(swing,x,y,angle);
+    place(board,0,0,0,face,1);
+    return [x,y];
   }};
 }
 export const sidewalk={
@@ -149,61 +155,39 @@ export const sidewalk={
         tilt:toward*(10*watch-24*flinch)+9*beat(t,7,9.8)};
     }};
   }),
-  'glyph-cascade':{...incident(15,8,8,anchor.marquee,({scene,actors,anchors,center,world,root})=>{
-    const marquee=victoryMarquee(anchors.marqueeBands,world,center);
-    for(const band of anchors.marqueeBands)root.style.zIndex=String(Math.max(Number(root.style.zIndex),Number(band.style.zIndex)+1));
-    const tiles=victoryLetters.map((ch,i)=>{
-      const el=group(scene,{'data-marquee-letter':ch});
-      rect(el,-28,-29,56,60,'#51414d',{rx:2});
-      rect(el,-28,-32,54,58,'#fff1c4',{rx:2,stroke:'#50394a','stroke-width':2});
-      rect(el,-22,19,42,3,i<4?'#ab6387':'#4f9188');
-      type(el,-1,14,ch,46,'#302639','900');
-      return el;
-    });
-    // Four evenly spaced carriers per word. Reserve a full extra space between the words.
-    // Stretch the two words along the pavement. In this camera a level line
-    // in screen pixels would put its opposite ends in the road and through the glass.
-    const slots=victoryLetters.map((_,i)=>{
+  'glyph-cascade':incident(13.6,8,8,()=>[8.05,10.6],({scene,actors})=>{
+    node(scene,'style').textContent='[data-glyph-busy] > .umbio {visibility:hidden}';
+    const signs=actors.map((w,i)=>victorySign(w,victoryLetters[i],i));
+    // This diagonal follows the pavement between the road and the glass. The
+    // extra gap after the fourth carrier separates the two words.
+    const slots=actors.map((_,i)=>{
       const du=(i-3.5)*.91+(i<4?-.26:.26),dv=(3.5-i)*.10;
       return [(du-dv)*60,(du+dv)*30];
     });
-    const overhead=-Math.max(67,...actors.map(w=>Math.min(100,parseFloat(w.em?.style.height)||44)+27));
     let cardBounds=null;
-    return {slots,focusY:63,zoom:1.65,actionBounds:()=>cardBounds,dispose:marquee.release,valid:onFoot=>actors.every(onFoot)&&marquee.valid(),paint(t,reduced){
-      if(t>0)marquee.reveal();
-      cardBounds=null;
-      tiles.forEach((tile,i)=>{
-        const drop=2.0+i*.32,land=drop+1.2,toss=10.8+i*.22;
-        const p=ramp(t,drop,land),back=ramp(t,toss,toss+1.25),raised=ease(ramp(t,5.65,6.45));
-        const [x,y]=marquee.sockets[i],holdX=slots[i][0];
-        const holdY=slots[i][1]+mix(overhead+28,overhead,raised)+(reduced?0:5*beat(t,land,land+.35));
-        const px=mix(mix(x,holdX,ease(p)),x,ease(back));
-        const arc=reduced?0:Math.sin(Math.PI*back)*52;
-        const py=mix(mix(y,holdY,p*p),y,ease(back))-arc;
-        const turn=reduced?0:(i%2?18:-18)*(Math.sin(Math.PI*p)+Math.sin(Math.PI*back));
-        const scale=mix(.22,1,ease(p)*(1-ease(back)));
-        place(tile,px,py,turn,scale);
-        const lifted=t>=drop&&back<1;
-        if(lifted){
-          // Same pivot, rotation and scale as the drawn card. Include its stroke,
-          // a little clear space around the text, and the bubble's 8px tail.
-          const radians=turn*Math.PI/180, c=Math.abs(Math.cos(radians)), s=Math.abs(Math.sin(radians));
-          const rx=(29*c+33*s)*scale+10, ry=(29*s+33*c)*scale+10;
-          if(!cardBounds)cardBounds=[px-rx,py-ry,px+rx,py+ry];
-          else {
-            cardBounds[0]=Math.min(cardBounds[0],px-rx);cardBounds[1]=Math.min(cardBounds[1],py-ry);
-            cardBounds[2]=Math.max(cardBounds[2],px+rx);cardBounds[3]=Math.max(cardBounds[3],py+ry);
-          }
-        }
-        marquee.show(i,lifted);
-        attrs(tile,{opacity:lifted?1:0});
-      });
-    },act(i,t){
-      const land=3.2+i*.32,toss=10.8+i*.22;
-      return {tilt:(i%2?-1:1)*(12*beat(t,land-.4,land+.26)-12*beat(t,toss-.2,toss+.4)),
-        lift:13*beat(t,land-.44,land+.1)+7*beat(t,5.6,6.4)+15*beat(t,toss-.2,toss+.45)};
-    }};
-  }),anchor:a=>a.marqueeBands?.[0]?.firstElementChild?.isConnected?anchor.marquee(a):null},
+    return {slots,focusY:58,zoom:1.75,actionBounds:()=>cardBounds,
+      valid:onFoot=>actors.every(w=>onFoot(w)&&w.bod.isConnected),
+      dispose(){for(const sign of signs)sign.dispose();},
+      paint(t,reduced){
+        cardBounds=null;
+        signs.forEach((sign,i)=>{
+          const grip=sign.paint(t,reduced);
+          if(!grip)return;
+          const x=slots[i][0]+grip[0],y=slots[i][1]+grip[1];
+          const padding=13;
+          if(!cardBounds)cardBounds=[Infinity,Infinity,-Infinity,-Infinity];
+          cardBounds[0]=Math.min(cardBounds[0],x-70-padding);
+          cardBounds[1]=Math.min(cardBounds[1],y-70-padding);
+          cardBounds[2]=Math.max(cardBounds[2],x+70+padding);
+          cardBounds[3]=Math.max(cardBounds[3],y+padding);
+        });
+      },
+      act(i,t,reduced){
+        const side=i%2?-1:1,pull=beat(t,.55+i*.12,2.05+i*.12),stow=beat(t,10.1+i*.11,12.15+i*.11);
+        return {tilt:side*(reduced?2:6)*(pull-stow),lift:(reduced?1:3)*pull};
+      }
+    };
+  }),
 };
 function transformReflection(el,x,y,scaleX,scaleY){
   el.setAttribute('transform',`translate(${f(x)} ${f(y)}) scale(${scaleX} ${-scaleY})`);

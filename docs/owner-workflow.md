@@ -51,7 +51,7 @@ OBS filter on the room's browser source. The auditorium keeps the film cutout al
 
 In **Timed events** on the Lobby or Auditorium card, leave **Auto** on for the director to pick shows. To cue one yourself, choose it in the dropdown and click **Run event**. This works with Auto off. The request waits up to 90 seconds for the current show, suitable guests and the right room phase. The panel reports when it plays or when the room can’t stage it. Turning Auto off during an automatic show stops it. Cinema filters have their own controls.
 
-The lobby lineup includes Black Hole Matinee (also selectable with its Laser Topography opening), Mirrorball Ballroom, Contact Printer, Horizon Drive, Infinity Foyer, Glyph Cascade, PEPE vs. YEE, the restroom rendezvous, Quickdraw, Nothing Burger, Aristortle crossing, the canvasser and Missed the bus. Glyph Cascade needs eight chatters. PEPE vs. YEE needs one free guest from each emote family and a clear path to the fight. The bus runner waits for a real bus departure.
+The nine lobby choices are Black Hole Matinee, Mirrorball Ballroom, Infinity Foyer, Glyph Cascade (PEPE WINS), PEPE vs. YEE, Restroom rendezvous, Quickdraw, Nothing Burger and Aristortle crossing. In Glyph Cascade eight chatters draw their own cards, raise them overhead and tuck them away. In Aristortle crossing the camera follows the turtle out to the street and a passing vehicle hits it. Automatic fights and Quickdraw use the matching emotes. When you click **Run event**, the director can fill missing roles using two distinct active chatter identities.
 
 In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film.
 

@@ -87,7 +87,7 @@
     'FeelsBadMan', 'SoSad', 'Kappa', 'NOBULLY', 'DuckerZ', 'Wowee', 'GIMI', 'PepeLaugh', 'WEOW',
     'BINGQILIN', 'AngelThump', 'Abathur', 'AlienPls', 'Aware', 'Askers', 'COGGERS', 'ASLAN', 'WAYTOODANK',
     'PepoTurkey', 'Hhhehhehe', 'OOOO', 'SPY', 'MiyanoHype', 'DANKMEMES', 'POTATO', 'CuckCrab', 'GODSTINY'];
-  const emotes = { names: new Set(), css: false, sizes: new Map() };
+  const emotes = { names: new Set(), css: false, sizes: new Map(), imageUrls: new Map() };
   // Emotes of our own, next to DGG's (owner, 11 Nov 2026): MOPPING is the cpMOP penguin with mop and bucket (what DGG
   // called the emote), so "Add a chatter" can dress someone in it and chat that types it gets it too. Drawn like a DGG
   // emote: a .emote.<name> class, here from a small stylesheet of our own.
@@ -119,8 +119,14 @@
       const res = await fetch('/dgg/emotes.json', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error(res.status);
       const names = new Set();
-      for (const e of await res.json()) if (typeof e?.prefix === 'string' && e.prefix) names.add(e.prefix);
+      const imageUrls = new Map();
+      for (const e of await res.json()) {
+        if (typeof e?.prefix !== 'string' || !e.prefix) continue;
+        names.add(e.prefix);
+        if (typeof e.image?.[0]?.url === 'string') imageUrls.set(e.prefix, e.image[0].url);
+      }
       if (!names.size) throw new Error('empty emote list');
+      emotes.imageUrls = imageUrls;
       emotes.names.clear();   // (drops the fallback names of a failed first try)
       names.forEach((n) => emotes.names.add(n));
       addLocalEmotes();

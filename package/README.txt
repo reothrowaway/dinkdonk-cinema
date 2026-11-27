@@ -52,7 +52,7 @@ The standalone obs\cinema-looks.shader contains all thirteen presets.
 EVERY STREAM
 Under Timed events on the Lobby or Auditorium card, leave Auto on for random performances.
 To run a particular show, choose its name and click Run event. You can cue one show while Auto is off.
-The director waits for the cast and room phase. The lobby includes PEPE vs. YEE and the eight-chatter PEPE WINS show.
+The director checks the room phase and cast. Manual PEPE vs. YEE and Quickdraw can fill missing roles using active chatters. The PEPE WINS card show needs eight chatters.
 The auditorium has Laser Choir, Aisle vendor and Popcorn run.
 1. Double-click START.bat (before or after OBS, either works).
 2. Use the control panel (http://127.0.0.1:18770/control.html) to follow a chatter, go back to the wide

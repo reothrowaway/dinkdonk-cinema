@@ -152,18 +152,17 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | `life=0` | on | No neighborhood life layer (`#lifefx`): steam from the roof vents and the noodle shop, apartment windows switching over minutes, the TV flicker in the blue window, neon dips. Windows and dips follow the wall clock | the "neighborhood life (L9)" script block |
 | `lifetest=1` | off | Test only: every apartment-window overlay shown at once and a neon dip every 6 s (to check they sit on the render) | same block |
 | `light=0` | on | No lighting looks on chatters. Each walker takes one of nine looks from where they stand (neon pink / teal / amber, street, puddle glow, marquee, hall), an SVG colour matrix chosen by `data-lt`; replaces the old flat street dimming | `LIGHT`, `lookAt`, `stepLight` |
-| `refl=0` | on | No floor reflections under chatters on the wet pavement and the polished lobby floor | `.refl` |
+| `refl=0` | on | Disables the mirrored emote on wet pavement. It follows the actual sprite and meets its feet at rest. | `.figure-ground.wet` |
 | `beams=0` | on | No headlight beams from passing cars in the extra rain (`uHL` in `RAIN2_FS`) | `setHeadlights` |
 | `snark=0` | on | No snarky one-liners from the staff | `.snark` |
 | `bridge=0` | on | No "BRIDGE OUT" road-works board on the street | `.rwboard` |
-| `canvass=0` / `canvass=now` | on | No door-to-door canvasser with a clipboard / request one when eligible (test) | `startCanvasser` |
 | `leader=0` | on | No "Dear Leader" poster by the box office at all | `LEADER_ON` |
 | `leaderart=0` | on | Use the page-drawn placeholder instead of the rendered poster pack `roxy3d/out10l/` (`leader.json`, loaded after the marquee pack) | `mergeLeader` |
 | `posters=0` | on | No extra lobby posters (the J6 video, the "Dogtober 7th" documentary) | `.pst` |
 | `slop=0` | on | Plain snack-bar menu boards, without the slop menu text (POLITICS SLOP $2.75 ...) | `buildSlop` |
 | `gnome=0` | on | No garden gnome that turns up in a different spot now and then | `GNOME_SPOTS`, `stepGnome` |
 | `chatfx=0` | on | No chat-triggered effects: the box-office bell, a passing siren, petting the cat (`window.__chatfx` for tests) | `ringBell`, `callSiren`, `petCat` |
-| `street2=0` | on | No second street batch: puddle splashes from cars, the runner late for the bus, pigeons, the dog in a window, umbrellas turning in gusts, blown paper (`window.__street2`) | `stepStreet2` |
+| `street2=0` | on | No second street batch: puddle splashes from cars, pigeons, the dog in a window, umbrellas turning in gusts, blown paper (`window.__street2`) | `stepStreet2` |
 | `gaits=0` | on | Everyone walks the same way (no special gaits per emote) | `GAITS` |
 | `props=0` | on | No lobby props: the "WIN A BUDDY" claw machine behind the front glass (about 1 arrival in 14 has a go, about 1 in 9 wins and carries a Buddy plush), the "JAMS" jukebox (chatters wearing a dance emote dance at its four spots, the tubes pulse) and the TV on the back bar (BREAKING NEWS on "BREAKING ..." in chat, a DinkDonk combo and every fifth minute). Art: layer pack `roxy3d/out10p/` (`props.json`, loaded after the poster pack); pieces with `anim` are lights the page dims and flashes | `mergeProps`, `stepProps`, `clawTurn`, `goDance`, `breakingNews` |
 | `clawtest=win` / `clawtest=lose` | off | Test only: every arrival without another errand plays the claw machine, with that result | `CLAW_TEST` |

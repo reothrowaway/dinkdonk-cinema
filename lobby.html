@@ -69,12 +69,11 @@
   .w.out .umb { display: block; }
   .w.event-indoors .umb, .w.event-indoors .umbs { visibility: hidden; }
   .w.out:not([data-lt]) .em { filter: brightness(.84) saturate(.9); }   /* night street: dimmer than the lobby (when the scene light, L6, is off or not loaded) */
-  /* wet reflection under a chatter on the street (queue 63, L7): a flipped copy of the emote, fading out downwards */
-  .refl { position: absolute; left: -42px; top: 1px; width: 84px; height: 48px; overflow: hidden; pointer-events: none; opacity: .44;
-    transform-origin: 0 0; transform: scaleY(.82);
-    -webkit-mask-image: linear-gradient(#000, rgba(0, 0, 0, .5) 45%, transparent); mask-image: linear-gradient(#000, rgba(0, 0, 0, .5) 45%, transparent); }
-  .refl > .em { bottom: auto; top: 0; }
-  .w .refl > .em.em { filter: none !important; }   /* the copy keeps the emote's own light: a dimmed one vanished on the dark pavement */
+  /* Mirror the live body around the pavement. The stationary box holds the contact line while the body jumps. */
+  .figure-ground { position: absolute; left: -48px; top: -96px; width: 96px; height: 96px; pointer-events: none; }
+  .figure-ground > .bod { left: 48px; top: 96px; }
+  .figure-ground.wet { -webkit-box-reflect: below 0 linear-gradient(to top, rgba(0,0,0,.44), rgba(0,0,0,.20) 24px, transparent 54px); }
+  .figure-ground.wet > .bod { margin-top: var(--foot-inset, 0px); }
   /* golden WEOW (queue 65, L50): DGG's own gold WEOW (a cell of the emote's sheet) with a pulsing aura and sparkles,
      so it stands out from everyone. Rare (1 in 20 of the chatters wearing WEOW), so its shadows cost next to nothing. */
   .w.gold .em { filter: drop-shadow(0 0 3px rgba(255, 205, 70, .95)) !important; }
@@ -93,12 +92,6 @@
   @keyframes twinkle { 0%, 100% { transform: scale(.2); opacity: 0; } 50% { transform: scale(1); opacity: 1; } }
   .umbs { position: absolute; display: none; pointer-events: none; }
   .w.out .umbs { display: block; }
-  /* the clipboard of the canvasser (queue 65, L32) */
-  .clip { position: absolute; left: 13px; top: -31px; width: 11px; height: 15px; border: 2px solid #6e5232; border-radius: 2px; background: #efe6cf;
-    transform: rotate(9deg); box-shadow: inset 0 3px 0 #9aa3ad; }
-  .doorlight { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; opacity: 0; transition: opacity .35s;
-    background: linear-gradient(180deg, rgba(255, 220, 160, .8), rgba(255, 190, 110, .5)); box-shadow: 0 0 14px 4px rgba(255, 196, 120, .32); }
-  .doorlight.on { opacity: 1; }
   /* lobby props drawn by the page (queue 65): the Dear Leader portrait (L38), two posters on the corridor's end wall
      (L44 the J6 video, L51 Dogtober 7th), the snack menu's slop lines (L46), the gnome (L40) */
   .dlp { position: absolute; left: 0; top: 0; width: 36px; height: 46px; transform-origin: 0 0; pointer-events: none; box-sizing: border-box;
@@ -117,6 +110,7 @@
   .menut span { display: block; transition: opacity .5s; }
   .gnome { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
   .gnome i { position: absolute; }
+  .w.paired-original { visibility: hidden !important; }
   /* lobby life (queue 64): a shivering emote (L20), the nothing-burger cloche (L26), the wet-floor sign (L29) */
   .w.shiver .em { animation: shiver .16s steps(2) infinite; }
   @keyframes shiver { 50% { translate: 1.5px 0; } }
@@ -1277,6 +1271,9 @@
   let timedEventsEnabled = true;
   const walkers = new Map();   // lowercase nick -> their current walker
   const figures = new Set();   // every walker on screen, incl. ones finishing a door/purge (insertion order = age)
+  // Manual role actors have no place in the real room roster, chat dispatch, queue or crowd cap.
+  const pairedDoubles = new Map();
+  let pairedRoster = [], pairedRosterAt = -Infinity, pairedRosterPending = false, pairedRosterVersion = 0;
   const queue = [];
   const bubOrder = [];
   const bubLayer = $('bubbles');
@@ -1439,7 +1436,7 @@
         sp.style.cssText = `left:${x}px;top:${y}px;animation-delay:${-d}s`;
         w.aura.append(sp);
       }
-      w.el.insertBefore(w.aura, w.bod);   // behind the emote
+      w.el.insertBefore(w.aura, w.ground);   // behind the emote
       w.goldSay = true;                   // announced once, when they are first seen (frame loop)
     } else { w.aura?.remove(); w.aura = null; }
   }
@@ -1487,10 +1484,15 @@
     });
   }
   function setEmote(w, name) {
+    if (w.pairedRole) {
+      w.pairedRole.avatar = name;
+      return;
+    }
     if (w.emName === name) return;
     w.emName = name;
     w.em?.remove();
-    w.refl?.remove(); w.refl = null;   // (the street reflection is rebuilt from the new emote, stepLight)
+    w.footSprite = null;
+    w.ground.style.removeProperty('--foot-inset');
     // wide emotes (wings, banners) are fitted into a max width so they don't dwarf everyone else
     const MAXW = 74;
     const { w: ew, h: eh } = SB.emoteSize(name);
@@ -1519,9 +1521,11 @@
     // plain names in DGG chat's grey (#dcdcdc); the shared room still holds plain white for people who came in before
     // 15 Nov 2026
     nm.style.color = (/^#f{3}(f{3})?$/i.test(color || '') ? '#dcdcdc' : color) || SB.nickColor(nick);
-    el.append(sh, bod, nm);
+    const ground = h('div', 'figure-ground');
+    ground.append(bod);
+    el.append(sh, ground, nm);
     world.append(el);
-    const w = { nick, el, sh, bod, nm, em: null, emName: null, u: 0, v: 0, alpha: 1, alphaT: 1, phase: Math.random() * 6, hopN: 0,
+    const w = { nick, el, sh, ground, bod, nm, em: null, emName: null, u: 0, v: 0, alpha: 1, alphaT: 1, phase: Math.random() * 6, hopN: 0,
       idle: 0, plan: [], room: 0, detour: null, hurry: false, inQueue: false, qi: -1, entering: false, removing: false,
       bub: null, bubT: 0, carry: null, bounce: 0, staff: !!staff, x: 0, y: 0, lift: 0, z: -1, vis: -1 };
     setEmote(w, emote);
@@ -1676,7 +1680,7 @@
   function injectChatterMessage(w, text) {
     if (walkers.get(w.key) !== w || w.gone || w.entering || w.removing) return null;
     const message = SB.parseMessage({ nick: w.nick, data: text });
-    spawn({ ...message, emote: w.emName, roomIndex: w.room });
+    spawn({ ...message, emote: w.pairedRole?.avatar ?? w.emName, roomIndex: w.room });
     const tokens = message.tokens;
     return {
       get queued() { return w.pending === tokens || w.lines?.includes(tokens); },
@@ -2043,6 +2047,7 @@
     const w = makeFigure(wi.nick, GOLD_TEST && SB.hashHue(wi.nick) % 5 === 0 ? GOLD_TEST_EM : wi.emote, wi.color, false);
     if (wi.rainbow) { w.nm.textContent = ''; w.nm.append(h('span', 'rbt', wi.nick)); }   // tier 5: rainbow name, as in DGG chat
     w.key = key;
+    if (pairedDoubles.has(key)) w.el.classList.add('paired-original');
     figures.add(w);
     w.room = wi.roomIndex;
     // with the real restroom (layout 3) about one in five drops by before the film (chat already sends ~5 %)
@@ -2597,6 +2602,7 @@
       // (riders stepping out of a bus / taxi stand at the curb, v <= 10.7)
       if (w.gone || w.removing || w.entering || w.ride || w.alpha < 0.5 || w.v < 10.75) continue;
       if (Math.abs(w.v - v.lane) > half || Math.abs(w.u - v.u) > v.len / 2 + 0.1) continue;
+      if (w.onRoadImpact) { w.onRoadImpact(v); continue; }
       retire(w);
       w.hurry = true;
       dropBubble(w);
@@ -3398,7 +3404,7 @@
         w.umbSpec = null;
       }
       if (w.out && !out) { w.wetSteps = 4; lobbyLife.wet.push(performance.now()); }   // in from the rain: a few wet prints on the lobby floor
-      if (w.out === false && out && !w.umb) giveUmbrella(w, roll(w, 'umb'));   // back out into the rain (changed their mind)
+      if (w.out === false && out && !w.umb && w !== lobbyLife.turtle) giveUmbrella(w, roll(w, 'umb'));   // back out into the rain (changed their mind)
       w.out = out;
       w.el.classList.toggle('out', out);
     }
@@ -3437,7 +3443,7 @@
     if (!w.bub) return;
     // hidden (in the restroom, fading in off the street) or out of view: hold the line until they are visible
     const [sx, sy] = toScreen(w.x, w.y - (EH + w.lift) * 0.5);
-    const hidden = w.alpha < 0.3 || lobbyEvents?.concealed(w) || sx < 20 || sx > 1900 || sy > 1075 || sy < 0;
+    const hidden = pairedDoubles.has(w.key) || w.alpha < 0.3 || lobbyEvents?.concealed(w) || sx < 20 || sx > 1900 || sy > 1075 || sy < 0;
     if (!hidden && !w.bubBlocked) w.bubT -= dt;   // no time lost while hidden or waiting for room
     if (w.bubT <= 0) { dropBubble(w); return; }
     // kept inside the stage; the pointer aims at the speaker (set in layoutBubbles, after any displacement)
@@ -3796,7 +3802,7 @@
     const kind = r > g * 1.18 && r >= b * 0.85 ? 'gm' : b > r * 1.12 || g > r * 1.12 ? 'gc' : 'gn';
     return kind + (lum < 0.3 ? 1 : 2);
   }
-  // ---------- the street: "bridge out" board (L30) and the canvasser (L32), queue 65 ----------
+  // ---------- the street: "bridge out" board (L30) and shopfronts, queue 65 ----------
   // L30: a roadworks message board on the far sidewalk. Burning and rebuilding bridges with orbiters is the running
   // joke of the community: the board says BRIDGE OUT with two blinking beacons; once every 10 minutes (wall clock, so
   // every screen agrees) it reads BRIDGE REBUILT for 55 s, then BURNED AGAIN with a flicker for 25 s. ?bridge=0: none.
@@ -3831,50 +3837,6 @@
     tick();
     setInterval(tick, 250);
   }
-  // The director can send the canvasser to knock at three shop doors. The old
-  // ?canvass=now preview uses the same director. ?canvass=0 disables the visit.
-  const CANVASS = q.get('canvass');
-  let canv = null;
-  const DOORLIGHTS = [null, [276, 521, 18, 50], [298, 511, 42, 66]].map((r) => {
-    if (!r) return null;
-    const d = h('div', 'doorlight');
-    Object.assign(d.style, { width: `${r[2]}px`, height: `${r[3]}px`, transform: `matrix(1, .5, 0, 1, ${r[0]}, ${r[1]})` });
-    $('lifefx').append(d);
-    return d;
-  });
-  function startCanvasser() {
-    if (CANVASS === '0' || canv) return;
-    const effects = [];
-    let finished = false;
-    const w = makeFigure('canvasser', SB.emotes?.names?.has('dggL') ? 'dggL' : 'PEPE', '#9fd0ff', false);
-    w.npc = true;
-    w.key = '#canvasser';
-    // the rendered clipboard (manifest.items.clipboard, Brief 96) held like popcorn; older art: the page's CSS board
-    // (as w.carry, so it is placed again when the emote's size is known)
-    if (ITEMS?.clipboard) { w.carry = itemEl('clipboard', 'clip', HELD.carry); w.bod.append(w.carry); placeItem(w, w.carry, 'carry'); } else w.bod.append(h('div', 'clip'));
-    [w.u, w.v] = [-6.6, 9.55];
-    w.nameT = 6;
-    giveUmbrella(w, 0.3);
-    figures.add(w);
-    canv = w;
-    const stop = (u, light, answer) => [{ to: [u, 9.45] },
-      { wait: 0.9, start: (x) => { x.bounce = 1; effects.push(floatAt(x, 'knock knock', '#cfe8ff')); } },
-      { wait: 0.9, start: (x) => { x.bounce = 1; } },
-      { wait: light ? 2.8 : 1.6, start: (x) => { light?.classList.add('on'); effects.push(floatAt(x, answer, '#ffe2a8')); }, end: () => light?.classList.remove('on') }];
-    w.plan = [...stop(-3.55, DOORLIGHTS[0], '...'), ...stop(-1.45, DOORLIGHTS[1], '\u{1F4CB} \u2714'), ...stop(-0.8, DOORLIGHTS[2], '\u{1F4CB} \u2714'),
-      { to: [0.6, 9.9] }, { to: [16.8, 9.95] }, { call: (x) => { finished = true; removeWalker(x); canv = null; } }];
-    return {
-      paint() {}, complete: () => finished, valid: () => finished || (canv === w && !w.gone),
-      dispose() {
-        effects.forEach(el => el.remove());
-        DOORLIGHTS.forEach(light => light?.classList.remove('on'));
-        if (canv !== w) return;
-        if (!w.gone) removeWalker(w);
-        canv = null;
-      }
-    };
-  }
-
   // ---------- lobby props drawn by the page (queue 65: L38, L44, L51, L46, L40) ----------
   // Every position is measured on the render (full@2x). They are flat page drawings on the art's wall planes.
   // L38 Dear Leader: the rendered poster by the box office comes from the art pack roxy3d/out10l (mergeLeader). This
@@ -3894,7 +3856,7 @@
   }
   // A passerby with a free chat bubble can address the Dear Leader poster. Roll on 35% of passes, at most one line
   // every 8 s in the whole lobby, and each chatter at most once in 4 minutes. Staff, jannies and the page's own figures
-  // (canvasser, turtle, the runner) never do. "Past the poster" = walking within a tile of the floor in front of it
+  // (such as Aristortle) never do. "Past the poster" = walking within a tile of the floor in front of it
   // (the middle of its light on the floor, u 3.58 v 3.39 from out10l: by the usher's gate). Checked 4 times a second.
   const LEADER_LINES = ['GLORIOUS DAY, DEAR LEADER!', 'LONG LIVE DEAR LEADER!', 'ETERNAL GLORY TO DEAR LEADER', 'DEAR LEADER SEES ALL',
     'THANK YOU, DEAR LEADER', '10,000 YEARS TO DEAR LEADER!'];
@@ -4046,24 +4008,53 @@
   const LOBBYLIFE_ON = q.get('lobbylife') !== '0';
   const lobbyLife = { wet: [], turtle: null, checkT: 0, sign: null, signUntil: 0 };
   function sendTurtle() {
-    if (!LOBBYLIFE_ON || lobbyLife.turtle || !SB.emotes?.names?.has('PepoTurtle')) return;
-    let finished = false;
+    const start = [8.5, 5.6], curb = [7.65, 10.48];
+    const approach = ambientPath(start, curb);
+    if (!LOBBYLIFE_ON || lobbyLife.turtle || !approach || !VEH?.sedan_a?.['+u'] || !SB.emotes?.names?.has('PepoTurtle')) return;
     const w = makeFigure('Aristortle', 'PepoTurtle', '#7bc35a', false);
     w.npc = true;
     w.key = '#turtle';
-    w.emScale = 0.75; w.emName = null; setEmote(w, 'PepoTurtle');   // (setEmote also sets the emote's own gait: replaced below)
-    w.gait = { speed: 0.09, crawl: true, wobble: 1.8, stretch: 0.07 };
-    [w.u, w.v] = [8.5, 5.6];   // (the floor left of here is under the street marquee's roof from this camera)
+    w.emScale = 0.8; w.emName = null; setEmote(w, 'PepoTurtle');
+    w.gait = { speed: 0.64, crawl: true, wobble: 1.8, stretch: 0.07 };
+    [w.u, w.v] = start;
     w.alpha = 0; w.alphaT = 1;
-    w.nameT = 12;
-    w.alwaysName = true;   // Aristortle always wears his name (owner, 11 Nov), like a janny
+    w.alwaysName = true;
     figures.add(w);
     lobbyLife.turtle = w;
-    w.plan = [{ alpha: 1 }, { to: [10.6, 5.7], slow: true }, { to: [12.4, 6.3], slow: true },
-      { call: (x) => { x.alphaT = 0; } }, { alpha: 0 }, { call: (x) => { finished = true; removeWalker(x); lobbyLife.turtle = null; } }];
+    let impact = null, impactText, curbSince = null;
+    // Pick a moving vehicle on the normal near lane. Buses still unloading or cars
+    // stopping before the crossing cannot supply the cue. A quiet road gets a
+    // regular passing sedan from its offscreen entry, subject to normal spacing.
+    function crossingTraffic() {
+      const now = performance.now();
+      curbSince ??= now;
+      const approaching = traffic.filter(v => !v.gone && v.dir === '+u' && v.u < curb[0] &&
+        (v.stopAt === null || v.stopAt > curb[0] + v.len / 2));
+      if (!approaching.length && now - curbSince > 1000) {
+        addVehicle('sedan_a', '+u');
+        curbSince = now;
+      }
+      return approaching.some(v => v.cur > 0.8 && (curb[0] - v.u - v.len / 2) / v.cur < 3.5);
+    }
+    w.plan = [{ alpha: 1 }, ...approach.slice(1).map(to => ({ to, slow: true })),
+      { until: crossingTraffic }, { to: [curb[0], LANES.near + 0.12], slow: true }];
+    w.onRoadImpact = () => {
+      if (impact !== null) return;
+      impact = performance.now();
+      w.plan = [];
+      w.em.animate([{ scale: '1 1' }, { scale: '1.18 0.34' }], { duration: 140, fill: 'forwards' });
+      impactText = floatAt(w, '💥 BONK', '#ffb587');
+    };
     return {
-      paint() {}, complete: () => finished, valid: () => finished || (lobbyLife.turtle === w && !w.gone),
+      camera() {
+        const [x, y] = P(w.u, w.v);
+        return { x, y: y - 27, z: 2.65 };
+      },
+      paint() { if (impact !== null && performance.now() - impact > 1300) w.alphaT = 0; },
+      complete: () => impact !== null && performance.now() - impact > 2300,
+      valid: () => lobbyLife.turtle === w && !w.gone,
       dispose() {
+        impactText?.remove();
         if (lobbyLife.turtle !== w) return;
         if (!w.gone) removeWalker(w);
         lobbyLife.turtle = null;
@@ -4090,8 +4081,148 @@
       dispose() { el.remove(); caption?.remove(); }
     };
   }
-  function quickdrawPair(candidates) {
+  // Manual shows can borrow a costume without adding an actor to the live room.
+  // While it is on, genuine avatar changes are remembered for the end of the show.
+  function wearPairedRole(w, name) {
+    const original = w.emName;
+    const role = {avatar: original};
+    const gait = w.gait, flip = w.em?.dataset.flip, transform = w.em?.style.transform;
+    const announced = w.goldSay;
+    setEmote(w, name);
+    w.pairedRole = role;
+    return () => {
+      if (w.pairedRole !== role) return;
+      delete w.pairedRole;
+      setEmote(w, role.avatar);
+      if (role.avatar === original) {
+        w.gait = gait;
+        w.goldSay = announced;
+        if (flip == null) delete w.em.dataset.flip;
+        else w.em.dataset.flip = flip;
+        w.em.style.transform = transform || '';
+      }
+    };
+  }
+  const pairedEntrance = [[9.28,9.41], [9.69,9.43]]; // sidewalk at the public glass entrance
+  function manualPeople() {
+    const people = new Map();
+    function add(person) {
+      const key = person.nick?.trim().toLowerCase();
+      if (key && !key.startsWith('#') && !pairedDoubles.has(key) && !people.has(key)) people.set(key, person);
+    }
+    for (const w of walkers.values()) if (!w.npc && !w.jan && !w.staff && !w.gone && !w.removing) add(w);
+    for (const speaker of SB.activeChatters()) add(speaker);
+    const now = performance.now();
+    if (inRoom()) {
+      if (now - pairedRosterAt < 5000) pairedRoster.forEach(add);
+      else if (!pairedRosterPending) {
+        pairedRosterPending = true;
+        const version = pairedRosterVersion;
+        fetch('/ctl/room-roster?page=lobby', {cache:'no-store',signal:AbortSignal.timeout(2500)})
+          .then(r => r.ok ? r.json() : null).catch(() => null).then(room => {
+            if (version !== pairedRosterVersion) return;
+            pairedRoster = Array.isArray(room?.roster) ? room.roster : [];
+            pairedRosterAt = performance.now();
+            pairedRosterPending = false;
+          });
+      }
+    }
+    return people;
+  }
+  function releasePairedDouble(w) {
+    if (!w?.pairedIdentity || pairedDoubles.get(w.pairedIdentity) !== w) return;
+    pairedDoubles.delete(w.pairedIdentity);
+    for (const real of figures) if (real.key === w.pairedIdentity) real.el.classList.remove('paired-original');
+    w.gone = true;
+    w.el.remove();
+  }
+  function finishPairedTrip(trip, complete) {
+    returnAmbientTrip(trip);
+    const w = trip.w;
+    if (!w.pairedIdentity) return;
+    if (!complete || !ownsAmbientTrip(trip)) releasePairedDouble(w);
+    else w.pairedExit = trip;
+  }
+  function stepPairedDoubles(dt, t) {
+    for (const w of pairedDoubles.values()) {
+      const exit = w.pairedExit;
+      // During a normal exit the route hands off to the original fade-and-remove
+      // plan at the door. A replaced route no longer has a callback to remove it.
+      if (exit && !ownsAmbientTrip(exit) && w.plan !== exit.original) {
+        releasePairedDouble(w);
+        continue;
+      }
+      w.moving = stepPlan(w, dt);
+      if (!w.gone) drawFigure(w, dt, t);
+    }
+  }
+  function resetPairedCast() {
+    pairedRosterVersion++;
+    pairedRoster = []; pairedRosterAt = -Infinity; pairedRosterPending = false;
+    for (const w of pairedDoubles.values()) releasePairedDouble(w);
+  }
+  function realizeManualPair(cast) {
+    const castList = [...cast.keys()];
+    if (castList.some(w => w.understudy && pairedDoubles.has(w.key))) return [];
+    cast.clear();
+    return castList.map((w, i) => {
+      if (w.understudy) {
+        const person = w;
+        w = makeFigure(person.nick, person.emName, person.color, false);
+        w.key = '#paired-' + person.key;
+        w.pairedIdentity = person.key;
+        w.npc = true;
+        [w.u, w.v] = [person.u, person.v];
+        w.nm.style.opacity = '1';
+        w.plan = [{call: actor => { actor.alphaT = 0; }}, {alpha:0}, {call:releasePairedDouble}];
+        pairedDoubles.set(person.key, w);
+        for (const real of figures) if (real.key === person.key) real.el.classList.add('paired-original');
+        w.el.animate([{opacity:0}, {opacity:1}], {duration:350});
+      }
+      cast.set(w, i);
+      return w;
+    });
+  }
+  function manualPair(candidates, marks, matches, costumes) {
+    const guests = manualPeople();
+    const free = new Set(candidates.filter(w => w.key && walkers.get(w.key) === w && !w.out && !w.pairedRole && fightFree(w)));
+    const options = marks.map((mark, i) => {
+      const entry = pairedEntrance[i];
+      const entrancePath = ambientPath(entry, mark);
+      const options = [];
+      for (const [key, person] of guests) {
+        const emote = person.emName || person.emote;
+        const natural = matches[i](emote);
+        if (!natural && !SB.emotes?.names?.has(costumes[i])) continue;
+        const path = free.has(person) && ambientPath([person.u, person.v], mark);
+        const route = path || entrancePath;
+        if (!route) continue;
+        const w = path ? person : {understudy:true, key, nick:person.nick, color:person.nm?.style.color || person.color,
+          emName:natural ? emote : costumes[i], u:entry[0], v:entry[1]};
+        const distance = route.slice(1).reduce((sum, p, j) => sum + Math.hypot(p[0]-route[j][0], p[1]-route[j][1]), 0);
+        options.push({w, natural, distance});
+      }
+      return options;
+    });
+    let chosen = [], bestMatches = -1, fewestDoubles = 3, shortest = Infinity;
+    options[1].sort((a, b) => Number(b.natural) - Number(a.natural) ||
+      Number(!!a.w.understudy) - Number(!!b.w.understudy) || a.distance - b.distance);
+    for (const a of options[0]) {
+      const b = options[1][0]?.w.key === a.w.key ? options[1][1] : options[1][0];
+      if (!b) continue;
+      const score = Number(a.natural) + Number(b.natural), distance = a.distance + b.distance;
+      const doubles = Number(!!a.w.understudy) + Number(!!b.w.understudy);
+      if (score > bestMatches || (score === bestMatches && (doubles < fewestDoubles || (doubles === fewestDoubles && distance < shortest)))) {
+        chosen = [a.w, b.w]; bestMatches = score; fewestDoubles = doubles; shortest = distance;
+      }
+    }
+    return chosen;
+  }
+  const QUICK_MARKS = [[9.1,5.25], [10.35,5.15]];
+  const QUICK_ROLES = ['PARDNER', 'YEEHAW'];
+  function quickdrawPair(candidates, anchors, named, cue) {
     if (!LOBBYLIFE_ON) return [];
+    if (cue?.manual) return manualPair(candidates, QUICK_MARKS, QUICK_ROLES.map(name => emote => emote === name), QUICK_ROLES);
     const inside = candidates.filter(w => !w.npc && !w.jan && !w.out && !w.removing && !w.entering && w.alpha > 0.9 && w.v > 2.8);
     for (const a of inside) {
       if (a.emName !== 'PARDNER') continue;
@@ -4100,16 +4231,33 @@
     }
     return [];
   }
-  function quickdraw({cast}) {
-    const [a, b] = cast.keys();
-    if (!a || !b) return;
-    for (const [x, y] of [[a, b], [b, a]]) SB.faceEmote(x.em, x.emName, (y.u - x.u) - (y.v - x.v));
-    a.bounce = Math.max(a.bounce, 1); b.bounce = Math.max(b.bounce, 1);
+  function quickdraw({cast, cue}) {
+    const [a, b] = cue?.manual ? realizeManualPair(cast) : cast.keys();
+    if (!a || !b || a === b) return;
+    const trips = [], restore = [];
+    let arrived = 0;
+    const faceOff = () => {
+      for (const [x, y] of [[a, b], [b, a]]) SB.faceEmote(x.em, x.emName, (y.u - x.u) - (y.v - x.v));
+      a.bounce = Math.max(a.bounce, 1); b.bounce = Math.max(b.bounce, 1);
+    };
+    if (cue?.manual) {
+      const paths = [a,b].map((w,i) => ambientPath([w.u,w.v], QUICK_MARKS[i]));
+      if (paths.some(p => !p)) { [a,b].forEach(releasePairedDouble); return; }
+      [a,b].forEach((w,i) => {
+        restore.push(wearPairedRole(w, QUICK_ROLES[i]));
+        trips.push(startAmbientTrip(w, paths[i], () => [
+          {call: () => { if (++arrived === 2) faceOff(); }},
+          {wait: Infinity}
+        ]));
+      });
+    } else faceOff();
     const [win, lose] = Math.random() < 0.5 ? [a, b] : [b, a];
     const effects = [];
     let beat = 0;
     return {
-      valid: onFoot => onFoot(a) && onFoot(b) && a.emName === 'PARDNER' && b.emName === 'YEEHAW',
+      ready: () => !trips.length || arrived === 2,
+      valid: onFoot => onFoot(a) && onFoot(b) && !a.quitting && !b.quitting && trips.every(ownsAmbientTrip) &&
+        a.emName === 'PARDNER' && b.emName === 'YEEHAW',
       paint(t) {
         if (!beat && t >= .3) {
           effects.push(floatAt(a, 'DRAW!', '#ffe27a'), floatAt(b, 'DRAW!', '#ffe27a'));
@@ -4118,7 +4266,11 @@
         if (beat === 1 && t >= 1.5) { win.bounce = 1; effects.push(floatAt(win, '💥', '#ffb46a')); beat++; }
         if (beat === 2 && t >= 1.85) { lose.bounce = 1; effects.push(floatAt(lose, '💀', '#dfe3ea')); beat++; }
       },
-      dispose() { effects.forEach(el => el.remove()); }
+      dispose(reason) {
+        effects.forEach(el => el.remove());
+        restore.forEach(undo => undo());
+        trips.forEach(trip => finishPairedTrip(trip, reason === 'complete'));
+      }
     };
   }
   const lobbyLifeIncidents = {
@@ -4127,9 +4279,7 @@
     'nothing-burger': {automatic: LOBBYLIFE_ON, minCast: 0, maxCast: 0, duration: 3.6,
       anchor: () => { const clerk = staff.clerk2 || staff.clerk; return clerk && [clerk.u, clerk.v]; }, start: nothingBurger},
     'aristortle': {automatic: LOBBYLIFE_ON, minCast: 0, maxCast: 0, duration: 180,
-      anchor: () => [8.5, 5.6], start: sendTurtle},
-    'canvasser': {automatic: CANVASS !== '0', minCast: 0, maxCast: 0, duration: 180,
-      anchor: () => [-6.6, 9.55], start: startCanvasser}
+      anchor: () => [8.5, 5.6], start: sendTurtle}
   };
   function stepLobbyLife(dt) {
     if (!LOBBYLIFE_ON) return;
@@ -4337,7 +4487,7 @@
   //     come back. L19 a dog rests its head on the sill of the blue (TV) window and lifts it while a bus is about.
   // Figures and timing here are this screen's own (like the cat and the traffic). ?street2=0: none of it.
   const STREET2_ON = q.get('street2') !== '0';
-  const street2 = { gustT: 0, paperAt: 0, busStopped: false, pigeons: [], dog: null, late: null };
+  const street2 = { gustT: 0, paperAt: 0, busStopped: false, pigeons: [], dog: null };
   function puddleSplash(u) {
     if (SPLASH96) {
       // the rendered splash (manifest.puddle_splash, Brief 96): drops and the ring, once, curb point at the anchor
@@ -4364,51 +4514,6 @@
       floatAt(w, n === 1 ? 'hey!!' : '\u{1F4A6}', '#bfe3ff');
     }
   }
-  function lateForBus() {
-    if (street2.late || !VEH?.bus?.['+u']) return;
-    const w = makeFigure('', Cinema.defaultEmote(`late-${Math.floor(Date.now() / 60000)}`), '#fff', false);
-    w.npc = true;
-    w.key = '#late';
-    w.nm.style.display = 'none';
-    [w.u, w.v] = [-6.4, 10.0];
-    w.hurry = true;
-    giveUmbrella(w);
-    figures.add(w);
-    street2.late = w;
-    const door = STOPS.bus.door_ground;
-    w.plan = [{ to: [door[0] - 0.2, 10.15] }, { call: (x) => { x.hurry = false; } },
-      { wait: 1.3, start: (x) => { x.bounce = 1; floatAt(x, 'WAIT!!', '#ffb0b0'); } },
-      { wait: 2.4, start: (x) => floatAt(x, '...', '#cfd6e6') },
-      { to: [1.75, 9.95] },
-      { call: (x) => { x.waitingBus = true; x.plan = [{ until: () => { const b = activeBus(); return !!b && b.state === 'stopped' && !b.riders.size; } }, { call: boardBus }]; } }];
-    return w;
-  }
-  const missedBusIncident = {
-    automatic: true, minCast: 0, maxCast: 0, duration: 45,
-    anchor: () => STOPS?.bus?.door_ground,
-    start() {
-      if (!STREET2_ON || street2.late || !VEH?.bus?.['+u']) return null;
-      const now = performance.now();
-      const bus = traffic.find(v => v.type === 'bus' && !v.gone &&
-        (v.state === 'stopped' || (v.leftAt && now - v.leftAt < 4000)));
-      if (!bus) return null;
-      let runner;
-      return {
-        ready() {
-          if (bus.leftAt && performance.now() - bus.leftAt >= 500) runner ||= lateForBus();
-          return !!runner;
-        },
-        paint() {},
-        complete: () => !!runner?.waitingBus,
-        valid: () => runner ? !runner.gone : !bus.gone || !!bus.leftAt,
-        dispose() {
-          // Once at the shelter, the runner boards the next actual bus with the ordinary passengers.
-          if (runner && !runner.waitingBus && !runner.gone) removeWalker(runner);
-          if (runner?.gone && street2.late === runner) street2.late = null;
-        }
-      };
-    }
-  };
   if (STREET2_ON) {
     // pigeons: [x, y] on the top edges of the wcat and the eatfresh billboards (stage px, from the ad quads)
     for (const [x, y] of [[448, 153], [467, 144], [561, 97], [760, 48]]) {
@@ -4467,7 +4572,6 @@
         if (v.cur > 3 && Math.random() < 0.45) puddleSplash(6.6);
       }
     }
-    if (street2.late?.gone) street2.late = null;
     street2.dog?.classList.toggle('up', busNear);
     if (busStopped && !street2.busStopped) {
       street2.pigeons.forEach(({ el, x, y }, i) => {
@@ -4503,7 +4607,7 @@
       }
     }
   }
-  window.__street2 = { puddleSplash, lateForBus, gust: street2Gust };   // test hooks (gust: see blowUmbrella)
+  window.__street2 = { puddleSplash, gust: street2Gust };   // test hooks (gust: see blowUmbrella)
 
   function lookAt(w) {
     if (w.staff || w.jan) return null;
@@ -4525,17 +4629,62 @@
     }
     if (!REFL_ON) return;
     const wet = !!w.out && !w.staff && !w.jan && !w.ride && w.alpha > 0.5 && !underMarquee(w.u, w.v) && !!w.em;
-    if (!wet) { if (w.refl) { w.refl.remove(); w.refl = null; } return; }
-    if (!w.refl) {
-      w.refl = h('div', 'refl');
-      const copy = w.em.cloneNode(true);
-      copy.style.left = `${42 - Number(w.em.dataset.w || 50) / 2}px`;
-      w.refl.append(copy);
-      w.reflFlip = null;
-      w.el.insertBefore(w.refl, w.bod);
+    if (w.wet !== wet) {
+      w.wet = wet;
+      w.ground.classList.toggle('wet', wet);
     }
-    const flip = w.em.dataset.flip === 'true';
-    if (flip !== w.reflFlip) { w.reflFlip = flip; w.refl.firstElementChild.style.transform = flip ? 'scale(-1, -1)' : 'scaleY(-1)'; }
+    if (wet && w.footSprite !== w.em.firstElementChild) alignEmoteFeet(w);
+  }
+
+  // Some sprites include transparent rows below the feet. Measure once per image, outside the frame loop.
+  const footInsets = new Map();
+  function alignEmoteFeet(w) {
+    const sprite = w.footSprite = w.em.firstElementChild;
+    if (!sprite) return;
+    const url = getComputedStyle(sprite).backgroundImage.match(/^url\(["']?(.*?)["']?\)$/)?.[1];
+    if (!url) return;
+    // The CDN permits drawing its sprites but restricts direct pixel reads. Its
+    // manifest gives the versioned directory supported by the cinema's image proxy.
+    const asset = new URL(url, location.href);
+    let pixels = asset.href;
+    if (asset.origin !== location.origin) {
+      const listed = SB.emotes.imageUrls?.get(w.emName);
+      if (asset.origin !== 'https://cdn.destiny.gg' || !listed) return;
+      const versioned = new URL(asset.pathname.split('/').pop(), listed);
+      pixels = '/dgg/emote-img?u=' + encodeURIComponent(versioned.href);
+    }
+    if (!footInsets.has(pixels)) {
+      const result = new Promise(resolve => {
+        const image = new Image();
+        image.onload = () => {
+          try {
+            // The horizontal animation strip shares one baseline across all its frames.
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.min(512, image.naturalWidth);
+            canvas.height = Math.min(96, image.naturalHeight);
+            const ctx = canvas.getContext('2d', {willReadFrequently:true});
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+            const rgba = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = rgba.length - 1; i > 0; i -= 4) {
+              if (rgba[i] < 16) continue;
+              const row = Math.floor((i >> 2) / canvas.width);
+              resolve((canvas.height - 1 - row) / canvas.height);
+              return;
+            }
+          } catch { /* Cross-origin artwork can still be reflected at the sprite box edge. */ }
+          resolve(0);
+        };
+        image.onerror = () => resolve(0);
+        image.src = pixels;
+      });
+      if (footInsets.size >= 256) footInsets.delete(footInsets.keys().next().value);
+      footInsets.set(pixels, result);
+    }
+    footInsets.get(pixels).then(fraction => {
+      if (sprite === w.footSprite && w.ground.isConnected) {
+        w.ground.style.setProperty('--foot-inset', (fraction * parseFloat(w.em.style.height)) + 'px');
+      }
+    });
   }
   let mist = null;
   let mistStarted = false;   // the passes load once, the first time a style is on (URL or control panel)
@@ -5544,13 +5693,21 @@ void main() {
     w.doorBound = d;
     return ok && !w.npc && w.key !== '#turtle' && w.nick !== 'Aristortle' && w.v > 2.9 && w.v < 8.6 && !w.group?.janitor && w !== lobbyLife.turtle;
   }
-  function startFight(a, b) {
-    if (fight || gag || !a || !b || a === b || !fightFree(a) || !fightFree(b)) return false;
-    const spots = [[FIGHT_AT[0] - 0.32, FIGHT_AT[1] + 0.12], [FIGHT_AT[0] + 0.32, FIGHT_AT[1] - 0.12]];
+  function fightMarks() {
+    return [[FIGHT_AT[0] - 0.32, FIGHT_AT[1] + 0.12], [FIGHT_AT[0] + 0.32, FIGHT_AT[1] - 0.12]];
+  }
+  function manualFightPair(candidates) {
+    return manualPair(candidates, fightMarks(), [isYee, isPepe], ['YEE', 'PEPE']);
+  }
+  function startFight(a, b, manual = false) {
+    if (fight || gag || !a || !b || a === b || (!a.pairedIdentity && !fightFree(a)) || (!b.pairedIdentity && !fightFree(b))) return false;
+    const spots = fightMarks();
     const paths = [a,b].map((w,i) => ambientPath([w.u,w.v], spots[i]));
     if (paths.some(path => !path)) return false;
     const now = performance.now();
     const f = fight = { a, b, at: 0, done: false, cloud: null };
+    if (manual) f.restore = [wearPairedRole(a, isYee(a.emName) ? a.emName : 'YEE'),
+      wearPairedRole(b, isPepe(b.emName) ? b.emName : 'PEPE')];
     f.trips = [a,b].map((w,i) => startAmbientTrip(w, paths[i], trip => {
       w.fighting = true;
       const other = i ? a : b;
@@ -5566,6 +5723,7 @@ void main() {
   }
   function endFight(f, complete = false) {
     if (fight !== f) return;
+    f.restore?.forEach(undo => undo());
     f.done = true; f.completed = complete;
     if (f.shot && director.follow === f.shot) endFollow();
     f.cloud?.remove();
@@ -5574,7 +5732,7 @@ void main() {
     for (const trip of f.trips) {
       const { w } = trip;
       w.fighting = false; w.passT = 0; w.el.style.visibility = ''; w.el.classList.remove('ko');
-      returnAmbientTrip(trip);
+      finishPairedTrip(trip, complete);
     }
     fight = null;
   }
@@ -5683,11 +5841,9 @@ void main() {
       if (!FIGHT_ON || !timedEventsEnabled || lobbyEvents?.status().event) return 'busy';
       const free = [...walkers.values()].filter(fightFree);
       let a = free.find((w) => isYee(w.emName)), b = free.find((w) => isPepe(w.emName));
-      const dress = any && !(a && b);
-      if (dress) [a, b] = free.slice(0, 2);
+      if (any) [a, b] = realizeManualPair(new Map(manualFightPair(free).map((w,i) => [w,i])));
       if (!(a && b)) return 'no free Yee and Pepe in the lobby';
-      if (!startFight(a, b)) return 'busy';
-      if (dress) { setEmote(a, 'YEE'); setEmote(b, 'PEPE'); }
+      if (!startFight(a, b, !!any)) { [a,b].forEach(releasePairedDouble); return 'busy'; }
       return `${a.nick} vs ${b.nick}`;
     },
     get state() { return fight; },
@@ -5701,14 +5857,16 @@ void main() {
     'yee-vs-pepe': {
       automatic: FIGHT_ON, anchor: () => FIGHT_ON ? FIGHT_AT : null, minCast: 2, duration: 15,
       ownsFollow: () => fight?.shot && fight.shot === director.follow,
-      selectCast(candidates) {
+      selectCast(candidates, anchors, named, cue) {
+        if (cue?.manual) return manualFightPair(candidates);
         const free = candidates.filter(fightFree);
         const yees = free.filter(w => isYee(w.emName)), pepes = free.filter(w => isPepe(w.emName));
         if (!yees.length || !pepes.length) return [];
         return [yees[Math.floor(Math.random() * yees.length)], pepes[Math.floor(Math.random() * pepes.length)]];
       },
-      start({ cast }) {
-        if (!startFight(...cast.keys())) return null;
+      start({ cast, cue }) {
+        const [a, b] = cue?.manual ? realizeManualPair(cast) : cast.keys();
+        if (!startFight(a, b, cue?.manual === true)) { [a,b].forEach(releasePairedDouble); return null; }
         const f = fight;
         return { ready: () => f.at >= 2, complete: () => !!f.completed, valid: () => fight === f,
           paint() {}, dispose: () => endFight(f) };
@@ -6169,6 +6327,7 @@ void main() {
   // Jannies (mods) stay on duty: they are this screen's own, not people in the room.
   function resetLobby() {
     lobbyEvents?.interrupt('room reset');
+    resetPairedCast();
     director.wantNext = false;
     endFollow();
     for (const w of [...figures]) if (!w.jan) removeWalker(w);
@@ -6319,7 +6478,7 @@ void main() {
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         director: { on: director.on, every: director.every, zoom: director.zoom, wantNext: director.wantNext,
           following: f && !f.w.gone ? f.w.nick : null, nextIn: Math.max(0, Math.round((director.next - performance.now()) / 1000)) },
-        chatters: [...figures].filter((w) => !w.gone).map((w) => ({ nick: w.nick, emote: w.emName, status: statusOf(w), followed: f?.w === w })) };
+        chatters: [...figures].filter((w) => !w.gone).map((w) => ({ nick: w.nick, emote: w.pairedRole?.avatar ?? w.emName, status: statusOf(w), followed: f?.w === w })) };
       statePending = true;
       fetch('/ctl/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(3500) })
         .then((r) => { if (r.status === 404) { alive = false; es.close(); } })   // an older server without the panel
@@ -6371,6 +6530,7 @@ void main() {
       else soloSpeech(w, dt);
       placeBubble(w, dt);
     }
+    stepPairedDoubles(dt, t);
     for (const w of Object.values(staff)) { w.moving = false; drawFigure(w, dt, t); placeBubble(w, dt); }
     showNames();
     layoutBubbles(dt);
@@ -6657,7 +6817,7 @@ void main() {
   // - street_states.overlays: patches of the ground layer (rendered as the background is, phase 0), so they go where
   //   the page drew its versions, in #lifefx (over the background and the light loop, under walkers and depth
   //   pieces). The page elements keep their classes and clocks (windows .lwin with the 1.8 s fade, dips .ldip with
-  //   the dip timing, the canvasser's door lights, the dog while a bus is near, the snarkers 15 s down in every 50);
+  //   the dip timing, the dog while a bus is near, the snarkers 15 s down in every 50);
   //   only their drawing becomes the picture. While the pink neon's dip patch shows (it holds the dark sign) the
   //   entrance_neon piece and its wet loop fade out with it.
   // - the steam puffs go (the plumes are prop loops, merge96); the wet-floor sign, the police bar and the puddle
@@ -6711,8 +6871,6 @@ void main() {
     }
     put(document.querySelector('#lifefx .snark'), ['snarkers_up', 'snarkers_glint']);
     put(street2.dog, ['dog_up']);
-    put(DOORLIGHTS[1], ['door_cabge_open']);
-    put(DOORLIGHTS[2], ['door_noodles_open']);
   }
   // The street letterboard text, split into the same 0.25-tile depth bands as the body slices so a walker in front
   // of one end of the board covers it there and not at the other end. The face is a parallelogram (TL TR BR BL).
@@ -7915,18 +8073,16 @@ void main() {
     const timed = q.get('events') !== '0' && (!q.has('event') || q.get('events') === '1');
     Promise.all([
       import('./concepts/cinema-mods/lobby-events.js'),
-      import('./concepts/cinema-mods/incidents/arcade.js'),
       import('./concepts/cinema-mods/incidents/paper-stage.js'),
       import('./concepts/cinema-mods/incidents/sidewalk.js')
-    ]).then(([{ createLobbyEvents }, { arcade }, { paperStage }, { sidewalk }]) => {
+    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }]) => {
       const incidents = {
         ...nativeIncidents,
-        'contact-printer': arcade['contact-printer'], 'horizon-drive': sidewalk['horizon-drive'],
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
-        ...lobbyLifeIncidents, 'missed-bus': missedBusIncident,
+        ...lobbyLifeIncidents,
       };
       lobbyEvents = createLobbyEvents({
-        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event') || (CANVASS === 'now' ? 'canvasser' : null), timed, enabled: timedEventsEnabled,
+        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event'), timed, enabled: timedEventsEnabled,
         blocked: label => !lobbyReady ? 'room loading' : director.follow && !incidents[label]?.ownsFollow?.() ? 'director follow' : director.spot ? 'director spot' :
           director.wantNext ? 'director next' : gag && label !== 'restroom-gag' ? 'restroom gag' : fight && label !== 'yee-vs-pepe' ? 'fight' : pollScreen.open ? 'poll open' : null,
         anchors: () => ({

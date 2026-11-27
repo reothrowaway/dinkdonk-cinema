@@ -1,5 +1,4 @@
 // Lobby events use the existing 1920 x 1080 camera space.
-import {topographyEntrance} from './preshow/transition-cues.js';
 import {availableForTravel, beginGuestTravel, syncGuestTravel} from './guest-travel.js';
 import {guestRoute, walkableMark} from './guest-routes.js';
 const TAU = Math.PI * 2;
@@ -94,7 +93,7 @@ function ballroom(root) {
   };
 }
 
-function singularity(root, prize, scan) {
+function singularity(root, prize) {
   const defs=svg(root,'defs');
   gradient(defs,'ev-hole-halo',[[0,'#1b102c',0],[.44,'#925add',.19],[.60,'#ff924b',.70],[.75,'#cf467e',.24],[1,'#6b3886',0]]);
   const portal=svg(root,'g');
@@ -104,8 +103,7 @@ function singularity(root, prize, scan) {
   for(let i=0;i<5;i++)svg(disk,'ellipse',{rx:36+i*3,ry:36+i*3,fill:'none',stroke:i%2?'#ffba74':'#e874ac',
     'stroke-width':1.4,'stroke-dasharray':`${21+i*8} ${14+i*3} 4 8`,opacity:at(.83-i*.10)});
   const tickets=[];
-  let scanFloor=scan?topographyEntrance(root):null;
-  for(let i=0;i<(scan?0:3);i++){
+  for(let i=0;i<3;i++){
     const g=svg(root,'g');
     svg(g,'path',{d:'M-9 -4H9V-1Q6 0 9 1V4H-9V1Q-6 0 -9 -1Z',fill:'#ffd58e',stroke:'#50364a','stroke-width':.65});
     svg(g,'path',{d:'M-5 -1H1 M-5 1H0 M4 -3V3',stroke:'#674750','stroke-width':.8});
@@ -114,7 +112,6 @@ function singularity(root, prize, scan) {
   const flap=svg(root,'g',{transform:`translate(${prize[0]} ${prize[1]})`});
   const slot=svg(flap,'rect',{x:-13,y:-4,width:26,height:7,rx:2,fill:'#180e23',stroke:'#f3b28c','stroke-width':1.3});
   return (t,reduced) => {
-    if(scanFloor){scanFloor(t,reduced);if(t>=3)scanFloor=null;}
     const size=ease(ramp(t,1.2,4.5))*(1-ease(ramp(t,9.3,10.1)));
     transform(portal,`rotate(-16) scale(${at(size*1.18,3)})`);
     transform(disk,`scale(1 .49) rotate(${at(reduced?0:t*68)})`);
@@ -185,34 +182,12 @@ function danceScene(root,center,floor,cast,anchors){
         tilt:(move.tilt+facing*(27*pose-12*together))*soft,indoors:true,floorBeat:true};
     }};
 }
-function cries(stage){
-  const layer=svg(stage,'svg',{'viewBox':'0 0 1920 1080','aria-hidden':'true'});
-  layer.dataset.incidentSpeech='';
-  layer.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:87000';
-  const bubbles=new Map();
-  function hide(w){bubbles.get(w)?.setAttribute('visibility','hidden');}
-  return {hide,remove:()=>layer.remove(),show(w,i,x,y,opacity){
-    let g=bubbles.get(w);
-    if(!g){
-      g=svg(layer,'g',{'data-reaction':'black-hole'});bubbles.set(w,g);
-      svg(g,'path',{fill:'#fff1cb',stroke:'#432044','stroke-width':2});
-      svg(g,'rect',{width:122,height:38,rx:13,fill:'#fff1cb',stroke:'#432044','stroke-width':2.5});
-      const line=svg(g,'text',{'font-family':'Segoe UI, sans-serif','font-style':'italic','font-weight':'bold','font-size':23,'text-anchor':'middle',fill:'#491c40'});
-      line.textContent='Noooooo!';
-    }
-    const bx=Math.max(5,Math.min(1793,x+(i%2?13:-135))),by=Math.max(4,y-(i%2?60:81));
-    g.setAttribute('visibility','visible');g.setAttribute('opacity',at(opacity));
-    g.firstChild.setAttribute('d',`M${bx+49} ${by+34}L${at(x)} ${at(y)}L${bx+68} ${by+34}Z`);
-    const box=g.children[1];box.setAttribute('x',at(bx));box.setAttribute('y',at(by));
-    const line=g.lastChild;line.setAttribute('x',at(bx+61));line.setAttribute('y',at(by+27));
-  }};
-}
 export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,blocked,preview,timed=true,enabled=true,incidents={}}) {
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
-  const featured=new Set(['contact-printer','horizon-drive','infinity-foyer','glyph-cascade']);
+  const featured=new Set(['infinity-foyer','glyph-cascade']);
   const smallEvents=Object.keys(incidents).filter(kind=>featured.has(kind)||incidents[kind].automatic);
   const smallDelay=()=>(3+3*Math.random())*60000;
-  const known=kind=>Object.hasOwn(duration,kind)||Object.hasOwn(incidents,kind)||kind==='laser-topography';
+  const known=kind=>Object.hasOwn(duration,kind)||Object.hasOwn(incidents,kind);
   let active=null,requested=enabled&&known(preview)?preview:null,next=performance.now()+cooldown();
   let nextSmall=performance.now()+smallDelay(),retryAt=performance.now()+2000;
   let camera=null, phase='', checked=-Infinity, querying=null, generation=0, lastFinished='', lastStop='', lastEventStop=null, obsActive=true, obsVisible=true;
@@ -248,7 +223,7 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
         seconds:Math.max(0,Math.round((performance.now()-active.start)/10)/100)};
       if(['black-hole','mirrorball'].includes(active.kind))next=performance.now()+cooldown();
       nextSmall=performance.now()+smallDelay();
-      active.scene?.dispose?.(reason,cause);active.reactions?.remove();active.root.remove();lastFinished=active.label;active=null;
+      active.scene?.dispose?.(reason,cause);active.cries?.forEach(receipt=>receipt?.cancel());active.root.remove();lastFinished=active.label;active=null;
     }
     camera=null;lastStop=reason;retryAt=performance.now()+15000;
   }
@@ -288,7 +263,7 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
     const startGeneration=generation;
     if(!definition?.waitForCast||performance.now()-checked>1000)await readPhase();
     if(startGeneration!==generation||active||blocked()||!visible()||!phaseOK())return false;
-    const kind=label==='laser-topography'?'black-hole':label;
+    const kind=label;
     const a=anchors(),crowd=[...walkers.values()].filter(onFoot);
     if(kind==='mirrorball' && (!a.juke||crowd.length<2))return false;
     if(kind==='black-hole' && (!a.counter||!a.claw))return false;
@@ -323,9 +298,9 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
       if((definition||kind==='mirrorball')&&!scene){root.remove();return false;}
     }
     catch(error){root.remove();throw error;}
-    const paint=scene?scene.paint:singularity(root,[prize[0]-center[0],prize[1]-center[1]],label==='laser-topography');
+    const paint=scene?scene.paint:singularity(root,[prize[0]-center[0],prize[1]-center[1]]);
     active={kind,label,scene,cueId:oneShot?cue.requestId:null,staging:!!scene?.ready,seconds:definition?.duration??duration[kind],center,z,prize,cast,root,paint,start:performance.now(),t:0,drawn:-1,
-      reactions:kind==='black-hole'?cries(document.getElementById('stage')):null};
+      cries:kind==='black-hole'?new Map():null};
     requested=null;smallQueue=[];
     if(kind==='black-hole')holesBeforeDance=Math.max(0,holesBeforeDance-1);
     else if(kind==='mirrorball')holesBeforeDance=2+Math.floor(Math.random()*2);
@@ -357,7 +332,7 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
       if(now<retryAt||(!requested&&!timed))return;
       let kind=requested;
       if(!kind&&now>=next){
-        kind=holesBeforeDance===0?'mirrorball':Math.random()<.25?'laser-topography':'black-hole';
+        kind=holesBeforeDance===0?'mirrorball':'black-hole';
         next=now+30000;
       }
       let retry=3000;
@@ -400,7 +375,17 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
     }
     if(e.scene?.hold?.(e.t))e.start=now-e.t*1000;
     e.t=Math.max(0,(now-e.start)/1000);
-    if(e.reactions)for(const w of e.cast.keys())if(!onFoot(w))e.reactions.hide(w);
+    if(e.cries){
+      for(const [w,i] of e.cast){
+        if(!e.cries.has(w) && onFoot(w) && e.t>=.5+i*.45)
+          e.cries.set(w,anchors().injectChatterMessage(w,'noooooo!'));
+      }
+      // Give the ordinary speech queue time to show the reaction before the guests disappear.
+      if(e.t>=3.5 && [...e.cries.values()].some(receipt=>receipt?.queued)){
+        e.waitUntil ??= now+12000;
+        if(now<e.waitUntil){e.t=3.5;e.start=now-3500;}
+      }
+    }
     if(e.t>=e.seconds){finish(e.scene?.complete?'performance timed out':'complete');return;}
     if(e.scene)camera=motion.matches?null:e.scene.camera?.(e.t,false)??null;
     else if(e.kind==='black-hole' && !motion.matches){
@@ -418,11 +403,10 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
   function pose(w,x,y){
     const e=active;
     if(!e)return;
-    if(!onFoot(w)){e.reactions?.hide(w);return;}
+    if(!onFoot(w))return;
     if(e.scene)return e.cast.has(w)?e.scene.pose?.(w,x,y,e.t,motion.matches):undefined;
     if(!e.cast.has(w))return;
     const {pull,out,home}=progress(w);
-    const i=e.cast.get(w),reaction=e.t-(3.6+i*.72);
     let p;
     const common={lift:0,tilt:0,z:e.z+2};
     if(!pull||home>=1)p=undefined;
@@ -433,18 +417,12 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
         y:e.center[1]+(1-pull)*(dy*Math.cos(a)+dx*Math.sin(a)*.45),scale:1-pull,tilt:pull*85};
     }else p={...common,x:mix(e.prize[0],x,home),y:mix(e.prize[1],y,home)-Math.sin(out*Math.PI)*35,
       scale:out,tilt:Math.sin(out*Math.PI)*-22};
-    if(reaction>=-.48&&reaction<1.48){
-      const [sx,sy]=toScreen(p?.x??x,(p?.y??y)-38*(p?.scale??1));
-      if(sx>0&&sx<1920&&sy>0&&sy<1080)e.reactions.show(w,i,sx,sy,1-ramp(reaction,1.22,1.48));
-      else e.reactions.hide(w);
-    }else e.reactions.hide(w);
     return p;
   }
   function concealed(w){
     if(active?.kind!=='black-hole'||!active.cast.has(w)||!onFoot(w))return false;
     const {pull,out}=progress(w);
-    const reaction=active.t-(3.6+active.cast.get(w)*.72);
-    return (reaction>=-.48&&reaction<1.48)||(pull>.9&&out<.4);
+    return pull>.9 && out<.4;
   }
   return {step,pose,concealed,play,request,interrupt,setEnabled,syncGuestTravel,get camera(){return camera;},
     get actionRect(){
@@ -452,10 +430,8 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
       const [x,y]=active.center;
       const bounds=active.scene?.actionBounds?.();
       if(bounds)return [...toScreen(x+bounds[0],y+bounds[1]),...toScreen(x+bounds[2],y+bounds[3])];
-      if(active.label==='laser-topography'&&active.t<3)return [...toScreen(x-130,y-44),...toScreen(x+130,y+63)];
       // Speech keeps its owner. Place incidental bubbles around the ball, the dancers or the borrowed letters.
       if(active.label==='mirrorball'&&active.t>=1&&active.t<11.6)return [...toScreen(x-152,y-210),...toScreen(x+152,y+62)];
-      if(active.label==='contact-printer')return [...toScreen(x-75,y-117),...toScreen(x+98,y+36)];
       if(active.label==='infinity-foyer'&&active.t>=1.6&&active.t<10.54)return [...toScreen(x-38,y-137),...toScreen(x+89,y+54)];
       return null;
     },
