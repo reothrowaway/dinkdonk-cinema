@@ -2011,6 +2011,7 @@
         continue;
       }
       if (win.cur.plan.length) continue;
+      if (win.dishGuest === win.cur) continue;   // the cashier hands over this visit's Dish Night souvenir first
       win.t += dt;
       if (win.t < Math.max(0.8, 2.6 - 0.3 * queue.length)) continue;
       const w = win.cur;
@@ -8117,13 +8118,15 @@ void main() {
       import('./concepts/cinema-mods/incidents/paper-stage.js'),
       import('./concepts/cinema-mods/incidents/sidewalk.js'),
       import('./concepts/cinema-mods/incidents/marquee-photo.js'),
-      import('./concepts/cinema-mods/incidents/shared-umbrella.js')
-    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }, { sharedUmbrella }]) => {
+      import('./concepts/cinema-mods/incidents/shared-umbrella.js'),
+      import('./concepts/cinema-mods/incidents/dish-night.js')
+    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }, { sharedUmbrella }, { dishNight }]) => {
       const incidents = {
         ...nativeIncidents,
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
         'marquee-photo': marqueePhoto,
         'shared-umbrella': sharedUmbrella(blowUmbrella, walkers, P),
+        'dish-night': dishNight(() => windows, staff, fx),
         ...lobbyLifeIncidents,
       };
       lobbyEvents = createLobbyEvents({
