@@ -3537,3 +3537,9 @@ The New Beverly's printed calendar and Nippon Connection's downloadable screenin
 Checked 27 actual upcoming slots, all without announced titles. Confirmed the same UTC instants in local and cinema display modes, daylight-saving fallback, Unicode folding to 75 octets, escaping, invalid and duplicate entries, retry, empty schedules and 360 px layout. The local offline guide, ticket counter and trivia previews link to each other.
 
 Package QA: the reserved port became available. Fresh shared rooms from builds de76495596 and c60cb2ec99 seated actual relay guests in a 135-seat house. In the second package its real panel cued Pass the popcorn with Auto off. Escape restored the original prop and cleared the event. No script errors, and every listed release asset matched the packaged file byte for byte. The QA package used the private prior package's immutable art and sanitized OBS template. The server and headless browser closed after verification.
+
+### 27 Nov 2026 — Screen 1 standby on the street marquee (experimental branch)
+
+DOC NYC's festival rush line inspired a 15-second house update on the existing street letterboard. The second line uses the auditorium’s seat assignments and waiting count, with separate messages during lights down, the feature and house clearing. Operator text and the deliberate blank take precedence, and stale, sleeping or unavailable rooms fall back to the film information.
+
+Checked the staged lobby with real chat. One read-only room snapshot put 161 on standby. An independent fresh package on port 18788 showed 112 unassigned seats. Both kept Gosford Park on line one. Verified manual text, blank, unavailable data, stale data and the phase messages. The previous calendar build also passed its fresh-room check with 20 release files served byte for byte and a real guest seated. No page errors.

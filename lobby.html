@@ -602,7 +602,43 @@
     const t = Date.now();
     return t % 60000 >= 48000 ? MQ_LINES[Math.floor(t / 60000) % MQ_LINES.length] : '';
   };
-  if (MQ_LINES_ON) setInterval(() => showMarquee(), 1000);   // (setMarqueeText does nothing while the text is the same)
+  const MQ_HOUSE_ON = MARQ_ON && q.get('mqhouse') !== '0' && q.get('room') !== '0' && location.protocol.startsWith('http');
+  let houseLine = '', houseReadAt = -Infinity, houseRequest = null, houseMinute = -1;
+  function houseStatus(room) {
+    const a = room?.auditorium;
+    if (room?.asleep || !a || !a.show) return '';
+    if (a.show.houseOut) return 'SCREEN 1 · HOUSE CLEARING';
+    if (a.show.phase === 'film') return 'SCREEN 1 · FEATURE IN PROGRESS';
+    if (a.show.phase === 'dim') return 'SCREEN 1 · LIGHTS DOWN';
+    if (!['seating', 'up'].includes(a.show.phase)) return '';
+    if (![a.seats, a.seated, a.waiting].every(n => Number.isSafeInteger(n) && n >= 0) ||
+        !a.seats || a.seated > a.seats) return '';
+    const free = a.seats - a.seated;
+    if (!free) return a.waiting ? `STANDBY · ${a.waiting} WAITING` : 'SCREEN 1 · FULL HOUSE';
+    return `SCREEN 1 · ${free} ${free === 1 ? 'SEAT' : 'SEATS'} UNASSIGNED`;
+  }
+  // The events director also reads this endpoint. Share its in-flight request and timestamp.
+  function readHouse() {
+    if (houseRequest) return houseRequest;
+    houseRequest = fetch('/ctl/room-state', {cache: 'no-store', signal: AbortSignal.timeout(2500)})
+      .then(r => r.ok ? r.json() : null).catch(() => null).then(room => {
+        houseLine = houseStatus(room);
+        houseReadAt = Date.now();
+        return room;
+      }).finally(() => { houseRequest = null; });
+    return houseRequest;
+  }
+  function marqueeHouseLine() {
+    if (!MQ_HOUSE_ON || MARQ.custom[1] || !MARQ.bands.length || document.hidden) return '';
+    const now = Date.now(), minute = Math.floor(now / 60000), second = now % 60000 / 1000;
+    if (second < 20 || second >= 35) return '';
+    if (houseMinute !== minute) {
+      houseMinute = minute;
+      if (now - houseReadAt > 2500) void readHouse().then(showMarquee);
+    }
+    return now >= houseReadAt && now - houseReadAt < 18000 ? houseLine : '';
+  }
+  if (MQ_LINES_ON || MQ_HOUSE_ON) setInterval(showMarquee, 1000);
   let marqDone;
   const marqReady = new Promise((ok) => { marqDone = ok; });   // the marquee pack is in (or there is none): startRain2 waits for it
   // on the sidewalk under the marquee's roof: no rain lands there
@@ -6932,7 +6968,7 @@ void main() {
   // the board's two lines: the panel's own text where set ("-" = blank), else the automatic film text
   function showMarquee() {
     const line = (i) => (MARQ.custom[i] === '-' ? '' : MARQ.custom[i] || MARQ.auto[i]);
-    setMarqueeText(line(0), mqOneLiner() || line(1));
+    setMarqueeText(line(0), marqueeHouseLine() || mqOneLiner() || line(1));
   }
   function setMarqueeText(l1, l2) {
     const key = `${l1}|${l2}`;
@@ -8091,7 +8127,7 @@ void main() {
         ...lobbyLifeIncidents,
       };
       lobbyEvents = createLobbyEvents({
-        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event'), timed, enabled: timedEventsEnabled,
+        world, project: P, toScreen, depth, walkers, incidents, readHouse, preview: q.get('event'), timed, enabled: timedEventsEnabled,
         blocked: label => !lobbyReady ? 'room loading' : director.follow && !incidents[label]?.ownsFollow?.() ? 'director follow' : director.spot ? 'director spot' :
           director.wantNext ? 'director next' : gag && label !== 'restroom-gag' ? 'restroom gag' : fight && label !== 'yee-vs-pepe' ? 'fight' : pollScreen.open ? 'poll open' : null,
         anchors: () => ({
