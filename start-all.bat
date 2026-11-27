@@ -5,9 +5,11 @@ title DINK DONK start-up
 cd /d "%~dp0"
 where node >nul 2>nul || (echo Node.js is not installed: https://nodejs.org/ & pause & exit /b 1)
 
-call :listening 18765 && (echo Chat relay          already running) || (
-  echo Chat relay          starting
-  start "Chat relay (:18765)" /d "%USERPROFILE%\Desktop\customchat\destinygg-obs-overlay" start-windows.bat
+call :listening 18765
+if errorlevel 1 (
+  call :startRelay
+) else (
+  echo Chat relay          already running
 )
 call :listening 18770 && (echo Standby server      already running) || (
   echo Standby server      starting
@@ -31,6 +33,19 @@ echo.
 echo Control panel opened. Pick Auditorium and check the director is on.
 echo Phones/tablets only: node lan-proxy.js   (not needed for OBS)
 timeout /t 8 >nul
+exit /b 0
+
+:startRelay
+setlocal
+set "relayStart=%USERPROFILE%\Desktop\customchat\destinygg-obs-overlay\start-windows.bat"
+if not exist "%relayStart%" set "relayStart=%~dp0..\dist\DinkDonk-Cinema\chat-relay\start-windows.bat"
+if not exist "%relayStart%" (
+  echo Chat relay          missing
+  echo Extract DinkDonk-Cinema.zip into "%~dp0..\dist" and run this launcher again.
+  exit /b 1
+)
+echo Chat relay          starting
+explorer.exe "%relayStart%"
 exit /b 0
 
 :listening
