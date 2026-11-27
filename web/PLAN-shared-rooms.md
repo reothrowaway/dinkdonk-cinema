@@ -125,6 +125,7 @@ The lobby page work (step 4) goes through the "Lobby Map" session, which owns lo
 3. ~~Local edition too, or hosted only first?~~ **Decided 7 Nov 2026: both at the same time.** `standby-server.js`
    gets the same room logic with one fixed room; its state goes to `cache/room-state.json`.
 4. ~~While no screen is open, do people keep walking in?~~ **Decided 7 Nov 2026: yes, keep filling.** Each person
-   keeps only their latest line; nothing is replayed when a screen opens.
+   keeps only their latest line; nothing is replayed when a screen opens. **Owner, 27 Nov 2026 (hosted only):** after
+   3 hours with no screen open the room is cleared and stops filling until a screen opens again.
 
 All open questions are answered. Next: build steps 1-6 in QA copies, then show the owner before anything goes live.

@@ -129,7 +129,64 @@ function loadSuggestRooms() {
   try { files = fs.readdirSync(path.join(DATA, 'movie-suggest')); } catch { return; }
   for (const f of files) { const k = f.replace(/\.json$/, ''); if (f.endsWith('.json') && validKey(k)) roomSuggest(k); }
 }
+// ---------- idle rooms (owner, 27 Nov 2026) ----------
+// A room with no lobby or auditorium screen open for 3 hours is cleared (lobby and auditorium) and then takes nobody
+// from chat until a screen opens again; that screen starts it filling. Shorter gaps (a scene switch, a break) keep the
+// crowd as before. Saved in DATA/room-idle.json so a server restart neither wakes nor forgets a sleeping room.
+// IDLE_RESET_MS overrides the 3 hours (tests).
+const IDLE_RESET_MS = Math.max(10_000, Number(process.env.IDLE_RESET_MS) || 3 * 3600_000);
+const IDLE_FILE = path.join(DATA, 'room-idle.json');
+let idle = {};   // key -> { since: ms the room's last screen closed, asleep: cleared and waiting for a screen }
+try {
+  const saved = JSON.parse(fs.readFileSync(IDLE_FILE, 'utf8'));
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v && Number.isFinite(v.since)) idle[k] = { since: v.since, asleep: v.asleep === true };
+    }
+  }
+} catch { /* none yet */ }
+function saveIdle() {
+  try {
+    fs.mkdirSync(DATA, { recursive: true });
+    fs.writeFileSync(`${IDLE_FILE}.tmp`, JSON.stringify(idle));
+    fs.renameSync(`${IDLE_FILE}.tmp`, IDLE_FILE);
+  } catch (e) { log(`idle rooms: ${e.message}`); }
+}
+const roomScreenCount = (k) => live.get(k)?.roomSubs || 0;   // lobby/auditorium screens on /ctl/room
+const roomAsleep = (k) => idle[k]?.asleep === true;
+function roomScreenOpened(k) {
+  if (!idle[k]) return;
+  if (idle[k].asleep) log(`${rooms[k]?.name || '?'}: a screen opened, filling from chat again`);
+  delete idle[k];
+  saveIdle();
+}
+function roomScreenClosed(k) {
+  if (roomScreenCount(k) || idle[k]) return;
+  idle[k] = { since: Date.now(), asleep: false };
+  saveIdle();
+}
+function checkIdleRooms() {
+  const now = Date.now();
+  let dirty = false;
+  for (const [k, r] of roomStates) {
+    if (roomScreenCount(k)) { if (idle[k]) { delete idle[k]; dirty = true; } continue; }
+    if (!idle[k]) { idle[k] = { since: now, asleep: false }; dirty = true; continue; }   // e.g. just after a start
+    if (idle[k].asleep || now - idle[k].since < IDLE_RESET_MS) continue;
+    try {
+      r.command({ cmd: 'reset', page: 'lobby' });
+      r.command({ cmd: 'reset', page: 'auditorium' });
+    } catch (e) { log(`room: ${e.message}`); }
+    idle[k].asleep = true;
+    dirty = true;
+    log(`${rooms[k]?.name || '?'}: no screen for ${Math.round(IDLE_RESET_MS / 60000)} min, lobby and auditorium cleared; waiting for a screen`);
+  }
+  for (const k of Object.keys(idle)) if (!roomStates.has(k)) { delete idle[k]; dirty = true; }
+  if (dirty) saveIdle();
+}
+setInterval(checkIdleRooms, Math.min(60_000, Math.max(2_000, IDLE_RESET_MS / 10))).unref();
+
 function dropRoom(k) {
+  if (idle[k]) { delete idle[k]; saveIdle(); }
   roomStates.get(k)?.close();
   roomStates.delete(k);
   settingsStates.delete(k);
@@ -235,7 +292,10 @@ function chatConnect() {
       } catch { /* keep relaying */ }
     }
     for (const c of chat.clients) if (c.readyState === WebSocket.OPEN && c.bufferedAmount < 1 << 20) c.send(text);
-    for (const r of roomStates.values()) { try { r.chatFrame(text); } catch (e) { log(`room: ${e.message}`); } }
+    for (const [k, r] of roomStates) {
+      if (roomAsleep(k)) continue;   // cleared after 3 h without a screen: nobody walks in until one opens
+      try { r.chatFrame(text); } catch (e) { log(`room: ${e.message}`); }
+    }
     if (type === 'MSG') for (const s of suggestStates.values()) { try { s.chatFrame(text); } catch (e) { log(`movie suggestions: ${e.message}`); } }
   });
   const down = (why) => {
@@ -403,6 +463,7 @@ async function controlRoute(req, res, pathname, key) {
   if (pathname === '/ctl/room' && req.method === 'GET') {
     const r = ensureRoom(key);
     if ((room.roomSubs || 0) >= MAX_SCREENS_PER_ROOM) return send(res, 429, 'text/plain', 'Too many screens open');
+    roomScreenOpened(key);   // a sleeping room starts filling again
     const page = url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby';
     const id = (url.searchParams.get('id') || '').slice(0, 16) || crypto.randomBytes(6).toString('base64url');
     res.writeHead(200, SSE_HEADERS);
@@ -411,10 +472,10 @@ async function controlRoute(req, res, pathname, key) {
     const off = r.subscribe(page, id, (line) => res.write(`data: ${line}\n\n`), { obs: url.searchParams.get('obs') === '1', who, caps: String(url.searchParams.get('caps') || '').split(',').filter((c) => /^[a-z]{1,12}$/.test(c)).slice(0, 8) });
     room.roomSubs = (room.roomSubs || 0) + 1;
     const ping = setInterval(() => res.write(': ping\n\n'), 20000);
-    req.on('close', () => { clearInterval(ping); off(); room.roomSubs -= 1; });
+    req.on('close', () => { clearInterval(ping); off(); room.roomSubs -= 1; roomScreenClosed(key); });
     return;
   }
-  if (pathname === '/ctl/room-state' && req.method === 'GET') return json(res, 200, ensureRoom(key).summary());
+  if (pathname === '/ctl/room-state' && req.method === 'GET') return json(res, 200, { ...ensureRoom(key).summary(), asleep: roomAsleep(key) });
   // read-only roster (no subscription): the lobby's fly-through needs who sits where in the auditorium
   if (pathname === '/ctl/room-roster' && req.method === 'GET') {
     return json(res, 200, ensureRoom(key).snapshot(url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby'));
@@ -472,7 +533,7 @@ async function adminRoute(req, res, pathname) {
   if (!sameToken(token, ADMIN_TOKEN)) return json(res, 403, { error: 'wrong admin token' });
   if (foreignOrigin(req)) return send(res, 403, 'text/plain', 'Forbidden');
   if (pathname === '/api/admin/rooms' && req.method === 'GET') {
-    return json(res, 200, { rooms: Object.entries(rooms).map(([key, r]) => ({ key, ...r, screens: live.get(key)?.states.size || 0, chat: live.get(key)?.chat.size || 0 })) });
+    return json(res, 200, { rooms: Object.entries(rooms).map(([key, r]) => ({ key, ...r, screens: live.get(key)?.states.size || 0, chat: live.get(key)?.chat.size || 0, asleep: roomAsleep(key) })) });
   }
   if (pathname === '/api/admin/rooms' && req.method === 'POST') {
     const body = await readJson(req);

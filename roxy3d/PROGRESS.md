@@ -3414,3 +3414,15 @@ the pages as they are ("new"), alternating fresh loads, trace CPU in ms per seco
 - Auditorium uncapped is about 6% slower with the 33 extra layers (each drawn frame costs a little more; the saving
   is per emote frame, not per page frame). No effect at the owner's 30 fps; noted in case 60+ is wanted later.
 - No late frames at 30 on either page in any load. Test stack stopped by exact PID, test room record restored.
+
+### 27 Nov 2026 - hosted rooms reset after 3 hours without a screen
+
+Owner asked for it. `web/server.js` only (the local server and the zip are unchanged): a room with no lobby or
+auditorium screen on `/ctl/room` for 3 hours clears both pages and then takes nobody from chat until a screen opens;
+that screen starts it filling. Shorter gaps keep the crowd as before. The state is saved in `DATA/room-idle.json`, so a
+restart keeps a sleeping room asleep. `asleep` was added to `/ctl/room-state` and the admin room list. Backup:
+`backups/2026-11-27-idle-reset/server.js`.
+
+Checked on 18781 with real DGG chat and `IDLE_RESET_MS=60000`: the room filled to 15 / 17 with no screen, cleared at
+60 s and stayed empty, refilled once a lobby screen opened (18 / 23), cleared again 60 s after it closed, and stayed
+asleep across a restart. `npm test` in web/: 5 of 5 pass.

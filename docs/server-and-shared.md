@@ -511,7 +511,9 @@ invite key (`DATA/room-state/<key>.json`).
 
 - The server decides who walks in (tag / everyone, set by the panel or else the screens' links), the lobby's crowd
   rules and caps, each chatter's room, detour and seed, auditorium seats and the queue, and the director's follows.
-  It keeps going with no screen open.
+  It keeps going with no screen open. Hosted only (`web/server.js`, 27 Nov 2026): after 3 hours with no lobby or
+  auditorium screen on `GET /ctl/room`, the room clears both pages and takes nobody from chat until a screen opens
+  again (`DATA/room-idle.json`; `asleep` in `/ctl/room-state` and the admin room list; `IDLE_RESET_MS` for tests).
 - Pages opt in with `window.DD_ROOM_PAGE = 'lobby' | 'auditorium'` before `shared/core.js` (`?room=0` turns it off).
   `shared/cinema.js` then feeds `Cinema.onWalkIn` from `GET /ctl/room` (server-sent events) and passes the other
   events to `Cinema.onRoom`: `snapshot`, `seat`, `remove`, `follow`, `lead`, `clear`. Unreachable for 10 s: the page
