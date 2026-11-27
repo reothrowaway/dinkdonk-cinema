@@ -65,6 +65,8 @@ The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk 
 
 Open **Projection booth** from the guide to practice a 35 mm reel change. Guided mode holds each cue. In timed mode the upper-right dot appears for four frames at 24 fps. Press **M** to start the incoming motor and **C** to change projectors, or use the two buttons. Leaving the tab pauses the reel.
 
+Choose **Double bill** from the guide to program two films from the watch log. Pick each feature yourself or ask for a pair with a shared genre or release year. Set the intermission to 5, 10 or 15 minutes. When the archive lists both runtimes, the playbill adds the break to the full program time. Choose **Print playbill** to print the program or save it as a PDF from your browser.
+
 In a server running the experimental branch, open `/concepts/ticket-counter/index.html` to make a souvenir PNG for a screening from the DinkDonk watch log. Pick the title and screening time, then choose **Save ticket PNG**. Each stub uses the screening's watch-log number and New York time. Choose **Stamp passport** for a screening you attended. Your browser keeps one stamp per screening. You can remove individual stamps or print the collection.
 
 Play **Which came out first?** at `/concepts/preshow-quiz/index.html` before the film. Pick a title to guess or click **Reveal years** to let chat guess aloud. **Next pair** deals two more films from the watch log. You can open the page separately or add its URL as an OBS browser source and use **Interact**.

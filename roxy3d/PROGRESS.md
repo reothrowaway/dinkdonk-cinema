@@ -3569,3 +3569,9 @@ UCLA's Film & Television Archive describes drive-in countdown reels between feat
 Verified that both auditorium pages shared the same countdown and that a reload kept the original deadline. A real guest was seated in the isolated shared room. Advanced one test browser's clock to check that expiry held the return message while the server and the other screen continued on their original time. End restored a held Audience slide and Film cleared the clock. Duplicate starts, invalid durations, independent lobby commands, saved state and legacy room files passed the room checks. The projector now applies a room snapshot on receipt while seat placement can wait for the layout.
 
 Packaged Dish Night on 6c6f9d15d1: a fresh room's first manual cue timed out waiting for receipt. On reopening the saved room, the package served all 23 listed release files, seated real guests, and its actual panel ran the full giveaway with Auto off. The normal purchase completed and the souvenir was removed at the end.
+
+### 27 Nov 2026 — Experimental double-bill playbill
+
+The cinema guide opens a printable two-film program inspired by the New Beverly's repertory double bills (https://thenewbev.com/about/). Programmers can select the opener and closer, swap the order, or find two different watch-log films that share a published genre or release year. The full running time includes the chosen intermission when both features have a listed runtime.
+
+Checked 173 distinct films from 200 watch-log rows in a headless browser. Gosford Park plus Heart of the Beast shared Thriller and ran 4h 9m with a ten-minute break. Checked repeated screenings, incomplete metadata, stale and failed feeds, retry, alternate suggestions, a long title at 360px, and a one-page A4 print. An offline preview also opens through the guide. Branch only.

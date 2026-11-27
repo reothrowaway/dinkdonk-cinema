@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Double bill · DinkDonk Cinema</title>
+<style>
+  * { box-sizing: border-box }
+  :root { color-scheme: light; font: 16px/1.45 "Segoe UI",sans-serif; background: #e5e1d7; color: #25241f }
+  body { margin: 0 }
+  main { width: min(1100px, 100%); margin: auto; padding: clamp(16px,4vw,46px) }
+  header, .buttons { display: flex; gap: 10px 20px; align-items: center; justify-content: space-between; flex-wrap: wrap }
+  header { padding-bottom: 12px; border-bottom: 2px solid; font-weight: bold }
+  a { color: #7e231a; text-underline-offset: .2em }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 30%); gap: clamp(20px,4vw,50px); margin-top: 28px }
+  article { align-self: start; padding: clamp(18px,4vw,46px); background: #fffaeb; border: 1px solid #a99c86; border-top: .55rem solid #932e21 }
+  h1, h2, h3, p { margin: 0 }
+  h1, h3 { font-family: Georgia,serif; line-height: 1; overflow-wrap: anywhere }
+  h1 { font-size: clamp(48px,8vw,100px); letter-spacing: -.065em }
+  h2 { font-size: 1.25rem }
+  h3 { font-size: clamp(32px,5vw,61px); letter-spacing: -.04em; margin: 8px 0 }
+  .imprint, .act { color: #862719; font: bold .8rem/1.4 "Courier New",monospace; letter-spacing: .07em; text-transform: uppercase }
+  .imprint { margin-bottom: 10px }
+  .film { border-top: 1px solid #a99c86; padding: 19px 0 }
+  #connection { margin: 12px 0 18px }
+  #interval { border-top: 1px dashed #a99c86; padding: 7px 0; color: #6d392b; font-style: italic }
+  #total { padding-top: 11px; border-top: 3px double #6c6253; font-weight: 650 }
+  .meta { color: #514d44 }
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0 }
+  aside p, label { margin-top: 12px }
+  aside, article { min-width: 0; overflow-wrap: anywhere }
+  label { display: grid; gap: 4px; font-size: .9rem; font-weight: 650 }
+  select, button { min-width: 0; max-width: 100%; font: inherit; padding: 8px 10px; min-height: 40px; border: 1px solid #796e61; background: #fffaf0; color: inherit; border-radius: 3px }
+  select { width: 100% }
+  button { cursor: pointer }
+  button:disabled { opacity: .5; cursor: default }
+  .buttons { justify-content: flex-start; gap: 8px; margin-top: 12px }
+  #print { background: #862719; color: white; border-color: #862719 }
+  :focus-visible { outline: 3px solid #1b5e6a; outline-offset: 2px }
+  @media (max-width:700px) { .layout { grid-template-columns: minmax(0, 1fr) } }
+  @media print {
+    @page { margin: 15mm }
+    :root, article { background: white }
+    main { padding: 0; width: auto }
+    header, aside { display: none }
+    .layout { display: block; margin: 0 }
+    article { padding: 8mm; break-inside: avoid }
+    h1 { font-size: 60pt }
+    h3 { font-size: 30pt }
+  }
+</style>
+</head>
+<body><main>
+<header><span>DinkDonk Cinema</span><a href="../cinema-guide/index.html">Cinema guide</a></header>
+<div class="layout">
+  <article aria-labelledby="bill-title">
+    <p class="imprint">DinkDonk Cinema · Archive program</p>
+    <h1 id="bill-title">Double bill</h1>
+    <div id="program" hidden>
+      <p id="connection"></p>
+      <section class="film"><p class="act">Opening feature</p><h3 id="first-name"></h3><p class="meta" id="first-meta"></p></section>
+      <p id="interval"></p>
+      <section class="film"><p class="act">Second feature</p><h3 id="second-name"></h3><p class="meta" id="second-meta"></p></section>
+      <p id="total"></p>
+    </div>
+  </article>
+  <aside aria-labelledby="programmer"><h2 id="programmer">Program your bill</h2>
+    <p id="status" role="status">Opening the watch log…</p>
+    <button id="retry" type="button" hidden>Try again</button>
+    <fieldset id="tools" disabled aria-labelledby="programmer">
+      <label>Opening feature<select id="first"></select></label>
+      <label>Second feature<select id="second"></select></label>
+      <div class="buttons"><button id="swap" type="button">Swap order</button></div>
+      <label>Find films with<select id="match"><option value="genre">A shared genre</option><option value="year">The same release year</option></select></label>
+      <div class="buttons"><button id="suggest" type="button">Suggest a pair</button></div>
+      <label>Intermission<select id="minutes"><option value="5">5 minutes</option><option value="10" selected>10 minutes</option><option value="15">15 minutes</option></select></label>
+      <div class="buttons"><button id="print" type="button">Print playbill</button></div>
+    </fieldset>
+  </aside>
+</div>
+</main><script src="./bill.js"></script></body></html>

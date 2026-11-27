@@ -13,6 +13,7 @@ const extrasFiles = [
   'ticket-counter/index.html', 'ticket-counter/ticket.js',
   'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js',
   'cinema-guide/index.html', 'cinema-guide/guide.js',
+  'double-bill/index.html', 'double-bill/bill.js',
   'projection-booth/index.html', 'projection-booth/booth.js',
 ].map(file => 'concepts/' + file);
 
