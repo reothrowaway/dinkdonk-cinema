@@ -55,6 +55,12 @@ The nine lobby choices are Black Hole Matinee, Mirrorball Ballroom, Infinity Foy
 
 In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film.
 
+### Movie-night extras
+
+The [ticket counter](http://127.0.0.1:18770/concepts/ticket-counter/index.html) makes a souvenir PNG for a screening from the DinkDonk watch log. Pick the title and screening time, then choose **Save ticket PNG**. Each stub uses the screening's watch-log number and New York time.
+
+Play [Which came out first?](http://127.0.0.1:18770/concepts/preshow-quiz/index.html) before the film. Pick a title to guess or click **Reveal years** to let chat guess aloud. **Next pair** deals two more films from the watch log. You can open the page separately or add its URL as an OBS browser source and use **Interact**. Both pages use the same paths on the hosted edition.
+
 ### Who shows up
 
 By default only chatters who tag the streamer's DGG name walk in. `everyone=1` lets all chatters in. When the owner

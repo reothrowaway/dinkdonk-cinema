@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket counter · DinkDonk Cinema</title>
+<style>
+  * { box-sizing: border-box }
+  :root { color-scheme: dark; font-family: 'Segoe UI', sans-serif; color: #f4eddf; background: #18332f }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, #294b40, transparent 75%) }
+  main { width: min(840px, 100%); margin: auto; padding: clamp(24px, 7vh, 76px) 22px }
+  header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; border-bottom: 1px solid #709389; padding-bottom: 15px }
+  h1 { margin: 0; font: normal clamp(32px, 6vw, 52px)/1 Georgia, serif }
+  header small, label, button { font: bold 14px/1.4 'Courier New', monospace }
+  header small { color: #d3ddd2 }
+  .counter { padding: clamp(28px, 7vw, 64px) 0 }
+  canvas { display: block; width: 100%; height: auto; filter: drop-shadow(1px 10px 8px #081a1566) }
+  [hidden] { display: none !important }
+  .controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px }
+  label { display: grid; gap: 7px; flex: 1 1 260px; min-width: 0 }
+  select, button { min-height: 44px; padding: 10px 12px; border-radius: 3px }
+  select { width: 100%; color: #f4eddf; background: #17332e; border: 1px solid #a4b9aa; font-size: 16px }
+  button { border: 1px solid #f0be81; cursor: pointer; color: #232d27; background: #f0be81 }
+  button:disabled { opacity: .55; cursor: default }
+  :focus-visible { outline: 3px solid #fff; outline-offset: 3px }
+  #status { color: #e2dfd1; margin: 12px 0 }
+  #status:empty { margin: 0 }
+</style>
+</head>
+<body><main>
+  <header><h1>Ticket counter</h1><small>DinkDonk Cinema</small></header>
+  <div class="counter"><canvas id="ticket" hidden width="1400" height="540" role="img" aria-label="Screening ticket"></canvas></div>
+  <div class="controls">
+    <label>Screening<select id="screenings" disabled></select></label>
+    <button id="save" type="button" disabled>Save ticket PNG</button>
+    <button id="retry" type="button" hidden>Try again</button>
+  </div>
+  <p id="status" role="status">Opening the watch log…</p>
+</main>
+<script src="./ticket.js"></script>
+</body></html>
