@@ -174,6 +174,9 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
 - The original vaporwave looks are OBS filters. Compare them in `concepts/vaporwave/index.html`; the
   **DinkDonk Cinema Looks QA** collection holds the selected presets and strengths for each room. Promotion to QA
   puts a look in that collection or an event in the QA room. Identify which events run on the timer.
+- In the live Lobby and Auditorium, each room's Cinema filters dropdown can hold any of the thirteen looks or
+  switch them off. Its filter director defaults on, changing the look every 30 seconds. Test manual selection,
+  independent room settings, and the auditorium's keyed film cutout when changing those controls.
 
 ### Design and content
 - Any new design starts with a Google Images search of the owner's exact wording; use the results as reference.

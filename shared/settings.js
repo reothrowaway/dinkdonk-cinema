@@ -28,6 +28,19 @@ const BUBSTYLE = pick('bubstyle', 'Bubble look', [[0, 'Old dialog box'], [1, 'Ma
 const JANIDLE = num('janidle', 'Janny clocks off after', 20, 3600, 10, 600, 'People', 's without a message');
 // the wide shot's own zoom (owner, 11 Nov 2026): the camera's resting view; follows and the film push are not changed
 const WIDEZOOM = num('widezoom', 'Wide shot zoom', 1, 1.6, 0.01, 1, 'Look', '1 = the whole scene');
+// IDs and labels match the Preset selector in concepts/vaporwave/cinema-looks.shader.
+const FILTER_OPTIONS = [['off', 'Off'], ...[
+  'After-hours mall', 'Pearl diffusion', 'Chrome & cyan', 'Pink halation', 'Miami dusk',
+  'Anamorphic neon', 'Star-filter glass', 'Curved CRT', 'VHS rental', 'Milk-glass pastels',
+  'Ultraviolet arcade', '35 mm midnight', 'Neon rain'
+].map((name, index) => [String(index), name])];
+function cinemaFilters(initial) {
+  return [
+    pick('cinemaFilter', 'Manual look', FILTER_OPTIONS, initial, 'Cinema filters'),
+    bool('filterDirector', 'Auto', true, 'Cinema filters'),
+    num('filterSeconds', 'Interval (seconds)', 5, 600, 1, 30, 'Cinema filters'),
+  ].map(def => ({ ...def, card: 'filters' }));
+}
 
 const SCHEMA = {
   lobby: [
@@ -38,6 +51,7 @@ const SCHEMA = {
     // lobby (roxy3d/out10t, Brief 104). The page settles it before its art loads and reloads when it changes; ?look=moody (or the old ?look=gamer; the stored value stays 'gamer')
     // is the screen link's default. card: 'lobby' = the panel shows it on its Lobby card, not in Scene settings.
     { ...pick('look', 'Lobby look', [['normal', 'Normal'], ['gamer', 'Moody']], 'normal', 'Look', 'the screens reload their art when it changes'), card: 'lobby' },
+    ...cinemaFilters('12'),
     BUBSTYLE,
     BUBMODE,
     num('bubbles', 'Bubbles on screen at most', 2, 14, 1, 8, 'Look', 'the oldest fades for a new one'),
@@ -59,6 +73,7 @@ const SCHEMA = {
     num('mistgain', 'Mist brightness', 0.1, 4, 0.1, 1, 'Weather'),
   ],
   auditorium: [
+    ...cinemaFilters('1'),
     BUBSTYLE,
     BUBMODE,
     bool('screen', 'Screen always green', false, 'Look', 'never the pre-show slides'),
@@ -137,6 +152,8 @@ function createSettings({ file = null, log = () => {} } = {}) {
         const v = normalize(def, c.value);
         if (v === undefined) return true;
         values[page][def.key] = v;
+        // One persisted change and one settings broadcast for a manual choice.
+        if (def.key === 'cinemaFilter') values[page].filterDirector = false;
       }
       save();
       log(`settings: ${page} ${def.key} = ${values[page][def.key] ?? '(screen link)'}`);

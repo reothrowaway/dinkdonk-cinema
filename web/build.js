@@ -8,6 +8,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { artFiles } = require('../package/art');
+const { eventFiles, shaderFile, lookGuide } = require('../package/cinema-release');
 
 const WEB = __dirname;
 const STANDBY = path.resolve(WEB, '..');
@@ -59,11 +60,13 @@ if (fs.existsSync(path.join(STANDBY, 'cache', 'dinkdonk.json'))) copy(path.join(
 for (const f of ['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', 'dinkdonk.js', 'poll-draft.js', 'movie-suggest.js', 'movie-test-list.js']) copy(path.join(STANDBY, f), path.join(SITE, f));
 // QA copies, for testing changes on the hosted server before they go live (same room key)
 for (const f of ['lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']) copy(path.join(STANDBY, f), path.join(SITE, f));
+for (const f of [...eventFiles, shaderFile, lookGuide, 'concepts/vaporwave/scene-looks.json']) copy(path.join(STANDBY, f), path.join(SITE, f));
 copyTree(path.join(STANDBY, 'shared'), path.join(SITE, 'shared'));
 copy(path.join(STANDBY, 'userscripts', 'dinkdonk-poll-draft.user.js'), path.join(SITE, 'userscripts', 'dinkdonk-poll-draft.user.js'));   // template for each room's poll script
 copyTree(path.join(STANDBY, 'assets'), path.join(SITE, 'assets'));
 for (const f of ['index.html', 'setup.html', 'admin.html']) copy(path.join(WEB, f), path.join(SITE, f));
 copy(path.join(WEB, 'shim.js'), path.join(SITE, 'web', 'shim.js'));
+copy(path.join(WEB, 'room-looks.js'), path.join(SITE, 'web', 'room-looks.js'));
 copy(path.join(WEB, 'testfilm.html'), path.join(SITE, 'web', 'testfilm.html'));
 copyTree(path.join(WEB, 'guide'), path.join(SITE, 'web', 'guide'));   // OBS screenshots for setup.html
 copy(SHADER, path.join(SITE, 'web', 'corner-pin.shader'));

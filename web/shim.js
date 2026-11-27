@@ -56,13 +56,31 @@
 
   // page.deliver({obs}) reports whether OBS is linked; onPage(text) takes the auditorium's {film, w, h, quad}.
   // onUnreachable fires once if the very first connection attempt never opens (blocked or nothing listening).
-  function makeBridge({ port, password, deliver, onUnreachable }) {
+  function makeBridge({ port, password, deliver, onUnreachable, onIdentified, looksOnly = false }) {
     const OBS_URL = `ws://127.0.0.1:${port || 4455}`;
     const obs = { ws: null, ready: false, keyed: false, itemId: null, pending: new Map(), seq: 0, setupAt: 0, closed: false, everOpen: false, filmShown: false };
     const want = { film: false, quad: null };
     const sent = { film: null, quad: null };
     let busy = false;
     let shaderText = null;
+    let lookDirector = null;
+    let lastLookPoll = -Infinity;
+    function stopLooks() {
+      lookDirector?.stop();
+      lookDirector = null;
+    }
+    function startLooks(ws) {
+      stopLooks();
+      if (!KEY || !['lobby.html', 'auditorium.html', 'control.html'].includes(PAGE)) return;
+      if (!window.CinemaLookDirector || !window.createHostedLookDirector) { log('Cinema filter controls could not load.'); return; }
+      const director = window.createHostedLookDirector((type, data) => {
+        if (obs.closed || obs.ws !== ws || lookDirector !== director) return Promise.reject(new Error('OBS connection changed.'));
+        if (type === 'GetInputList') lastLookPoll = performance.now();
+        return request(type, data);
+      }, error => log('cinema looks:', error.message));
+      lookDirector = director;
+      director.start();
+    }
 
     function obsConnect() {
       if (obs.closed) return;
@@ -84,10 +102,15 @@
           ws.send(JSON.stringify({ op: 1, d: identify }));
         } else if (m.op === 2) {
           log('OBS connected');
-          setup();
+          onIdentified?.(true);
+          startLooks(ws);
+          if (!looksOnly) setup();
+        } else if (m.op === 5 && m.d.eventType === 'CurrentSceneCollectionChanging') {
+          stopLooks();
         } else if (m.op === 5 && m.d.eventType === 'CurrentSceneCollectionChanged') {
+          startLooks(ws);
           setReady(false);
-          setup();
+          if (!looksOnly) setup();
         } else if (m.op === 7) {
           const p = obs.pending.get(m.d.requestId);
           if (!p) return;
@@ -98,6 +121,8 @@
       };
       ws.onclose = (ev) => {
         if (obs.ws !== ws) return;
+        onIdentified?.(false);
+        stopLooks();
         obs.ws = null;
         setReady(false);
         for (const p of obs.pending.values()) p.reject(new Error('OBS closed'));
@@ -202,6 +227,7 @@
     }
     function close() {
       obs.closed = true;
+      stopLooks();
       // only the bridge that put the film up takes it down (a relay host closing must not hide a direct page's film)
       if (obs.ready && obs.itemId != null && obs.filmShown) request('SetSceneItemEnabled', { sceneName: SCENE, sceneItemId: obs.itemId, sceneItemEnabled: false }).catch(() => {});
       if (obs.ws) obs.ws.close();
@@ -352,13 +378,14 @@
       deliver({ glow: rgb });
     }
     (function glowLoop() {
-      if (obs.closed) return;
+      if (obs.closed || looksOnly) return;
       sampleGlow().then(() => { glowFails = 0; }, (e) => { if (++glowFails === 1) log(`film colour: ${e.message}`); })
         .finally(() => setTimeout(glowLoop, glowFails > 3 ? 5000 : 500));
     })();
     addEventListener('pagehide', close);
     obsConnect();
-    return { onPage, close, cut, warm, isReady: () => obs.ready, isKeyed: () => obs.ready && obs.keyed };
+    return { onPage, close, cut, warm, refreshLooks: () => performance.now() - lastLookPoll >= 1500 ? lookDirector?.refresh() : undefined,
+      isReady: () => obs.ready, isKeyed: () => obs.ready && obs.keyed };
   }
 
   // What auditorium.html gets back from `new WebSocket('ws://<host>:18790')`: a socket-shaped object that answers like
@@ -425,6 +452,13 @@
   for (const k of ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']) PatchedWebSocket[k] = NativeWS[k];
   window.WebSocket = PatchedWebSocket;
 
+  // A lobby can be the only source loaded. Its direct link drives looks independently of the film bridge.
+  // OBS versions that block the direct link use the control panel's existing connection.
+  if (PAGE === 'lobby.html' && window.obsstudio && h.has('obs') && h.get('relay') !== '1') {
+    makeBridge({ port: Number(h.get('obsport')) || 4455, password: h.get('obs') || '', looksOnly: true,
+      deliver: () => {}, onUnreachable: () => log('Cinema looks use the linked control panel on this OBS version.') });
+  }
+
   // ---------- relay host: the control panel in the streamer's own browser ----------
   // Uses the OBS password setup.html saved in this browser. Shows a small status line at the top of the panel.
   if (/^control(-qa)?\.html$/.test(PAGE)) {
@@ -434,17 +468,21 @@
       const badge = document.createElement('div');
       badge.style.cssText = 'margin:-6px 0 14px;font:13px/1.4 system-ui,sans-serif;color:#8b90a0';
       document.querySelector('h1')?.after(badge);
-      const state = { relay: false, obs: false, pages: 0 };
+      const state = { relay: false, obs: false, filmReady: false, pages: 0 };
+      let retired = '';
       const show = () => {
-        badge.textContent = !saved ? 'Film screen link: run setup.html on this PC once to let this panel reach OBS (needed for OBS 33 and newer).'
-          : `Film screen link: OBS ${state.obs ? 'connected' : 'not connected'} · server ${state.relay ? 'connected' : 'connecting'}` +
-            (state.pages ? ` · auditorium using this panel` : '') + ' · keep this tab open during the film';
+        if (retired) { badge.textContent = retired; return; }
+        badge.textContent = !saved ? 'Run setup on the OBS computer to link the control panel for cinema filters and the film screen.'
+          : `OBS ${state.obs ? 'connected' : 'not connected'} · server ${state.relay ? 'connected' : 'connecting'}` +
+            (state.filmReady ? ' · film screen ready' : '') + (state.pages ? ' · auditorium using this panel' : '') +
+            ' · keep this tab open on OBS 33 or newer';
       };
       show();
       if (!saved) return;
       let ws = null;
-      const bridge = makeBridge({ port: saved.port, password: saved.pw || '', deliver: (o) => {
-        if ('obs' in o) { state.obs = o.obs; show(); }
+      const bridge = makeBridge({ port: saved.port, password: saved.pw || '',
+        onIdentified: on => { state.obs = on; show(); }, deliver: (o) => {
+        if ('obs' in o) { state.filmReady = o.obs; show(); }
         if (ws?.readyState === 1) ws.send(JSON.stringify(o));   // {obs} or a {glow} reading, both relayed to the auditorium
       } });
       const open = () => {
@@ -453,12 +491,24 @@
         ws.onmessage = (e) => {
           let m;
           try { m = JSON.parse(e.data); } catch { return; }
+          if (m.lookTick === true) {
+            // Hidden Chromium tabs may throttle local timers to one callback per minute.
+            if (document.hidden) bridge.refreshLooks()?.catch(err => log('cinema looks:', err.message));
+            return;
+          }
           if (typeof m.pages === 'number') { state.pages = m.pages; show(); return; }
           if (m.cut === true) { bridge.cut().catch((err) => log(`cut failed: ${err.message}`)); return; }   // fly-through end
           if (m.warm === true) { bridge.warm().catch((err) => log(`warm-up failed: ${err.message}`)); return; }   // fly-through start
           bridge.onPage(e.data);
         };
-        ws.onclose = () => { state.relay = false; state.pages = 0; show(); setTimeout(open, 3000); };
+        ws.onclose = ev => {
+          state.relay = false; state.pages = 0; show();
+          if (ev.code === 4000 || ev.code === 4003) {
+            retired = ev.code === 4000 ? 'Another control panel now drives OBS. Reload to take over.' : 'This room link was revoked.';
+            bridge.close();
+            show();
+          } else setTimeout(open, 3000);
+        };
       };
       open();
     });

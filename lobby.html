@@ -67,6 +67,7 @@
     box-shadow: inset 0 -4px 0 rgba(0,0,0,.25), inset 10px 4px 0 rgba(255,255,255,.12), 0 2px 4px rgba(0,0,0,.5); }
   .umb::after { content: ''; position: absolute; left: 29px; top: 20px; width: 2px; height: 30px; background: #222; }
   .w.out .umb { display: block; }
+  .w.event-indoors .umb, .w.event-indoors .umbs { visibility: hidden; }
   .w.out:not([data-lt]) .em { filter: brightness(.84) saturate(.9); }   /* night street: dimmer than the lobby (when the scene light, L6, is off or not loaded) */
   /* wet reflection under a chatter on the street (queue 63, L7): a flipped copy of the emote, fading out downwards */
   .refl { position: absolute; left: -42px; top: 1px; width: 84px; height: 48px; overflow: hidden; pointer-events: none; opacity: .44;
@@ -173,6 +174,8 @@
     font-family: 'Oswald', 'Bebas Neue', 'Arial Narrow', Impact, sans-serif; font-weight: 600; text-transform: uppercase;
     white-space: nowrap; overflow: hidden; line-height: 1; opacity: .92; }
   .mqtext .mq1 { font-size: 44px; letter-spacing: 4px; }
+  .mqtext.victory-marquee > .mq1:first-child { visibility: hidden; }
+  .mqtext .victory-message { position: absolute; left: 50%; transform: translateX(-50%); }
   .mqtext .mq2 { font-size: 30px; letter-spacing: 5px; color: #3a2a20; }
   .proploop { position: absolute; pointer-events: none; mix-blend-mode: plus-lighter; background-repeat: no-repeat; }
   /* the street marquee's canopy, board text and bulbs, and the front glass: see-through while the camera is zoomed in
@@ -1270,6 +1273,7 @@
   });
 
   // ---------- walkers ----------
+  let lobbyEvents;
   const walkers = new Map();   // lowercase nick -> their current walker
   const figures = new Set();   // every walker on screen, incl. ones finishing a door/purge (insertion order = age)
   const queue = [];
@@ -1664,6 +1668,11 @@
     w.bubShown = false;    // first placement snaps; later moves glide (layoutBubbles)
     bubOrder.push(w);
     while (bubOrder.length > MAX_BUB) dropBubble(bubOrder[0]);
+    return b;
+  }
+  function sayRemark(w, text) {
+    if (w.pending || !onScreen(w)) return;
+    return say(w, [{ t: 'text', v: text }]);
   }
   function dropBubble(w) {
     if (!w.bub) return;
@@ -1683,7 +1692,12 @@
     // (into the corridor's walking line where they are, not back to the junction first: only from the restroom side
     // is that the junction itself)
     else {
-      steps.push({ to: [clamp(w.u, J[0], Math.max(J[0], d.at)), J[1]] }, { to: [d.at, J[1]] }, { to: [d.at, 0.55] }, { call: startEnter });
+      // A visitor waits on the real corridor until the double doors are free.
+      // Check again at the threshold if the incident began during their turn.
+      const waitForLeaves = w.doorRoom === 2 ? [{ until: () => incidentDoorKey !== 3 }] : [];
+      steps.push({ to: [clamp(w.u, J[0], Math.max(J[0], d.at)), J[1]], screenHall: 'join' },
+        { to: [d.at, J[1]], screenHall: 'along' }, ...waitForLeaves, { to: [d.at, 0.55], screenHall: 'turn' },
+        ...waitForLeaves, { call: startEnter });
       // the door opens and they walk on through it into the dark corridor behind (owner, 15 Nov 2026; stepThru); a door
       // without its sheet's opening in the art: fade on the threshold as before
       const t = thruOf(w.doorRoom + 1);
@@ -1774,7 +1788,7 @@
     }
     let pre;
     if (w.detour === 'claw' && PROPS.clawOn && !PROPS.clawBusy && !w.hurry) {
-      pre = clawTurn(w);   // a go on the claw machine before the film (lobby props)
+      pre = clawTurn(w) || L.toGate.map(to => ({to}));   // a go on the claw machine before the film (lobby props)
     } else {
       pre = L.toGate.map((to) => ({ to }));
     }
@@ -2646,11 +2660,14 @@
   // screen doors / restroom door swing open (warm light spilling out) and close again
   const doorAnims = {};
   const doorBusy = {};
+  let incidentDoorKey = null;
   // The sheet is open (first ~35 %) - hold - close. Someone arriving while it plays keeps it open: the
   // animation is wound back to the start of its hold, so no one walks through a closing door.
   function playDoor(key) {
     const d = doorAnims[key];
     if (!d) return;
+    // An arriving patron gets the real doorway immediately, even mid-incident.
+    if (incidentDoorKey === key) lobbyEvents?.interrupt('door needed by normal traffic');
     const busy = doorBusy[key];
     if (busy) {
       const holdStart = Math.round(d.frames * 0.35) / (d.fps || 18);
@@ -2686,6 +2703,71 @@
       side: byV ? (u, v) => v - at : (u, v) => u - at,
       // a point on the floor through the middle of the opening, `d` tiles behind the wall
       through: (dd) => (byV ? [mid, at - dd] : [at - dd, mid]) });
+  }
+  // Screen 3 has a clear strip of carpet beside the threshold in both art packs.
+  // Share the very same sheet, z order and projected aperture as normal door traffic.
+  function infinityDoor() {
+    const key = 3, spec = doorAnims[key], portal = thruOf(key);
+    if (!portal || doorBusy[key] || incidentDoorKey !== null) return null;
+    return {
+      id: spec.id, floor: portal.through(0), quad: portal.quad, z: portal.z,
+      eligible(w) { return !w.entering && !w.quitting && !!w.plan?.[0]?.screenHall; },
+      approach(w) {
+        // Only borrow someone already walking the same corridor to their film. Their
+        // ticket, usher, restroom and social plans have finished before this leg.
+        const original = w.plan, first = original[0], hallV = J[1], mark = [spec.at + 1.025, 0.21];
+        const joining = first.screenHall === 'join', turning = first.screenHall === 'turn';
+        const onward = joining ? original.slice(1) : turning ? [{ to: [first.to[0], hallV] }, ...original] : original;
+        let inHall = !joining;
+        let arrived = false, storyTime = 0;
+        const walk = [
+          ...(joining ? [first, { call: () => { inHall = true; } }] : turning ? [{ to: [w.u, hallV] }] : []),
+          { to: [mark[0], hallV] }, { to: mark },
+          { call: () => { arrived = true; w.el.dataset.infinityWalk = 'on-mark'; SB.faceEmote(w.em, w.emName, -1); } },
+          { until: () => storyTime >= 9.23 }, { to: [spec.at + 0.64, mark[1]] },
+          { until: () => storyTime >= 10.19 }, { to: mark }, { until: () => false },
+        ];
+        const routeSteps = new Set(walk);
+        w.el.dataset.infinityWalk = 'approach';
+        w.plan = walk;
+        return {
+          ready: () => arrived,
+          valid: () => w.plan === walk && !w.quitting,
+          setTime(t) { storyTime = t; },
+          release() {
+            delete w.el.dataset.infinityWalk;
+            // Another subsystem may already have taken over (a departure or a room
+            // reset). Otherwise rejoin the walking line at our actual current u.
+            if (w.plan === walk) {
+              const firstOwned = walk.findIndex(step => routeSteps.has(step));
+              const priority = firstOwned < 0 ? walk : walk.slice(0, firstOwned);
+              w.plan = [...priority, ...(inHall ? [{ to: [w.u, hallV] }, ...onward] : original)];
+            }
+          },
+        };
+      },
+      open() {
+        if (doorBusy[key] || incidentDoorKey !== null || [...walkers.values()].some(w => !w.gone && w.thru?.key === key)) return null;
+        const el = h('div', 'sheet');
+        sheetStyle(el, spec);
+        el.style.transform = `translate(${spec.x}px, ${spec.y}px)`;
+        el.style.zIndex = String(portal.z - 1);
+        el.dataset.infinityLeaf = spec.id;
+        world.append(el);
+        incidentDoorKey = key;
+        let last = -1;
+        return {
+          set(frame) {
+            frame = Math.round(frame * (spec.frames - 1) / 15);
+            if (frame === last) return;
+            sheetFrame(el, spec, frame);
+            el.dataset.frame = String(frame);
+            last = frame;
+          },
+          release() { el.remove(); incidentDoorKey = null; },
+        };
+      },
+    };
   }
   // dark: tiles behind the wall at which they are black (0 = they stay lit, a stall)
   function throughDoor(w, key, dark = 0) {
@@ -3210,6 +3292,8 @@
     return Math.min(v, 16.85 - v);
   }
   function drawFigure(w, dt, t) {
+    lobbyEvents?.syncGuestTravel(w);
+    if (w.ambientTrip && w.ambientTrip.plan !== w.plan) w.ambientTrip = null;
     let s = 0;
     let lift = 0;
     let tilt = 0;
@@ -3246,13 +3330,27 @@
       lift = s * 12;
       bouncing = w.idle > 0;
     }
-    const sq = bouncing && s < 0.2 ? 0.9 : 1;
+    let sq = bouncing && s < 0.2 ? 0.9 : 1;
     // a crawler with gait.stretch pulls itself along: longer and flatter, then shorter and taller, once per step
-    const st = moving && w.gait?.stretch ? Math.sin(w.phase * 2) * w.gait.stretch : 0;
-    const [x, y] = P(w.u, w.v, w.stand || 0);
+    let st = moving && w.gait?.stretch ? Math.sin(w.phase * 2) * w.gait.stretch : 0;
+    let [x, y] = P(w.u, w.v, w.stand || 0);
+    const eventPose = lobbyEvents?.pose(w, x, y);
+    if (eventPose?.indoors !== w.eventIndoors) {
+      w.eventIndoors = eventPose?.indoors;
+      w.el.classList.toggle('event-indoors', !!w.eventIndoors);
+    }
+    if (eventPose?.floorBeat !== w.floorBeat) {
+      w.floorBeat = eventPose?.floorBeat;
+      w.el.classList.toggle('floor-beat', !!w.floorBeat);
+    }
+    if (eventPose) {
+      x = eventPose.x; y = eventPose.y;
+      if (eventPose.floorBeat) { lift = 0; tilt = 0; sq = 1; st = 0; }
+      lift += eventPose.lift; tilt += eventPose.tilt;
+    }
     w.x = x; w.y = y; w.lift = lift;
     // only touch the DOM when something changed (most figures stand still most of the time)
-    const tEl = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+    const tEl = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)` + (eventPose?.scale !== undefined ? ` scale(${eventPose.scale.toFixed(3)})` : '');
     const tBod = `translateY(${(-lift).toFixed(1)}px)${tilt ? ` rotate(${tilt.toFixed(1)}deg)` : ''} scale(${((2 - sq) * (1 + st)).toFixed(3)}, ${st ? (sq * (1 - st * 0.6)).toFixed(3) : sq})`;
     if (tEl !== w.tEl) { w.tEl = tEl; w.el.style.transform = tEl; }
     if (tBod !== w.tBod) { w.tBod = tBod; w.bod.style.transform = tBod; }
@@ -3266,7 +3364,7 @@
       w.nameWant = (w.nameT > 0 || w.jan || w.alwaysName || director.follow?.w === w) && !w.bub && w.alpha > 0.3;
     }
     // vehicles are depth-sliced along their length, so plain depth sorting is right beside them too
-    const z = w.thruZ || depth(w.u, frontV(w.u, w.v));   // (in a doorway: stepThru says)
+    const z = eventPose?.z ?? (w.thruZ || depth(w.u, frontV(w.u, w.v)));   // (in a doorway: stepThru says)
     if (z !== w.z) { w.z = z; w.el.style.zIndex = String(z); }
     const out = w.v > 9.1;
     if (out !== w.out) {
@@ -3326,7 +3424,7 @@
     if (!w.bub) return;
     // hidden (in the restroom, fading in off the street) or out of view: hold the line until they are visible
     const [sx, sy] = toScreen(w.x, w.y - (EH + w.lift) * 0.5);
-    const hidden = w.alpha < 0.3 || sx < 20 || sx > 1900 || sy > 1075 || sy < 0;
+    const hidden = w.alpha < 0.3 || lobbyEvents?.concealed(w) || sx < 20 || sx > 1900 || sy > 1075 || sy < 0;
     if (!hidden && !w.bubBlocked) w.bubT -= dt;   // no time lost while hidden or waiting for room
     if (w.bubT <= 0) { dropBubble(w); return; }
     // kept inside the stage; the pointer aims at the speaker (set in layoutBubbles, after any displacement)
@@ -3383,8 +3481,20 @@
   const BUB_GLIDE = 0.32;   // spring time for a change of spot (was 0.2: read as a jump)
   // distance from a point to a box (screen px; 0 inside)
   const boxDist = (px, py, l, t, r, b) => Math.hypot(Math.max(l - px, 0, px - r), Math.max(t - py, 0, py - b));
+  function bubbleCovers(x, y, w, r) {
+    return x + w.bubW/2 > r[0] && x - w.bubW/2 < r[2] && y > r[1] && y - w.bubH < r[3];
+  }
+  function aroundAction(x, y, w, r, viewport) {
+    const [left,top,right,bottom]=viewport, half=w.bubW/2;
+    return [['action-up',x,r[1]-8],['action-down',x,r[3]+8+w.bubH],
+      ['action-left',r[0]-half-8,y],['action-right',r[2]+half+8,y]]
+      .filter(([,cx,cy])=>cx-half>=left+8 && cx+half<=right-8 && cy-w.bubH>=top+8 && cy<=bottom-8)
+      .sort((a,b)=>Math.hypot(a[1]-x,a[2]-y)-Math.hypot(b[1]-x,b[2]-y));
+  }
   function layoutBubbles(dt) {
     if (BUB_MODE === 'static') { layoutStatic(); return; }
+    const opening = lobbyEvents?.actionRect;
+    const hard = opening ? [...HARD_RECTS, opening] : HARD_RECTS;
     const leash = BUB_MODE === 'leash';
     const tethered = new Set();
     // the leash: how far a bubble with its bottom edge at (x, by) is from its speaker's head
@@ -3397,7 +3507,7 @@
     const drawn = [];
     const hitAt = (x, by, w) => placed.find((p) => Math.abs(p.x - x) < (p.half + w.bubW / 2 + 6) && by > p.top - 4 && by - w.bubH < p.bottom + 4);
     const over = (rects, x, by, w) => rects.find(([l, t, r, b]) => x + w.bubW / 2 > l && x - w.bubW / 2 < r && by > t && by - w.bubH < b);
-    const [vx0, vy0, vx1] = view();   // bubbles stay inside the part of the stage on screen (fit=cover crops it)
+    const viewport = view(), [vx0, vy0, vx1] = viewport;
     for (const w of list) {
       const half = w.bubW / 2;
       const fit = (x) => clamp(x, vx0 + half + 8, vx1 - 8 - half);
@@ -3409,8 +3519,9 @@
       }
       // candidates carry a kind, so the spot chosen last frame can be found again ('up' = over the head/stacked)
       const cands = [['up', w.bx, by]];
+      if(opening && bubbleCovers(w.bx,by,w,opening)) cands.push(...aroundAction(w.bx,by,w,opening,viewport));
       const soft = softRects.map(([l, t, r, b]) => [...toScreen(l, t), ...toScreen(r, b)]);   // world -> screen
-      [...HARD_RECTS, ...soft].forEach((r, i) => {
+      [...hard, ...soft].forEach((r, i) => {
         if (over([r], w.bx, by, w)) cands.push([`l${i}`, fit(r[0] - half - 6), by], [`r${i}`, fit(r[2] + half + 6), by]);
       });
       const low = Math.max(w.by, vy0 + 8 + w.bubH);
@@ -3420,14 +3531,14 @@
         const xr = fit(w.sx + half + 20), xl = fit(w.sx - half - 20);
         cands.push(['R', xr, stackAt(xr)], ['L', xl, stackAt(xl)]);
       } else cands.push(['R', fit(w.bx + 2 * half + 12), low], ['L', fit(w.bx - 2 * half - 12), low]);
-      const ok = cands.filter(([, x, y]) => y - w.bubH >= vy0 + 8 &&!hitAt(x, y, w) && !over(HARD_RECTS, x, y, w) && (!leash || reach(w, x, y) <= LEASH));
+      const ok = cands.filter(([, x, y]) => y - w.bubH >= vy0 + 8 &&!hitAt(x, y, w) && !over(hard, x, y, w) && (!leash || reach(w, x, y) <= LEASH));
       const best = ok.find(([, x, y]) => !over(soft, x, y, w)) || ok[0];
       // stay on last frame's kind of spot while it still works; switch only after the better one held BUB_HOLD s
       const prev = w.bubShown && ok.find((c) => c[0] === w.slotKind && !over(soft, c[1], c[2], w));
       if (best && prev && best[0] !== prev[0]) w.slotT = (w.slotT || 0) + dt; else w.slotT = 0;
       let pick = prev && w.slotT < BUB_HOLD ? prev : best;
       let overlap = false;
-      if (!pick && leash) {
+      if (!pick && leash && !(opening && bubbleCovers(w.bx,low,w,opening))) {
         // no free spot within the leash: the oldest full bubble close by (this one included) shrinks to a chip, and
         // meanwhile (or when only chips are left) this one sits over the head and may overlap (the newest on top)
         let oldest = w.bubChip ? null : w;
@@ -3461,7 +3572,7 @@
         [w.offY, w.offVY] = spring(w.offY, dy, w.offVY, BUB_GLIDE, dt);
       }
       // kept on the stage while gliding too (the speaker can move on while a sideways offset is still easing)
-      const cx = clamp(w.bx + w.offX, vx0 + half + 8, vx1 - 8 - half);
+      let cx = clamp(w.bx + w.offX, vx0 + half + 8, vx1 - 8 - half);
       const cy0 = w.by + w.offY;
       // a push eases back down on its own spring, but only while the way down is free (else it would sink into the
       // bubble below and be pushed out again every frame: a wobble)
@@ -3484,6 +3595,12 @@
         w.pushV = 0;
         cy = cy0 + w.pushOff;
       }
+      // A legal target can still glide across a moving card, or be pushed back
+      // onto it by another bubble. In that frame use the approved target directly.
+      if(opening && bubbleCovers(cx,cy,w,opening)) {
+        cx=bx;cy=bYfree;
+        w.offX=cx-w.bx;w.offY=cy-w.by;w.offVX=w.offVY=w.pushOff=w.pushV=0;
+      }
       // a new bubble takes its room as it fades in, so the one above it is eased up instead of shoved
       const grow = clamp(w.bubAge / 0.3, 0, 1);
       drawn.push({ x: cx, half, top: cy - w.bubH * grow * grow * (3 - 2 * grow), bottom: cy });
@@ -3491,7 +3608,9 @@
       const tail = Math.round(clamp(w.sx - cx, -half + 12, half - 12));
       if (tail !== w.bubTail) { w.bubTail = tail; w.bub.style.setProperty('--tail', `${tail}px`); }
       // the tail can't reach the speaker (moved sideways or up): a tether line from its tip to their head
-      if (leash && w.bubO !== '0' && (Math.abs(w.sx - cx) > half - 12 || headY(w) - (cy + 8) > 40)) {
+      const tetherAcrossAction=opening && Math.max(cx+tail,w.sx)>opening[0] && Math.min(cx+tail,w.sx)<opening[2]
+        && Math.max(cy+8,headY(w))>opening[1] && Math.min(cy+8,headY(w))<opening[3];
+      if (leash && !tetherAcrossAction && w.bubO !== '0' && (Math.abs(w.sx - cx) > half - 12 || headY(w) - (cy + 8) > 40)) {
         tether(w, cx + tail, cy + 8, w.sx, headY(w), w.bubO);
         tethered.add(w);
       }
@@ -3523,13 +3642,19 @@
   }
   // static mode: right over the head, no making room (overlaps allowed; later bubbles are later in the DOM: on top)
   function layoutStatic() {
-    const [vx0, vy0, vx1] = view();
+    const viewport=view(), [vx0, vy0, vx1] = viewport;
+    const opening = lobbyEvents?.actionRect;
     for (const w of bubOrder) {
       if (w.teth?.on) tether(w, null);
       if (!w.bub || w.bubHidden || !w.bubW) continue;
       const half = w.bubW / 2;
-      const cx = clamp(w.bx, vx0 + half + 8, vx1 - 8 - half);
-      const cy = Math.max(w.by, vy0 + 8 + w.bubH);
+      let cx = clamp(w.bx, vx0 + half + 8, vx1 - 8 - half);
+      let cy = Math.max(w.by, vy0 + 8 + w.bubH);
+      if (opening && bubbleCovers(cx,cy,w,opening)) {
+        const spot=aroundAction(cx,cy,w,opening,viewport)[0];
+        if(!spot){w.bubBlocked=true;w.bubO='0';w.bub.style.opacity='0';continue;}
+        [,cx,cy]=spot;
+      }
       w.bubBlocked = false;
       w.bubShown = false;   // (a switch back to leash/stack snaps)
       w.bub.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) translate(-50%, -100%)`;
@@ -3749,8 +3874,7 @@
     SB.on('emotes', face);
     face();
   }
-  // Shouts at the poster (owner, 15 Nov 2026): a chatter walking past Dear Leader sometimes shouts a line at it (a float,
-  // like "much better"). Not every time, so a busy lobby isn't all shouting: 35% of the walks past, at most one line
+  // A passerby with a free chat bubble can address the Dear Leader poster. Roll on 35% of passes, at most one line
   // every 8 s in the whole lobby, and each chatter at most once in 4 minutes. Staff, jannies and the page's own figures
   // (canvasser, turtle, the runner) never do. "Past the poster" = walking within a tile of the floor in front of it
   // (the middle of its light on the floor, u 3.58 v 3.39 from out10l: by the usher's gate). Checked 4 times a second.
@@ -3770,11 +3894,13 @@
       w.leaderPass = true;   // one roll per walk past
       if (w.staff || w.jan || w.npc || w.gone || w.removing || w.entering || !w.key || w.key[0] === '#' || w.alpha < 0.9) continue;
       if (now < leaderNext || now - (leaderSaid.get(w.key) ?? -LEADER_EACH) < LEADER_EACH || Math.random() >= LEADER_P) continue;
+      if (w.bub) continue;
+      const line = (leaderLine + 1 + Math.floor(Math.random() * (LEADER_LINES.length - 1))) % LEADER_LINES.length;
+      if (!sayRemark(w, LEADER_LINES[line])) continue;
       leaderNext = now + LEADER_GAP;
       leaderSaid.set(w.key, now);
-      leaderLine = (leaderLine + 1 + Math.floor(Math.random() * (LEADER_LINES.length - 1))) % LEADER_LINES.length;   // never the same twice running
+      leaderLine = line;
       w.bounce = 1;
-      floatAt(w, LEADER_LINES[leaderLine], '#ffd27a');
       leaderLast = { nick: w.nick, line: LEADER_LINES[leaderLine], t: now, x: w.x, y: w.y };
     }
     for (const [k, t] of leaderSaid) if (now - t > LEADER_EACH) leaderSaid.delete(k);
@@ -4010,17 +4136,15 @@
     const v = String(o);
     for (const el of PROPS.els[name] || []) if (el.style.opacity !== v) { el.style.opacity = v; if (el._add) el._add.style.opacity = v; }
   }
-  function clawTurn(w) {
-    PROPS.clawBusy = w;
+  function clawTurn(w, returnTo = [8,6.6]) {
     const [cu, cv] = PROPS.clawSpot;
     // (with the rope lane: out past its west end and along below the back rope; then the machine's own way in, Brief
     // 96: (12.95, 7.0), (12.95, 8.5) round its east side to the spot in front of its play side; back the same way)
     const way = PROPS.clawWay?.length ? PROPS.clawWay : [[cu, 7.0]];
     const there = [...(L.lane ? [[5.2, 6.6], [8.2, 6.6]] : [[8.2, 7.0]]), ...way];
     const face = (PROPS.clawAt[0] - cu) - (PROPS.clawAt[1] - cv);   // towards the machine
-    return [...there.map((to) => ({ to })), { to: [cu, cv] },
-      { wait: rand(3.5, 6), start: () => SB.faceEmote(w.em, w.emName, face), end: () => {
-        if (PROPS.clawBusy === w) PROPS.clawBusy = null;
+    const game = { wait: rand(3.5, 6), start: () => SB.faceEmote(w.em, w.emName, face), end: () => {
+        if (PROPS.clawBusy === w) { PROPS.clawBusy = null; PROPS.clawTrip = null; }
         const win = CLAW_TEST ? CLAW_TEST === 'win' : SB.hashHue(`${w.key}:buddy:${Math.floor(Date.now() / 1800000)}`) % 9 === 0;
         if (win) {
           PROPS.clawWinT = performance.now() + 2600;
@@ -4029,21 +4153,51 @@
           // the rendered plush (manifest.items.buddy, Brief 96) held like popcorn; older art: the page's CSS plush
           if (!w.carry) { w.carry = ITEMS?.buddy ? itemEl('buddy', 'buddy', HELD.carry) : h('div', 'buddy'); w.bod.append(w.carry); placeItem(w, w.carry, 'carry'); }
         } else if (Math.random() < 0.8) floatAt(w, CLAW_LOST[Math.floor(Math.random() * CLAW_LOST.length)], '#9fd4ff');
-      } },
+      } };
+    if (L === LAYOUTS[3]) {
+      const path = ambientPath([w.u,w.v],way[0]);
+      if (!path) return null;
+      const entryIndex = path.length-1;
+      for (const target of [...way.slice(1),[cu,cv]]) {
+        const leg = ambientPath(path.at(-1),target);
+        if (!leg) return null;
+        path.push(...leg.slice(1));
+      }
+      if (!ambientPath(way[0],returnTo)) return null;
+      const exit = path.slice(entryIndex,-1).reverse();
+      PROPS.clawBusy = w;
+      const entry = { call: () => {
+        PROPS.clawEntry = null;
+        const trip = startAmbientTrip(w,path,trip => [game,...ambientSteps(exit),{call:()=>returnAmbientTrip(trip)}]);
+        trip.home = returnTo; trip.kind = 'claw'; PROPS.clawTrip = trip;
+      } };
+      PROPS.clawEntry = entry;
+      return [entry];
+    }
+    PROPS.clawBusy = w;
+    return [...there.map((to) => ({ to })), { to: [cu, cv] },game,
       ...way.slice().reverse().map((to) => ({ to })), { to: [8.0, 6.6] }];
   }
   function goDance(w) {
-    const i = PROPS.dance.findIndex((d) => !d || d.gone || d.removing);
+    let path;
+    const i = PROPS.dance.findIndex((d,slot) => (!d || d.gone || d.removing) &&
+      (L !== LAYOUTS[3] || (path = ambientPath([w.u,w.v], PROPS.jukeSpots[slot]))));
     if (i < 0) return false;
     const [u, v] = PROPS.jukeSpots[i];
+    const dance = { wait: Infinity, dance: true, start: (x) => { x.dancing = true; SB.faceEmote(x.em, x.emName, (PROPS.jukeFront[0] - u) - (PROPS.jukeFront[1] - v)); },
+      end: (x) => { x.dancing = false; if (PROPS.dance[i] === x) PROPS.dance[i] = null; } };
+    PROPS.dance[i] = w;
+    if (path) {
+      const trip = startAmbientTrip(w, path, trip => [dance, { call: () => returnAmbientTrip(trip) }]);
+      trip.kind = 'jukebox';
+      return true;
+    }
     // round the talk spot and the standee: the two east spots from the east, the others straight up
     const via = u > 12.5 ? [[11.9, 5.65], [12.92, 5.65]] : [[11.9, 5.65], [11.9, 4.85]];
-    PROPS.dance[i] = w;
     w.afterHang = w.plan;
     w.plan = [...via.map((to) => ({ to })), { to: [u, v] },
       // they dance for good (owner, 15 Nov 2026), until they wear a non-dance emote or the film starts (stepProps)
-      { wait: Infinity, dance: true, start: (x) => { x.dancing = true; SB.faceEmote(x.em, x.emName, (PROPS.jukeFront[0] - u) - (PROPS.jukeFront[1] - v)); },
-        end: (x) => { x.dancing = false; if (PROPS.dance[i] === x) PROPS.dance[i] = null; } },
+      dance,
       ...via.slice().reverse().map((to) => ({ to })), { call: (x) => { x.plan = x.afterHang || []; x.afterHang = null; } }];
     return true;
   }
@@ -4076,6 +4230,9 @@
   function stepProps(dt, now) {
     // claw machine header (its chase pieces come from the main art since Brief 96, from the props pack before)
     if (PROPS.clawOn) {
+      if ((PROPS.clawEntry && !PROPS.clawBusy?.plan.includes(PROPS.clawEntry)) || (PROPS.clawTrip && !ownsAmbientTrip(PROPS.clawTrip))) {
+        PROPS.clawBusy = null; PROPS.clawTrip = null; PROPS.clawEntry = null;
+      }
       const cb = PROPS.clawBusy;
       const playing = !!cb && !cb.gone && Math.hypot(cb.u - PROPS.clawSpot[0], cb.v - PROPS.clawSpot[1]) < 0.1;
       const winning = now < PROPS.clawWinT;
@@ -4090,7 +4247,7 @@
     let n = 0;
     PROPS.dance.forEach((d, i) => {
       if (!d) return;
-      if (d.gone || d.removing) { d.dancing = false; PROPS.dance[i] = null; return; }
+      if (d.gone || d.removing || (L === LAYOUTS[3] && (!ownsAmbientTrip(d.ambientTrip) || d.ambientTrip.kind !== 'jukebox'))) { d.dancing = false; PROPS.dance[i] = null; return; }
       if (!d.dancing) return;
       const [u, v] = PROPS.jukeSpots[i];
       if (Math.hypot(d.u - u, d.v - v) > 0.3) { d.dancing = false; PROPS.dance[i] = null; return; }   // (sent elsewhere meanwhile)
@@ -4904,21 +5061,34 @@ void main() {
   }
   function joinGroup(w, g) {
     const used = new Set(g.members.map((m) => m.ring));
-    w.ring = [0, 1, 2, 3].find((i) => !used.has(i)) ?? 0;
+    let path;
+    const ring = [0,1,2,3].find(i => !used.has(i) &&
+      (L !== LAYOUTS[3] || (path = ambientPath([w.u,w.v], slotOf(g,{ring:i})))));
+    if (ring === undefined) return false;
+    w.ring = ring;
+    w.afterHang = w.plan;
+    if (path) {
+      const trip = startAmbientTrip(w,path,groupWait);
+      trip.kind = 'group';
+    } else w.plan = [{ to: slotOf(g,w) }, ...groupWait({w})];
     g.members.push(w);
     w.group = g;
     w.arrived = false;
     w.leaveNow = false;
     w.hangT = 0;
     w.stayT = rand(9, 16);
-    w.plan = [{ to: slotOf(g, w) }, { call: () => { w.arrived = true; } }, { until: () => w.leaveNow }, { call: leaveGroup }];
+    return true;
+  }
+  function groupWait({w}) {
+    return [{ call: () => { w.arrived = true; } }, { until: () => w.leaveNow }, { call: leaveGroup }];
   }
   function leaveGroup(w) {
     const g = w.group;
     if (g) g.members = g.members.filter((m) => m !== w);
     w.group = null;
     w.arrived = false;
-    w.plan = w.afterHang || [];
+    if (w.ambientTrip?.kind === 'group' && ownsAmbientTrip(w.ambientTrip)) returnAmbientTrip(w.ambientTrip);
+    else w.plan = w.afterHang || [];
     w.afterHang = null;
   }
   // called from the walker's plan (outside before going in, in the lobby where they would head for the gate, in
@@ -4934,30 +5104,36 @@ void main() {
       const s = SPOTS[kind].find((s0) => !groups.some((x) => x.spot === s0));
       if (!s) return;
       g = { kind, spot: s, center: s.c, r: s.r, members: [], next: 1.2, last: null, janitor: false };
-      groups.push(g);
     }
-    w.afterHang = w.plan;
-    joinGroup(w, g);
+    if (joinGroup(w,g) && !groups.includes(g)) groups.push(g);
   }
   const hangOutside = (w) => hangOut(w, 'outside');
   const hangHall = (w) => hangOut(w, 'hall');
   function stepGroups(dt) {
     for (let i = groups.length - 1; i >= 0; i--) {
       const g = groups[i];
-      g.members = g.members.filter((m) => !m.gone && m.group === g);
+      g.members = g.members.filter(m => {
+        if (m.group !== g || m.gone) return false;
+        if (L !== LAYOUTS[3] || ownsAmbientTrip(m.ambientTrip)) return true;
+        m.group = null; m.arrived = false; m.afterHang = null;
+        return false;
+      });
       if (!g.members.length) { groups.splice(i, 1); continue; }
       const here = g.members.filter((m) => m.arrived && m.alpha > 0.6);
       // alone with something to say for a while: go and tell a janitor (one listener per janitor)
       const jt = g.kind === 'lobby' && !g.janitor && g.members.length === 1 && here.length === 1 && here[0].lines?.length
         && here[0].hangT > 7 ? janTarget() : null;
-      if (jt && !groups.some((x) => x.janitor && x.jan === jt)) {
+      const m = here[0];
+      const toJan = jt && !groups.some(x => x.janitor && x.jan === jt) &&
+        ambientPath([m.u,m.v],slotOf({...g,janitor:true,jan:jt},m));
+      if (toJan) {
         g.janitor = true;
         g.jan = jt;
         g.center = null;
         g.spot = null;   // the lobby spot is free again
-        const m = here[0];
         m.arrived = false;
-        m.plan = [{ to: slotOf(g, m) }, { call: () => { m.arrived = true; } }, { until: () => m.leaveNow }, { call: leaveGroup }];
+        if (L === LAYOUTS[3]) setAmbientPath(m.ambientTrip,toJan,groupWait);
+        else m.plan = [...ambientSteps(toJan.slice(1)), ...groupWait({w:m})];
       }
       // their janitor clocked off: the chat is over
       if (g.janitor && (!g.jan || g.jan.gone || g.jan.leaving)) for (const m of g.members) m.leaveNow = true;
@@ -5128,62 +5304,111 @@ void main() {
   const GAG_LEN = 30000;
   let gag = null;
   let gagNext = performance.now() + rand(300, 1200) * 1000;
+  let publicGuestRoute;
+  import('./concepts/cinema-mods/guest-routes.js').then(m => { publicGuestRoute = m.guestRoute; }).catch(err => console.error('[lobby guest routes]', err));
+  function ambientPath(from, to) {
+    return L === LAYOUTS[3] ? publicGuestRoute?.(from, to, { layout: 3 }) : [from, to];
+  }
+  const ambientSteps = points => points.map(to => ({ to }));
+  function ownsAmbientTrip(trip) { return trip && trip.w.ambientTrip === trip && trip.w.plan === trip.plan; }
+  function startAmbientTrip(w, path, action) {
+    let original = w.plan;
+    const home = w.group && ownsAmbientTrip(w.ambientTrip) ? w.ambientTrip.home : path[0];
+    if (w.group) {
+      w.group.members = w.group.members.filter(m => m !== w);
+      w.group = null; w.arrived = false; original = w.afterHang || []; w.afterHang = null;
+    }
+    const trip = { w, original, home };
+    setAmbientPath(trip, path, action);
+    w.ambientTrip = trip;
+    return trip;
+  }
+  function setAmbientPath(trip, path, action) {
+    const approach = ambientSteps(path.slice(1));
+    Object.assign(trip, { path, approach, phase: 'approach' });
+    trip.plan = [...approach, ...action(trip)];
+    trip.owned = new Set(trip.plan);
+    trip.w.plan = trip.plan;
+  }
+  function returnAmbientTrip(trip) {
+    const { w, path, original } = trip;
+    if (trip.phase === 'return') return;
+    if (!ownsAmbientTrip(trip) || w.gone || w.removing) {
+      if (w.ambientTrip === trip) w.ambientTrip = null;
+      return;
+    }
+    const first = w.plan.findIndex(s => trip.owned.has(s));
+    const priority = first < 0 ? w.plan.slice() : w.plan.slice(0, first);
+    const home = ambientPath([w.u, w.v], trip.home);
+    const next = trip.approach.indexOf(w.plan[first]);
+    const visited = next < 0 ? path : path.slice(0, next + 1);
+    const back = home ? home.slice(1) : visited.slice().reverse();
+    trip.phase = 'return';
+    w.plan = trip.plan = [...priority, ...ambientSteps(back), { call: () => { w.ambientTrip = null; w.plan = original; } }];
+  }
   function gagFree(w) {
-    return !!w && !w.gone && !w.removing && !w.entering && !w.ride && !w.inQueue && !w.snack && !w.staff && !w.jan
+    return !!w && (!ownsAmbientTrip(w.ambientTrip) || (w.ambientTrip.kind === 'group' && w.arrived)) && !w.el.dataset.eventWalk && !w.el.dataset.infinityWalk && !w.quitting && !w.waitingBus && !w.reFreeze && !PROPS.dance?.includes(w)
+      && !w.gone && !w.removing && !w.entering && !w.ride && !w.inQueue && !w.snack && !w.staff && !w.jan
       && !w.doorBound && !w.hurry && !w.stall && wcBusy !== w && wcWait !== w && benchBusy !== w && PROPS.clawBusy !== w && !w.dancing
       && !gateLine.includes(w) && !windows.some((x) => x.cur === w) && w.alpha > 0.9 && w.v < 8.9 && !w.fighting;
   }
   function startGag(a, b) {
     const R = RESTROOM;
-    if (gag || !R || a === b || !gagFree(a) || !gagFree(b)) return false;
+    if (gag || fight || !R || a === b || !gagFree(a) || !gagFree(b)) return false;
+    const paths = [a, b].map(w => ambientPath([w.u, w.v], R.outside));
+    if (paths.some(path => !path)) return false;
     R.stalls.forEach((s) => { if (s.busy?.gone) s.busy = null; });
     const stall = R.stalls.find((s) => !s.busy);
     if (!stall) return false;
-    const now = performance.now();
-    const g = gag = { a, b, stall, inside: 0, t0: now, heartsFrom: 0, out: false };
+    const g = gag = { a, b, stall, arrived: 0, inside: 0, heartsFrom: 0, out: false };
     stall.busy = a;
     setWC(restroomFull());
-    const go = (pts) => pts.map((to) => ({ to }));
-    const plan = (w, first) => {
-      // whatever they were doing comes after (out of a talk group: they leave it)
-      let rest = w.plan;
-      if (w.group) {
-        w.group.members = w.group.members.filter((m) => m !== w);
-        w.group = null;
-        w.arrived = false;
-        rest = w.afterHang || [];
-        w.afterHang = null;
-      }
+    g.trips = [a,b].map((w, i) => startAmbientTrip(w, paths[i], trip => {
+      const first = i === 0;
       w.stall = stall;
-      w.plan = [
-        ...(first ? [] : [{ wait: 0.7 }]),
-        ...go([R.outside]), ...(first ? [{ call: () => playDoor('wc') }] : []), ...go([R.door, R.inside]),
-        ...go([...stall.route, stall.spot]),
+      return [
+        { call: () => {
+          if (++g.arrived < 2) return;
+          if (!director.spot) { startFollow(a); if (director.follow) director.follow.endAt = performance.now() + GAG_LEN; }
+          director.next = performance.now() + GAG_LEN + director.every * 500;
+        } },
+        { until: () => g.arrived === 2 }, ...(first ? [] : [{ wait: 0.7 }]),
+        { call: () => { trip.phase = 'restroom'; if (first) playDoor('wc'); } }, ...ambientSteps([R.door, R.inside]),
+        ...ambientSteps([...stall.route, stall.spot]),
         ...stallInSteps(w, stall),
         { call: () => { g.inside++; } },
         // the hearts (stepGag), then out: the first one, a moment later the second
-        { until: () => g.out || performance.now() - g.t0 > GAG_LEN - 6000 },
+        { until: () => g.out },
         { wait: first ? 0.01 : 1.2 },
         ...stallOutSteps(w, stall),
         { call: () => floatAt(w, first ? '😳' : '😌', '#ffb3d9') },
-        ...go([...[...stall.route].reverse()]),
+        ...ambientSteps([...stall.route].reverse()),
         { to: R.inside }, ...(first ? [] : [{ call: () => playDoor('wc') }]),
-        ...go([R.door, R.outside]),
-        { call: () => { if (w.stall === stall) w.stall = null; if (!first || g.b.gone) endGag(g); } },
-        ...rest,
+        ...ambientSteps([R.door, R.outside]),
+        { call: () => { if (w.stall === stall) w.stall = null; returnAmbientTrip(trip); finishGag(g); } },
       ];
-    };
-    plan(a, true);
-    plan(b, false);
-    if (!director.spot) { startFollow(a); director.follow.endAt = now + GAG_LEN; }
-    director.next = now + GAG_LEN + director.every * 1000 * 0.5;
+    }));
     return true;
   }
-  function endGag(g = gag) {
+  function finishGag(g) {
     if (!g || gag !== g) return;
+    if (g.trips.some(trip => ownsAmbientTrip(trip) && trip.phase !== 'return')) return;
     if (g.stall.busy === g.a || g.stall.busy === g.b) g.stall.busy = null;
     gag = null;
     setWC(restroomFull());
+  }
+  function endGag(g = gag) {
+    if (!g || gag !== g) return;
+    g.out = true;
+    for (const trip of g.trips) {
+      const { w } = trip;
+      // A guest still inside must leave via the actual stall and restroom
+      // doors. A guest still approaching can turn around immediately.
+      if (ownsAmbientTrip(trip) && trip.phase === 'restroom' && !w.gone && !w.removing) continue;
+      if (w.stall === g.stall) w.stall = null;
+      returnAmbientTrip(trip);
+    }
+    finishGag(g);
   }
   const HEARTS = ['❤️', '💕', '💖', '💗', '💘'];
   function heartPuff(stall) {
@@ -5215,9 +5440,9 @@ void main() {
       }
       return;
     }
-    if (now - g.t0 > GAG_LEN + 30000 || g.a.gone) { endGag(g); return; }   // (safety: someone left mid-way)
-    const bothIn = g.inside >= 2 || (g.inside >= 1 && (g.b.gone || g.b.removing));
-    if (bothIn && !g.out) {
+    if (g.heartsFrom && now - g.heartsFrom > GAG_LEN + 30000 ||
+        g.trips.some(trip => trip.w.gone || trip.w.removing || trip.w.reFreeze || (!ownsAmbientTrip(trip) && trip.phase !== 'return'))) { endGag(g); return; }
+    if (g.inside === 2 && !g.out) {
       g.heartsFrom ||= now;
       if (now - g.heartsFrom > 9000) g.out = true;
       else if (Math.random() < 0.7) heartPuff(g.stall);
@@ -5254,21 +5479,19 @@ void main() {
     return ok && !w.npc && w.key !== '#turtle' && w.nick !== 'Aristortle' && w.v > 2.9 && w.v < 8.6 && !w.group?.janitor && w !== lobbyLife.turtle;
   }
   function startFight(a, b) {
-    if (fight || gag || !a || !b || a === b) return false;
-    const now = performance.now();
-    const f = fight = { a, b, at: 0, t0: now, done: false, cloud: null };
+    if (fight || gag || !a || !b || a === b || !fightFree(a) || !fightFree(b)) return false;
     const spots = [[FIGHT_AT[0] - 0.32, FIGHT_AT[1] + 0.12], [FIGHT_AT[0] + 0.32, FIGHT_AT[1] - 0.12]];
-    [a, b].forEach((w, i) => {
-      let rest = w.plan;
-      if (w.group) { w.group.members = w.group.members.filter((m) => m !== w); w.group = null; w.arrived = false; rest = w.afterHang || []; w.afterHang = null; }
+    const paths = [a,b].map((w,i) => ambientPath([w.u,w.v], spots[i]));
+    if (paths.some(path => !path)) return false;
+    const now = performance.now();
+    const f = fight = { a, b, at: 0, done: false, cloud: null };
+    f.trips = [a,b].map((w,i) => startAmbientTrip(w, paths[i], trip => {
       w.fighting = true;
       const other = i ? a : b;
-      w.plan = [{ to: spots[i] }, { call: () => { f.at++; SB.faceEmote(w.em, w.emName, (other.u - w.u) - (other.v - w.v)); } },
-        { until: () => f.done || w.gone || other.gone }, { call: () => { w.fighting = false; } },
-        { to: [w.u, w.v] },   // back to where they were (their plan's next point may lie behind a counter from here)
-        ...rest];
       w.passT = 30;   // nobody holds them up on the way
-    });
+      return [{ call: () => { f.at++; trip.phase = 'fight'; SB.faceEmote(w.em, w.emName, (other.u - w.u) - (other.v - w.v)); } },
+        { until: () => f.done }];
+    }));
     startFollow(a);   // the director always takes the fight
     director.follow.endAt = now + 30000;
     director.next = now + 30000 + director.every * 1000 * 0.5;
@@ -5278,7 +5501,11 @@ void main() {
     if (fight !== f) return;
     f.done = true;
     f.cloud?.remove();
-    for (const w of [f.a, f.b]) { w.fighting = false; w.passT = 0; w.el.style.visibility = ''; w.el.classList.remove('ko'); }
+    for (const trip of f.trips) {
+      const { w } = trip;
+      w.fighting = false; w.passT = 0; w.el.style.visibility = ''; w.el.classList.remove('ko');
+      returnAmbientTrip(trip);
+    }
     fight = null;
   }
   function stepFight() {
@@ -5292,8 +5519,11 @@ void main() {
       if (y.length && pe.length) startFight(y[Math.floor(Math.random() * y.length)], pe[Math.floor(Math.random() * pe.length)]);
       return;
     }
-    if (f.a.gone || f.b.gone || now - f.t0 > 40000) { endFight(f); return; }
-    if (f.at < 2) return;
+    if (f.trips.some(trip => !ownsAmbientTrip(trip) || trip.w.gone || trip.w.removing || trip.w.reFreeze) || (f.fightAt && now - f.fightAt > 40000)) { endFight(f); return; }
+    if (f.at < 2) {
+      if (director.follow?.w === f.a) director.follow.endAt = Math.max(director.follow.endAt, now + 14000);
+      return;
+    }
     // The Sims way (owner, 12 Nov 2026): first they square off and trade insults (angry faces, a shove), then one big
     // dust cloud swallows both and rolls about on the spot while fists, feet, stars and swear symbols fly out of it;
     // bystanders turn to watch and some cheer. When it clears, the winner flexes, the loser lies on the floor seeing
@@ -5388,12 +5618,12 @@ void main() {
     start(any) {
       const free = [...walkers.values()].filter(fightFree);
       let a = free.find((w) => isYee(w.emName)), b = free.find((w) => isPepe(w.emName));
-      if (any && !(a && b)) {
-        [a, b] = free.slice(0, 2);
-        if (a && b) { setEmote(a, 'YEE'); setEmote(b, 'PEPE'); }
-      }
+      const dress = any && !(a && b);
+      if (dress) [a, b] = free.slice(0, 2);
       if (!(a && b)) return 'no free Yee and Pepe in the lobby';
-      return startFight(a, b) ? `${a.nick} vs ${b.nick}` : 'busy';
+      if (!startFight(a, b)) return 'busy';
+      if (dress) { setEmote(a, 'YEE'); setEmote(b, 'PEPE'); }
+      return `${a.nick} vs ${b.nick}`;
     },
     get state() { return fight; },
     free() { const ws = [...walkers.values()]; return { walkers: ws.length, gagFree: ws.filter(gagFree).length, fightFree: ws.filter(fightFree).length,
@@ -5681,6 +5911,8 @@ void main() {
       }
     } else if (director.spot) {
       tx = director.spot.x; ty = director.spot.y; tz = director.spot.z;   // "Zoom to the poll"
+    } else if (lobbyEvents?.camera) {
+      ({ x: tx, y: ty, z: tz } = lobbyEvents.camera);
     }
     // the view never leaves the stage (with fit=cover only the cropped middle is on screen: its half size)
     const fit = (c, half, size) => clamp(c, half, size - half);
@@ -5711,6 +5943,7 @@ void main() {
   // keys work while the page has focus (OBS: right-click the source -> Interact)
   addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
+    if (['w','escape','f','r','d','t'].includes(k)) lobbyEvents?.interrupt('keyboard ' + k);
     if (k === 'f') director.wantNext = true;
     else if (k === 'r') followSomeone();
     else if (k === 'w' || k === 'escape') { director.wantNext = false; endFollow(); }
@@ -5773,6 +6006,7 @@ void main() {
     }
   }
   function control(c) {
+    if (['follow','random','next','wide','pollzoom','peek','gag','fly','reeducate','movie','phase','zoom'].includes(c.cmd)) lobbyEvents?.interrupt('panel ' + c.cmd);
     const now = performance.now();
     const key = typeof c.nick === 'string' ? c.nick.trim().toLowerCase() : '';
     switch (c.cmd) {
@@ -5822,6 +6056,7 @@ void main() {
   // Clear lobby (panel, or the room's clear): every chatter goes at once, every line, slot and spot is free again.
   // Jannies (mods) stay on duty: they are this screen's own, not people in the room.
   function resetLobby() {
+    lobbyEvents?.interrupt('room reset');
     director.wantNext = false;
     endFollow();
     for (const w of [...figures]) if (!w.jan) removeWalker(w);
@@ -5905,7 +6140,7 @@ void main() {
         if (!goDance(w)) w.plan.unshift({ wait: stay });
       } else if (r < 0.42 && PROPS.clawOn && !PROPS.clawBusy) {
         inLobby();
-        w.plan = [...clawTurn(w), { wait: stay * 0.5 }, ...onward];
+        w.plan = [...(clawTurn(w,[w.u,w.v]) || []), { wait: stay * 0.5 }, ...onward];
       } else {
         // around one of the talk spots (not on it: the groups stand there), a while, then maybe a talk on the way
         const s = SPOTS.lobby[Math.floor(k * SPOTS.lobby.length)];
@@ -5992,6 +6227,7 @@ void main() {
     const dt = clamp((t - last) / 1000, 0, 0.1);
     last = t;
     lastFrame = performance.now();
+    lobbyEvents?.step(t);
     stepCamera(dt);
     serveQueue(dt);
     serveSnacks(dt);
@@ -7168,18 +7404,27 @@ void main() {
     [2.5, 1.6], [3.15, 1.65], [3.75, 1.55], [2.25, 2.2], [2.95, 2.25]].map((c) => ({ c, by: null }));
   function pollWatchSteps(w) {
     if (!pollScreen.open || w.watched || w.hurry || w.removing || Math.random() > 0.75) return [];
-    for (const s of WATCH_SPOTS) if (s.by && (s.by.gone || s.by.watchSpot !== s)) s.by = null;
+    for (const s of WATCH_SPOTS) if (s.by && (s.by.gone || s.by.removing || s.by.watchSpot !== s ||
+        (s.entry && !s.by.plan.includes(s.entry)) || (s.trip && !ownsAmbientTrip(s.trip)))) {
+      if (s.by.watchSpot === s) s.by.watchSpot = null;
+      s.by = null; s.trip = null; s.entry = null;
+    }
     const free = WATCH_SPOTS.filter((s) => !s.by);
     if (!free.length) return [];
     const s = free[Math.floor(Math.random() * free.length)];
     const [u, v] = [s.c[0] + rand(-0.12, 0.12), s.c[1] + rand(-0.1, 0.1)];
+    const approach = [u,v+.25], path = L === LAYOUTS[3] && ambientPath([w.u,w.v], approach);
+    if (L === LAYOUTS[3] && (!path || ambientPath(approach,[u,v])?.length !== 2)) return [];
     s.by = w;
     w.watched = true;
     w.watchSpot = s;
-    const done = (x) => { if (s.by === x) s.by = null; x.watchSpot = null; };
-    return [{ to: [u, v + 0.25] }, { to: [u, v], slow: true },   // the last steps towards the screen: facing it
+    const done = (x) => { if (s.by === x) { s.by = null; s.trip = null; } x.watchSpot = null; };
+    const watch = [{ to: [u, v], slow: true },   // the last steps towards the screen: facing it
       { call: (x) => { x.watchUntil = performance.now() + rand(6000, 14000); } },
       { until: () => !pollScreen.open || w.removing || performance.now() > w.watchUntil }, { call: done }];
+    if (!path) return [{to:approach},...watch];
+    s.entry = {call:() => { s.entry = null; s.trip = startAmbientTrip(w,path,trip => [...watch,{call:()=>returnAmbientTrip(trip)}]); }};
+    return [s.entry];
   }
   // lit = the projector is on and the picture shows; it comes on once the cloth is down, and goes off first on the way up
   function setProjector(on) {
@@ -7545,11 +7790,48 @@ void main() {
       ride: !!w.ride, alpha: w.alpha ?? 1, status: w.staff ? 'staff' : statusOf(w),
       em: w.emName, emW: Number(w.em?.dataset.w) || 0, emH: parseFloat(w.em?.style.height) || 0,
       flip: w.em?.dataset.flip === 'true', rainbow: !!w.nm?.classList.contains('rbt') })),
-    wide: () => { director.wantNext = false; director.spot = null; endFollow(); },
+    wide: () => { lobbyEvents?.interrupt('flight or wide shot'); director.wantNext = false; director.spot = null; endFollow(); },
     camera: () => ({ zoom: director.zoom, spot: director.spot && { ...director.spot } }),   // QA: what the camera aims at
   };
+  {
+    // A named preview runs once. The regular room runs the automatic lineup unless its timer is disabled.
+    const timed = q.get('events') !== '0' && (!q.has('event') || q.get('events') === '1');
+    Promise.all([
+      import('./concepts/cinema-mods/lobby-events.js'),
+      import('./concepts/cinema-mods/incidents/arcade.js'),
+      import('./concepts/cinema-mods/incidents/paper-stage.js'),
+      import('./concepts/cinema-mods/incidents/sidewalk.js')
+    ]).then(([{ createLobbyEvents }, { arcade }, { paperStage }, { sidewalk }]) => {
+      const incidents = {
+        'contact-printer': arcade['contact-printer'], 'horizon-drive': sidewalk['horizon-drive'],
+        'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
+      };
+      lobbyEvents = createLobbyEvents({
+        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event'), timed,
+        blocked: () => !lobbyReady ? 'room loading' : director.follow ? 'director follow' : director.spot ? 'director spot' :
+          director.wantNext ? 'director next' : gag ? 'restroom gag' : fight ? 'fight' : pollScreen.open ? 'poll open' : null,
+        anchors: () => ({
+          sayRemark,
+          layout: L===LAYOUTS[3] ? 3 : L===LAYOUTS[2] ? 2 : 1, moody: LOOK==='gamer',
+          canWalk: w => !ownsAmbientTrip(w.ambientTrip) && wcBusy!==w && wcWait!==w && benchBusy!==w && PROPS.clawBusy!==w &&
+            !PROPS.dance?.includes(w) && !gateLine.includes(w) && !windows.some(win=>win.cur===w),
+          juke: PROPS.on && PROPS.jukeFront,
+          counter: L.snack[Math.floor(L.snack.length / 2)]?.at,
+          claw: PROPS.clawOn && PROPS.clawSpot,
+          clawBusy: !!PROPS.clawBusy,
+          ticket: L.windows[0]?.at,
+          infinityDoor: infinityDoor(),
+          marqueeText: MARQ.custom[0] === '-' ? '' : MARQ.custom[0] || MARQ.auto[0],
+          marqueeQuad: MARQ.quad,
+          marqueeBands: MARQ.bands,
+        }),
+      });
+      window.cinemaEvents = { play: lobbyEvents.play, stop: () => lobbyEvents.interrupt('manual stop'), status: lobbyEvents.status };
+    }).catch(error => console.error('[lobby events]', error));
+  }
 })();
 </script>
 <script src="shared/transition.js"></script>
+<script src="shared/scene-filter-menu.js" data-room="lobby"></script>
 </body>
 </html>

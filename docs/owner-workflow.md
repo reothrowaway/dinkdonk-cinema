@@ -37,6 +37,25 @@ listed in [lobby.md](lobby.md) and [auditorium.md](auditorium.md).
 
 Keep "hardware acceleration" on for browser sources in OBS. The lobby uses WebGL and video loops.
 
+### Cinema filters
+
+The Lobby and Auditorium cards in the control panel each have a filter dropdown. Pick a look to hold it, or pick
+Off for the original image. Turn on **Director chooses filters** to rotate the looks again. Each room starts with
+rotation enabled at 30 seconds per look. The interval is adjustable from 5 to 600 seconds.
+
+For the same controls directly in a scene, use OBS **Interact**, then press **Shift+F**. Close the menu with Escape.
+You can also open a separate browser view of that room with `filtercontrols=1` in its URL. The controls change the
+OBS filter on the room's browser source. The auditorium keeps the film cutout aligned.
+
+### Cinema events
+
+The lobby's timers choose Black Hole Matinee, Mirrorball Ballroom, Contact Printer (the photo booth), and Horizon
+Drive. Sometimes the Black Hole opens with a laser scan. The auditorium's Laser Choir can perform during seating
+and lights-up. Each waits for the real guests it needs. To disable a scene's timers, add `events=0` to its URL.
+
+For a single lobby performance, add `event=infinity-foyer` to send a ticket holder to Screen 3 or `event=glyph-cascade`
+to have eight guests spell **PEPE WINS**. Add `events=1` alongside a named preview to resume rotation after it.
+
 ### Who shows up
 
 By default only chatters who tag the streamer's DGG name walk in. `everyone=1` lets all chatters in. When the owner

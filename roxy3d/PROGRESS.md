@@ -3426,3 +3426,12 @@ restart keeps a sleeping room asleep. `asleep` was added to `/ctl/room-state` an
 Checked on 18781 with real DGG chat and `IDLE_RESET_MS=60000`: the room filled to 15 / 17 with no screen, cleared at
 60 s and stayed empty, refilled once a lobby screen opened (18 / 23), cleared again 60 s after it closed, and stayed
 asleep across a restart. `npm test` in web/: 5 of 5 pass.
+
+
+### 27 Nov 2026 – Live events and per-room cinema filters
+
+Released the five automatic events across the two live rooms. The lobby uses Black Hole Matinee (including the Laser Topography opening), Mirrorball Ballroom, Contact Printer and Horizon Drive. Laser Choir runs in the auditorium during seating and lights-up. Infinity Foyer and the eight-guest PEPE WINS Glyph Cascade have named lobby previews. The live lobby includes its checked walking paths and the regular chat bubbles for the Screen 3 and Dear Leader remarks. Diagnostics now record the stage, time and cause when an event stops.
+
+The lobby and auditorium have independent 13-preset filter dropdowns plus Off. Picking a look holds it. Auto is on by default and shuffles all thirteen at a 30-second interval, adjustable from 5 to 600 seconds. Use the live control panel or open the current room's controls with Shift+F in OBS Interact. The bridge changes the native OBS shader on matching cinema browser sources. The auditorium retains the keyed film aperture. The zip includes the eight configured room looks, the full shader, and the guide for existing OBS collections. Hosted setup and the direct and panel-relay OBS connection paths support the director.
+
+The portable OBS test exercised all thirteen manual choices, independent rotation and Off. Unrelated filters remained enabled. All 518,400 alpha samples, including 24,475 fully transparent film pixels, matched with Curved CRT on and off. Manual selections, auto and interval changes passed on the local scene pages and the hosted build. The release ZIP used the previous distribution's sanitized OBS templates and bundled relay. All 16,025 files passed archive extraction and byte verification. A fresh extracted room registered 135 seats and displayed 27 seated real guests, passed both room menus and logged no JavaScript exceptions. The hosted service reported healthy and all 16,029 deployed files matched the release build by SHA-256. Local QA evidence: roxy3d/qa-night/release-27nov/ and roxy3d/qa-night/filter-director-27nov/. The first-zoom and auditorium-fade tuning remain separate follow-up work.

@@ -114,6 +114,11 @@
   input[type=number] { width: 90px; }
   label { color: var(--dim); }
   label > input, label > select { margin-left: 6px; }
+  .filter-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 0; margin: 0; border: 0; min-width: 0; }
+  .filter-controls label { display: inline-flex; align-items: center; gap: 6px; }
+  .filter-controls input, .filter-controls select { margin: 0; }
+  .filter-controls input[type=checkbox] { min-height: 0; }
+  .filter-controls input[type=number] { width: 72px; }
   #zoomv { color: var(--text); font-variant-numeric: tabular-nums; }
   kbd { padding: 0 5px; border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 4px; background: var(--btn); color: var(--soft); font-size: 12px; }
 
@@ -320,6 +325,15 @@
                 title="Needs Tampermonkey or Violentmonkey in your browser. Then build your poll on dinkdonk.mov as usual: the movies show up on your lobby's poll screen as you add them">Install your poll script</a>
             </div>
           </div>
+          <div class="grp" data-filter-room="lobby">
+            <div class="grp-l">Cinema filters</div>
+            <fieldset class="filter-controls" aria-label="Lobby cinema filters" disabled>
+              <label>Manual look <select data-filter-choice><option value="" disabled>Choose a look…</option></select></label>
+              <label><input type="checkbox" data-filter-auto> Auto</label>
+              <label>Interval (seconds) <input type="number" min="5" max="600" step="1" data-filter-seconds></label>
+            </fieldset>
+            <div class="state" role="status">Loading filter settings…</div>
+          </div>
           <!-- queue 90 (17 Nov 2026): the lobby's look, a scene setting ('look', shared/settings.js); the screens reload their art -->
           <div class="grp" id="lookgrp" hidden>
             <div class="grp-l">Lobby look</div>
@@ -338,6 +352,15 @@
       <section class="card scene-card" id="preshow" hidden>
         <div class="card-h"><h2>Auditorium show</h2><button id="phaseauto" class="tog">Auto: on</button></div>
         <div class="grps">
+          <div class="grp" data-filter-room="auditorium">
+            <div class="grp-l">Cinema filters</div>
+            <fieldset class="filter-controls" aria-label="Auditorium cinema filters" disabled>
+              <label>Manual look <select data-filter-choice><option value="" disabled>Choose a look…</option></select></label>
+              <label><input type="checkbox" data-filter-auto> Auto</label>
+              <label>Interval (seconds) <input type="number" min="5" max="600" step="1" data-filter-seconds></label>
+            </fieldset>
+            <div class="state" role="status">Loading filter settings…</div>
+          </div>
           <div class="grp">
             <div class="grp-l">Before the film</div>
             <div class="btns">
@@ -630,12 +653,70 @@
   // ---------- scene settings (shared/settings.js: the server's list, its remembered values; the screens apply them) ----------
   let setSchema = null;
   let setValues = { lobby: {}, auditorium: {} };
+  let settingsRead = 0;
+  let settingsUnavailable = false;
+  const filterCards = [];
   let setBuiltFor = '';
   let setScreen = null;   // the shown screen's { settings, urlSettings }
   const setRows = new Map();   // key -> { lab, input, undo, note, def }
   const fmt = (v) => (typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v));
   const optLabel = (def, v) => (def.kind === 'select' ? (def.options.find((o) => String(o[0]) === String(v))?.[1] ?? fmt(v)) : fmt(v));
   const sendSetting = (key, value) => Promise.resolve(send({ cmd: 'setting', key, value })).then(refreshSettings);
+  for (const group of document.querySelectorAll('[data-filter-room]')) {
+    const page = group.dataset.filterRoom;
+    const field = group.querySelector('fieldset'), choice = group.querySelector('[data-filter-choice]');
+    const auto = group.querySelector('[data-filter-auto]'), seconds = group.querySelector('[data-filter-seconds]');
+    const note = group.querySelector('[role=status]');
+    let busy = false, error = '';
+    function render() {
+      const defs = setSchema?.[page] || [];
+      const look = defs.find(d => d.key === 'cinemaFilter'), director = defs.find(d => d.key === 'filterDirector');
+      const interval = defs.find(d => d.key === 'filterSeconds');
+      field.disabled = busy || !look || !director || !interval || (page === 'auditorium' && controlVersion < 2);
+      if (!look || !director || !interval) {
+        note.textContent = error || (settingsUnavailable || setSchema
+          ? 'Cinema filters are unavailable. Check the connection and server version.' : 'Loading filter settings…');
+        return;
+      }
+      if (choice.options.length === 1) {
+        for (const [value, name] of look.options) choice.add(new Option(name, value));
+      }
+      if (busy) { note.textContent = 'Saving…'; return; }
+      const values = setValues[page] || {};
+      auto.checked = values.filterDirector ?? director.def;
+      // In Auto, every named option (even the previous manual choice) fires a change.
+      choice.value = auto.checked ? '' : values.cinemaFilter ?? look.def;
+      if (document.activeElement !== seconds) seconds.value = values.filterSeconds ?? interval.def;
+      note.textContent = error || (auto.checked ? 'Choosing a manual look turns Auto off.' : '');
+    }
+    async function save(key, value) {
+      if (field.disabled || busy) return;
+      busy = true; error = ''; render();
+      try {
+        const res = await fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page, cmd: 'setting', key, value }), signal: AbortSignal.timeout(3500) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const reply = await res.json();
+        if (typeof reply.screens !== 'number') throw new Error('Unexpected server reply');
+        // The shared settings store writes the chosen look and manual mode together.
+        ++settingsRead;
+        setValues[page] = { ...setValues[page], [key]: value, ...(key === 'cinemaFilter' ? { filterDirector: false } : {}) };
+      } catch (e) {
+        error = 'Could not confirm this change (' + e.message + '). Check the connection and try again.';
+      } finally {
+        busy = false; render();
+        await refreshSettings();
+      }
+    }
+    choice.onchange = () => save('cinemaFilter', choice.value);
+    auto.onchange = () => save('filterDirector', auto.checked);
+    seconds.onchange = () => {
+      if (seconds.value === '' || !seconds.checkValidity()) { seconds.reportValidity(); return; }
+      return save('filterSeconds', seconds.valueAsNumber);
+    };
+    seconds.onblur = () => { if (!seconds.checkValidity() || seconds.value === '') seconds.value = setValues[page]?.filterSeconds ?? 30; };
+    filterCards.push(render);
+  }
   $('setreset').onclick = () => { if (confirm('Every setting of this scene goes back to the screen links?')) Promise.resolve(send({ cmd: 'settingsReset' })).then(refreshSettings); };
   function buildSettings(page) {
     const box = $('sets');
@@ -690,13 +771,23 @@
     }
   }
   async function refreshSettings() {
+    const request = ++settingsRead;
     try {
       const res = await fetch('/ctl/settings', { cache: 'no-store', signal: AbortSignal.timeout(3500) });
       if (!res.ok) throw new Error();
       const j = await res.json();
+      if (request !== settingsRead) return;
+      settingsUnavailable = false;
       setSchema = j.schema;
       setValues = j.values;
-    } catch { $('setcard').hidden = true; $('lookgrp').hidden = true; return; }   // an older server: no scene settings
+    } catch {
+      if (request !== settingsRead) return;
+      settingsUnavailable = true;
+      setSchema = null;
+      for (const render of filterCards) render();
+      $('setcard').hidden = true; $('lookgrp').hidden = true; return;
+    }
+    for (const render of filterCards) render();
     $('setcard').hidden = false;
     if (setBuiltFor !== $('page').value) buildSettings($('page').value); else showSettings();
     showLook();
@@ -763,6 +854,7 @@
     let data;
     try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
     controlVersion = data.controlVersion || 0;
+    for (const render of filterCards) render();
     const page = $('page').value;
     const all = data.screens || [];
     const screens = all.filter((s) => (s.page || 'lobby') === page);

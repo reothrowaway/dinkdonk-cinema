@@ -369,6 +369,8 @@ bridgeWss.on('connection', (ws, req, key, role) => {
     b.host = ws;
     b.ready = false;
     tellHost();
+    // A network event keeps the filter clock responsive when Chromium throttles the OBS panel's background timers.
+    const lookClock = setInterval(() => sendIfOpen(ws, '{"lookTick":true}'), 2000);
     guardSocket(ws, 'bridge host', (data, isBinary) => {
       const msg = bridgeMessage(data, isBinary);
       if (!msg) return;
@@ -395,6 +397,7 @@ bridgeWss.on('connection', (ws, req, key, role) => {
       for (const p of b.pages) sendIfOpen(p, JSON.stringify({ obs: b.ready, keyed: b.keyed }));
     });
     ws.on('close', () => {
+      clearInterval(lookClock);
       if (b.host !== ws) return;
       b.host = null;
       b.ready = false;
@@ -565,7 +568,7 @@ async function adminRoute(req, res, pathname) {
 }
 
 // ---------- static files ----------
-const SHIM_TAG = '<script src="/web/shim.js"></script>';
+const SHIM_TAG = '<script src="/shared/obs-look-director.js"></script><script src="/web/room-looks.js"></script><script src="/web/shim.js"></script>';
 const htmlCache = new Map();   // file -> { mtime, body }
 function sendStatic(req, res, file, rel) {
   fs.stat(file, (error, st) => {

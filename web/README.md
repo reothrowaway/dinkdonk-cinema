@@ -9,7 +9,7 @@ Live at `https://2-29-56-208.sslip.io/` since 5 Nov 2026 (Hetzner server `dinkdo
 
 1. In OBS: **Tools › WebSocket Server Settings** › tick **Enable WebSocket server**. Click **Show Connect Info**
    for the password.
-2. Optional, for the film on the cinema screen: install
+2. For the film on the cinema screen and optional cinema filters, install
    [obs-shaderfilter](https://github.com/exeldro/obs-shaderfilter/releases) and restart OBS.
 3. Open the invite link in Chrome/Edge **on the PC that runs OBS**. Enter the OBS password, click **Connect**, and
    allow "local network access" if the browser asks.
@@ -18,11 +18,15 @@ Live at `https://2-29-56-208.sslip.io/` since 5 Nov 2026 (Hetzner server `dinkdo
    sized to your canvas.
 5. Every stream: switch to those scenes. The **control panel** link (on the setup page, or Alt+C on the lobby or auditorium page in a browser) runs the camera, the
    automatic director and the auditorium phases (seating › lights down › film › lights up). It works on a phone too.
-6. **OBS 33 and newer:** keep the control panel open in the browser on the OBS PC during the film. Its top line
+6. **OBS 33 and newer:** keep the control panel open in the browser on the OBS PC while using cinema filters or playing the film. Its top line
    should say "OBS connected · server connected". (Newer OBS doesn't let websites inside OBS reach OBS itself, so the
    panel passes the screen position on. OBS 32 and older don't need this.)
 
 Without the WebSocket server or the plugin everything still runs; the cinema screen just stays green.
+
+The lobby and auditorium rotate through 13 cinema filters independently every 30 seconds by default. Choose a room in the control panel to select a filter, show its original picture, or set the automatic interval from 5 to 600 seconds. The lobby setting covers Normal and Moody. Setup can start both rooms on the original picture. [OBS shader and scene settings](../concepts/vaporwave/obs-looks.html)
+
+To open filter controls inside a scene, press **Shift+F** in its OBS **Interact** window or add `filtercontrols=1` to an operator view. The lobby timers choose Photo Booth, Horizon Drive, Black Hole, Laser Topography and Mirrorball. Infinity Foyer and Glyph Cascade are named lobby previews (`event=infinity-foyer` and `event=glyph-cascade`). The auditorium schedules Laser Choir during eligible preshows.
 
 ## How it works
 

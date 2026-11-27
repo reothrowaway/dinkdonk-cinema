@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinema looks for OBS · DinkDonk Cinema</title>
+<style>
+  :root { color-scheme: light dark; font: 1rem/1.55 Inter, system-ui, sans-serif; }
+  body { max-width: 47rem; margin: 2rem auto; padding: 0 1rem; }
+  h1, h2 { line-height: 1.2; }
+  h2 { margin-top: 2rem; }
+  li + li { margin-top: .5rem; }
+  table { border-collapse: collapse; }
+  td, th { text-align: left; padding: .35rem .85rem .35rem 0; border-bottom: 1px solid GrayText; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cinema looks for OBS</h1>
+  <p>The lobby and auditorium each change filters every 30 seconds by default. Choose the room in the control panel to select a filter, show the original picture, or adjust automatic changes from 5 to 600 seconds. A manual selection holds until you turn automatic changes back on. Normal and Moody share the lobby setting.</p>
+  <h2>Packaged OBS scenes</h2>
+  <p>To use the filter controls inside a scene, open the browser source’s <strong>Interact</strong> window in OBS and press <strong>Shift+F</strong>. For a dedicated operator view, add <code>filtercontrols=1</code> to the scene URL.</p>
+  <p>Install <a href="https://github.com/exeldro/obs-shaderfilter/releases">obs-shaderfilter</a>, restart OBS and run <strong>START.bat</strong>. The included browser sources carry their shader text and the local OBS bridge applies your room selections. The table below shows eight tested combinations. The lobby collection starts on Neon rain at 85% and the auditorium on Pearl diffusion at 55% until the bridge applies the controls.</p>
+  <h2>Hosted scenes or your existing collection</h2>
+  <p>On the hosted setup page, <strong>Use this room’s cinema filter settings</strong> applies your current room choices when creating the scenes. Clear it to start both rooms on the original picture. On OBS 33 or newer, keep the linked control panel open on the OBS computer while using the filters, including when only the lobby is visible. To use the shader by hand on a separate browser source, follow these steps.</p>
+  <ol>
+    <li>Install obs-shaderfilter and restart OBS. <a href="cinema-looks.shader" download="cinema-looks.shader">Download the cinema shader</a> to a folder you will keep. If you unzipped DinkDonk Cinema, the same file is in the <strong>obs</strong> folder.</li>
+    <li>In OBS, right-click the browser source that opens <code>lobby.html</code> or <code>auditorium.html</code> and choose <strong>Filters</strong>. Hosted setup names them <strong>DinkDonk Lobby (browser)</strong> and <strong>DinkDonk Auditorium (browser)</strong>. In the packaged collection, open <strong>Lobby (src)</strong> or <strong>DinkDonk Cinema</strong> to find the source.</li>
+    <li>Under <strong>Effect Filters</strong>, add <strong>User-defined shader</strong>. Enable <strong>Load shader text from file</strong> and select <code>cinema-looks.shader</code>. Choose a <strong>Cinema look</strong> and set <strong>Strength (%)</strong> from the table.</li>
+    <li>On the auditorium browser source, place the look <strong>below its enabled color key</strong> and check <strong>Keep film cutout aligned (keyed browser source)</strong>. This preserves the film opening and keeps the film source’s own colors. On the lobby browser source, leave the cutout option off.</li>
+  </ol>
+  <h2>Scene presets</h2>
+  <table>
+    <thead><tr><th scope="col">Browser source</th><th scope="col">Cinema look</th><th scope="col">Strength</th></tr></thead>
+    <tbody>
+      <tr><td>Lobby</td><td>Neon rain</td><td>85%</td></tr>
+      <tr><td>Lobby</td><td>After-hours mall</td><td>75%</td></tr>
+      <tr><td>Lobby</td><td>Chrome &amp; cyan</td><td>65%</td></tr>
+      <tr><td>Lobby</td><td>Miami dusk</td><td>65%</td></tr>
+      <tr><td>Lobby</td><td>Ultraviolet arcade</td><td>60%</td></tr>
+      <tr><td>Lobby</td><td>Curved CRT</td><td>65%</td></tr>
+      <tr><td>Auditorium</td><td>Pearl diffusion</td><td>55%</td></tr>
+      <tr><td>Auditorium</td><td>35 mm midnight</td><td>70%</td></tr>
+    </tbody>
+  </table>
+  <p>All thirteen looks are available in the shader’s <strong>Cinema look</strong> menu.</p>
+</main>
+</body>
+</html>

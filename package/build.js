@@ -3,21 +3,29 @@
 // Builds the shareable "DinkDonk Cinema" package: the lobby (lobby.html) and the auditorium (auditorium.html) with only
 // the art they load, the standby server, the OBS film-screen bridge, the DSA chat relay, ready-to-import OBS scene
 // collections (1080p / 1440p / 2160p) and one START.bat. The live files here are only read, never changed.
-// Usage: node package/build.js [--out <folder>] [--no-zip]
+// Usage: node package/build.js [--out <folder>] [--no-zip] [--base-package <previous extracted package>]
 // Output: ..\dist\DinkDonk-Cinema\ and ..\dist\DinkDonk-Cinema.zip (next to the standby folder's parent).
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { artFiles } = require('./art');
+const { eventFiles, shaderFile, lookGuide, lookFilters } = require('./cinema-release');
 
 const STANDBY = path.resolve(__dirname, '..');
-const RELAY = path.join(process.env.USERPROFILE || '', 'Desktop', 'customchat', 'destinygg-obs-overlay');
-const OBS_SCENES = path.join(process.env.APPDATA || '', 'obs-studio', 'basic', 'scenes', 'Moobies_1440p_poll.json');
 const SHADER = 'C:/Program Files/obs-studio/data/obs-plugins/obs-shaderfilter/examples/corner-pin.shader';
 
 const args = process.argv.slice(2);
 const OUT = path.resolve(args.includes('--out') ? args[args.indexOf('--out') + 1] : path.join(STANDBY, '..', 'dist', 'DinkDonk-Cinema'));
+const baseIndex = args.indexOf('--base-package');
+if (baseIndex !== -1 && (!args[baseIndex + 1] || args[baseIndex + 1].startsWith('--'))) throw Error('Expected an extracted package after --base-package');
+const base = baseIndex === -1 ? null : path.resolve(args[baseIndex + 1]);
+if (base && (!fs.existsSync(path.join(base, 'START.bat')) || [path.relative(OUT, base), path.relative(base, OUT)].some(p => !p || (!path.isAbsolute(p) && p.split(path.sep)[0] !== '..')))) {
+  throw Error('The base package and output must be separate package directories.');
+}
+const template = base && path.join(base, 'obs', 'DinkDonk Cinema 1440p.json');
+const RELAY = base ? path.join(base, 'chat-relay') : path.join(process.env.USERPROFILE || '', 'Desktop', 'customchat', 'destinygg-obs-overlay');
+const OBS_SCENES = template || path.join(process.env.APPDATA || '', 'obs-studio', 'basic', 'scenes', 'Moobies_1440p_poll.json');
 const SCREENS = path.join(OUT, 'screens');
 
 const log = (...a) => console.log(...a);
@@ -60,6 +68,8 @@ for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-serve
 }
 copyTree(path.join(STANDBY, 'shared'), path.join(SCREENS, 'shared'));
 copyTree(path.join(STANDBY, 'assets'), path.join(SCREENS, 'assets'));
+for (const file of eventFiles) copy(path.join(STANDBY, file), path.join(SCREENS, file));
+copy(path.join(STANDBY, shaderFile), path.join(SCREENS, shaderFile)); // the running OBS bridge reads its own copy
 // last good dinkdonk.mov data, so the screens have film titles before the first refresh
 if (fs.existsSync(path.join(STANDBY, 'cache', 'dinkdonk.json'))) copy(path.join(STANDBY, 'cache', 'dinkdonk.json'), path.join(SCREENS, 'cache', 'dinkdonk.json'));
 fs.writeFileSync(path.join(SCREENS, 'index.html'),
@@ -69,6 +79,8 @@ fs.writeFileSync(path.join(SCREENS, 'index.html'),
 patch(path.join(SCREENS, 'obs-bridge.js'), `const SHADER = '${SHADER}';`,
   "const SHADER = path.join(__dirname, '..', 'obs', 'corner-pin.shader').replace(/\\\\/g, '/');");
 copy(SHADER, path.join(OUT, 'obs', 'corner-pin.shader'));
+for (const file of [shaderFile, lookGuide]) copy(path.join(STANDBY, file), path.join(OUT, 'obs', path.basename(file)));
+const lookShader = fs.readFileSync(path.join(STANDBY, shaderFile), 'utf8');
 
 // ---------- 2. art: only what the two pages load ----------
 const art = artFiles(STANDBY, fail);
@@ -100,7 +112,7 @@ for (const n of SCENES) if (!byName[n]) fail(`scene "${n}" missing from ${OBS_SC
 // ends with a cut to it) and the colour key on the auditorium's browser source (for T2/T3 the bridge moves the film under
 // the keyed page, so heads and seat backs stay in front). Both come from the live "transitions" collection, which
 // start-all.bat loads since 15 Nov 2026; the build stops if either is missing (Codex audit 15 Nov 2026, C2).
-const OBS_SHOTS = path.join(process.env.APPDATA || '', 'obs-studio', 'basic', 'scenes', 'Moobies_1440p_transitions.json');
+const OBS_SHOTS = template || path.join(process.env.APPDATA || '', 'obs-studio', 'basic', 'scenes', 'Moobies_1440p_transitions.json');
 if (!fs.existsSync(OBS_SHOTS)) fail(`${OBS_SHOTS} not found: the screen shots' Film fullscreen scene and colour key come from it`);
 const shotsBy = Object.fromEntries(JSON.parse(fs.readFileSync(OBS_SHOTS, 'utf8')).sources.map((s) => [s.name, s]));
 const FULL = 'Film fullscreen';
@@ -131,6 +143,10 @@ function collection(w, h) {
     }
     if (s.id === 'browser_source' && /^http:\/\/127\.0\.0\.1:18770\//.test(s.settings.url)) {
       s.settings.url = s.settings.url.replace('/roxy.html', '/lobby.html');   // renamed 05 Nov; the package has no redirect stub
+      const page = new URL(s.settings.url).pathname;
+      if (page === '/lobby.html' || page === '/auditorium.html') {
+        s.filters.push(...lookFilters(page === '/lobby.html' ? 'lobby' : 'auditorium', lookShader));
+      }
       s.settings.width = Math.round(s.settings.width * f);
       s.settings.height = Math.round(s.settings.height * f);
     }

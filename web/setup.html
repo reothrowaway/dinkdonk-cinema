@@ -101,6 +101,7 @@
   <div class="card" id="step2" hidden>
     <h2>2 · Create the scenes</h2>
     <div class="row"><label><input type="checkbox" id="newcol"> Put them in a new scene collection, "DinkDonk Cinema", and leave the current one as it is (good for a first try; OBS switches to it)</label></div>
+    <div class="row"><label><input type="checkbox" id="cinemalooks" checked> Use this room’s cinema filter settings. New rooms change looks every 30 seconds. Uncheck to switch both rooms to the original picture.</label></div>
     <div class="row"><label for="film">Your film plays in</label><select id="film"></select></div>
     <div class="row"><label><input type="checkbox" id="relayonly"> Link the film through the control panel (only if the film never shows up on the screen; then keep the control panel open in this browser during the film)</label></div>
     <div class="row">
@@ -122,8 +123,9 @@
 
   <div class="card">
     <h2>3 · Every stream</h2>
+    <p>Use the control panel’s cinema filter controls to pick a look or change the rotation interval for each room. <a href="/concepts/vaporwave/obs-looks.html">Cinema looks for OBS</a> includes the shader and eight tested scene settings.</p>
     <p style="margin:0 0 8px">Switch to the DinkDonk scenes when you're on break or before the film. The <a id="ctl" target="_blank" rel="noopener">control panel</a> moves the camera, runs the auditorium phases (seating › lights down › film › lights up) and the automatic director. It works from your phone too.</p>
-    <p style="margin:0" class="dim">Film on the cinema screen: on OBS 32 and older the auditorium talks to OBS by itself. Newer OBS (33+) won't let a website inside OBS reach it, so then <b>keep the control panel open in this browser on this PC</b> during the film: it passes the screen position on to OBS. Its top line says whether that link is up.</p>
+    <p style="margin:0" class="dim">On OBS 33 or newer, <b>keep the linked control panel open on the OBS computer</b> while using cinema filters or playing the film. It passes filter choices and the auditorium screen position to OBS. Its top line shows the connection status.</p>
   </div>
 
   <div class="card">
@@ -135,6 +137,8 @@
     <p class="dim" style="margin:8px 0 0">By hand, the auditorium screen stays green (key your film onto it). For the moving, warped film on the screen, use step 2.</p>
   </div>
 </main>
+<script src="/shared/obs-look-director.js"></script>
+<script src="/web/room-looks.js"></script>
 <script>
 (() => {
   'use strict';
@@ -145,9 +149,9 @@
   const base = `${location.origin}/`;
 
   function who() { return $('who').value === 'tag' && $('nick').value.trim() ? `tag=${encodeURIComponent($('nick').value.trim().replace(/^@/, ''))}` : 'everyone=1'; }
-  const lobbyUrl = () => `${base}lobby.html?k=${KEY}&${who()}`;
-  const audUrl = (pw, port) => `${base}auditorium.html?k=${KEY}&${who()}` +
-    (pw !== undefined ? `#obs=${encodeURIComponent(pw)}&obsport=${port}` + ($('relayonly').checked ? '&relay=1' : '') : '');
+  const obsFragment = (pw, port) => pw === undefined ? '' : `#obs=${encodeURIComponent(pw)}&obsport=${port}` + ($('relayonly').checked ? '&relay=1' : '');
+  const lobbyUrl = (pw, port) => `${base}lobby.html?k=${KEY}&${who()}` + obsFragment(pw, port);
+  const audUrl = (pw, port) => `${base}auditorium.html?k=${KEY}&${who()}` + obsFragment(pw, port);
   function fillUrls() {
     $('u-lobby').value = lobbyUrl();
     $('u-aud').value = audUrl();
@@ -298,6 +302,14 @@
     await req('SetSceneItemTransform', { sceneName, sceneItemId: id, sceneItemTransform: { positionX: 0, positionY: 0, scaleX: 1, scaleY: 1, rotation: 0, boundsType: 'OBS_BOUNDS_NONE', alignment: 5 } });
   }
 
+  async function useOriginalPicture() {
+    await Promise.all(['lobby','auditorium'].map(async page => {
+      const response = await fetch('/ctl/cmd?k=' + encodeURIComponent(KEY), { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cmd: 'setting', page, key: 'cinemaFilter', value: 'off' }) });
+      if (!response.ok) throw new Error('Could not save the original picture for the ' + page + '.');
+    }));
+  }
+
   $('create').onclick = async () => {
     $('create').disabled = true;
     $('log').textContent = '';
@@ -319,6 +331,7 @@
       const inputs = new Set((await req('GetInputList')).inputs.map((i) => i.inputName));
       let film = $('film').value;
       const size = { width: canvas.w, height: canvas.h };
+      if (!$('cinemalooks').checked) await useOriginalPicture();
 
       if (film === TEST) {
         await ensureScene(FILM, scenes);
@@ -328,7 +341,7 @@
 
       // the lobby: one browser source filling the canvas
       await ensureScene(LOBBY, scenes);
-      await ensureBrowser(LOBBY, LOBBY_SRC, { url: lobbyUrl(), ...size, shutdown: true, restart_when_active: false, reroute_audio: false }, inputs);
+      await ensureBrowser(LOBBY, LOBBY_SRC, { url: lobbyUrl($('pw').value, Number($('port').value) || 4455), ...size, shutdown: true, restart_when_active: false, reroute_audio: false }, inputs);
 
       // the film holder: the streamer's own film source, fitted to the canvas (the corner-pin filter goes on this)
       await ensureScene(FILM, scenes);
@@ -371,6 +384,11 @@
         try { await req('CreateSourceFilter', { ...key, filterKind: 'color_key_filter_v2' }); }
         catch { await req('CreateSourceFilter', { ...key, filterKind: 'color_key_filter' }); }   // (older OBS)
         line(`+ colour key #00ff00 on "${AUD_SRC}"`);
+      }
+
+      if (shader !== false) {
+        try { await window.createHostedLookDirector(req, error => line('Cinema looks: ' + error.message, 'warn')).refresh(); }
+        catch (e) { line('Cinema looks: ' + e.message + ' Use the cinema looks guide for manual setup.', 'warn'); }
       }
 
       if (previous && previous !== NEW_COLLECTION) {

@@ -1,0 +1,14 @@
+{
+  "lobby": [
+    [12, "Neon rain", 85],
+    [0, "After-hours mall", 75],
+    [2, "Chrome & cyan", 65],
+    [4, "Miami dusk", 65],
+    [10, "Ultraviolet arcade", 60],
+    [7, "Curved CRT", 65]
+  ],
+  "auditorium": [
+    [1, "Pearl diffusion", 55],
+    [11, "35 mm midnight", 70]
+  ]
+}

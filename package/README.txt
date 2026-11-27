@@ -12,7 +12,7 @@ Film titles and ratings come from dinkdonk.mov. Everything runs on your own PC; 
 WHAT YOU NEED (once)
 1. Windows, OBS Studio 30 or newer.
 2. Node.js 22 or newer (LTS): https://nodejs.org/
-3. For the film on the auditorium screen only:
+3. For the film on the auditorium screen and the optional cinema looks:
    - the obs-shaderfilter plugin: https://github.com/exeldro/obs-shaderfilter/releases
    - OBS > Tools > WebSocket Server Settings > Enable WebSocket server (keep port 4455; the password is
      read from OBS's own settings on this PC, you don't have to type it anywhere).
@@ -37,7 +37,22 @@ FIRST TIME IN OBS
 5. Open the film in VLC. If the cinema screen stays black: right-click "Film screen (src)" > Game Capture >
    Properties and pick the VLC window, or replace it with a Window Capture of VLC.
 
+CINEMA LOOKS IN OBS
+Install obs-shaderfilter and restart OBS to use the cinema looks. With START.bat and the OBS bridge
+running, the lobby and auditorium each pick a new look every 30 seconds by default. In the control
+panel, select the room and its cinema filter to hold a particular look or turn the look off. Enable
+automatic changes again or adjust the interval from 5 to 600 seconds. Normal and Moody share the lobby
+setting. Keep the auditorium's color key enabled above its cinema look.
+To open the same filter controls inside a scene, open the browser source's Interact window in OBS
+and press Shift+F, or add filtercontrols=1 to an operator view's URL.
+
+For your existing collection, open obs\obs-looks.html for instructions and eight tested scene settings.
+The standalone obs\cinema-looks.shader contains all thirteen presets.
+
 EVERY STREAM
+The lobby timers choose Photo Booth, Horizon Drive, Black Hole, Laser Topography and Mirrorball.
+Infinity Foyer and Glyph Cascade are named lobby previews (?event=infinity-foyer or ?event=glyph-cascade).
+Laser Choir runs automatically in the eligible auditorium preshow.
 1. Double-click START.bat (before or after OBS, either works).
 2. Use the control panel (http://127.0.0.1:18770/control.html) to follow a chatter, go back to the wide
    shot, switch the automatic camera director on or off, or move the auditorium through its phases
