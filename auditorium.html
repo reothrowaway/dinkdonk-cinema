@@ -79,6 +79,14 @@
   #ps-quiz p.earlier { color: #ffd285; }
   #ps-quiz .earlier::before { content: "✓ "; }
   #ps-quiz .long-title { font-size: 36px; }
+  #ps-ballot { padding: 34px 48px; }
+  .ballot-card { box-sizing: border-box; width: 100%; padding: 20px 28px; background: #e8dbaf; color: #2d3026;
+    border-block: 8px dotted #544e35; text-shadow: none; }
+  .ballot-card .ps-small { margin: 0 0 12px; color: #48533d; font-weight: 700; }
+  #ps-ballot h2 { font-size: 52px; overflow-wrap: anywhere; line-height: 1.06; }
+  #ps-ballot h2.long-title { font-size: 38px; }
+  #ps-ballot-score { display: block; font: bold 79px/1.1 Georgia, serif; margin: 12px 0 4px; }
+  #ps-ballot-count { font: 30px/1.2 "Courier New", monospace; }
   .ps-small { font-size: 26px; letter-spacing: .16em; text-transform: uppercase; }
   .ps-slide h2 { margin: 0; font-size: 72px; font-weight: 500; line-height: 1.08; }
   .ps-slide p { margin: 0; font-size: 34px; line-height: 1.25; }
@@ -327,6 +335,10 @@
       <div class="ps-slide" id="ps-quiz"><h2>Which came out first?</h2>
         <p></p><span aria-hidden="true">◆</span><p></p>
       </div>
+      <div class="ps-slide" id="ps-ballot"><div class="ballot-card">
+        <div class="ps-small">Last rated film</div><h2 id="ps-ballot-title"></h2>
+        <strong id="ps-ballot-score"></strong><span id="ps-ballot-count"></span>
+      </div></div>
       <div id="ps-pops"></div>
     </div>
   </div>
@@ -437,6 +449,8 @@
   let preshowEvents = null;
   let timedEventsEnabled = true;
   const SLIDES = ['upnext', 'loading', 'audience'];
+  const QUIZ_SLIDE = SLIDES.length, BALLOT_SLIDE = QUIZ_SLIDE + 1;
+  let ballot = null, lastProjectorPhase = '';
   const filmOnScreen = () => show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film');
   // litter (queue 60, see stepLitter)
   const LITTER = { DELAY: 10 * 60000, GROW: 25 * 60000, MAX: 140, FULL: 0.6 };
@@ -479,7 +493,12 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
-    if (green && show.slide === SLIDES.length) showSlide(0);
+    if (show.screen === 'auto' && !green && show.phase === 'up' && lastProjectorPhase !== 'up' && ballot) {
+      showSlide(BALLOT_SLIDE);
+    } else if ((green && show.slide >= QUIZ_SLIDE) || (show.slide === BALLOT_SLIDE && show.phase !== 'up')) {
+      showSlide(0);
+    }
+    lastProjectorPhase = show.phase;
     holdSlide();
     $('screenq').style.display = screenPoly && green ? 'block' : 'none';
     $('preshow').style.display = screenPoly && !green ? 'block' : 'none';
@@ -725,8 +744,29 @@
   // either, no title is claimed
   let pollFilm = null;
   let quizHistory = [], quizPairs = [], quizRound = null, quizRevealed = false;
+  function updateBallot(data) {
+    const ratings = new Map((data?.ratings || []).map(r => [r.id, r]));
+    let latest = null;
+    for (const entry of data?.history || []) {
+      if (entry.type !== 'Movie' || !entry.title || !entry.ratingId || !Number.isFinite(entry.watchedTs)) continue;
+      if (latest && latest.at >= entry.watchedTs) continue;
+      const summary = ratings.get(entry.ratingId);
+      const votes = summary?.votes ?? data?.details?.ratings?.[entry.ratingId]?.votes?.length;
+      const score = summary?.avg ?? entry.rating;
+      if (!Number.isInteger(votes) || votes < 1 || !Number.isFinite(score) || score < 0 || score > 5) continue;
+      latest = {title: entry.title, at: entry.watchedTs, score, votes};
+    }
+    ballot = latest;
+    if (!ballot) { if (show.slide === BALLOT_SLIDE) showSlide(0); return; }
+    const title = $('ps-ballot-title');
+    title.textContent = ballot.title;
+    title.classList.toggle('long-title', ballot.title.length > 34);
+    $('ps-ballot-score').textContent = ballot.score.toFixed(2) + ' / 5';
+    $('ps-ballot-count').textContent = ballot.votes + (ballot.votes === 1 ? ' audience vote' : ' audience votes');
+  }
   Cinema.onRooms((rooms, data) => {
     if (Array.isArray(data?.history)) quizHistory = data.history;
+    updateBallot(data);
     const film = upcomingFilm(data);
     const card = film && [...(data?.ratings || []), ...(data?.best || []), ...(data?.worst || [])].find((r) => titleKey(r.title) === titleKey(film.title));
     pollFilm = film && { title: film.title, poster: film.poster || card?.poster };
@@ -775,10 +815,11 @@
   }
   setInterval(() => {
     if (show.screen !== 'auto' || alwaysGreen || filmOnScreen()) return;
-    const trivia = SLIDES.length;
-    if (show.slide === trivia && !quizRevealed) { drawQuiz(true); return; }
-    let next = (show.slide + 1) % (trivia + 1);
-    if (next === trivia) {
+    if (show.slide === QUIZ_SLIDE && !quizRevealed && show.phase !== 'up') { drawQuiz(true); return; }
+    let next = show.slide >= QUIZ_SLIDE ? 0 : show.slide + 1;
+    if (next === QUIZ_SLIDE && show.phase === 'up') {
+      next = ballot ? BALLOT_SLIDE : 0;
+    } else if (next === QUIZ_SLIDE) {
       if (!quizPairs.length && quizHistory.length) quizPairs = CinemaQuizDeck.makeDeck(quizHistory);
       quizRound = quizPairs.pop();
       if (quizRound) drawQuiz(false); else next = 0;

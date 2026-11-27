@@ -3505,3 +3505,9 @@ Verified the control panel's one-shot button with Auto off using isolated comman
 Inspired by National CineMedia's Noovie theatrical trivia and audience recollections of pre-show slides, the auditorium projects a question from the same deduplicated deck as the standalone game. The projector gives eight seconds to guess, then eight to read both years and the marked answer. Auto skips unavailable pairs. The film override clears the question; an operator's held slide stays held.
 
 Real-chat checks of both experimental auditorium entry points showed the correct earlier release, kept the same two titles through the reveal, handed the screen over to Film and held Audience for a full rotation interval. Neither run reported script errors or missing local assets. Screenshots are in audit/feature-night.
+
+### 27 Nov 2026 · Lights-up audience ballot
+
+CinemaScore's accounts of polling audiences at the theater inspired a projected rating card. It displays DinkDonk's own five-point scale, matches each ballot by rating ID, and selects the newest rated film by watch timestamp. The card takes the trivia slot only during Lights up. A held slide and film override take precedence.
+
+Checked both experimental auditorium pages against the real feed. Gosford Park displayed 2.83/5 from 9 votes, matching the published rating. Tested entry from Seating, Film override, a manually held Audience slide and removal of empty results. Neither capture reported script errors or missing local assets. The full-resolution image with real guests is audit/feature-night/audience-ballot.png.

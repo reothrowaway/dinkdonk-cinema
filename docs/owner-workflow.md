@@ -53,6 +53,8 @@ In **Timed events** on the Lobby or Auditorium card, leave **Auto** on for the d
 
 The ten lobby choices are Black Hole Matinee, Mirrorball Ballroom, Infinity Foyer, Glyph Cascade (PEPE WINS), PEPE vs. YEE, Restroom rendezvous, Quickdraw, Nothing Burger, Aristortle crossing and Marquee photo. In Marquee photo, a chatter takes a sidewalk portrait of one or two other guests. The director waits for their emotes to load. Open the [event screening room](../concepts/cinema-mods/events.html) for named previews. In Glyph Cascade eight chatters draw their own cards, raise them overhead and tuck them away. In Aristortle crossing the camera follows the turtle out to the street and a passing vehicle hits it. Automatic fights and Quickdraw use the matching emotes. When you click **Run event**, the director can fill missing roles using two distinct active chatter identities.
 
+On **Lights up** with the projector on **Auto**, the auditorium shows the latest rated film in the DinkDonk watch log. The card uses its recorded score and vote count.
+
 In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film.
 
 ### Movie-night extras

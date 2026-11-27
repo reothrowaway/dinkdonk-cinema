@@ -26,7 +26,7 @@ stable way to find things.
       img#bg-dim          dim twin of the background (added at start if the layout has dim art)
       svg#screenq         polygon over the screen: chroma green, or black when the OBS bridge drives the film
       #preshow            960x540 "projector" div, affine-mapped onto the screen quad
-        .ps-slide x4      Up next / Now loading / In the audience / Watch-log trivia
+        .ps-slide x5      Up next / Now loading / In the audience / Watch-log trivia / Last rated film
         #ps-pops          emotes floating up the screen edges
       img.slice (+ .dim-art twins)   banded depth-slice pieces, hidden unless something is behind them
       div.sheet           the entrance door's sprite sheet while it swings
@@ -302,6 +302,7 @@ whenever the phase is not `film` and `screen=green` is off. The projector advanc
    qBittorrent says complete), progress bar, ETA, a DGG meme, and chat's top emote riding the bar.
 3. **In the audience.** End-credits roll of everyone seated, in their chat colours.
 4. **Which came out first?** Auto displays a pair of films from the watch log for eight seconds, then marks the earlier release and shows both years for eight seconds. It skips this slide when the log has no suitable pair.
+5. **Last rated film.** Lights up opens a ballot card with the latest rated movie from the watch history, its audience score out of five and the recorded vote count. This card takes the trivia slot during Lights up.
 
 **Release lookup** (`parseRelease()`, `lookupRelease()`, `featureInfo()`). The torrent name is parsed (tracker
 style "Russian / English (…) [year, …]" or scene style "Title.S03.1080p…"), then looked up on Cinemeta
