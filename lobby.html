@@ -532,7 +532,7 @@
   setInterval(tick, 1000);
 })();
 </script>
-<script>window.DD_ROOM_CAPS = 'peek,gag,vote';   // room events this page plays (queue 56, 57, 50; shared/cinema.js)</script>
+<script>window.DD_ROOM_CAPS = 'peek,vote,timedstall';   // room events this page plays (queue 56, 57, 50; shared/cinema.js)</script>
 <script>window.DD_ROOM_PAGE = 'lobby';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
@@ -1573,8 +1573,9 @@
       { transform: `translate(${x}px, ${y - 10}px) translate(-50%, 0)`, opacity: 1, offset: 0.15 },
       { transform: `translate(${x}px, ${y - 38}px) translate(-50%, 0)`, opacity: 0 },
     ], { duration: 1500, easing: 'ease-out' }).onfinish = () => el.remove();
+    return el;
   }
-  const floatAt = (w, text, color) => { const [x, y] = screenOf(w); floatText(x, y - EH - 26, text, color); };
+  const floatAt = (w, text, color) => { const [x, y] = screenOf(w); return floatText(x, y - EH - 26, text, color); };
 
   function flyTicket(from, to, torn) {
     const el = itemEl(torn ? 'stub' : 'ticket', torn ? 'ticket torn' : 'ticket');
@@ -1671,9 +1672,20 @@
     while (bubOrder.length > MAX_BUB) dropBubble(bubOrder[0]);
     return b;
   }
-  function sayRemark(w, text) {
-    if (w.pending || !onScreen(w)) return;
-    return say(w, [{ t: 'text', v: text }]);
+  // Deliver a scripted line locally through the same parser and walk-in handler as a room chat message.
+  function injectChatterMessage(w, text) {
+    if (walkers.get(w.key) !== w || w.gone || w.entering || w.removing) return null;
+    const message = SB.parseMessage({ nick: w.nick, data: text });
+    spawn({ ...message, emote: w.emName, roomIndex: w.room });
+    const tokens = message.tokens;
+    return {
+      get queued() { return w.pending === tokens || w.lines?.includes(tokens); },
+      cancel() {
+        const index = w.lines?.indexOf(tokens) ?? -1;
+        if (index >= 0) w.lines.splice(index, 1);
+        if (w.pending === tokens) w.pending = null;
+      }
+    };
   }
   function dropBubble(w) {
     if (!w.bub) return;
@@ -3819,12 +3831,10 @@
     tick();
     setInterval(tick, 250);
   }
-  // L32: a canvasser (Buddy with a clipboard) comes down the street every 9 minutes (wall clock) and knocks on the
-  // doors of the shops: the video store (nobody answers), the greengrocer and the noodle shop (the door opens with a
-  // slice of light). "DGG is the one who knocks." A figure of this screen, like the cat. ?canvass=0: never;
-  // ?canvass=now (test only): 6 s after load.
+  // The director can send the canvasser to knock at three shop doors. The old
+  // ?canvass=now preview uses the same director. ?canvass=0 disables the visit.
   const CANVASS = q.get('canvass');
-  let canv = null, canvSlot = -1, canvTest = CANVASS === 'now' ? performance.now() + 6000 : 0;
+  let canv = null;
   const DOORLIGHTS = [null, [276, 521, 18, 50], [298, 511, 42, 66]].map((r) => {
     if (!r) return null;
     const d = h('div', 'doorlight');
@@ -3832,13 +3842,10 @@
     $('lifefx').append(d);
     return d;
   });
-  function stepCanvasser() {
+  function startCanvasser() {
     if (CANVASS === '0' || canv) return;
-    const slot = Math.floor(Date.now() / 540000);
-    const test = canvTest && performance.now() > canvTest;
-    if (canvSlot < 0) canvSlot = slot;
-    if (slot === canvSlot && !test) return;
-    canvSlot = slot; canvTest = 0;
+    const effects = [];
+    let finished = false;
     const w = makeFigure('canvasser', SB.emotes?.names?.has('dggL') ? 'dggL' : 'PEPE', '#9fd0ff', false);
     w.npc = true;
     w.key = '#canvasser';
@@ -3851,11 +3858,21 @@
     figures.add(w);
     canv = w;
     const stop = (u, light, answer) => [{ to: [u, 9.45] },
-      { wait: 0.9, start: (x) => { x.bounce = 1; floatAt(x, 'knock knock', '#cfe8ff'); } },
+      { wait: 0.9, start: (x) => { x.bounce = 1; effects.push(floatAt(x, 'knock knock', '#cfe8ff')); } },
       { wait: 0.9, start: (x) => { x.bounce = 1; } },
-      { wait: light ? 2.8 : 1.6, start: (x) => { light?.classList.add('on'); floatAt(x, answer, '#ffe2a8'); }, end: () => light?.classList.remove('on') }];
+      { wait: light ? 2.8 : 1.6, start: (x) => { light?.classList.add('on'); effects.push(floatAt(x, answer, '#ffe2a8')); }, end: () => light?.classList.remove('on') }];
     w.plan = [...stop(-3.55, DOORLIGHTS[0], '...'), ...stop(-1.45, DOORLIGHTS[1], '\u{1F4CB} \u2714'), ...stop(-0.8, DOORLIGHTS[2], '\u{1F4CB} \u2714'),
-      { to: [0.6, 9.9] }, { to: [16.8, 9.95] }, { call: (x) => { removeWalker(x); canv = null; } }];
+      { to: [0.6, 9.9] }, { to: [16.8, 9.95] }, { call: (x) => { finished = true; removeWalker(x); canv = null; } }];
+    return {
+      paint() {}, complete: () => finished, valid: () => finished || (canv === w && !w.gone),
+      dispose() {
+        effects.forEach(el => el.remove());
+        DOORLIGHTS.forEach(light => light?.classList.remove('on'));
+        if (canv !== w) return;
+        if (!w.gone) removeWalker(w);
+        canv = null;
+      }
+    };
   }
 
   // ---------- lobby props drawn by the page (queue 65: L38, L44, L51, L46, L40) ----------
@@ -3895,9 +3912,9 @@
       w.leaderPass = true;   // one roll per walk past
       if (w.staff || w.jan || w.npc || w.gone || w.removing || w.entering || !w.key || w.key[0] === '#' || w.alpha < 0.9) continue;
       if (now < leaderNext || now - (leaderSaid.get(w.key) ?? -LEADER_EACH) < LEADER_EACH || Math.random() >= LEADER_P) continue;
-      if (w.bub) continue;
+      if (w.bub || w.pending || w.lines?.length || !onScreen(w)) continue;
       const line = (leaderLine + 1 + Math.floor(Math.random() * (LEADER_LINES.length - 1))) % LEADER_LINES.length;
-      if (!sayRemark(w, LEADER_LINES[line])) continue;
+      if (!injectChatterMessage(w, LEADER_LINES[line])) continue;
       leaderNext = now + LEADER_GAP;
       leaderSaid.set(w.key, now);
       leaderLine = line;
@@ -4022,18 +4039,15 @@
   }
 
   // ---------- lobby life (queue 64: L21 the turtle, L26 nothing burger, L28 quickdraw, L29 wet-floor sign) ----------
-  // L21 Aristortle: every 10 minutes (wall clock) a turtle crosses the lobby, taking about a minute. (Owner, 11 Nov
-  //     2026: 25% smaller than a chatter's emote, 50% faster than at first, and the crawl a little more pronounced:
-  //     a stronger rock and a slug's stretch-and-gather.)
-  // L26 nothing burger: every 4 minutes a snack clerk lifts a serving cloche and there is nothing under it.
-  // L28 quickdraw: when a chatter wearing PARDNER and one wearing YEEHAW are both in the lobby and near each other,
-  //     they turn to face each other, "DRAW!", and one of them loses (at most once every 3 minutes).
+  // The lobby director schedules Aristortle's crossing, Nothing Burger and Quickdraw.
+  // Quickdraw needs a real PARDNER and a real YEEHAW near each other.
   // L29 wet floor: after five chatters have come in out of the rain within 40 s, a wet-floor sign stands by the
   //     entrance for a minute and a half. Figures and timing are this screen's own. ?lobbylife=0: none of it.
   const LOBBYLIFE_ON = q.get('lobbylife') !== '0';
-  const lobbyLife = { wet: [], turtle: null, turtleSlot: -1, burgerSlot: -1, drawAt: 0, checkT: 0, sign: null, signUntil: 0 };
+  const lobbyLife = { wet: [], turtle: null, checkT: 0, sign: null, signUntil: 0 };
   function sendTurtle() {
-    if (lobbyLife.turtle || !SB.emotes?.names?.has('PepoTurtle')) return;
+    if (!LOBBYLIFE_ON || lobbyLife.turtle || !SB.emotes?.names?.has('PepoTurtle')) return;
+    let finished = false;
     const w = makeFigure('Aristortle', 'PepoTurtle', '#7bc35a', false);
     w.npc = true;
     w.key = '#turtle';
@@ -4046,11 +4060,19 @@
     figures.add(w);
     lobbyLife.turtle = w;
     w.plan = [{ alpha: 1 }, { to: [10.6, 5.7], slow: true }, { to: [12.4, 6.3], slow: true },
-      { call: (x) => { x.alphaT = 0; } }, { alpha: 0 }, { call: (x) => { removeWalker(x); lobbyLife.turtle = null; } }];
+      { call: (x) => { x.alphaT = 0; } }, { alpha: 0 }, { call: (x) => { finished = true; removeWalker(x); lobbyLife.turtle = null; } }];
+    return {
+      paint() {}, complete: () => finished, valid: () => finished || (lobbyLife.turtle === w && !w.gone),
+      dispose() {
+        if (lobbyLife.turtle !== w) return;
+        if (!w.gone) removeWalker(w);
+        lobbyLife.turtle = null;
+      }
+    };
   }
   function nothingBurger() {
     const st = staff.clerk2 || staff.clerk;
-    if (!st) return;
+    if (!LOBBYLIFE_ON || !st) return;
     const [x, y] = P(st.u - 0.42, st.v + 0.72, 44);
     const el = h('div', 'cloche');
     el.innerHTML = '<i class="plate"></i><i class="dome"></i>';
@@ -4062,37 +4084,59 @@
     dome.animate([{ transform: 'translate(0, 0) rotate(0deg)' }, { transform: 'translate(7px, -13px) rotate(24deg)', offset: 0.18 },
       { transform: 'translate(7px, -13px) rotate(24deg)', offset: 0.8 }, { transform: 'translate(0, 0) rotate(0deg)' }], { duration: 3600, easing: 'ease-in-out' })
       .onfinish = () => el.remove();
-    setTimeout(() => floatText(x, y - 24, 'nothing.', '#e8e0cd'), 800);
+    let caption;
+    return {
+      paint(t) { if (t >= .8 && !caption) caption = floatText(x, y - 24, 'nothing.', '#e8e0cd'); },
+      dispose() { el.remove(); caption?.remove(); }
+    };
   }
-  function quickdraw(a, b) {
+  function quickdrawPair(candidates) {
+    if (!LOBBYLIFE_ON) return [];
+    const inside = candidates.filter(w => !w.npc && !w.jan && !w.out && !w.removing && !w.entering && w.alpha > 0.9 && w.v > 2.8);
+    for (const a of inside) {
+      if (a.emName !== 'PARDNER') continue;
+      const b = inside.find(w => w.emName === 'YEEHAW' && Math.hypot(w.u - a.u, w.v - a.v) < 4);
+      if (b) return [a, b];
+    }
+    return [];
+  }
+  function quickdraw({cast}) {
+    const [a, b] = cast.keys();
+    if (!a || !b) return;
     for (const [x, y] of [[a, b], [b, a]]) SB.faceEmote(x.em, x.emName, (y.u - x.u) - (y.v - x.v));
     a.bounce = Math.max(a.bounce, 1); b.bounce = Math.max(b.bounce, 1);
-    setTimeout(() => { floatAt(a, 'DRAW!', '#ffe27a'); floatAt(b, 'DRAW!', '#ffe27a'); }, 300);
     const [win, lose] = Math.random() < 0.5 ? [a, b] : [b, a];
-    setTimeout(() => {
-      if (win.gone || lose.gone) return;
-      win.bounce = 1; floatAt(win, '\u{1F4A5}', '#ffb46a');
-      setTimeout(() => { if (!lose.gone) { lose.bounce = 1; floatAt(lose, '\u{1F480}', '#dfe3ea'); } }, 350);
-    }, 1500);
+    const effects = [];
+    let beat = 0;
+    return {
+      valid: onFoot => onFoot(a) && onFoot(b) && a.emName === 'PARDNER' && b.emName === 'YEEHAW',
+      paint(t) {
+        if (!beat && t >= .3) {
+          effects.push(floatAt(a, 'DRAW!', '#ffe27a'), floatAt(b, 'DRAW!', '#ffe27a'));
+          beat++;
+        }
+        if (beat === 1 && t >= 1.5) { win.bounce = 1; effects.push(floatAt(win, '💥', '#ffb46a')); beat++; }
+        if (beat === 2 && t >= 1.85) { lose.bounce = 1; effects.push(floatAt(lose, '💀', '#dfe3ea')); beat++; }
+      },
+      dispose() { effects.forEach(el => el.remove()); }
+    };
   }
+  const lobbyLifeIncidents = {
+    'quickdraw': {automatic: LOBBYLIFE_ON, minCast: 2, maxCast: 2, selectCast: quickdrawPair,
+      duration: 3.5, anchor: () => [8.5, 5.6], start: quickdraw},
+    'nothing-burger': {automatic: LOBBYLIFE_ON, minCast: 0, maxCast: 0, duration: 3.6,
+      anchor: () => { const clerk = staff.clerk2 || staff.clerk; return clerk && [clerk.u, clerk.v]; }, start: nothingBurger},
+    'aristortle': {automatic: LOBBYLIFE_ON, minCast: 0, maxCast: 0, duration: 180,
+      anchor: () => [8.5, 5.6], start: sendTurtle},
+    'canvasser': {automatic: CANVASS !== '0', minCast: 0, maxCast: 0, duration: 180,
+      anchor: () => [-6.6, 9.55], start: startCanvasser}
+  };
   function stepLobbyLife(dt) {
     if (!LOBBYLIFE_ON) return;
     lobbyLife.checkT -= dt;
     if (lobbyLife.checkT > 0) return;
     lobbyLife.checkT = 1;
-    const now = performance.now(), wall = Date.now();
-    const tSlot = Math.floor(wall / 600000), bSlot = Math.floor((wall + 90000) / 240000);
-    if (lobbyLife.turtleSlot < 0) { lobbyLife.turtleSlot = tSlot; lobbyLife.burgerSlot = bSlot; }
-    if (tSlot !== lobbyLife.turtleSlot) { lobbyLife.turtleSlot = tSlot; sendTurtle(); }
-    if (bSlot !== lobbyLife.burgerSlot) { lobbyLife.burgerSlot = bSlot; nothingBurger(); }
-    if (lobbyLife.turtle?.gone) lobbyLife.turtle = null;
-    // quickdraw
-    if (now - lobbyLife.drawAt > 180000) {
-      const inside = [...figures].filter((w) => !w.staff && !w.npc && !w.jan && !w.out && !w.removing && !w.entering && w.alpha > 0.9 && w.v > 2.8);
-      const a = inside.find((w) => w.emName === 'PARDNER');
-      const b = a && inside.find((w) => w.emName === 'YEEHAW' && Math.hypot(w.u - a.u, w.v - a.v) < 4);
-      if (a && b) { lobbyLife.drawAt = now; quickdraw(a, b); }
-    }
+    const now = performance.now();
     // wet floor
     lobbyLife.wet = lobbyLife.wet.filter((t) => now - t < 40000);
     if (lobbyLife.wet.length >= 5) lobbyLife.signUntil = now + 90000;
@@ -4114,7 +4158,10 @@
     }
     if (lobbyLife.sign) lobbyLife.sign.style.opacity = want ? '1' : '0';
   }
-  window.__lobbyLife = { sendTurtle, nothingBurger, quickdraw, state: lobbyLife };   // test hooks
+  window.__lobbyLife = {
+    sendTurtle: () => lobbyEvents?.play('aristortle'), nothingBurger: () => lobbyEvents?.play('nothing-burger'),
+    quickdraw: () => lobbyEvents?.play('quickdraw'), state: lobbyLife
+  };   // test hooks
 
   // ---------- lobby props (queue 64: L18 breaking-news TV, L23 jukebox, L24 claw machine; Briefs 89-94) ----------
   // Three rendered props: jukebox and TV from the layer pack roxy3d/out10ps (mergeProps in the art section), the claw
@@ -4334,7 +4381,34 @@
       { wait: 2.4, start: (x) => floatAt(x, '...', '#cfd6e6') },
       { to: [1.75, 9.95] },
       { call: (x) => { x.waitingBus = true; x.plan = [{ until: () => { const b = activeBus(); return !!b && b.state === 'stopped' && !b.riders.size; } }, { call: boardBus }]; } }];
+    return w;
   }
+  const missedBusIncident = {
+    automatic: true, minCast: 0, maxCast: 0, duration: 45,
+    anchor: () => STOPS?.bus?.door_ground,
+    start() {
+      if (!STREET2_ON || street2.late || !VEH?.bus?.['+u']) return null;
+      const now = performance.now();
+      const bus = traffic.find(v => v.type === 'bus' && !v.gone &&
+        (v.state === 'stopped' || (v.leftAt && now - v.leftAt < 4000)));
+      if (!bus) return null;
+      let runner;
+      return {
+        ready() {
+          if (bus.leftAt && performance.now() - bus.leftAt >= 500) runner ||= lateForBus();
+          return !!runner;
+        },
+        paint() {},
+        complete: () => !!runner?.waitingBus,
+        valid: () => runner ? !runner.gone : !bus.gone || !!bus.leftAt,
+        dispose() {
+          // Once at the shelter, the runner boards the next actual bus with the ordinary passengers.
+          if (runner && !runner.waitingBus && !runner.gone) removeWalker(runner);
+          if (runner?.gone && street2.late === runner) street2.late = null;
+        }
+      };
+    }
+  };
   if (STREET2_ON) {
     // pigeons: [x, y] on the top edges of the wcat and the eatfresh billboards (stage px, from the ad quads)
     for (const [x, y] of [[448, 153], [467, 144], [561, 97], [760, 48]]) {
@@ -4388,7 +4462,6 @@
       if (v.type === 'bus') {
         if (v.u > -5 && v.u < 9) busNear = true;
         if (v.state === 'stopped') busStopped = true;
-        if (v.leftAt && !v.lateDone) { v.lateDone = true; if (Math.random() < 0.3) setTimeout(lateForBus, 500); }
       } else if (v.sign > 0 && !v.splashed && v.u > 6.2) {
         v.splashed = true;
         if (v.cur > 3 && Math.random() < 0.45) puddleSplash(6.6);
@@ -5300,11 +5373,9 @@ void main() {
   // ---------- stall gag (queue 57) ----------
   // Two chatters hanging out in the lobby walk into the restroom together and squeeze into the same stall; hearts float
   // up out of it, then they come out one after the other. The director follows the first one for the whole bit
-  // (at most 30 s). Shared room: the room picks the two ('gag' event, the same on every screen); a screen on its own
-  // rolls it itself every 10-20 min.
+  // during their visit. The timed-event director casts two free guests; a connected room mirrors its leading screen's pair.
   const GAG_LEN = 30000;
   let gag = null;
-  let gagNext = performance.now() + rand(300, 1200) * 1000;
   let publicGuestRoute;
   import('./concepts/cinema-mods/guest-routes.js').then(m => { publicGuestRoute = m.guestRoute; }).catch(err => console.error('[lobby guest routes]', err));
   function ambientPath(from, to) {
@@ -5370,7 +5441,7 @@ void main() {
       return [
         { call: () => {
           if (++g.arrived < 2) return;
-          if (!director.spot) { startFollow(a); if (director.follow) director.follow.endAt = performance.now() + GAG_LEN; }
+          if (!director.spot) { startFollow(a); g.shot = director.follow; if (g.shot) g.shot.endAt = performance.now() + GAG_LEN; }
           director.next = performance.now() + GAG_LEN + director.every * 500;
         } },
         { until: () => g.arrived === 2 }, ...(first ? [] : [{ wait: 0.7 }]),
@@ -5395,12 +5466,15 @@ void main() {
     if (!g || gag !== g) return;
     if (g.trips.some(trip => ownsAmbientTrip(trip) && trip.phase !== 'return')) return;
     if (g.stall.busy === g.a || g.stall.busy === g.b) g.stall.busy = null;
+    if (g.shot && director.follow === g.shot) endFollow();
+    g.completed = !g.cancelled;
     gag = null;
     setWC(restroomFull());
   }
   function endGag(g = gag) {
     if (!g || gag !== g) return;
-    g.out = true;
+    g.cancelled = true; g.out = true;
+    if (g.shot && director.follow === g.shot) endFollow();
     for (const trip of g.trips) {
       const { w } = trip;
       // A guest still inside must leave via the actual stall and restroom
@@ -5432,15 +5506,7 @@ void main() {
   function stepGag() {
     const now = performance.now();
     const g = gag;
-    if (!g) {
-      // a screen without the shared room rolls its own (rare: every 10-20 min, with enough people about)
-      if (!inRoom() && RESTROOM && director.on && !director.follow && !director.spot && now > gagNext) {
-        gagNext = now + rand(600, 1200) * 1000;
-        const pair = [...walkers.values()].filter(gagFree).length >= 6 && pickGagPair();
-        if (pair) startGag(...pair);
-      }
-      return;
-    }
+    if (!g) return;
     if (g.heartsFrom && now - g.heartsFrom > GAG_LEN + 30000 ||
         g.trips.some(trip => trip.w.gone || trip.w.removing || trip.w.reFreeze || (!ownsAmbientTrip(trip) && trip.phase !== 'return'))) { endGag(g); return; }
     if (g.inside === 2 && !g.out) {
@@ -5454,7 +5520,7 @@ void main() {
   // ---------- Yee vs Pepe (owner, 12 Nov 2026) ----------
   // "every once in a while, one yee emote and one pepe emote will get into a fight, the director will always zoom in
   // on it, and whomever wins, a text that remains for like 5 secs that either says yee wins or pepe wins."
-  // Every 4-9 minutes (this screen's own clock), if a chatter wearing a Yee emote and one wearing a Pepe emote are both
+  // When the timed-event director picks this show, if a chatter wearing a Yee emote and one wearing a Pepe emote are both
   // free in the lobby, they walk up to each other on the open floor, square off and scuffle for about 4 s in a dust
   // cloud; the director always takes it (it drops whatever it was following). One wins at random: "YEE WINS!" or
   // "PEPE WINS!" stays over them for 5 s, the loser sees stars. Then both carry on with what they were doing.
@@ -5469,7 +5535,6 @@ void main() {
   // here the whole cloud stands above the machine's top)
   const FIGHT_AT = [10.75, 5.0];
   let fight = null;
-  let fightNext = performance.now() + rand(240, 540) * 1000;
   // like a gag's pick, but someone on their way to a door still counts while they are in the lobby (when the doors are
   // open, everyone is on their way in; the fight is a detour of ~15 s, then they go on)
   function fightFree(w) {
@@ -5494,14 +5559,18 @@ void main() {
         { until: () => f.done }];
     }));
     startFollow(a);   // the director always takes the fight
-    director.follow.endAt = now + 30000;
+    f.shot = director.follow;
+    f.shot.endAt = now + 30000;
     director.next = now + 30000 + director.every * 1000 * 0.5;
     return true;
   }
-  function endFight(f) {
+  function endFight(f, complete = false) {
     if (fight !== f) return;
-    f.done = true;
+    f.done = true; f.completed = complete;
+    if (f.shot && director.follow === f.shot) endFollow();
     f.cloud?.remove();
+    f.banner?.remove();
+    for (const el of f.bits || []) el.remove();
     for (const trip of f.trips) {
       const { w } = trip;
       w.fighting = false; w.passT = 0; w.el.style.visibility = ''; w.el.classList.remove('ko');
@@ -5512,14 +5581,7 @@ void main() {
   function stepFight() {
     const now = performance.now();
     const f = fight;
-    if (!f) {
-      if (!FIGHT_ON || now < fightNext || gag || director.spot) return;
-      fightNext = now + rand(240, 540) * 1000;
-      const free = [...walkers.values()].filter(fightFree);
-      const y = free.filter((w) => isYee(w.emName)), pe = free.filter((w) => isPepe(w.emName));
-      if (y.length && pe.length) startFight(y[Math.floor(Math.random() * y.length)], pe[Math.floor(Math.random() * pe.length)]);
-      return;
-    }
+    if (!f) return;
     if (f.trips.some(trip => !ownsAmbientTrip(trip) || trip.w.gone || trip.w.removing || trip.w.reFreeze) || (f.fightAt && now - f.fightAt > 40000)) { endFight(f); return; }
     if (f.at < 2) {
       if (director.follow?.w === f.a) director.follow.endAt = Math.max(director.follow.endAt, now + 14000);
@@ -5560,7 +5622,7 @@ void main() {
           if (Math.hypot(w.u - FIGHT_AT[0], w.v - FIGHT_AT[1]) > 4) continue;
           n++;
           SB.faceEmote(w.em, w.emName, (FIGHT_AT[0] - w.u) - (FIGHT_AT[1] - w.v));
-          if (n % 2) setTimeout(() => { if (!w.gone) { w.bounce = 1; floatAt(w, n % 3 ? '👏' : '😮', '#ffe27a'); } }, rand(300, 2500));
+          if (n % 2) setTimeout(() => { if (fight === f && !w.gone) { w.bounce = 1; floatAt(w, n % 3 ? '👏' : '😮', '#ffe27a'); } }, rand(300, 2500));
         }
       }
       // the cloud rolls about on the spot and puffs
@@ -5573,6 +5635,7 @@ void main() {
       if (k !== f.k) {
         f.k = k;
         const bit = h('div', 'fightbit', ['👊', '🦶', '⭐', '💥', '💢', '👊', '🦶', '✨', '#!@', '💥'][Math.floor(Math.random() * 10)]);
+        (f.bits ||= new Set()).add(bit);
         fx.append(bit);
         const a = Math.random() * Math.PI * 2, d = rand(45, 85);
         const x0 = cx + ox + Math.cos(a) * 46, y0 = cy + oy - 50 + Math.sin(a) * 26;
@@ -5580,7 +5643,7 @@ void main() {
           { transform: `translate(${x0}px, ${y0}px) translate(-50%, -50%) scale(.5)`, opacity: 0 },
           { transform: `translate(${x0 + Math.cos(a) * d * 0.5}px, ${y0 + Math.sin(a) * d * 0.35}px) translate(-50%, -50%) scale(1.15)`, opacity: 1, offset: 0.3 },
           { transform: `translate(${x0 + Math.cos(a) * d}px, ${y0 + Math.sin(a) * d * 0.6}px) translate(-50%, -50%) scale(.9)`, opacity: 0 },
-        ], { duration: 650, easing: 'ease-out' }).onfinish = () => bit.remove();
+        ], { duration: 650, easing: 'ease-out' }).onfinish = () => { bit.remove(); f.bits.delete(bit); };
       }
       return;
     }
@@ -5596,9 +5659,9 @@ void main() {
       f.result = yeeWins ? 'yee' : 'pepe';
       f.lose = lose;
       win.bounce = 1;
-      setTimeout(() => { if (!win.gone) { win.bounce = 1; floatAt(win, '💪', '#ffe27a'); } }, 500);
+      setTimeout(() => { if (fight === f && !win.gone) { win.bounce = 1; floatAt(win, '💪', '#ffe27a'); } }, 500);
       lose.el.classList.add('ko');   // knocked flat
-      const el = h('div', `fightwin ${f.result}`, yeeWins ? 'YEE WINS!' : 'PEPE WINS!');
+      const el = f.banner = h('div', `fightwin ${f.result}`, yeeWins ? 'YEE WINS!' : 'PEPE WINS!');
       fx.append(el);
       el.animate([
         { transform: `translate(${cx}px, ${cy - 110}px) translate(-50%, 0) scale(.6)`, opacity: 0 },
@@ -5612,11 +5675,12 @@ void main() {
     const ks = Math.floor(tr / 700);
     if (f.lose && tr < 2800 && ks !== f.ks) { f.ks = ks; floatAt(f.lose, '💫', '#ffe27a'); }
     if (f.lose && tr >= 3000 && f.lose.el.classList.contains('ko')) { f.lose.el.classList.remove('ko'); f.lose.bounce = 0.6; floatAt(f.lose, '😳', '#ffb3c8'); }
-    if (tr > 5500) endFight(f);
+    if (tr > 5500) endFight(f, true);
   }
   setInterval(stepFight, 100);
   window.__fight = {
     start(any) {
+      if (!FIGHT_ON || !timedEventsEnabled || lobbyEvents?.status().event) return 'busy';
       const free = [...walkers.values()].filter(fightFree);
       let a = free.find((w) => isYee(w.emName)), b = free.find((w) => isPepe(w.emName));
       const dress = any && !(a && b);
@@ -5631,6 +5695,48 @@ void main() {
       yee: ws.filter((w) => isYee(w.emName)).length, pepe: ws.filter((w) => isPepe(w.emName)).length,
       why: ws.slice(0, 10).map((w) => Object.entries({ gone: w.gone, rem: w.removing, ent: w.entering, ride: !!w.ride, q: w.inQueue, snack: !!w.snack, door: w.doorBound,
         hurry: w.hurry, stall: !!w.stall, gate: gateLine.includes(w), win: windows.some((x) => x.cur === w), alpha: w.alpha <= 0.9, out: w.v >= 8.9 }).filter(([, x]) => x).map(([k]) => k).join(',')) }; },
+  };
+
+  const nativeIncidents = {
+    'yee-vs-pepe': {
+      automatic: FIGHT_ON, anchor: () => FIGHT_ON ? FIGHT_AT : null, minCast: 2, duration: 15,
+      ownsFollow: () => fight?.shot && fight.shot === director.follow,
+      selectCast(candidates) {
+        const free = candidates.filter(fightFree);
+        const yees = free.filter(w => isYee(w.emName)), pepes = free.filter(w => isPepe(w.emName));
+        if (!yees.length || !pepes.length) return [];
+        return [yees[Math.floor(Math.random() * yees.length)], pepes[Math.floor(Math.random() * pepes.length)]];
+      },
+      start({ cast }) {
+        if (!startFight(...cast.keys())) return null;
+        const f = fight;
+        return { ready: () => f.at >= 2, complete: () => !!f.completed, valid: () => fight === f,
+          paint() {}, dispose: () => endFight(f) };
+      },
+    },
+    'restroom-gag': {
+      automatic: true, anchor: () => RESTROOM?.outside, minCast: 2, duration: 90,
+      ownsFollow: () => gag?.shot && gag.shot === director.follow,
+      selectCast(candidates, anchors, named, cue) {
+        const free = candidates.filter(gagFree);
+        if (cue?.a && cue?.b) return [cue.a, cue.b].map(key => free.find(w => w.key === String(key).toLowerCase())).filter(Boolean);
+        if ((inRoom() && !Cinema.room.lead) || free.length < (named ? 2 : 6)) return [];
+        const a = free.splice(Math.floor(Math.random() * free.length), 1)[0];
+        return [a, free[Math.floor(Math.random() * free.length)]];
+      },
+      start({ cast, cue }) {
+        if (!startGag(...cast.keys())) return null;
+        const g = gag;
+        if (inRoom() && !(cue?.a && cue?.b)) {
+          fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: 'lobby', cmd: 'castStall', screen: Cinema.room.id, a: g.a.key, b: g.b.key,
+              manual: cue?.manual === true, requestId: cue?.requestId }),
+            signal: AbortSignal.timeout(3500) }).catch(() => {});
+        }
+        return { ready: () => g.arrived === 2, complete: () => !!g.completed,
+          valid: () => gag === g && !g.cancelled, paint() {}, dispose: () => endGag(g) };
+      },
+    },
   };
 
   // ---------- camera + zoom director ----------
@@ -5972,7 +6078,7 @@ void main() {
   // to every lobby screen ({cmd: 'settings', values}), also right after it connects, so a reload keeps them; a
   // setting the panel clears goes back to this screen's URL value. Units as in the panel (seconds, not ms).
   const SETTINGS = {
-    timedEvents: { get: () => timedEventsEnabled, set: (v) => { timedEventsEnabled = !!v; lobbyEvents?.setEnabled(timedEventsEnabled); } },
+    timedEvents: { get: () => timedEventsEnabled, set: (v) => { if (timedEventsEnabled === !!v) return; timedEventsEnabled = !!v; lobbyEvents?.setEnabled(timedEventsEnabled); if (!v) { if (fight) endFight(fight); if (gag) endGag(gag); } } },
     bubstyle: { get: () => BUB_STYLE, set: (v) => setBubStyle(v) },
     bubmode: { get: () => BUB_MODE, set: (v) => setBubMode(v) },
     bubbles: { get: () => MAX_BUB, set: (v) => { MAX_BUB = clamp(Number(v) || 8, 2, 14); } },
@@ -6008,10 +6114,14 @@ void main() {
     }
   }
   function control(c) {
-    if (['follow','random','next','wide','pollzoom','peek','gag','fly','reeducate','movie','phase','zoom'].includes(c.cmd)) lobbyEvents?.interrupt('panel ' + c.cmd);
+    if ((c.cmd !== 'gag' || !inRoom()) && ['follow','random','next','wide','pollzoom','peek','gag','fly','reeducate','movie','phase','zoom'].includes(c.cmd)) lobbyEvents?.interrupt('panel ' + c.cmd);
     const now = performance.now();
     const key = typeof c.nick === 'string' ? c.nick.trim().toLowerCase() : '';
     switch (c.cmd) {
+      case 'runEvent':
+        if (typeof c.event === 'string' && typeof c.requestId === 'string' && c.requestId.length <= 80)
+          lobbyEvents?.request(c.event, c.requestId);
+        break;
       case 'follow': followSomeone(key); break;
       case 'random': if (!inRoom()) followSomeone(); break;   // the room picks one nick for every screen (a follow event)
       case 'next': if (!inRoom()) director.wantNext = true; break;   // the room flags the next arrival (wi.follow)
@@ -6019,7 +6129,7 @@ void main() {
       case 'pollscreen': setPollScreenOpen(!!c.on); break;   // the server remembers it too (/dd/draft.json)
       case 'pollzoom': zoomToPollScreen(); break;
       case 'peek': if (!inRoom()) startPeek(String(c.spot || '')); break;   // (test hook; the room sends a 'peek' event)
-      case 'gag': if (!inRoom()) { const pair = pickGagPair(); if (pair) startGag(...pair); } break;   // (test hook; the room sends a 'gag' event)
+      case 'gag': if (!inRoom()) { if (lobbyEvents) void lobbyEvents.play('restroom-gag').catch(console.error); else if (timedEventsEnabled) { const pair = pickGagPair(); if (pair) startGag(...pair); } } break;   // (test hook; the room sends a 'gag' event)
       case 'fly': window.DD_FLY_PLAY?.({ cut: true }); break;   // fly-through to the auditorium, OBS cuts at the end
       case 'settings':   // the panel's scene settings (on connect and on every change); the first one settles the lobby look
         settleLook(c.values && typeof c.values === 'object' && Object.hasOwn(c.values, 'look') ? c.values.look : URL_LOOK);
@@ -6179,7 +6289,12 @@ void main() {
       case 'follow': if (!director.spot && !director.follow?.reedu) followSomeone(key); break;   // the room's director waits while the camera is on the poll (or a reeducation)
       case 'reeducate': reeducate(key, typeof ev.to === 'string' ? ev.to : null); break;   // the panel's Reeducate, on every screen
       case 'peek': startPeek(String(ev.spot || '')); break;   // the room's director: a look at something, max 7 s
-      case 'gag': if (ev.kind === 'stall') startGag(walkers.get(String(ev.a || '').toLowerCase()), walkers.get(String(ev.b || '').toLowerCase())); break;
+      case 'gag':
+        if (ev.kind === 'stall' && (!ev.from || ev.from !== Cinema.room.id)) {
+          if (lobbyEvents) void lobbyEvents.play('restroom-gag', ev).catch(console.error);
+          else if (timedEventsEnabled) startGag(walkers.get(String(ev.a || '').toLowerCase()), walkers.get(String(ev.b || '').toLowerCase()));
+        }
+        break;
       case 'clear': resetLobby(); break;
       // out of the room: fades out as with the panel's remove ('cap', 'panel'); 'left' (and the older 'home'/'kicked')
       // comes from a screen's own leftRoom(), and every screen walks them out on its own
@@ -6200,6 +6315,7 @@ void main() {
       const f = director.follow;
       // obs: this screen is the OBS source (the panel shows it before a bigger preview tab)
       const body = { id: pageId, page: 'lobby', ts: Date.now(), size: [innerWidth, innerHeight], obs: !!window.obsstudio,
+        timedShow: lobbyEvents && { event: lobbyEvents.status().event, cue: lobbyEvents.status().cue },
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         director: { on: director.on, every: director.every, zoom: director.zoom, wantNext: director.wantNext,
           following: f && !f.w.gone ? f.w.nick : null, nextIn: Math.max(0, Math.round((director.next - performance.now()) / 1000)) },
@@ -6264,7 +6380,6 @@ void main() {
       s.pulse = Math.max(0, s.pulse - dt * 1.2);
       s.el.style.boxShadow = s.pulse ? `0 0 ${Math.round(30 * s.pulse)}px rgba(255,95,176,${(0.9 * s.pulse).toFixed(2)}), inset 0 0 ${Math.round(24 * s.pulse)}px rgba(255,95,176,${(0.6 * s.pulse).toFixed(2)})` : '';
     }
-    stepCanvasser();
     stepFrontDoors(dt);
     stepGnome();
     stepSirens();
@@ -7805,15 +7920,17 @@ void main() {
       import('./concepts/cinema-mods/incidents/sidewalk.js')
     ]).then(([{ createLobbyEvents }, { arcade }, { paperStage }, { sidewalk }]) => {
       const incidents = {
+        ...nativeIncidents,
         'contact-printer': arcade['contact-printer'], 'horizon-drive': sidewalk['horizon-drive'],
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
+        ...lobbyLifeIncidents, 'missed-bus': missedBusIncident,
       };
       lobbyEvents = createLobbyEvents({
-        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event'), timed, enabled: timedEventsEnabled,
-        blocked: () => !lobbyReady ? 'room loading' : director.follow ? 'director follow' : director.spot ? 'director spot' :
-          director.wantNext ? 'director next' : gag ? 'restroom gag' : fight ? 'fight' : pollScreen.open ? 'poll open' : null,
+        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event') || (CANVASS === 'now' ? 'canvasser' : null), timed, enabled: timedEventsEnabled,
+        blocked: label => !lobbyReady ? 'room loading' : director.follow && !incidents[label]?.ownsFollow?.() ? 'director follow' : director.spot ? 'director spot' :
+          director.wantNext ? 'director next' : gag && label !== 'restroom-gag' ? 'restroom gag' : fight && label !== 'yee-vs-pepe' ? 'fight' : pollScreen.open ? 'poll open' : null,
         anchors: () => ({
-          sayRemark,
+          injectChatterMessage,
           layout: L===LAYOUTS[3] ? 3 : L===LAYOUTS[2] ? 2 : 1, moody: LOOK==='gamer',
           canWalk: w => !ownsAmbientTrip(w.ambientTrip) && wcBusy!==w && wcWait!==w && benchBusy!==w && PROPS.clawBusy!==w &&
             !PROPS.dance?.includes(w) && !gateLine.includes(w) && !windows.some(win=>win.cur===w),

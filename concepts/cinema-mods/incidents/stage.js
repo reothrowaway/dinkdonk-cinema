@@ -126,6 +126,7 @@ export function incident(duration,minCast,maxCast,anchorFn,build){
       },
       valid:onFoot=>(!travel || travel.valid() && actors.every(onFoot)) && (!story.valid || story.valid(onFoot)),
       ready:travel?.ready ?? story.ready,
+      hold:story.hold,
       actionBounds:story.actionBounds,
       dispose(){travel?.release();story.dispose?.();},
       camera(t,reduced){

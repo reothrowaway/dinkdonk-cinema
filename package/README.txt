@@ -50,9 +50,10 @@ For your existing collection, open obs\obs-looks.html for instructions and eight
 The standalone obs\cinema-looks.shader contains all thirteen presets.
 
 EVERY STREAM
-Timed events are on by default in each room. Use the Timed events switch on the Lobby or Auditorium card to pause or resume that room's shows.
-The lobby chooses Photo Booth, Horizon Drive, Infinity Foyer, Glyph Cascade (eight chatters spelling PEPE WINS), Black Hole and Mirrorball.
-Laser Choir runs in the auditorium during seating and lights-up.
+Under Timed events on the Lobby or Auditorium card, leave Auto on for random performances.
+To run a particular show, choose its name and click Run event. You can cue one show while Auto is off.
+The director waits for the cast and room phase. The lobby includes PEPE vs. YEE and the eight-chatter PEPE WINS show.
+The auditorium has Laser Choir, Aisle vendor and Popcorn run.
 1. Double-click START.bat (before or after OBS, either works).
 2. Use the control panel (http://127.0.0.1:18770/control.html) to follow a chatter, go back to the wide
    shot, switch the automatic camera director on or off, or move the auditorium through its phases

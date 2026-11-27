@@ -171,7 +171,7 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
 - For timed lobby and auditorium events, show the owner a video of the full event. Have a second reviewer watch
   the recorded action at stream size, including where the chatters stand and whether their reactions are readable.
   The QA event screening room is `concepts/cinema-mods/events.html`. It lists automatic events and named previews.
-- The lobby and auditorium each have a single **Timed events** switch on the control panel, enabled by default. The director chooses eligible shows at random. The lobby rotation includes Infinity Foyer and the eight-guest PEPE WINS performance. The auditorium schedules its preshow during seating and lights-up.
+- Each room’s control-panel card has a default-on automatic event switch, a dropdown of its released performances and a **Run event** button. The director can run one selected show with Auto off and still requires the real cast, route and room phase. Keep PEPE vs. YEE and other standalone timed skits in the room director’s rotation. Infinity Foyer and poster remarks use the lobby’s normal incoming chatter-message path and speech queue.
 - The original vaporwave looks are OBS filters. Compare them in `concepts/vaporwave/index.html`; the
   **DinkDonk Cinema Looks QA** collection holds the selected presets and strengths for each room. Promotion to QA
   puts a look in that collection or an event in the QA room. Identify which events run on the timer.

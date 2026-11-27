@@ -436,7 +436,7 @@
   // applause; perf 11 Nov 2026, res/run_audup_11nov.txt). ?clapwait=0: 1.8 s into the fade, as it was.
   const CLAP_WAIT = q.get('clapwait') === '0' ? 1800 : 6200;
   function applyPhase() {
-    if (alwaysGreen || filmOnScreen() || !['seating','up'].includes(show.phase)) preshowEvents?.interrupt();
+    preshowEvents?.checkPhase();
     // lightsOn: the house lights come up while the film keeps playing (credits); the next phase brings them back
     const down = (show.phase === 'dim' || show.phase === 'film') && !show.lightsOn;
     const dimmed = down !== $('stage').classList.contains('lights-down');
@@ -2127,16 +2127,16 @@
   let nextLeaver = 0;
   // ---------- hall life (queue 64: A14 snack run, A15 latecomers, A16 aisle vendor, A17 clean-up crew, A18 conductor) ----------
   // Only things an audience or the staff would do. All of it is this screen's own (not shared through the room).
-  // A14: during the film, every minute or two one seated chatter gets up, goes out through the tunnel and comes back
+  // A14: during a dark phase, a selected seated chatter gets up, goes out through the tunnel and comes back
   //      to their seat with popcorn. A15: whoever arrives in the dark ducks to their seat and says sorry in their row
-  //      (spawn, step). A16: during seating, with at least 8 seated, a vendor walks the cross-aisle now and then.
+  //      (spawn, step). A16: during seating, with at least 8 seated, the director can send a vendor down the cross-aisle.
   // A17: once "Everyone leaves" has emptied the hall, two mop penguins sweep the rows and the litter goes as they
   //      pass. A18: when the film starts, the conductor looks in from the entrance and gives the signal; a DinkDonk
   //      combo during the film sends the conductor hurrying across the cross-aisle. ?hall=0: none of it.
   const HALL_ON = q.get('hall') !== '0';
   const crewSet = new Set();
   function crewCount() { let n = 0; for (const w of crewSet) { if (walkers.get(w.key) === w) n++; else crewSet.delete(w); } return n; }
-  const hall = { snackNext: 0, snacker: null, vendorNext: 0, cleaning: false, lastPhase: null, conductorAt: 0, checkT: 0 };
+  const hall = { snacker: null, cleaning: false, lastPhase: null, conductorAt: 0, checkT: 0 };
   const crewDone = (w) => { crewSet.delete(w); removeWalker(w); };
   function crewOut(w) {
     const portal = L.walk_route.rear_portal_to_cross_aisle.map((x) => [...x]).reverse();
@@ -2192,25 +2192,66 @@
     placeItem(t);
     t.leaving = true;
     // out as far as the tunnel (four points short of the door), a short wait out of sight, and back the same way
-    const out = routeTo(seat).reverse();
-    go(t, out.slice(0, out.length - 4), (x) => hold(x, rand(5, 10), (y) => {
-      y.leaving = false;
-      y.snackBack = true;
-      const back = routeTo(seat).slice(4);
-      go(y, back, null);
-      y.pos = [...back[0]];
-    }));
+    const out = routeTo(seat).reverse().slice(0, -4);
+    let returning = false, holding = null;
+    function back(path, popcorn) {
+      returning = true;
+      t.leaving = false;
+      t.snackBack = popcorn;
+      t.wait = 0;
+      go(t, path, null);
+    }
+    go(t, out, x => {
+      hold(x, rand(5, 10), () => back(out.slice().reverse(), true));
+      holding = x.path;
+    });
+    return {
+      state() {
+        if (walkers.get(t.key) !== t || t.seat !== seat || t.out) return 'interrupted';
+        if (t.sitting) return 'complete';
+        if (!returning && t.path !== out && t.path !== holding) return 'interrupted';
+        return 'playing';
+      },
+      cancel() {
+        t.snackBack = false;
+        if (returning || walkers.get(t.key) !== t || t.seat !== seat || t.out || t.sitting) return;
+        if (t.path === out) back([[...t.pos], ...out.slice(0, t.seg + 1).reverse()], false);
+        else if (holding && t.path === holding) back(out.slice().reverse(), false);
+      }
+    };
   }
   function sendVendor() {
     const w = crewWalker('vendor', Cinema.defaultEmote('roxy-clerk2'), { pace: 0.8 });
     if (!w) return;
+    const entry = w.path;
+    const timers = [];
     const cross = L.walk_route.rear_portal_to_cross_aisle.at(-1);
     w.onArrive = (x) => {
       floatAt(x, 'popcorn! soda!', '#ffe2a8');
       const front = [...walkers.values()].filter((g) => g.sitting && !g.dozing && !g.crew && g.seat && rows.indexOf(g.seat.row) <= 1);
-      front.sort(() => Math.random() - 0.5).slice(0, 3).forEach((g, i) => setTimeout(() => { if (walkers.get(g.key) === g && g.sitting) { g.bounce = 1; floatAt(g, '+1 \u{1F37F}', '#ffe2a8'); } }, 2500 + i * 2600));
+      front.sort(() => Math.random() - 0.5).slice(0, 3).forEach((g, i) => timers.push(setTimeout(() => {
+        if (walkers.get(w.key) === w && walkers.get(g.key) === g && g.sitting) { g.bounce = 1; floatAt(g, '+1 \u{1F37F}', '#ffe2a8'); }
+      }, 2500 + i * 2600)));
       go(x, [[...x.pos], [15.0, cross[1], 24]], (y) => { floatAt(y, 'last call!', '#ffe2a8'); go(y, [[...y.pos], [...cross]], crewOut); });
     };
+    return {
+      state: () => walkers.get(w.key) === w ? 'playing' : 'complete',
+      cancel() {
+        timers.forEach(clearTimeout);
+        if (walkers.get(w.key) !== w || w.exiting) return;
+        w.wait = 0;
+        if (w.path === entry) goOut(w, [[...w.pos], ...entry.slice(0, w.seg + 1).reverse()], crewDone);
+        else go(w, [[...w.pos], [...cross]], crewOut);
+      }
+    };
+  }
+  function startHallEvent(kind) {
+    if (!HALL_ON || !L || houseOut || hall.snacker || walkers.has('#vendor')) return null;
+    const seated = [...walkers.values()].filter(w => w.sitting && w.seat && !w.crew && !w.jan && !w.usher && !w.out && !w.leaving);
+    if (kind === 'aisle-vendor') return show.phase === 'seating' && seated.length >= 8 && sendVendor();
+    if (kind !== 'popcorn-run' || !dark()) return null;
+    const cast = seated.filter(w => !w.dozing && !w.texting && !w.reeducating && !w.pendingSeat && director.follow?.w !== w);
+    return cast.length && snackRun(cast[Math.floor(Math.random() * cast.length)]);
   }
   function sendConductor(hurry) {
     const w = crewWalker('conductor', SB.emotes?.names?.has('DinkDonk') ? 'DinkDonk' : Cinema.defaultEmote('roxy-usher'), { cap: true, pace: hurry ? 1.7 : 1 });
@@ -2255,23 +2296,10 @@
     hall.checkT = now + 1000;
     // A14 back in the seat: popcorn
     const t = hall.snacker;
-    if (t && (walkers.get(t.key) !== t || (t.sitting && t.snackBack))) {
-      if (walkers.get(t.key) === t) { t.snackBack = false; t.bounce = 1; floatAt(t, '\u{1F37F}', '#ffe2a8', 24); }
+    if (t && (walkers.get(t.key) !== t || t.sitting || t.out)) {
+      if (walkers.get(t.key) === t && t.sitting && t.snackBack) { t.snackBack = false; t.bounce = 1; floatAt(t, '\u{1F37F}', '#ffe2a8', 24); }
       hall.snacker = null;
-      hall.snackNext = now + rand(70000, 150000);
     }
-    if (dark() && !houseOut) {
-      if (!hall.snackNext) hall.snackNext = now + rand(40000, 90000);
-      if (!hall.snacker && now > hall.snackNext) {
-        const ok = [...walkers.values()].filter((w) => w.sitting && !w.dozing && !w.out && !w.jan && !w.usher && !w.crew && !w.leaving && !w.texting && director.follow?.w !== w && w.seat);
-        if (ok.length) snackRun(ok[Math.floor(Math.random() * ok.length)]); else hall.snackNext = now + 20000;
-      }
-    } else if (!hall.snacker) hall.snackNext = 0;
-    // A16 vendor during seating
-    if (show.phase === 'seating' && !houseOut) {
-      if (!hall.vendorNext) hall.vendorNext = now + rand(60000, 120000);
-      if (now > hall.vendorNext) { hall.vendorNext = now + rand(200000, 320000); if ([...walkers.values()].filter((w) => w.sitting).length >= 8) sendVendor(); }
-    } else hall.vendorNext = 0;
     // A18 the conductor at the start of the film
     if (hall.lastPhase !== null && show.phase === 'film' && hall.lastPhase !== 'film') setTimeout(() => sendConductor(false), 2500);
     hall.lastPhase = show.phase;
@@ -3385,6 +3413,10 @@
     const now = performance.now();
     const key = typeof c.nick === 'string' ? c.nick.trim().toLowerCase() : '';
     switch (c.cmd) {
+      case 'runEvent':
+        if (typeof c.event === 'string' && typeof c.requestId === 'string' && c.requestId.length <= 80)
+          preshowEvents?.request(c.event, c.requestId);
+        break;
       case 'phase': {
         // Film again after Movie / Film outro: push in now (the lights are already down, so no 10 s wait)
         const again = c.value === 'film' && show.phase === 'film' && (show.shot !== 'push' || show.lightsOn);
@@ -3579,6 +3611,7 @@
       const f = director.follow;
       // obs: this screen is the OBS source (the panel shows it before a bigger preview tab)
       const body = { id: pageId, page: 'auditorium', ts: Date.now(), size: [innerWidth, innerHeight], obs: !!window.obsstudio,
+        timedShow: preshowEvents && { event: preshowEvents.status().event, cue: preshowEvents.status().cue },
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         preshow: { phase: show.phase, shot: show.shot, lightsOn: show.lightsOn, houseOut, auto: show.auto, download: show.download, alwaysGreen,
           screen: show.screen, litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
@@ -4147,18 +4180,24 @@
   // Checked 40 chatters at a time, so a new emote or a nap is picked up within about 2 s.
   const ANIMLAYER = q.get('animlayer') !== '0';
   const timedPreshows = q.get('events') !== '0' && (!q.has('event') || q.get('events') === '1');
-  if (timedPreshows || q.get('event') === 'laser-choir') {
+  {
     import('./concepts/cinema-mods/preshow/house-events.js').then(({ createHouseEvents }) => {
       const active = w => walkers.get(w.key) === w && w.sitting && w.seat && w.seen && !w.leaving && !w.out && !w.reeducating;
       preshowEvents = createHouseEvents({
-        ready: () => L && screenPoly && !houseOut && !shotsActive && !director.follow && !director.wantNext &&
-          !director.outro && !alwaysGreen && !filmOnScreen() && (show.phase === 'seating' || show.phase === 'up'),
+        ready: kind => {
+          if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
+          if (kind === 'popcorn-run') return HALL_ON && dark();
+          if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
+          return !alwaysGreen && !filmOnScreen() && (show.phase === 'seating' || show.phase === 'up');
+        },
+        canStart: () => !hall.snacker && !walkers.has('#vendor') && !hall.cleaning,
+        startNative: startHallEvent,
         active,
         seated: () => [...walkers.values()].filter(w => active(w) && !w.jan && !w.usher && !w.crew),
         screen: () => screenPoly,
         point: w => P(...w.pos),
         apex: () => { const su = L.screen?.u || [4.9,13.9]; return P((su[0]+su[1])/2-2.3,L.room?.v[1] ?? 14.9,580); }
-      }, q, { allowed: ['laser-choir'], automatic: timedPreshows, enabled: timedEventsEnabled });
+      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run'], automatic: timedPreshows, enabled: timedEventsEnabled });
       window.auditoriumEvents = preshowEvents;
       SB.on('msg', m => preshowEvents.message(m));
     }).catch(err => console.warn('[preshow]',err));

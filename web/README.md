@@ -26,7 +26,7 @@ Without the WebSocket server or the plugin everything still runs; the cinema scr
 
 The lobby and auditorium rotate through 13 cinema filters independently every 30 seconds by default. Choose a room in the control panel to select a filter, show its original picture, or set the automatic interval from 5 to 600 seconds. The lobby setting covers Normal and Moody. Setup can start both rooms on the original picture. [OBS shader and scene settings](../concepts/vaporwave/obs-looks.html)
 
-To open filter controls inside a scene, press **Shift+F** in its OBS **Interact** window or add `filtercontrols=1` to an operator view. Each room’s control-panel card has one **Timed events** switch, enabled by default. The lobby director chooses Photo Booth, Horizon Drive, Infinity Foyer, Glyph Cascade (eight chatters spelling **PEPE WINS**), Black Hole and Mirrorball. The auditorium schedules Laser Choir during seating and lights-up.
+To open filter controls inside a scene, press **Shift+F** in its OBS **Interact** window or add `filtercontrols=1` to an operator view. Under **Timed events** on either room’s card, **Auto** starts on. To request a single performance, select its name and click **Run event**, even with Auto off. The director waits for eligible guests and the appropriate phase. PEPE vs. YEE joins the lobby rotation with the other staged shows. The auditorium selects Laser Choir, Aisle vendor or Popcorn run when eligible.
 
 ## How it works
 

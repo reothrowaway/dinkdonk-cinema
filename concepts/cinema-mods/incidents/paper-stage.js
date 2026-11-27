@@ -50,13 +50,15 @@ export const paperStage={
     const reach=group(actorArt);
     path(reach,'M-7 -17q-8 -2 -13 -7l-5 -1 -5 -3q-2 -2 0 -3l6 2 -4 -5q-1 -3 2 -2l6 5 3 4 11 4Z',paper,{stroke:ink,'stroke-width':1.3,'stroke-linejoin':'round'});
     const route=door.approach(guest);
-    let native=null,started=false,sourceEmote,spoke=false;
+    let native=null,started=false,sourceEmote,reaction=null,waitUntil=0;
     return {focusY:58,zoom:3.45,valid:onFoot=>onFoot(guest)&&route.valid(),
       ready(){
         if(route.ready())native??=door.open();
         return started=!!native;
       },
-      dispose(){native?.release();route.release();actorArt.remove();},
+      // Keep the doorway shot while earlier chat has the floor. An interrupted show drops only its unsaid line.
+      hold(t){return t>=12 && reaction?.queued && performance.now()<waitUntil;},
+      dispose(){reaction?.cancel();native?.release();route.release();actorArt.remove();},
       paint(t,reduced){
         if(started&&guest.em!==sourceEmote){
           sourceEmote=guest.em;
@@ -75,9 +77,9 @@ export const paperStage={
         if(native&&t>=10.22){native.release();native=null;}
         attrs(echoes,{opacity:f(ease(ramp(t,3.35,3.9))*(1-ease(ramp(t,9.87,10.03))))});
         attrs(reach,{opacity:f(Math.max(beat(t,1.97,3.45),beat(t,9.48,10.34)))});
-        if(started&&!spoke&&t>=10.54){
-          const bubble=anchors.sayRemark(guest,'wtf');
-          if(bubble){bubble.dataset.infinityReaction='';spoke=true;}
+        if(started&&!reaction&&t>=10.54){
+          reaction=anchors.injectChatterMessage(guest,'wtf');
+          waitUntil=performance.now()+24000;
         }
         copies.forEach(({body,hand,wristX,wristY},i)=>{
           const elapsed=t-depths[i].start;

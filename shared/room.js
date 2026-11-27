@@ -308,7 +308,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   function stallGag(force = false) {
     const L = state.pages.lobby;
     const d = L.director;
-    if (!force && (!d.on || !can('lobby', 'gag') || Date.now() < gagAt || Date.now() < d.nextAt - d.every * 1000 * 0.6)) return false;
+    if (!force && (subs.lobby.get(lead.lobby)?.caps.has('timedstall') || !d.on || !can('lobby', 'gag') || Date.now() < gagAt || Date.now() < d.nextAt - d.every * 1000 * 0.6)) return false;
     const free = L.roster.filter((e) => GAG.FREE.has(e.place));
     if (free.length < (force ? 2 : 6)) { if (!force) gagAt = Date.now() + 60000; return false; }
     const a = free.splice(Math.floor(Math.random() * free.length), 1)[0];
@@ -500,6 +500,17 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       // a lobby screen saw them leave on their own (in through a door, home, on the bus, run over): the room forgets
       // them so a reload doesn't bring them back; the other screens let their own walker finish the exit
       case 'left': removeEntry(page, key, 'left'); break;
+      case 'castStall': {
+        if (page !== 'lobby' || !c.screen || c.screen !== lead.lobby || !subs.lobby.get(lead.lobby)?.caps.has('timedstall')) break;
+        const a = typeof c.a === 'string' && find(page, c.a.toLowerCase());
+        const b = typeof c.b === 'string' && find(page, c.b.toLowerCase());
+        if (!a || !b || a === b) break;
+        d.nextAt = Date.now() + GAG.LEN + d.every * 1000 * rand(0.5, 0.8);
+        emit('lobby', { t: 'gag', kind: 'stall', a: a.nick, b: b.nick, from: c.screen, manual: c.manual === true,
+          requestId: typeof c.requestId === 'string' ? c.requestId.slice(0, 128) : undefined, seed: (Math.random() * 2 ** 32) >>> 0 });
+        changed();
+        return;
+      }
       case 'gag': if (page === 'lobby') stallGag(true); break;
       case 'reeducate': {
         // the panel's Reeducate: a Yee wearer becomes the Pepe version for good (every screen of that scene plays the show:

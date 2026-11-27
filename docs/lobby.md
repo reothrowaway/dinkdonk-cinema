@@ -156,7 +156,7 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | `beams=0` | on | No headlight beams from passing cars in the extra rain (`uHL` in `RAIN2_FS`) | `setHeadlights` |
 | `snark=0` | on | No snarky one-liners from the staff | `.snark` |
 | `bridge=0` | on | No "BRIDGE OUT" road-works board on the street | `.rwboard` |
-| `canvass=0` / `canvass=now` | on | No door-to-door canvasser with a clipboard / send one at once (test) | `stepCanvasser` |
+| `canvass=0` / `canvass=now` | on | No door-to-door canvasser with a clipboard / request one when eligible (test) | `startCanvasser` |
 | `leader=0` | on | No "Dear Leader" poster by the box office at all | `LEADER_ON` |
 | `leaderart=0` | on | Use the page-drawn placeholder instead of the rendered poster pack `roxy3d/out10l/` (`leader.json`, loaded after the marquee pack) | `mergeLeader` |
 | `posters=0` | on | No extra lobby posters (the J6 video, the "Dogtober 7th" documentary) | `.pst` |
@@ -170,7 +170,7 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | `dancetest=1` | off | Test only: everyone who would hang out in the lobby dances at the jukebox | `DANCE_TEST` |
 | `propsdir=<folder>` | `out10ps` | Props layer pack (default `out10ps`, jukebox and TV, over art whose manifest has `claw`; else `out10p`) | `mergeProps` |
 | `mqfade=<0..1>` / `mqfade=0` | 0.75 | Panel: "See-through when zoomed in". How see-through the street marquee's canopy, board text and bulbs and the front glass panes with their rain sheets get while the camera is zoomed in (0.75 = 25% left; they fade with the zoom and come back at the wide shot; their light and shadow on the street stay); `0` = off | `MQ_FADE`, `.mqfade` |
-| `fight=0` | on | No Yee vs Pepe: every 4-9 min a free chatter wearing a Yee emote and one wearing a Pepe emote meet on the open lobby floor, square off and trade insults, then disappear into a Sims-style dust ball (fists, feet, stars and swear symbols fly out; bystanders watch and cheer) with the director zoomed in; the winner flexes, the loser lies flat seeing stars and gets up humiliated; "YEE WINS!" or "PEPE WINS!" stays 5.5 s (`window.__fight.start()`, `.start(true)`, `.free()` for tests) | `stepFight`, `startFight` |
+| `fight=0` | on | Disables the PEPE vs. YEE fight. When the director selects the fight, a free chatter wearing a Yee emote and one wearing a Pepe emote meet on the open lobby floor, square off and trade insults, then disappear into a Sims-style dust ball (fists, feet, stars and swear symbols fly out; bystanders watch and cheer) with the director zoomed in; the winner flexes, the loser lies flat seeing stars and gets up humiliated; "YEE WINS!" or "PEPE WINS!" stays 5.5 s (`window.__fight.start()`, `.start(true)`, `.free()` for tests) | `stepFight`, `startFight` |
 | `lobbylife=0` | on | No lobby-interior batch: the turtle crossing, the nothing burger, quickdraw between two chatters, the wet-floor sign (`window.__lobbyLife`) | `stepLobbyLife` |
 | `layout=<n>` | manifest `layout`, else 1 | Force a queue/staff layout (1, 2, 3). Layout 3 setup (`setupLayout3`) still only runs when the manifest says `layout: 3` | :3718 |
 | `loop=0` | on | No light loop: a lit still (`lit_bg_dry` > `lit_bg` > `full`) + procedural rain | `setupArt` |

@@ -328,7 +328,13 @@
             </div>
           </div>
           <div class="grp">
-            <label class="room-event-toggle"><input type="checkbox" data-timed-events="lobby" checked disabled> Timed events</label>
+            <div class="grp-l">Timed events</div>
+            <div class="btns" data-event-controls="lobby">
+              <label class="room-event-toggle"><input type="checkbox" data-timed-events="lobby" checked disabled> Auto</label>
+              <select data-event-choice aria-label="Choose a lobby event"></select>
+              <button type="button" data-run-event disabled>Run event</button>
+            </div>
+            <div class="state" data-event-status="lobby" role="status"></div>
           </div>
           <div class="grp" data-filter-room="lobby">
             <div class="grp-l">Cinema filters</div>
@@ -358,7 +364,13 @@
         <div class="card-h"><h2>Auditorium show</h2><button id="phaseauto" class="tog">Auto: on</button></div>
         <div class="grps">
           <div class="grp">
-            <label class="room-event-toggle"><input type="checkbox" data-timed-events="auditorium" checked disabled> Timed events</label>
+            <div class="grp-l">Timed events</div>
+            <div class="btns" data-event-controls="auditorium">
+              <label class="room-event-toggle"><input type="checkbox" data-timed-events="auditorium" checked disabled> Auto</label>
+              <select data-event-choice aria-label="Choose an auditorium event"></select>
+              <button type="button" data-run-event disabled>Run event</button>
+            </div>
+            <div class="state" data-event-status="auditorium" role="status"></div>
           </div>
           <div class="grp" data-filter-room="auditorium">
             <div class="grp-l">Cinema filters</div>
@@ -670,6 +682,59 @@
   const fmt = (v) => (typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v));
   const optLabel = (def, v) => (def.kind === 'select' ? (def.options.find((o) => String(o[0]) === String(v))?.[1] ?? fmt(v)) : fmt(v));
   const sendSetting = (key, value) => Promise.resolve(send({ cmd: 'setting', key, value })).then(refreshSettings);
+  const eventNames = {
+    lobby: {
+      'black-hole': 'Black Hole Matinee', 'laser-topography': 'Black Hole · Laser Topography opening',
+      mirrorball: 'Mirrorball Ballroom', 'contact-printer': 'Contact Printer', 'horizon-drive': 'Horizon Drive',
+      'infinity-foyer': 'Infinity Foyer', 'glyph-cascade': 'Glyph Cascade · PEPE WINS',
+      'yee-vs-pepe': 'PEPE vs. YEE fight', 'restroom-gag': 'Restroom rendezvous',
+      quickdraw: 'PARDNER vs. YEEHAW quickdraw', 'nothing-burger': 'Nothing Burger',
+      aristortle: 'Aristortle crossing', canvasser: 'The canvasser', 'missed-bus': 'Missed the bus'
+    },
+    auditorium: { 'laser-choir': 'Laser Choir', 'aisle-vendor': 'Aisle vendor', 'popcorn-run': 'Popcorn run' }
+  };
+  const eventCards = new Map();
+  for (const group of document.querySelectorAll('[data-event-controls]')) {
+    const page = group.dataset.eventControls, names = eventNames[page];
+    const select = group.querySelector('[data-event-choice]'), button = group.querySelector('[data-run-event]');
+    const status = document.querySelector('[data-event-status="'+page+'"]');
+    for (const [id, label] of Object.entries(names)) select.add(new Option(label, id));
+    let submitted = null, sending = false, ready = false;
+    button.onclick = async () => {
+      if (!ready || sending) return;
+      const token = globalThis.crypto?.randomUUID?.() || ('cue-' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+      submitted = { id: token, kind: select.value, sent: Date.now() };
+      sending = true;
+      button.disabled = true;
+      status.textContent = 'Sending ' + names[select.value] + '…';
+      try {
+        const reply = await fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page, cmd: 'runEvent', event: select.value, requestId: token }), signal: AbortSignal.timeout(3500) });
+        if (!reply.ok) throw Error('Event command failed');
+        const response = await reply.json();
+        if (!response.screens) { submitted = null; status.textContent = 'Open the ' + page + ' screen to run an event.'; }
+      } catch { submitted = null; status.textContent = 'Could not send the event request.'; }
+      finally { sending = false; button.disabled = !ready; }
+    };
+    eventCards.set(page, screen => {
+      const info = screen?.timedShow;
+      ready = !!info && (page !== 'auditorium' || controlVersion >= 2);
+      button.disabled = !ready || sending;
+      if (sending) return;
+      if (!ready) { status.textContent = screen ? 'Reload the scene to enable event cues.' : 'Open the '+page+' screen to run an event.'; return; }
+      const cue = info.cue;
+      if (submitted && submitted.id !== cue?.id && Date.now() - submitted.sent < 10000) return;
+      if (submitted && submitted.id !== cue?.id) { status.textContent = 'The screen has not acknowledged this request.'; return; }
+      if (cue?.id === submitted?.id) submitted = null;
+      const name = names[cue?.kind];
+      if (cue?.state === 'waiting') status.textContent = info.event ? 'Queued '+name+' after '+(names[info.event] || 'the current event')+'.' : 'Waiting for '+name+' · checking the room and cast.';
+      else if (info.event) status.textContent = 'Playing '+(names[info.event] || info.event)+'.';
+      else if (cue?.state === 'finished') status.textContent = name+' finished.';
+      else if (cue?.state === 'unavailable') status.textContent = name+' could not start. Check the cast and room phase.';
+      else if (cue?.state === 'interrupted') status.textContent = name+' was interrupted.';
+      else status.textContent = '';
+    });
+  }
   for (const input of document.querySelectorAll('[data-timed-events]')) {
     const page = input.dataset.timedEvents;
     let saving = false;
@@ -886,14 +951,18 @@
     const screens = all.filter((s) => (s.page || 'lobby') === page);
     sceneControls(page);
     const blocked = page === 'auditorium' && controlVersion < 2;
-    for (const el of document.querySelectorAll('button, input')) el.disabled = blocked;
+    for (const el of document.querySelectorAll('button:not([data-run-event]), input:not([data-timed-events])')) el.disabled = blocked;
     $('screens').textContent = screens.length ? `${screens.length} screen${screens.length > 1 ? 's' : ''} open (${screens.map((s) => s.size.join('×')).join(', ')}) - commands go to all of them`
       : 'No screen is open: start the standby screen (or the OBS source) first.';
     $('screens').textContent = blocked ? 'Restart standby-server.js to enable safe auditorium controls.'
       : `${page === 'auditorium' ? 'Auditorium' : 'Lobby'}: ${$('screens').textContent} (${all.length} total across both scenes)`;
     // the OBS source is the one shown here (screens report obs: true inside OBS); else the biggest screen. A bigger
     // preview tab (a 4K monitor) used to win and the panel showed its chatters and director state, not the stream's
-    const s = screens.sort((a, b) => (b.obs === true) - (a.obs === true) || b.size[0] * b.size[1] - a.size[0] * a.size[1])[0];
+    const preferred = list => list.sort((a, b) => (b.obs === true) - (a.obs === true) || b.size[0] * b.size[1] - a.size[0] * a.size[1])[0];
+    const s = preferred(screens);
+    for (const [room, render] of eventCards) {
+      render(room === page ? s : preferred(all.filter(screen => (screen.page || 'lobby') === room)));
+    }
     setScreen = s?.settings ? s : null;   // the scene settings show what this screen uses
     if (setBuiltFor === page) showSettings();
     if (setSchema) showLook();

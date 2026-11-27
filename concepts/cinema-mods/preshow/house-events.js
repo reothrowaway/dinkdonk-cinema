@@ -145,45 +145,91 @@ const build={'laser-choir':choir,'prism-cathedral':prism,'ribbon-plotter':plotte
 export function createHouseEvents(host, query, { allowed = ids, automatic = query.get('events') === '1', enabled = true } = {}) {
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
   let live=null, reason='', pending=enabled&&allowed.includes(query.get('event'))?query.get('event'):null;
-  let sourceVisible=true, sourceActive=true;
+  let sourceVisible=true, sourceActive=true, lastAuto=null;
+  let cue=null, expires=0, retry=0;
+  const recent=new Set();
+  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run'].filter(kind=>allowed.includes(kind));
+  const visible=()=>!document.hidden&&sourceVisible&&sourceActive;
   const next=()=>performance.now()+180000+Math.random()*180000;
   let due=pending?performance.now()+2200:next();
   function stop(why='stopped') {
-    if(live){ live.light.ownerSVGElement.remove(); live.screenLayer?.remove(); live.poses.clear(); live=null; reason=why; }
+    if(live){
+      if(live.native){if(why!=='complete')live.native.cancel();}
+      else {live.light.ownerSVGElement.remove();live.screenLayer?.remove();live.poses.clear();}
+      if(live.cueId&&live.cueId===cue?.id)cue.state=why==='complete'?'finished':'interrupted';
+      live=null;reason=why;
+    }
     due=next();
   }
   function setEnabled(on) {
     if(enabled===on)return;
     enabled=on;
-    if(!enabled){pending=null;stop('disabled');}
+    if(!enabled){
+      pending=null;
+      if(cue?.state==='waiting')cue.state='interrupted';
+      stop('disabled');
+    }
     else due=next();
   }
-  function play(kind) {
-    if(!enabled||live||!allowed.includes(kind)||!host.ready()||document.hidden||!sourceVisible||!sourceActive)return false;
+  function request(kind,id) {
+    if(!allowed.includes(kind)||typeof id!=='string'||!id)return false;
+    if(recent.has(id))return cue?.id===id;
+    recent.add(id);if(recent.size>64)recent.delete(recent.values().next().value);
+    cue={id,kind,state:'waiting'};
+    retry=performance.now();expires=retry+90000;
+    return true;
+  }
+  function start(kind,cueId=null) {
+    if(live||!allowed.includes(kind)||!visible()||!host.ready(kind)||host.canStart?.()===false)return false;
+    if(kind==='aisle-vendor'||kind==='popcorn-run'){
+      const native=host.startNative?.(kind);
+      if(!native)return false;
+      live={kind,native,cueId,at:performance.now(),t:0};return true;
+    }
     const rows=cast(host,kind); if(!rows)return false;
     const screen=host.screen();
     const layer=overlay(document.getElementById('cam'),1920,1080);
     const defs=svg(layer,'defs'),clip=svg(defs,'clipPath',{id:'house-light-mask'});
     svg(clip,'path',{d:'M0 0H1920V1080H0Z M'+screen.join('L')+'Z','clip-rule':'evenodd'});
     const light=svg(layer,'g',{'clip-path':'url(#house-light-mask)'});
-    const s={kind, rows,screen,light,apex:host.apex(),point:host.point,
+    const s={kind,cueId,rows,screen,light,apex:host.apex(),point:host.point,
       at:performance.now(),t:0,fade:0,encore:false,poses:new Map(),reduced:motion.matches,
       panel:()=>s.screenLayer=overlay(document.getElementById('preshow'),960,540),
       pose(w,lift,tilt,sq=1){ const k=s.reduced ? .37 : 1; s.poses.set(w,{lift:lift*k,tilt:tilt*k,sq:1+(sq-1)*k}); }};
     live=s;
     try{s.render=build[kind](s);s.render(0);}catch(e){stop('error');throw e;}
-    pending=null;return true;
+    return true;
   }
+  const play=kind=>enabled&&cue?.state!=='waiting'&&start(kind);
+  const checkPhase=()=>{if(live&&!host.ready(live.kind))stop('interrupted');};
   function step(now) {
-    if(!enabled)return;
+    if(cue?.state==='waiting'&&now>=expires)cue.state='unavailable';
     if(!live){
-      if((pending||automatic)&&now>=due){
-        if(!play(pending||'laser-choir'))due=now+5000;
+      if(cue?.state==='waiting'){
+        if(now>=retry){retry=now+500;if(start(cue.kind,cue.id))cue.state='playing';}
+        return;
+      }
+      if(!enabled||now<due||!visible())return;
+      if(pending){
+        if(start(pending))pending=null;else due=now+5000;
+      }else if(automatic){
+        const candidates=automaticKinds.filter(kind=>kind!==lastAuto);
+        for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}
+        if(lastAuto)candidates.push(lastAuto);
+        const chosen=candidates.find(kind=>start(kind));
+        if(chosen)lastAuto=chosen;else due=now+5000;
       }
       return;
     }
+    checkPhase();if(!live)return;
     const s=live;
-    if(!host.ready()||s.rows.some(row=>row.some(w=>!host.active(w)))){stop('interrupted');return;}
+    if(s.native){
+      s.t=Math.max(0,(now-s.at)/1000);
+      const state=s.native.state();
+      if(state!=='playing')stop(state);
+      return;
+    }
+    if(s.rows.some(row=>row.some(w=>!host.active(w)))){stop('interrupted');return;}
     const t=Math.max(0,(now-s.at)/1000), duration=durations[s.kind]+(s.encore?2:0);
     if(t>=duration){stop('complete');return;}
     s.t=t; s.fade=clamp(t/.42)*clamp((duration-t)/.65);
@@ -194,9 +240,9 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   window.addEventListener('pagehide',interrupt);
   window.addEventListener('obsSourceVisibleChanged',e=>{sourceVisible=e.detail?.visible!==false;if(!sourceVisible)interrupt();});
   window.addEventListener('obsSourceActiveChanged',e=>{sourceActive=e.detail?.active!==false;if(!sourceActive)interrupt();});
-  return {play,step,stop,interrupt,setEnabled,playing:()=>!!live,pose:w=>live?.poses.get(w),
+  return {play,request,step,stop,interrupt,checkPhase,setEnabled,playing:()=>!!live,pose:w=>live?.poses?.get(w),
     message(m){if(live?.kind==='laser-choir'&&live.t>10&&live.t<13.5&&m?.nick)live.encore=true;},
-    status:()=>({enabled,event:live?.kind||null,seconds:live?.t||0,cast:live?.rows.map(row=>row.map(w=>w.nick))||[],
+    status:()=>({enabled,cue:cue&&{...cue},event:live?.kind||null,seconds:live?.t||0,cast:live?.rows?.map(row=>row.map(w=>w.nick))||[],
       encore:!!live?.encore,reduced:!!live?.reduced,lastStop:reason,
       nextIn:enabled&&(pending||automatic)?Math.max(0,due-performance.now())/1000:null})};
 }
