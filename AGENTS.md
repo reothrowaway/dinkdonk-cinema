@@ -67,7 +67,8 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
 9. **No computer use.** Agents (Codex included) must not drive other apps on the owner's PC (browser, history, media players); check videos by decoding frames.
 10. **This repo is public.** No passwords, tokens, API keys, stream keys, OBS websocket passwords, account IDs or
    billing details, in code or in docs.
-11. **Git.** Commit and push only when the owner asks. Auditorium art in `roxy3d/qa11/` is ignored as a folder;
+11. **Git.** Owner, 13 Nov 2026: a finished, checked change goes everywhere in the same turn (see "Shipping"
+    below); half-done work is not committed. Auditorium art in `roxy3d/qa11/` is ignored as a folder;
     add exactly the files the page loads with the recipe in [README.md](README.md). Draft, QA and old pack folders
     stay local.
 
@@ -79,9 +80,8 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
 - If you don't know a DGG meme, an emote, or what dinkdonk.mov is, search the web. Don't guess.
 - Log what you changed, and why, in `roxy3d/PROGRESS.md` (newest at the bottom, with the date). Queued owner
   requests live in `roxy3d/QUEUE-owner.md`.
-- Several agents may work at once: one on the lobby, one on the auditorium, one on QA, one on packaging and
-  hosting. Stay inside the area you were asked to work on. Before editing a shared file (`shared/*.js`,
-  `control.html`, `standby-server.js`), check whether someone else is changing it.
+- Several agents may work at once (see "Working next to other agents" below). Stay inside the area you were asked
+  to work on.
 
 ## Who renders the art
 
@@ -96,6 +96,73 @@ when the owner says so. Do not start new `codex exec` jobs for art.
 
 A brief states what to change, what must stay the same, the exact deliverable (for example the single draft
 image) and "write only inside roxy3d/". It ends with a STATUS line.
+
+GPT 6.2 Astra (OpenAI) also works on this project since 27 Nov 2026, on the areas the owner gives it. The art rule
+above stands until the owner changes it.
+
+## Working next to other agents
+
+Claude Code (Opus 5.5, Fable 5.2) and GPT 6.2 Astra work in the same folder on the same PC, often at the same time.
+This file is the memory they share: `CLAUDE.md` loads it for Claude, and Codex-style tools read `AGENTS.md` on their
+own. An agent's private memory does not reach the other one, so **when the owner gives a standing rule, add it to
+this file (in the right section) and commit it.** Project history lives in `roxy3d/PROGRESS.md`, open owner requests
+in `roxy3d/QUEUE-owner.md`, area details in `docs/`.
+
+- **Say what you're on.** Before you edit, start a server, or use the GPU, add one line to `WORKING-ON.md` in this
+  folder (local, not committed): who, what, which files or ports, since when. Remove your line when you're done.
+  Read it first, and don't edit files someone else has listed. If you need them, tell the owner.
+- **Uncommitted changes may be someone else's.** Check `git status` / `git diff` before editing a file. Never
+  revert, reformat or overwrite another agent's uncommitted work. Commit only your own changes: stage your own files
+  and hunks (for `PROGRESS.md`, only your entry), not `git add -A`.
+- **Shared files** (`shared/*.js`, `control.html`, `standby-server.js`, `web/server.js`) are live the moment they
+  are saved. Edit a copy, `node --check` it, then swap it in at once. Write with LF line endings (`newline='\n'` in
+  Python); a Windows rewrite once turned whole files into CRLF.
+- **Ports.** 18770 (live server), 18765 (chat relay) and 18790 (OBS bridge) are the owner's. Test servers: Claude
+  uses 18771-18779, Astra 18780-18789. Stop your own test servers, relays and headless browsers by exact PID when
+  you finish, and check that none are left. Never stop another agent's processes.
+- **One GPU (RTX 3050).** Before a render, perf run or headless browser batch, check `WORKING-ON.md` and
+  `nvidia-smi` for a running `blender.exe`. Timing taken while another job uses the GPU doesn't count.
+
+## Owner's standing rules
+
+From the owner, 7-18 Nov 2026. They apply to every agent.
+
+### Shipping
+- A finished, checked change goes to all four copies in the same turn: the local live files, the GitHub repo
+  (commit + push), the hosted edition (`bash web/deploy/deploy.sh`, then compare the server's files with the local
+  build by SHA-256), and the zip (`node package/build.js`, then smoke-test it on a spare port: a fresh room's
+  auditorium must reach its seats, not only load). Skip a copy only when the change can't reach it, and say so.
+- Back up a live file before replacing it. QA copies first for risky work.
+
+### Services and processes
+- The live server (18770), chat relay (18765) and OBS bridge (18790) always run in their own visible console window,
+  started with `explorer.exe "<full path>.bat"` (`start-standby.bat`, `start-obs-bridge.bat`). Never run them hidden.
+  To restart one, stop exactly that PID, start the .bat again, then check the port.
+- Never tree-kill (`taskkill /T`) near the live server: on 10 Nov 2026 one likely took 18770 down. Kill exact PIDs,
+  then check 18770 again a few seconds later.
+- When a `.bat` is ready for the owner, give the owner a one-line command to run it: `explorer.exe "<full path>.bat"`.
+- Godot runs with `--headless` only. Never flash a window on the owner's screen; compare JSON, not stills.
+
+### Performance and OBS
+- The owner's OBS browser sources run at a steady 30 fps on purpose (style). Never suggest changing that. Test at 60 (the
+  stricter test), confirm at 30 in the portable QA OBS, and add an uncapped leg (no fps limit) to every perf pass.
+  Report all three.
+- More RAM or VRAM for less stutter is fine; note the memory cost in `PROGRESS.md`.
+- Check the baseline against what a normal scene should look like (people outside, chatting, at the jukebox), using
+  a page that has been open a while and the room record (`/ctl/room-state`, `/ctl/room-roster`). Fix causes, not
+  symptoms.
+- After any change to a transition (`shared/transition*.js`, the fly-through), record it in the portable QA OBS
+  (`roxy3d/qa-night/obs-portable`) with real chat and give the owner the video. Never touch the owner's live OBS.
+
+### Design and content
+- Any new design starts with a Google Images search of the owner's exact wording; use the results as reference.
+- Improvements should add life (people, staff, small motion, chat reactions), not lighting or polish. The auditorium
+  is "just a cinema": only what a real audience or staff would do.
+- DGG memes: research them, nothing older than one year. Drama is welcome as winks. Leave out deaths, private
+  people, sex-crime or minors accusations, slurs and terror jokes.
+- Before any paid final render (RunPod), run automated motion, flash and rain checks plus a cheap full-length draft.
+  On RunPod use several Blender workers per GPU (aim for ~100% GPU) and pick the data center with the best
+  availability over the fastest GPU.
 
 Older briefs, notes and docs (`docs/art-pipeline.md`, `docs/owner-workflow.md`) still describe the Codex CLI calls
 that made the art up to Brief 88; read "Codex" there as "the render agent".

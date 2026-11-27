@@ -44,3 +44,4 @@ __pycache__/
 
 # QA/perf audit reports and logs (real chatters' names, local paths): local only, never served (audit 15 Nov 2026)
 audit/
+WORKING-ON.md
