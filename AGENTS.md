@@ -80,29 +80,39 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
 - If you don't know a DGG meme, an emote, or what dinkdonk.mov is, search the web. Don't guess.
 - Log what you changed, and why, in `roxy3d/PROGRESS.md` (newest at the bottom, with the date). Queued owner
   requests live in `roxy3d/QUEUE-owner.md`.
-- Several agents may work at once (see "Working next to other agents" below). Stay inside the area you were asked
+- Several agents may work at once (see "Working together" below). Stay inside the area you were asked
   to work on.
 
-## Who renders the art
+## Which Claude model does what
 
-**Owner, 12 Nov 2026: Claude Fable 5.2 (high effort) is used only for the Blender design work; everything else
-(QA, critiques, checks, packing reviews, page work) is done by Claude Opus 5.5.** Fable's part is what the Codex CLI
+**Owner, 12 Nov 2026: on Claude's side, Claude Fable 5.2 (high effort) is used only for the Blender design work;
+everything else Claude does (QA, critiques, checks, packing reviews, page work) is done by Claude Opus 5.5.** Astra
+works on all of it too (see "Working together"). Fable's part is what the Codex CLI
 used to do in Blender: building and editing the scenes from the numbered briefs (`roxy3d/BRIEF-NN-*.md`),
 blockouts, styled drafts, and the layer and production renders. In Claude Code that is a subagent with the model set
 to Fable 5.2 and the effort set to high (Agent tool: `model: "fable"`, `effort: "high"`), given the brief as its task
 and run in the background. It writes only inside `roxy3d/` and reports in `roxy3d/NOTES-NN.md`, exactly as Codex
 did. The read-only second-opinion critique of a draft goes to an Opus 5.5 agent (`model: "opus"`), or is skipped
-when the owner says so. Do not start new `codex exec` jobs for art.
+when the owner says so. Claude does not start `codex exec` jobs for its art work (this is only about how Claude runs
+its own Blender jobs; it doesn't limit GPT 6.2 Astra, see below).
 
 A brief states what to change, what must stay the same, the exact deliverable (for example the single draft
 image) and "write only inside roxy3d/". It ends with a STATUS line.
 
-GPT 6.2 Astra (OpenAI) also works on this project since 27 Nov 2026, on the areas the owner gives it. The art rule
-above stands until the owner changes it.
+## Working together: Claude and GPT 6.2 Astra
 
-## Working next to other agents
+Owner, 27 Nov 2026: GPT 6.2 Astra (OpenAI) is a full collaborator on the whole project: pages, server, hosting,
+packaging, art, Blender, QA and performance. Neither agent owns an area; both work from the same rules, and either
+one can pick up, review or finish the other's work. Claude Code (Opus 5.5, Fable 5.2) and Astra work in the same
+folder on the same PC, often at the same time.
 
-Claude Code (Opus 5.5, Fable 5.2) and GPT 6.2 Astra work in the same folder on the same PC, often at the same time.
+- **Hand-offs.** Leave work so the other agent can continue it without asking: a `PROGRESS.md` entry with what
+  changed, what was checked, and what is open or unverified. Notes from art jobs go in `roxy3d/NOTES-NN.md` as before.
+- **Second opinions.** A read-only critique or review by the other agent is welcome (drafts, risky changes to shared
+  files, perf conclusions). Say which of its points you took.
+- **Disagreements.** If you think the other agent's change is wrong, say so in `PROGRESS.md` or to the owner with the
+  evidence; don't quietly undo it.
+
 This file is the memory they share: `CLAUDE.md` loads it for Claude, and Codex-style tools read `AGENTS.md` on their
 own. An agent's private memory does not reach the other one, so **when the owner gives a standing rule, add it to
 this file (in the right section) and commit it.** Project history lives in `roxy3d/PROGRESS.md`, open owner requests
