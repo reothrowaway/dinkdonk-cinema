@@ -77,7 +77,7 @@ The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk 
 
 Open **Projection booth** from the guide to practice a 35 mm reel change. Guided mode holds each cue. In timed mode the upper-right dot appears for four frames at 24 fps. Press **M** to start the incoming motor and **C** to change projectors, or use the two buttons. Leaving the tab pauses the reel.
 
-Open **Reel timing sheet** in the booth to time a 35 mm four-perf or 16 mm print. Enter each reel’s picture footage and extra frames, then choose the projection speed. The sheet shows the duration of each reel, the elapsed time at its end, and the total picture time. The last pair of digits counts frames. The browser saves the sheet locally when storage is available.
+Open **Reel timing sheet** in the booth to time a 35 mm four-perf or 16 mm print. Enter each reel’s picture footage and extra frames, then choose the projection speed. The sheet shows the duration of each reel, the elapsed time at its end, and the total picture time. The last pair of digits counts frames. The browser saves the sheet locally when storage is available. Open **Share one print between two screens** to allow for reel preparation and a courier’s round trips. Each delivery shows how early or late it reaches Booth B and the earliest uninterrupted second screening.
 
 In the booth, **Picture & sound sync** plays a downloadable nine-second reference through your recording setup. At 24 fps, the picture marked 2 and the 1 kHz stereo tone coincide on frame 144. First picture begins on frame 192. Use the two cue buttons and frame controls to inspect the reference, or import the MP4 into your editor alongside a recording.
 

@@ -35,10 +35,22 @@
   #problem { color:#702a18; font-weight:600; margin:12px 0 0 }
   input[aria-invalid=true] { border:2px solid #9e3920 }
   small { display:block; margin-top:12px; color:#d1cebe }
+  #switching { margin-top:26px; border-block:1px solid #646b5e; padding:14px 0 }
+  #switching summary { cursor:pointer; font:normal clamp(24px,4vw,34px)/1.2 Georgia,serif }
+  #switching summary:focus-visible { outline-offset:2px }
+  #switching p { max-width:72ch }
+  #switching input { min-width:0; width:7em }
+  .dispatch { padding:12px 0; border-top:1px solid #50584d; display:grid; grid-template-columns:1fr repeat(3,minmax(0,1.4fr)); gap:8px }
+  .dispatch b { font-family:Georgia,serif; font-size:1.14rem }
+  .dispatch span { display:block; color:#d1cebe; font-size:.86rem }
+  .dispatch strong { font:600 1rem/1.5 "Courier New",monospace }
+  .dispatch .late { color:#ffb292 }
+  #switch-result { font-weight:600 }
   @media(max-width:740px) {
     .reel { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center }
     .reel h2 { grid-column:1 }.reel button { grid-column:2; grid-row:1; justify-self:end }
     .settings { align-items:stretch }
+    .dispatch { grid-template-columns:repeat(2,minmax(0,1fr)) }
   }
 </style>
 </head>
@@ -57,6 +69,19 @@
     <p id="problem" role="status" hidden></p>
   </section>
   <small>Times show hours, minutes, seconds and remaining frames at the selected speed. Each reel ends at the elapsed time from the start of the print.</small>
+  <details id="switching">
+    <summary>Share one print between two screens</summary>
+    <p>Both booths play the reels in order at the selected speed. Booth A prepares one reel at a time after projection. One courier carries it to Booth B and returns empty before picking up the next.</p>
+    <div class="settings">
+      <label>Reel prep (seconds)<input id="prep" type="number" min="0" max="3600" step="1" value="30" required></label>
+      <label>One-way trip (minutes)<input id="trip" type="number" min="0" max="120" step="1" value="2" required></label>
+      <label>Booth B start delay (minutes)<input id="stagger" type="number" min="0" max="99999" step="1" value="15" required></label>
+    </div>
+    <p id="switch-result" role="status"></p>
+    <button type="button" id="safe-start" hidden>Use earliest whole minute</button>
+    <p id="switch-origin" hidden>All times run from the start of the show in Booth A.</p>
+    <div id="deliveries"></div>
+  </details>
   <template id="row">
     <section class="reel">
       <h2></h2>
