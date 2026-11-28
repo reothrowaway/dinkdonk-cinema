@@ -44,8 +44,7 @@ Off for the original image. Turn on **Director chooses filters** to rotate the l
 rotation enabled at 30 seconds per look. The interval is adjustable from 5 to 600 seconds.
 
 For the same controls directly in a scene, use OBS **Interact**, then press **Shift+F**. Close the menu with Escape.
-You can also open a separate browser view of that room with `filtercontrols=1` in its URL. The controls change the
-OBS filter on the room's browser source. The auditorium keeps the film cutout aligned.
+You can also open a separate browser view of that room with `filtercontrols=1` in its URL. The room page applies the look to the art, chatters and bubbles in every browser. The auditorium preserves the green film cutout. Off restores the original picture.
 
 ### Cinema events
 

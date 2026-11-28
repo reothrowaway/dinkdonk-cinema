@@ -48,14 +48,5 @@ const extrasFiles = [
 const looksDir = 'concepts/vaporwave/';
 const shaderFile = looksDir + 'cinema-looks.shader';
 const lookGuide = looksDir + 'obs-looks.html';
-const presets = require('../concepts/vaporwave/scene-looks.json');
 
-function lookFilters(room, shaderText) {
-  return presets[room].map(([preset, label, strength], index) => ({
-    name: label + ' · ' + strength + '%', id: 'shader_filter', versioned_id: 'shader_filter',
-    enabled: index === 0,
-    settings: { from_file: false, shader_text: shaderText, Preset: preset, Strength: strength, Keyed_Plate: room === 'auditorium' },
-  }));
-}
-
-module.exports = { eventFiles, extrasFiles, shaderFile, lookGuide, lookFilters };
+module.exports = { eventFiles, extrasFiles, shaderFile, lookGuide };

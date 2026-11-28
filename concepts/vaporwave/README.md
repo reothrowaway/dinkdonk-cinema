@@ -1,8 +1,10 @@
 # Cinema looks
 
-The standalone shader is [cinema-looks.shader](cinema-looks.shader). The owner's workspace also includes an [offline comparison](index.html) with OBS captures for all thirteen looks. Select a scene and move the slider to reveal the original from the left. The capture files stay local because they contain real chat.
+The lobby and auditorium now render all thirteen looks in the browser. Use the room card or Shift+F to choose one, turn it off or set the rotation interval. For an OBS reference comparison, set the page look to Off first.
 
-## Promoted to QA
+The original standalone shader is [cinema-looks.shader](cinema-looks.shader). The owner's workspace also includes an [offline comparison](index.html) with OBS captures for all thirteen looks. Select a scene and move the slider to reveal the original from the left. The capture files stay local because they contain real chat.
+
+## Original OBS QA collection
 
 The **DinkDonk Cinema Looks QA** OBS scene collection opens in the lobby. Each room has one look enabled. To compare looks, open **Filters** on the browser source listed below, switch the active look off, then switch the desired look on. Leave **Key #00ff00** enabled in the auditorium.
 
@@ -23,7 +25,7 @@ All thirteen looks are in the comparison below. Pink halation overlaps the warme
 4. For the auditorium, choose where the effect belongs. A filter on the complete scene grades the auditorium and visible movie together. **Curved CRT** can bend them together in this placement. A filter on the auditorium browser source can keep the movie's original colors. Put the existing green **Color Key** first in the processing order, add the look after it, and enable **Keep film cutout aligned**. This preserves the keyed alpha and disables the barrel warp on this plate. Keep the live corner-pin filter on the separate film source.
 5. **Film fullscreen** is a separate scene. A look attached only to the lobby or auditorium ends when OBS cuts to that scene.
 
-The addon is the same obs-shaderfilter plugin used by the project's film corner pin. The shader runs inside OBS on the streamer's PC. The hosted web preview and the control panel do not apply it. Each scene can have its own preset and strength.
+The addon is the same obs-shaderfilter plugin used by the project's film corner pin. The shader runs inside OBS on the streamer's PC. The hosted rooms render the corresponding page effects directly. Each scene can have its own preset and strength.
 
 ## The looks
 

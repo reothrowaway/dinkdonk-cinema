@@ -425,6 +425,8 @@
 <script src="shared/house-notice.js"></script>
 <script src="shared/shadow-round.js"></script>
 <script src="shared/sing-along.js"></script>
+<script src="shared/obs-look-director.js"></script>
+<script src="shared/page-look.js"></script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="concepts/preshow-quiz/deck.js"></script>
@@ -3889,7 +3891,8 @@
   };
   const urlSettings = Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
-  function applySettings(values) {
+  function applySettings(values, serverTime) {
+    CinemaPageLook.update(values, serverTime);
     const set = values && typeof values === 'object' ? values : {};
     for (const [k, s] of Object.entries(SETTINGS)) {
       const v = Object.hasOwn(set, k) ? set[k] : urlSettings[k];
@@ -3943,7 +3946,7 @@
         director.next = now + director.every * 1000;
         if (show.phase === 'film') show.shot = 'outro';
         break;
-      case 'settings': applySettings(c.values); break;   // the panel's scene settings (on connect and on every change)
+      case 'settings': applySettings(c.values, c.serverTime); break;   // the panel's scene settings (on connect and on every change)
       // Brief 102: the screen shots, value 't1' | 't2' | 't3' | 'stop' (shared/aud-shots.js)
       case 'shot': window.DD_SHOTS?.command(c.value); break;
       case 'phaseAuto':
