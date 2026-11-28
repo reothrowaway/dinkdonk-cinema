@@ -59,6 +59,7 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
      Claude Opus 5.5 agent, see "Who renders the art") and say which points you took.
    - Run **full renders** only when the owner says so. Stage new packs in a separate folder (such as `out10i/`),
      verify them, back up the current pack, then promote.
+   - For lobby prop redesigns, show three images in order. First render the existing Blender model. Research the real subject and use those references for one selected ImageGen design draft. Build the revision in Blender and show its render third, with the editable .blend file. Use matching camera framing for the two Blender renders.
    - Never redo something the owner already approved.
 7. **Cloud GPU (RunPod)** costs real money. Use it only when the owner asks. Stay inside the credit the owner names,
    delete pods and volumes afterwards, and never put API keys in files.
