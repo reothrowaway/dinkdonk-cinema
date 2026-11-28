@@ -3806,3 +3806,11 @@ With 134 guests seated the unmodified auditorium's wide fades and the fades duri
 28 Nov 2026 — (Claude) Restarted the live server (18770) on main via start-standby.bat (old PID 21244, new 25176) so the merged discussion and question-desk routes answer; the OBS lobby screen reconnected. AGENTS.md: the owner has Codex usage resets, so a low Codex reading means telling the owner, not moving work away from Astra.
 
 28 Nov 2026 — (Claude) The owner expected the cinema filters in the browser page; they are OBS shader filters applied by the bridge, so they never show in a browser (and OBS was not running). Owner rule added to AGENTS.md: depend on OBS as little as possible; OBS only for scene switches, cinema transitions and the film capture, visual effects in the page. Inventory: the 13 looks (and the unreleased cinema-mods shaders) are the only OBS-side effects that do not need OBS.
+
+## 28 Nov 2026 (Astra) — Page-rendered cinema filters
+
+Local review branch `feature/page-filters`, implementation through `6978e712`. Normal, Moody and the auditorium now grade the complete room stage, including walkers and bubbles. The existing room controls select thirteen looks or Off. Auto uses the server clock and shared per-room strengths. Local and hosted OBS connections disable recognized legacy shaders. New packaged collections omit them.
+
+Captured wide and close real-chat views, three labeled contact sheets and the Auto director video. Compared 78 fixed-frame pairs against the original shader in portable OBS. Corrected the CRT and Neon rain lens center in OBS. All 175,536 keyed film pixels matched in all thirteen looks. Native OBS cleanup preserved a personal shader. The page approximates highlight spread, diagonal glints and VHS trails, and omits radial color fringes. The loopback hosted settings and operator controls passed. Evidence and resumption instructions are in the live checkout’s local `roxy3d/qa-night/page-filters-28nov/results.md`.
+
+Paused at 90% weekly usage before retiming the corrected revision. The earlier renderer completed 60 fps, 30 fps and uncapped runs with repeated zooms and auditorium fades. Its timings are in `before-texture-fix/`. Resume with the final three performance legs before shipping.
