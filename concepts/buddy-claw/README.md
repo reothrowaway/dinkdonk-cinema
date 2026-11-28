@@ -4,9 +4,9 @@
 
 The prize is modeled after the 2026 Buddy Plushie. The official front photograph defined the swept fringe, pink cheek patches and wide red heart. The side and back photographs established the depth of the head, the seated pose and the low edge of the hair. The hair and body are simplified for the isometric camera. [Front](https://store.destiny.gg/cdn/shop/files/Buddy_Front_a07ed1af-72f5-48bd-be91-71639f6dbb85.png?v=1779989754) · [Side](https://store.destiny.gg/cdn/shop/files/Buddy_Side_2.png?v=1780071242) · [Back](https://store.destiny.gg/cdn/shop/files/Buddy_Back.png?v=1779990103)
 
-The [March 1996 SMART advertisement](https://elibrary.arcade-museum.com/magazines/pm/PlayMeter-1996-03/PlayMeter-1996-03-067.pdf) shows contemporary prize crane cabinets. The two [ImageGen studies](concepts.jpg) explored the lighting using the existing cabinet render and the three product photographs. The Blender draft uses the warm treatment, a dark display liner and eight copies of the seated prize.
+The [March 1996 SMART advertisement](https://elibrary.arcade-museum.com/magazines/pm/PlayMeter-1996-03/PlayMeter-1996-03-067.pdf) shows contemporary prize crane cabinets. The two [ImageGen studies](concepts.jpg) explored the lighting using the existing cabinet render and the three product photographs. The Blender draft uses the warm treatment, a dark display liner and nine copies of the seated prize.
 
-Open [buddy-claw.blend](buddy-claw.blend) in Blender 5.2.3. The cabinet scene opens at the lobby camera angle. Switch to **Buddy plush | model studio** to edit the toy at the origin. Each of the eight prizes in the cabinet uses that collection.
+Open [buddy-claw.blend](buddy-claw.blend) in Blender 5.2.3. The cabinet scene opens at the lobby camera angle. Switch to **Buddy plush | model studio** to edit the toy at the origin. Each of the nine prizes in the cabinet uses that collection.
 
 - [Buddy from three angles](buddy-turnaround.jpg) shows the same Blender model rotated in a studio.
 - [Cabinet detail](machine-detail.png) is a studio render of the editable cabinet.

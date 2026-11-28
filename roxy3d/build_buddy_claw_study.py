@@ -3,7 +3,7 @@ from pathlib import Path
 from math import cos, sin, pi, sqrt, radians
 import sys
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 
 out = Path(sys.argv[sys.argv.index('--')+1]).resolve()
@@ -40,7 +40,7 @@ pink = cloth('Rose cheek applique', (.92,.34,.43))
 ink = cloth('Black embroidery', (.005,.004,.011), .08)
 red = cloth('Cherry red heart cushion', (.71,.018,.032))
 welt = cloth('Berry thread piping', (.36,.01,.024))
-liner = cloth('Midnight blue display liner', (.038,.055,.10), .08)
+liner = cloth('Midnight blue display liner', (.012,.019,.045), .05)
 
 def mesh(name, verts, faces, mat):
     data = bpy.data.meshes.new(name)
@@ -219,16 +219,52 @@ for o in original:
         cabinet.objects.link(o)
 old_heap.hide_render=True
 old_heap.hide_viewport=True
-for obj_name in ['P91 claw box west wall','P91 claw box north wall']:
+for obj_name in ['P91 claw box west wall','P91 claw box north wall','P91 claw box floor']:
     obj=bpy.data.objects[obj_name]
     obj.data.materials[0]=liner
 lamp = next(o for o in original if o.type=='LIGHT')
-lamp.data.color=(1,.85,.70)
-lamp.data.energy=6
-# Keep the prong's drop zone clear. Every prize rests on the display floor.
-seats=[(12.075,-8.008,.232,19),(12.289,-8.024,.235,45),(12.508,-8.005,.245,41),
+lamp.data.color=(1,.80,.64)
+lamp.data.energy=4
+
+# Raise the open claw above the target's crown, keeping the cable attached to the carriage.
+lift = .044
+carriage_travel = Vector((.033, -.043, 0))
+for obj in original:
+    if obj.name.startswith('P91 claw prong') or obj.name == 'P91 claw hub':
+        obj.matrix_world = Matrix.Translation(carriage_travel + Vector((0,0,lift))) @ obj.matrix_world
+    elif obj.name == 'P91 claw gantry carriage':
+        obj.matrix_world = Matrix.Translation(carriage_travel) @ obj.matrix_world
+    elif obj.name == 'P91 claw gantry rail':
+        obj.matrix_world = Matrix.Translation((0, carriage_travel.y, 0)) @ obj.matrix_world
+cable = bpy.data.objects['P91 claw cable']
+endpoints = [(cable.matrix_world @ Vector(corner)).z for corner in cable.bound_box]
+top = max(endpoints)
+length = top - min(endpoints)
+assert length > lift
+retract = Matrix.Diagonal((1, 1, (length-lift)/length, 1))
+cable.matrix_world = (Matrix.Translation(carriage_travel) @ Matrix.Translation((0,0,top)) @ retract
+                      @ Matrix.Translation((0,0,-top)) @ cable.matrix_world)
+
+# A warm tube runs under each visible header rail. The front corner post separates them.
+strip_mat=bpy.data.materials.new('Amber showcase tube')
+strip_mat.use_nodes=True
+shader=strip_mat.node_tree.nodes.get('Principled BSDF')
+shader.inputs['Emission Color'].default_value=(1,.48,.19,1)
+shader.inputs['Emission Strength'].default_value=5
+for side,ends in [
+        ('front',[(11.992,-8.229,1.006),(12.642,-8.229,1.006)]),
+        ('side',[(12.703,-8.105,.987),(12.703,-7.548,.987)])]:
+    strip=cord('Under-marquee tube '+side,ends,.0035,strip_mat)
+    master.objects.unlink(strip)
+    cabinet.objects.link(strip)
+    lobby.collection.objects.link(strip)
+    strip['cloud_group']='claw'
+
+# A forward-facing prize under the open claw and a turned-away prize behind it.
+seats=[(12.067,-8.008,.232,19),(12.276,-8.024,.235,45),(12.487,-8.032,.241,35),
        (12.136,-7.794,.256,30),(12.377,-7.801,.245,63),
-       (12.065,-7.611,.215,82),(12.275,-7.601,.228,42),(12.529,-7.600,.209,150)]
+       (12.065,-7.611,.215,82),(12.275,-7.601,.228,42),(12.548,-7.610,.202,150),
+       (12.567,-7.808,.223,45)]
 for i,(x,y,scale,yaw) in enumerate(seats,1):
     doll=bpy.data.objects.new(f'Seated Buddy {i:02d}',None)
     doll.instance_type='COLLECTION'
