@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movie-night bingo · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box } :root { color-scheme:light; background:#38272a; color:#f7ead5; font:16px/1.45 "Segoe UI",sans-serif }
+  body { margin:0 } main { max-width:1050px; margin:auto; padding:clamp(15px,4vw,46px) }
+  header,.line,.buttons { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 15px }
+  header { font-weight:650; padding-bottom:9px; border-bottom:1px solid #ac9388 } header a { color:#fae1b5; text-underline-offset:.2em }
+  .layout { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.78fr); align-items:start; gap:clamp(18px,4vw,45px); margin:26px 0 }
+  .ticket { padding:clamp(14px,2.6vw,27px); background:#f5e7c9; color:#332c25; border-top:7px solid #a54c3e; border-bottom:4px double #785b4d; box-shadow:0 4px 13px #1c1216 }
+  .line { font:bold 13px/1.4 "Courier New",monospace; border-bottom:1px solid #8c7967; padding-bottom:8px }
+  h1,h2,h3,p { margin:0 } h1 { font:normal clamp(36px,5vw,60px)/1.06 Georgia,serif; letter-spacing:-.045em; margin:12px 0 }
+  h2 { font:normal clamp(26px,3vw,36px)/1.15 Georgia,serif }
+  .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid #7f7360; border-left:1px solid #7f7360 }
+  .cell { position:relative; min-width:0; min-height:clamp(84px,8.8vw,105px); display:grid; align-content:center; justify-items:center; text-align:center; border:0; border-radius:0; border-right:1px solid #7f7360; border-bottom:1px solid #7f7360; background:transparent; color:inherit; padding:13px 7px 11px; font:650 clamp(13px,1.45vw,18px)/1.25 "Segoe UI",sans-serif; overflow-wrap:anywhere }
+  .cell[aria-pressed=true] { background:#e2d3aa; box-shadow:inset 0 0 0 2px #645e40 }
+  .cell[aria-pressed=true]::after { content:"✓"; position:absolute; font-weight:800; right:5px; top:1px; color:#31503b }
+  .cell.win { background:#d2dfbd; box-shadow:inset 0 0 0 2px #435d46 }
+  .free { background:#ebd6ad; color:#674731; font:italic bold clamp(16px,2vw,23px)/1.2 Georgia,serif }
+  button,select,input { font:inherit; color:inherit } button { cursor:pointer }
+  .desk { padding:8px 0 } .desk>p { margin:9px 0 14px; color:#e7d6c7 }
+  label { display:grid; gap:4px; min-width:0; font-size:14px; font-weight:650 }
+  .fields { display:flex; align-items:end; flex-wrap:wrap; gap:10px; margin:16px 0 }
+  select,input { border:1px solid #ae9a8c; border-radius:3px; padding:8px; width:100%; background:#473337 }
+  #card { max-width:90px }
+  .buttons { justify-content:flex-start } .buttons button { border:1px solid #baa18c; border-radius:3px; padding:8px 11px; min-height:41px; background:transparent; font-weight:600 }
+  #share-url { margin-top:8px; font-family:"Courier New",monospace;font-size:13px }
+  #feedback { margin:9px 0;color:#f1dab1 }
+  #score { display:block; padding-top:10px; color:#634236; font-weight:700; min-height:1.5em }
+  :focus-visible { z-index:1; outline:3px solid #d39339; outline-offset:2px }
+  #paper,[hidden] { display:none !important }
+  @media(max-width:690px) { .layout {grid-template-columns:1fr;margin:16px 0}.cell {min-height:82px}.desk {padding-top:0} }
+  @page { size:A4 portrait; margin:10mm }
+  @media print {
+    :root,body { background:white;color:black } main { max-width:none;padding:0 } header,.layout {display:none}
+    #paper { display:grid !important; grid-template-columns:repeat(2,1fr); gap:5mm }
+    .ticket { padding:4mm; border:1px dashed #675f51; box-shadow:none; background:white; break-inside:avoid }
+    .ticket h2 {font:normal 18pt/1.1 Georgia,serif;margin:3mm 0}.line {font-size:8pt;padding-bottom:2mm}
+    .cell {min-height:28mm;padding:2mm 1mm;font-size:11pt}.free {font:italic bold 13pt Georgia,serif}
+    .paper-rule { margin:2mm 0 0;font-size:8pt }
+  }
+</style></head><body><main>
+  <header><span>DinkDonk Cinema</span><a href="../cinema-guide/index.html">Cinema guide</a></header>
+  <div class="layout"><section class="ticket" aria-labelledby="game-title">
+    <div class="line"><span id="game-id"></span><span id="card-id"></span></div>
+    <h1 id="game-title">Movie-night bingo</h1><div class="grid" id="grid" aria-label="Bingo card"></div><output id="score" aria-live="polite"></output>
+  </section><section class="desk" aria-labelledby="how"><h2 id="how">Play along</h2>
+    <p>Tap a square when you spot it on screen. Three across, down or diagonally make a line. Tap again to undo a mark.</p>
+    <div class="fields"><label>Watch for<select id="deck"><option value="lobby">Lobby sights</option><option value="film">Film moments</option></select></label>
+      <label>Card number<input id="card" type="number" min="1" max="9999" step="1"></label></div>
+    <div class="buttons"><button id="share" type="button">Copy game link</button><button id="print" type="button">Print four cards</button><button id="fresh" type="button">New game</button></div>
+    <p>Share the game link with other viewers. Choose different card numbers to play together. Printed sets start at the card shown here.</p>
+    <input id="share-url" type="text" aria-label="Game link" readonly hidden><p id="feedback" role="status"></p>
+  </section></div><section id="paper" aria-label="Four printable bingo cards"></section>
+</main><script src="./bingo.js"></script></body></html>

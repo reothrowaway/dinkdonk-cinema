@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projection booth · DinkDonk Cinema</title>
+<style>
+  * { box-sizing: border-box }
+  :root { color-scheme: dark; background: #181a18; color: #f1eadc; font: 16px/1.45 "Segoe UI", sans-serif }
+  body { margin: 0 }
+  main { max-width: 1020px; padding: clamp(16px,4vw,44px); margin: auto }
+  header, .tools, .transport, .switches { display: flex; gap: 14px; align-items: center; flex-wrap: wrap }
+  header { justify-content: space-between; border-bottom: 1px solid #5d6257; padding-bottom: 10px }
+  a { color: #d6d9af; text-underline-offset: .2em }
+  h1 { font: normal clamp(40px,7vw,76px)/1 Georgia, serif; margin: .35em 0 .15em }
+  .intro { margin: 0 0 20px; color: #d1cebe }
+  .port { background: #090b0a; border: 1px solid #6c6e5f; border-radius: 12px; padding: clamp(10px,2.5vw,23px) }
+  .frame { background: #d9d4b8; color: #25332d; aspect-ratio: 2.35; isolation: isolate; position: relative;
+    display: grid; place-items: center; overflow: hidden; border-radius: 3px; container-type: inline-size }
+  .frame::before { content: ""; position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(90deg,transparent 49.9%,#38584888 49.9% 50.1%,transparent 50.1%),
+      linear-gradient(transparent 49.8%,#38584888 49.8% 50.2%,transparent 50.2%),
+      radial-gradient(circle,#e9e5d0 0 15%,#7e8c75 15.1% 15.4%,transparent 15.5% 27%,#85937c 27.2% 27.6%,transparent 27.7% 36%,#667866 36.1% 36.5%,transparent 36.6%),
+      repeating-linear-gradient(0deg,#586c5930 0 1px,transparent 1px 7%),repeating-linear-gradient(90deg,#586c5930 0 1px,transparent 1px 3%) }
+  .frame::after { content: ""; pointer-events:none; position:absolute; inset:0; box-shadow: inset 0 0 8cqw #272a2177 }
+  .reel { font: bold 14cqw/1 Georgia, serif }
+  .dot { position:absolute; right:7%; top:14%; width:3.5%; aspect-ratio:1.2; border: max(2px,.45cqw) solid #25332d; border-radius:50%; background:#edead6 }
+  .transport { margin: 12px 0 0; justify-content: space-between; font: bold .85rem/1.3 "Courier New",monospace; color: #d4caae }
+  .tools { justify-content: space-between; margin: 18px 0 }
+  label { display: flex; gap: 8px; align-items:center }
+  select, button { font: inherit; border: 1px solid #8b9384; border-radius: 4px; min-height: 44px; padding: 8px 14px; background:#2c332c; color:#f2efe1 }
+  button { cursor:pointer; font-weight:650 }
+  button:disabled { opacity: .5; cursor: default }
+  :focus-visible { outline: 3px solid #ffd589; outline-offset: 3px }
+  #run { background: #e1c88a; color: #272920; border-color: #e1c88a }
+  .switches { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px }
+  .switches button { padding: 14px 10px }
+  kbd { font: 13px "Courier New",monospace; padding: 1px 5px; border:1px solid currentColor; border-radius:2px }
+  #status { min-height: 2.9em; margin-bottom:0 }
+  [hidden] { display:none !important }
+  @media(max-width:520px) { .tools { align-items: stretch } .switches kbd { display:none } .transport { font-size:.74rem } }
+</style>
+</head>
+<body><main>
+  <header><span>DinkDonk Cinema</span><a href="./reel-sheet.html">Reel timing sheet</a><a href="./framing.html">Framing bench</a><a href="./sync-leader.html">Picture &amp; sound sync</a><a href="./captions.html">Caption desk</a><a href="../house-organ/index.html">House organ</a><a href="../cinema-guide/index.html">Cinema guide</a></header>
+  <h1>Projection booth</h1>
+  <p class="intro">Watch the upper-right corner. Start the other motor on the first dot. Switch projectors on the second.</p>
+  <div class="port"><div class="frame" aria-label="Projection test frame"><span class="reel" id="reel">A</span><span class="dot" id="dot" hidden></span></div>
+    <div class="transport"><span id="onscreen">ON SCREEN · A</span><span id="motor-state">MOTOR B · IDLE</span></div></div>
+  <div class="tools">
+    <label>Practice mode <select id="mode"><option value="guided">Guided cues</option><option value="print">35 mm timing</option></select></label>
+    <button id="run" type="button">Start reel</button>
+  </div>
+  <div class="switches"><button id="motor" type="button" disabled>Start motor <kbd>M</kbd></button>
+    <button id="change" type="button" disabled>Change over <kbd>C</kbd></button></div>
+  <p id="status" role="status">Guided practice holds each dot until you act.</p>
+</main><script src="./booth.js"></script></body></html>

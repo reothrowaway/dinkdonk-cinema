@@ -68,6 +68,11 @@
   .umb::after { content: ''; position: absolute; left: 29px; top: 20px; width: 2px; height: 30px; background: #222; }
   .w.out .umb { display: block; }
   .w.event-indoors .umb, .w.event-indoors .umbs { visibility: hidden; }
+  .w.umbrella-offer :is(.umb, .umbs) { translate: 14px -4px; scale: 1.14 1; rotate: 5deg; }
+  .w.umbrella-stowed :is(.umb, .umbs, .umbio) { opacity: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .w[data-event-walk] :is(.umb, .umbs) { transition: translate .6s, scale .6s, rotate .6s, opacity .4s, transform .25s; }
+  }
   .w.out:not([data-lt]) .em { filter: brightness(.84) saturate(.9); }   /* night street: dimmer than the lobby (when the scene light, L6, is off or not loaded) */
   /* Mirror the live body around the pavement. The stationary box holds the contact line while the body jumps. */
   .figure-ground { position: absolute; left: -48px; top: -96px; width: 96px; height: 96px; pointer-events: none; }
@@ -597,7 +602,44 @@
     const t = Date.now();
     return t % 60000 >= 48000 ? MQ_LINES[Math.floor(t / 60000) % MQ_LINES.length] : '';
   };
-  if (MQ_LINES_ON) setInterval(() => showMarquee(), 1000);   // (setMarqueeText does nothing while the text is the same)
+  const MQ_HOUSE_ON = MARQ_ON && q.get('mqhouse') !== '0' && q.get('room') !== '0' && location.protocol.startsWith('http');
+  let houseLine = '', houseReadAt = -Infinity, houseRequest = null, houseMinute = -1;
+  function houseStatus(room) {
+    const a = room?.auditorium;
+    if (room?.asleep || !a || !a.show) return '';
+    if (a.show.houseOut) return 'SCREEN 1 · HOUSE CLEARING';
+    if (Number.isFinite(a.show.intermissionUntil) && a.show.intermissionUntil > 0) return 'SCREEN 1 · INTERMISSION';
+    if (a.show.phase === 'film') return 'SCREEN 1 · FEATURE IN PROGRESS';
+    if (a.show.phase === 'dim') return 'SCREEN 1 · LIGHTS DOWN';
+    if (!['seating', 'up'].includes(a.show.phase)) return '';
+    if (![a.seats, a.seated, a.waiting].every(n => Number.isSafeInteger(n) && n >= 0) ||
+        !a.seats || a.seated > a.seats) return '';
+    const free = a.seats - a.seated;
+    if (!free) return a.waiting ? `STANDBY · ${a.waiting} WAITING` : 'SCREEN 1 · FULL HOUSE';
+    return `SCREEN 1 · ${free} ${free === 1 ? 'SEAT' : 'SEATS'} UNASSIGNED`;
+  }
+  // The events director also reads this endpoint. Share its in-flight request and timestamp.
+  function readHouse() {
+    if (houseRequest) return houseRequest;
+    houseRequest = fetch('/ctl/room-state', {cache: 'no-store', signal: AbortSignal.timeout(2500)})
+      .then(r => r.ok ? r.json() : null).catch(() => null).then(room => {
+        houseLine = houseStatus(room);
+        houseReadAt = Date.now();
+        return room;
+      }).finally(() => { houseRequest = null; });
+    return houseRequest;
+  }
+  function marqueeHouseLine() {
+    if (!MQ_HOUSE_ON || MARQ.custom[1] || !MARQ.bands.length || document.hidden) return '';
+    const now = Date.now(), minute = Math.floor(now / 60000), second = now % 60000 / 1000;
+    if (second < 20 || second >= 35) return '';
+    if (houseMinute !== minute) {
+      houseMinute = minute;
+      if (now - houseReadAt > 2500) void readHouse().then(showMarquee);
+    }
+    return now >= houseReadAt && now - houseReadAt < 18000 ? houseLine : '';
+  }
+  if (MQ_LINES_ON || MQ_HOUSE_ON) setInterval(showMarquee, 1000);
   let marqDone;
   const marqReady = new Promise((ok) => { marqDone = ok; });   // the marquee pack is in (or there is none): startRain2 waits for it
   // on the sidewalk under the marquee's roof: no rain lands there
@@ -1970,6 +2012,7 @@
         continue;
       }
       if (win.cur.plan.length) continue;
+      if (win.dishGuest === win.cur) continue;   // the cashier hands over this visit's Dish Night souvenir first
       win.t += dt;
       if (win.t < Math.max(0.8, 2.6 - 0.3 * queue.length)) continue;
       const w = win.cur;
@@ -4534,12 +4577,12 @@
   }
   // an umbrella blown inside out for 1.3 s: the rendered inside-out sprite of its colour (manifest
   // umbrella.inside_out, Brief 96, same cell and grip as the open one) stands in for it; older art: the CSS flip
-  function blowUmbrella(w) {
+  function blowUmbrella(w, duration = 1300) {
     const u = w.umb, io = w.umbColor && UMB?.inside_out?.[w.umbColor];
     if (!u) return;
     if (!(io?.file && Array.isArray(io.anchor) && [io.w, io.h, ...io.anchor].every(Number.isFinite))) {
       u.classList.add('blown');
-      setTimeout(() => u.classList.remove('blown'), 1300);
+      setTimeout(() => u.classList.remove('blown'), duration);
       return;
     }
     if (w.umbIo) return;
@@ -4549,7 +4592,7 @@
     Object.assign(im.style, { width: `${io.w}px`, height: `${io.h}px`, left: `${UMB_GRIP[0] - io.anchor[0]}px`, top: `${UMB_GRIP[1] - io.anchor[1]}px` });
     w.bod.append(im);
     u.style.visibility = 'hidden';
-    setTimeout(() => { im.remove(); u.style.visibility = ''; w.umbIo = null; }, 1300);
+    setTimeout(() => { im.remove(); u.style.visibility = ''; w.umbIo = null; }, duration);
   }
   // (test hook __street2.gust(): one umbrella outside blown inside out now; returns where, stage px)
   function street2Gust() {
@@ -6928,7 +6971,7 @@ void main() {
   // the board's two lines: the panel's own text where set ("-" = blank), else the automatic film text
   function showMarquee() {
     const line = (i) => (MARQ.custom[i] === '-' ? '' : MARQ.custom[i] || MARQ.auto[i]);
-    setMarqueeText(line(0), mqOneLiner() || line(1));
+    setMarqueeText(line(0), marqueeHouseLine() || mqOneLiner() || line(1));
   }
   function setMarqueeText(l1, l2) {
     const key = `${l1}|${l2}`;
@@ -7158,6 +7201,24 @@ void main() {
       underAt = im;
       artImgs.push([im, l.file]);
       if (l.anim) (PROPS.els[l.anim] ||= []).push(im);
+    }
+    // ImageGen fixtures on the ticket wall and counter. Their depths follow the
+    // supporting slices so the room's own walkers and foreground glass can pass in front.
+    if (PROPS_ON && ['out10s', 'out10t'].includes(ART_DIR)) {
+      for (const [name, x, y, width, z] of [
+        ['payphone', 799, 490, 40, 1792],
+        ['gumball', 1169, 650, 33, 2343],
+      ]) {
+        const im = h('img', 'prop');
+        im.alt = '';
+        im.decoding = 'async';
+        im.src = 'concepts/cinema-mods/lobby-props/' + name + '.webp';
+        const light = ART_DIR === 'out10t' ? (name === 'payphone' ? .68 : .98) : .88;
+        Object.assign(im.style, { left: x + 'px', top: y + 'px', width: width + 'px', height: 'auto',
+          zIndex: String(z), filter: 'brightness(' + light + ') drop-shadow(1px 1px 1px #1b1017ab)' });
+        if (name === 'payphone') im.style.transform = 'skewY(-9deg)';
+        world.append(im);
+      }
     }
     setupProps();
     buildMarqueeText();
@@ -8077,15 +8138,25 @@ void main() {
     Promise.all([
       import('./concepts/cinema-mods/lobby-events.js'),
       import('./concepts/cinema-mods/incidents/paper-stage.js'),
-      import('./concepts/cinema-mods/incidents/sidewalk.js')
-    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }]) => {
+      import('./concepts/cinema-mods/incidents/sidewalk.js'),
+      import('./concepts/cinema-mods/incidents/marquee-photo.js'),
+      import('./concepts/cinema-mods/incidents/shared-umbrella.js'),
+      import('./concepts/cinema-mods/incidents/dish-night.js'),
+      import('./concepts/cinema-mods/incidents/tape-swap.js'),
+      import('./concepts/cinema-mods/incidents/poster-bin.js')
+    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }, { sharedUmbrella }, { dishNight }, { tapeSwap }, { posterBin }]) => {
       const incidents = {
         ...nativeIncidents,
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
+        'marquee-photo': marqueePhoto,
+        'shared-umbrella': sharedUmbrella(blowUmbrella, walkers, P),
+        'dish-night': dishNight(() => windows, staff, fx),
+        'tape-swap': tapeSwap(() => ddData?.history, walkers, P, wearPairedRole),
+        'poster-bin': posterBin(() => ddData,wearPairedRole,walkers,P),
         ...lobbyLifeIncidents,
       };
       lobbyEvents = createLobbyEvents({
-        world, project: P, toScreen, depth, walkers, incidents, preview: q.get('event'), timed, enabled: timedEventsEnabled,
+        world, project: P, toScreen, depth, walkers, incidents, readHouse, preview: q.get('event'), timed, enabled: timedEventsEnabled,
         blocked: label => !lobbyReady ? 'room loading' : director.follow && !incidents[label]?.ownsFollow?.() ? 'director follow' : director.spot ? 'director spot' :
           director.wantNext ? 'director next' : gag && label !== 'restroom-gag' ? 'restroom gag' : fight && label !== 'yee-vs-pepe' ? 'fight' : pollScreen.open ? 'poll open' : null,
         anchors: () => ({

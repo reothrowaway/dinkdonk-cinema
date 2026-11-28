@@ -182,7 +182,7 @@ function danceScene(root,center,floor,cast,anchors){
         tilt:(move.tilt+facing*(27*pose-12*together))*soft,indoors:true,floorBeat:true};
     }};
 }
-export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,blocked,preview,timed=true,enabled=true,incidents={}}) {
+export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,blocked,readHouse,preview,timed=true,enabled=true,incidents={}}) {
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
   const featured=new Set(['infinity-foyer','glyph-cascade']);
   const smallEvents=Object.keys(incidents).filter(kind=>featured.has(kind)||incidents[kind].automatic);
@@ -210,8 +210,7 @@ export function createLobbyEvents({world,project,toScreen,depth,walkers,anchors,
   }
   const phaseOK=()=>['seating','up'].includes(phase) && performance.now()-checked<16000;
   function readPhase(){
-    if(!querying)querying=fetch('/ctl/room-state',{cache:'no-store',signal:AbortSignal.timeout(2500)})
-      .then(r=>r.ok?r.json():null).then(room=>{phase=room?.auditorium?.show?.phase || '';})
+    if(!querying)querying=readHouse().then(room=>{phase=room?.auditorium?.show?.phase || '';})
       .catch(()=>{phase='';}).finally(()=>{checked=performance.now();querying=null;});
     return querying;
   }

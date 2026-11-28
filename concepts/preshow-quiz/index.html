@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which came out first? · DinkDonk Cinema</title>
+<style>
+  * { box-sizing: border-box }
+  :root { color-scheme: dark; font-family: 'Segoe UI', sans-serif; background: #12151e; color: #f2ede4 }
+  body { margin: 0; min-height: 100vh; display: grid; align-items: center }
+  main { width: min(1120px, 100%); margin: auto; padding: clamp(18px, 4vw, 56px) }
+  header, footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px }
+  header { border-bottom: 1px solid #57616c; padding-bottom: 12px; color: #bbc5cb; font: bold clamp(13px, 1.8vw, 19px) 'Courier New', monospace }
+  h1 { font: normal clamp(38px, 6.8vw, 83px)/1.05 Georgia, serif; margin: .38em 0 }
+  .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(12px, 2.5vw, 26px) }
+  .film { display: flex; flex-direction: column; align-items: start; justify-content: space-between; gap: 12px; color: #f3f1ea; background: #24333e; border: 2px solid #6d8792; border-radius: 6px; min-height: clamp(160px, 20vw, 240px); padding: clamp(16px, 2.7vw, 32px); text-align: left; font: bold clamp(24px, 3.5vw, 43px)/1.1 Georgia, serif; overflow-wrap: anywhere }
+  .film small { font: bold 16px 'Courier New', monospace; color: #bfcdcf }
+  .film .year { font: bold clamp(22px, 3vw, 32px) 'Courier New', monospace }
+  .film.winner { background: #f0cf93; color: #29231b; border-color: #f0cf93 }
+  .film.winner small { color: #463a26 }
+  footer { margin-top: 20px; min-height: 52px }
+  #status { margin: 0; font-size: clamp(16px, 2vw, 23px) }
+  button { cursor: pointer }
+  button:disabled { cursor: default }
+  button:focus-visible { outline: 3px solid #ffd191; outline-offset: 4px }
+  #action { font: bold 16px 'Courier New', monospace; border-radius: 4px; background: #ede8db; color: #252633; border: 0; padding: 14px 19px }
+  [hidden] { display: none !important }
+  @media (max-width: 540px) { .choices { grid-template-columns: 1fr } .film { min-height: 135px } }
+</style>
+</head>
+<body><main>
+  <header><span>DinkDonk Cinema</span><a style="color:inherit" href="../cinema-guide/index.html">Cinema guide</a></header>
+  <h1>Which came out first?</h1>
+  <div class="choices" id="choices" hidden>
+    <button type="button" class="film"><small>A</small><span class="title"></span><span class="year" hidden></span></button>
+    <button type="button" class="film"><small>B</small><span class="title"></span><span class="year" hidden></span></button>
+  </div>
+  <footer><p id="status" role="status">Opening the watch log…</p><button type="button" id="action" hidden>Reveal years</button></footer>
+</main>
+<script src="./deck.js"></script>
+<script src="./quiz.js"></script>
+</body></html>

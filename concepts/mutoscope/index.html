@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mutoscope · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box }
+  :root { color-scheme:dark; background:#1c1716; color:#f3e8cf; font:16px/1.5 "Segoe UI",sans-serif }
+  body { margin:0 }
+  main { max-width:1020px; margin:auto; padding:clamp(18px,4vw,46px) }
+  header { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid #796452; padding-bottom:11px }
+  a { color:#e9c797; text-underline-offset:.22em }
+  h1,h2 { font-family:Georgia,serif; font-weight:normal }
+  h1 { font-size:clamp(45px,8vw,85px); line-height:1; margin:.36em 0 .11em }
+  .intro { color:#d5c8b4; margin:0 0 22px }
+  .cabinet { background:#40302a; border:1px solid #766150; border-top:4px solid #b58b54; padding:clamp(14px,3vw,28px); border-radius:8px }
+  .mechanism { display:grid; grid-template-columns:minmax(0,1fr) minmax(154px,24%); align-items:center; gap:clamp(12px,3vw,28px) }
+  .hood { background:#191716; padding:clamp(7px,1.7vw,17px); border:1px solid #957c61; border-radius:5px; box-shadow:inset 0 3px 12px #0c0908 }
+  #window { position:relative; aspect-ratio:448 / 288; overflow:hidden; background:#181715; border-radius:2px }
+  #cards { position:absolute; width:400%; height:300%; max-width:none; left:0; top:0; display:block; user-select:none; pointer-events:none }
+  .readout { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-top:8px; color:#e6d1a8 }
+  .readout span { font:600 13px/1.4 "Courier New",monospace; letter-spacing:.07em }
+  #wheel { display:block; position:relative; margin:auto; width:min(100%,168px); aspect-ratio:1; min-height:0; padding:0;
+    border-radius:50%; border:6px solid #a78555; background:radial-gradient(circle,#514438 0 10%,#ad8956 11% 15%,#362b26 16% 63%,#6b533a 64% 67%,#302823 68%);
+    box-shadow:0 3px 9px #211813,inset 0 0 0 2px #32291f; cursor:grab; touch-action:none }
+  #wheel:active { cursor:grabbing }
+  #arm { position:absolute; inset:0; border-radius:50%; pointer-events:none }
+  #arm::before { content:""; position:absolute; left:45%; width:10%; height:39%; bottom:45%; background:linear-gradient(90deg,#6d533b,#d6b47b 48%,#80613d); border-radius:9px }
+  #arm::after { content:""; position:absolute; left:39%; width:22%; top:6%; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle at 38% 32%,#e1bd8d,#9e6c3e 57%,#5e3c27 82%); box-shadow:0 2px 4px #21170f }
+  .crank p { font-size:.87rem; color:#d8c7ae; text-align:center; margin:12px auto 0; max-width:22ch }
+  .controls { display:flex; flex-wrap:wrap; gap:9px; margin-top:20px }
+  button { color:#f3e8cf; background:#352b26; padding:8px 13px; min-height:44px; border:1px solid #a28a6d; border-radius:4px; font:inherit; cursor:pointer }
+  #play { background:#dec493; color:#2d251d; font-weight:650 }
+  button:disabled { opacity:.5; cursor:default }
+  :focus-visible { outline:3px solid #ffe098; outline-offset:3px }
+  .note { max-width:74ch; color:#d8cbb7; margin:20px 0 0 }
+  .note a { white-space:normal }
+  #error { color:#ffd3a0 }
+  @media(max-width:620px) {
+    .mechanism { grid-template-columns:1fr }
+    .crank { display:flex; align-items:center; gap:18px }
+    #wheel { width:94px; flex:none; margin:0 }
+    .crank p { text-align:left; margin:0 }
+    .controls button { flex:1 1 42% }
+  }
+</style>
+</head><body><main>
+  <header><span>DinkDonk Cinema</span><nav aria-label="Film tools"><a href="./foley.html">Foley bench</a> · <a href="./thaumatrope.html">Thaumatrope workshop</a> · <a href="./stereoscope.html">Paris stereoscope</a> · <a href="../cinema-guide/index.html">Cinema guide</a></nav></header>
+  <h1>Mutoscope</h1>
+  <p class="intro">Turn the crank to bring Eadweard Muybridge’s 1878 photographs of Sallie Gardner into motion.</p>
+  <section class="cabinet" aria-label="Hand-cranked picture viewer">
+    <div class="mechanism">
+      <div class="hood"><div id="window" role="img" aria-label="Sallie Gardner and rider, gallop card 1"><img id="cards" src="sallie-gardner.webp" alt="" draggable="false"></div>
+        <div class="readout"><i>The Horse in Motion</i><span id="number">CARD 01 / 11</span></div>
+      </div>
+      <div class="crank"><button id="wheel" type="button" aria-label="Turn crank one card forward" aria-describedby="instructions" disabled><span id="arm"></span></button>
+        <p id="instructions">Drag the handle around the wheel. Use the left and right arrow keys to step through the cards.</p></div>
+    </div>
+    <div class="controls">
+      <button id="play" type="button" disabled>Run reel</button><button id="prev" type="button" disabled>Previous card</button>
+      <button id="next" type="button" disabled>Next card</button><button id="still" type="button" aria-pressed="false" disabled>Standing pose</button>
+    </div>
+    <p id="error" hidden role="status">The photograph could not be loaded. Open the original print below.</p>
+  </section>
+  <p class="note">This viewer adapts the hand-cranked card drum of a mutoscope. Muybridge’s print has eleven gallop photographs and a twelfth standing pose, shown separately here. <a href="https://www.loc.gov/item/97502309/">Original print, Library of Congress</a> · <a href="https://www.acmi.net.au/works/4761--mutoscope-fractured-flickers/">Mutoscope in the ACMI collection</a></p>
+</main><script src="./viewer.js"></script></body></html>

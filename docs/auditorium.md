@@ -26,7 +26,7 @@ stable way to find things.
       img#bg-dim          dim twin of the background (added at start if the layout has dim art)
       svg#screenq         polygon over the screen: chroma green, or black when the OBS bridge drives the film
       #preshow            960x540 "projector" div, affine-mapped onto the screen quad
-        .ps-slide x3      Up next / Now loading / In the audience
+        .ps-slide x5      Up next / Now loading / In the audience / Watch-log trivia / Last rated film
         #ps-pops          emotes floating up the screen edges
       img.slice (+ .dim-art twins)   banded depth-slice pieces, hidden unless something is behind them
       div.sheet           the entrance door's sprite sheet while it swings
@@ -293,7 +293,7 @@ Changing phase resets both.
 
 **The pre-show** (`#preshow`, lines 164-178 and 294-520). A 960x540 flat page mapped onto the screen with
 `matrix()` built from TL, TR and BL (the screen corners form an exact parallelogram, so BR matches too). It shows
-whenever the phase is not `film` and `screen=green` is off. Three slides rotate every 8 s:
+whenever the phase is not `film` and `screen=green` is off. The projector advances every eight seconds.
 
 1. **Up next.** The winner of the newest film poll on dinkdonk.mov (`upcomingFilm()`: film polls only, skipped if
    it already shows up in ratings or history). Without one, the downloading title once Cinemeta found it. Without
@@ -301,6 +301,8 @@ whenever the phase is not `film` and `screen=green` is off. Three slides rotate 
 2. **Now loading.** The download: title, season/year/genres, poster and IMDb rating, percent (held at 99% until
    qBittorrent says complete), progress bar, ETA, a DGG meme, and chat's top emote riding the bar.
 3. **In the audience.** End-credits roll of everyone seated, in their chat colours.
+4. **Which came out first?** Auto displays a pair of films from the watch log for eight seconds, then marks the earlier release and shows both years for eight seconds. It skips this slide when the log has no suitable pair.
+5. **Last rated film.** Lights up opens a ballot card with the latest rated movie from the watch history, its audience score out of five and the recorded vote count. This card takes the trivia slot during Lights up.
 
 **Release lookup** (`parseRelease()`, `lookupRelease()`, `featureInfo()`). The torrent name is parsed (tracker
 style "Russian / English (…) [year, …]" or scene style "Title.S03.1080p…"), then looked up on Cinemeta
@@ -319,6 +321,8 @@ Results are kept in `localStorage` for a week per release name; a failed lookup 
 | Usher | flashlight patrol in the dark; a chatter who talks gets the light on them and, with chance `kick`, is walked out "🔦 kicked" |
 
 ## Staff: jannies and the usher
+
+On the experimental branch, in either auditorium page, **Everyone leaves** can start a lost-and-found pickup. During Seating or Lights up, the first departing guest from the center block leaves a pair of glasses in the legroom. After the last guest exits, the ordinary cleanup crew follows its row routes. The cleaner who reaches the glasses picks them up, tags them with the row letter and carries them out. Canceling the walkout clears the prop. This runs as part of the walkout and cleanup, including on a clean floor.
 
 **Jannies (DGG moderators)** (lines 1020-1121). Any chat message from a user with the `moderator` feature, tagged or
 not, brings a `cpMOP` penguin wearing their name in through the entrance (`onModMessage()`, `addJanny()`). If the mod
@@ -355,6 +359,8 @@ the chatter walks out alone. Anyone not yet seated (or in the queue) is removed 
 cross-aisle (`usherNext()`). A seated chatter who talks in the dark gets a visit (`spotlight()`, `spotVisit()`); half
 the time (`kick`) they are walked out. Shushes go to the usher when no janny is on duty. The usher never blocks
 anyone and leaves when the lights come up. The beam is an SVG in `#names` (`updateBeam()`).
+
+During a dark-house patrol the usher can meet a late arrival at their assigned row. The usher lights the legroom, calls out the row and points to the empty cushion as the guest turns into the row. The guest follows their usual seating route. The usher then returns to the cross-aisle for queued duties. This runs with hall life enabled.
 
 **Everyone leaves** (`stepHouseOut()`). Seated guests stand up one at a time (every 0.35-0.9 s) and walk out the way
 they came, except that the middle block splits at its centre (`exitRoute()`, owner 15 Nov 2026): its left half goes

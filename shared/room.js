@@ -27,6 +27,10 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const HouseNotice = require('./house-notice');
+const ShadowRound = require('./shadow-round');
+const SingAlong = require('./sing-along');
+const {createDesk} = require('./discussion');
 
 const LOBBY = { CAP: 40, HARD_CAP: 55, CROWD: 14 };              // lobby.html CAP, HARD_CAP, CROWD
 const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.html MAX_QUEUE, QUEUE_QUIET_MS
@@ -35,7 +39,7 @@ const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.
 // them all to the usher at once. While no lobby screen is open, a chatter quiet for this long has gone inside.
 const LOBBY_STALE_MS = 10 * 60000;
 const LITTER_FULL = 0.6;                                           // auditorium litter: its clock starts at 60% seated
-const SCREENS = ['auto', 'upnext', 'loading', 'audience', 'film'];  // what the cinema screen shows (panel picker)
+const SCREENS = ['auto', 'upnext', 'loading', 'audience', 'chart-flat', 'chart-scope', 'curtain', 'film'];  // panel picker
 const AVATAR_BLOCK = new Set(['JARVIS']);                          // shared/cinema.js AVATAR_BLOCK
 // auditorium.html YEE_EMOTES: the front ("wheelchair") row is theirs
 const YEE_EMOTES = new Set(['YEE', 'diNoThanks', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE',
@@ -116,7 +120,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       lobby: { roster: [], director: freshDirector() },
       auditorium: { roster: [], director: freshDirector(),
         show: { phase: 'seating', shot: 'push', lightsOn: false, houseOut: false, auto: true,
-          screen: 'auto', litter: true, fullAt: 0 } },
+          screen: 'auto', noticeText: '', shadowRound: null, singAlongAt: 0, intermissionUntil: 0, litter: true, fullAt: 0 } },
     },
   };
   // chat memory (not saved): last emotes and room per nick, like shared/cinema.js
@@ -125,6 +129,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   const remember = (map, key, value) => { map.delete(key); map.set(key, value); if (map.size > 4000) map.delete(map.keys().next().value); };
   // latest screen reports, per page: { id, at, chatters } (only the leading screen's)
   const reports = { lobby: null, auditorium: null };
+  let previousShadow = '';
   // room-mode screens: page -> Map(id -> { send, obs, since })
   const subs = { lobby: new Map(), auditorium: new Map() };
   const lead = { lobby: null, auditorium: null };
@@ -181,6 +186,8 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     } catch { /* first start */ }
   }
   load();
+  const discussion = createDesk(emitShow);
+  const publicShow = () => ({...state.pages.auditorium.show, discussion:discussion.projector()});
 
   // ---------- sending ----------
   function emit(page, ev) {
@@ -195,7 +202,8 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     const d = P.director;
     return { t: 'snapshot', page, now: Date.now(), roster: P.roster.map(publicEntry),
       director: { on: d.on, every: d.every, zoom: d.zoom, wantNext: d.wantNext },
-      show: page === 'auditorium' ? { ...P.show } : undefined,   // (fullAt in server time: see now)
+      show: page === 'auditorium' ? publicShow() : undefined,   // (fullAt in server time: see now)
+      reentryPasses: page === 'auditorium' || undefined,
       settings: { tag: state.settings.tag || null }, lead: lead[page] };
   }
 
@@ -414,7 +422,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         if (page === 'lobby' && e.reeducated && PEPE_OF[e.emote]) e.emote = PEPE_OF[e.emote];   // reeducated stays reeducated
         emit(page, { t: 'walk', e, again: true, follow: false, say });
         // a seated / present chatter who talks about the vote: the director goes to them (every screen)
-        if ((page === 'lobby' || e.seat) && voteFollow(page, text)) emit(page, { t: 'follow', nick: e.nick });
+        if ((page === 'lobby' || (e.seat && !e.steppedOut)) && voteFollow(page, text)) emit(page, { t: 'follow', nick: e.nick });
         changed();
         continue;
       }
@@ -450,6 +458,11 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   function purge(nick) {
     const key = String(nick || '').trim().toLowerCase();
     if (!key) return;
+    discussion.purge(key);
+    const show = state.pages.auditorium.show, round = show.shadowRound;
+    if (round?.wearer?.toLowerCase() === key || round?.winner?.toLowerCase() === key) {
+      show.shadowRound = null; emitShow(); changed();
+    }
     for (const page of PAGES) {
       // the pages run their own exit (a janny escort, a fade): the room only forgets them
       const P = state.pages[page];
@@ -469,7 +482,11 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     let d;
     try { d = JSON.parse(raw.slice(sp + 1)); } catch { return; }
     if (!d || typeof d !== 'object') return;
-    if (type === 'MSG') onMessage(d);
+    if (type === 'MSG') {
+      discussion.receive(d.nick,d.data);
+      if (ShadowRound.guess(state.pages.auditorium.show.shadowRound, d.data, d.nick, Date.now())) { emitShow(); changed(); }
+      onMessage(d);
+    }
     else purge(d.data);
   }
 
@@ -489,12 +506,20 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'next': d.wantNext = true; break;
       case 'wide': d.wantNext = false; break;
       case 'random': {
-        const list = page === 'auditorium' ? P.roster.filter((e) => e.seat) : P.roster;
+        const list = page === 'auditorium' ? P.roster.filter((e) => e.seat && !e.steppedOut) : P.roster;
         const pick = list[Math.floor(Math.random() * list.length)];
         if (pick) emit(page, { t: 'follow', nick: pick.nick });
         break;
       }
       case 'remove': removeEntry(page, key, 'panel'); break;
+      case 'reentryPass': {
+        const e = page === 'auditorium' && find(page, key);
+        if (!e || P.show.houseOut || !e.seat || e.seat !== c.seat || typeof c.away !== 'boolean' || !!e.steppedOut === c.away) return;
+        if (c.away) e.steppedOut = true;
+        else delete e.steppedOut;
+        emit(page, {t:'reentryPass', nick:e.nick, seat:e.seat, away:c.away});
+        break;
+      }
       // the leading auditorium screen's usher kicked them, or a dozer went home (?leave=)
       case 'kicked': removeEntry(page, key, c.why === 'home' ? 'home' : 'kicked'); break;
       // a lobby screen saw them leave on their own (in through a door, home, on the bus, run over): the room forgets
@@ -517,7 +542,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         // lobby.html, auditorium.html)
         const e = find(page, key);   // lobby and auditorium (owner, 16 Nov 2026: the auditorium too)
         const to = e && PEPE_OF[e.emote];
-        if (!to) break;
+        if (!to || e.steppedOut) break;
         const from = e.emote;
         e.emote = to;
         e.reeducated = true;
@@ -536,7 +561,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
           const free = all.filter((x) => x.ri !== 0 && !taken.has(x.id)).sort((a, b) => dist(a) - dist(b));
           if (free.length) move = { seat: free[0].id };
           else {
-            const victims = roster.filter((x) => x !== e && x.seat && !isPepeLook(x.emote) && !x.reeducated && seatOf(x.seat)?.ri !== 0);
+            const victims = roster.filter((x) => x !== e && x.seat && !x.steppedOut && !isPepeLook(x.emote) && !x.reeducated && seatOf(x.seat)?.ri !== 0);
             const v = victims[Math.floor(Math.random() * victims.length)];
             if (v) {
               move = { seat: v.seat, kick: v.nick };
@@ -558,7 +583,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'peek': if (page === 'lobby') peek(typeof c.spot === 'string' ? c.spot : 'any'); break;   // (test hook too)   // (no panel button: a test hook, /ctl/cmd {cmd: 'gag'})
       case 'reset':
         P.roster = [];
-        if (page === 'auditorium') { P.show.houseOut = false; P.show.fullAt = 0; emitShow(); }   // a reset also sweeps the litter
+        if (page === 'auditorium') { HouseNotice.apply(P.show, {withdraw:true}); P.show.shadowRound = null; P.show.houseOut = false; P.show.fullAt = 0; P.show.intermissionUntil = 0; emitShow(); }
         d.wantNext = false;
         emit(page, { t: 'clear' });
         log(`room: ${page} cleared from the panel`);
@@ -579,7 +604,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         for (const e of P.roster) {
           if (!front.length) break;
           const cur = e.seat && YEE_EMOTES.has(e.emote) ? seatOf(e.seat) : null;
-          if (!cur || cur.ri === 0) continue;
+          if (!cur || cur.ri === 0 || e.steppedOut) continue;
           front.sort((a, b) => Math.abs(a.u - cur.u) - Math.abs(b.u - cur.u));
           e.seat = front.shift().id;
           emit('auditorium', { t: 'seat', nick: e.nick, seat: e.seat, move: true });
@@ -599,6 +624,17 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         if (page === 'auditorium') applyShow(c);
         break;
     }
+    if (page === 'auditorium' && P.show.shadowRound && (!ShadowRound.allowed(P.show) || c.cmd === 'runEvent' || (c.cmd === 'screen' && c.value === 'auto'))) {
+      P.show.shadowRound = null; emitShow();
+    }
+    if (page === 'auditorium' && P.show.singAlongAt &&
+        (!SingAlong.allowed(P.show) || ['reset','runEvent'].includes(c.cmd) || (c.cmd==='screen' && SCREENS.includes(c.value)))) {
+      P.show.singAlongAt = 0; emitShow();
+    }
+    if (page === 'auditorium') {
+      if (c.cmd==='reset' || c.cmd==='runEvent' || (c.cmd==='screen' && SCREENS.includes(c.value))) discussion.close();
+      else discussion.reconcile(P.show);
+    }
     changed();
   }
   function applyShow(c) {
@@ -609,13 +645,32 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         if (c.value === s.phase) s.lightsOn = false;
         s.phase = c.value; s.shot = 'push'; s.auto = false;
         if (c.value === 'seating' && s.houseOut) { s.houseOut = false; seatQueue(); }   // as the page's setPhase
-        if (c.value === 'film' && s.screen !== 'auto') { s.screen = 'auto'; emitShow(); }   // Film puts the film on
+        if (c.value === 'film' && (s.screen !== 'auto' || s.intermissionUntil)) { HouseNotice.forget(s); s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); }
         break;
-      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; if (s.screen !== 'auto') { s.screen = 'auto'; emitShow(); } break;
+      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; if (s.screen !== 'auto' || s.intermissionUntil) { HouseNotice.forget(s); s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); } break;
       case 'outro': if (s.phase === 'film') s.shot = 'outro'; break;
       case 'phaseAuto': s.auto = !!c.on; break;
       // the panel's cinema screen picker: auto follows the phase (slides, then the film), or one slide / the film held
-      case 'screen': if (SCREENS.includes(c.value)) { s.screen = c.value; emitShow(); } break;
+      case 'screen': if (SCREENS.includes(c.value)) { HouseNotice.forget(s); s.screen = c.value; s.intermissionUntil = 0; emitShow(); } break;
+      case 'houseNotice': if (HouseNotice.apply(s, c)) emitShow(); break;
+      case 'shadowRound':
+        if (c.action === 'end') { s.shadowRound = null; emitShow(); }
+        else if (c.action === 'start' && ShadowRound.allowed(s) && !s.shadowRound && !s.singAlongAt) {
+          s.shadowRound = {state:'waiting', end:Date.now() + 30000};
+          emitShow();
+        }
+        break;
+      case 'singAlong':
+        if (c.action==='start' && SingAlong.allowed(s) && !s.singAlongAt) { s.singAlongAt=Date.now(); emitShow(); }
+        else if (c.action==='stop' && s.singAlongAt) { s.singAlongAt=0; emitShow(); }
+        break;
+      case 'intermission':
+        if ([0, 5, 10, 15].includes(c.minutes)) {
+          if (c.minutes && s.intermissionUntil) break;
+          s.intermissionUntil = c.minutes ? Date.now() + c.minutes * 60000 : 0;
+          emitShow();
+        }
+        break;
       // litter toggle: off sweeps it all up; back on, the 10 min clock starts again from the next 60% full house
       case 'litter': s.litter = !!c.on; s.fullAt = 0; checkFull(); emitShow(); break;
       case 'lights': s.lightsOn = !!c.on && s.phase === 'film'; break;
@@ -651,10 +706,11 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       if (['push', 'movie', 'outro'].includes(p.shot) && p.shot !== s.shot) { s.shot = p.shot; changed(); }
       if (typeof p.auto === 'boolean' && p.auto !== s.auto) { s.auto = p.auto; changed(); }
       if (typeof p.lightsOn === 'boolean' && p.lightsOn !== s.lightsOn) { s.lightsOn = p.lightsOn; changed(); }
+      discussion.reconcile(s);
     }
   }
 
-  function emitShow() { emit('auditorium', { t: 'show', show: { ...state.pages.auditorium.show }, now: Date.now() }); }
+  function emitShow() { emit('auditorium', { t: 'show', show: publicShow(), now: Date.now() }); }
   // the litter clock: the first moment the house is 60% seated (kept until a reset or the litter toggle)
   function checkFull() {
     const A = state.pages.auditorium;
@@ -670,6 +726,20 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   // once a second: queued chatters quiet for 10 min leave the queue, as in the page
   const timer = setInterval(() => {
     const A = state.pages.auditorium;
+    if (A.show.singAlongAt && (!Number.isFinite(A.show.singAlongAt) || !SingAlong.allowed(A.show) || Date.now()>=A.show.singAlongAt+SingAlong.duration)) {
+      A.show.singAlongAt=0; emitShow(); changed();
+    }
+    const round = A.show.shadowRound;
+    if (round) {
+      const now = Date.now();
+      if (!ShadowRound.allowed(A.show) || now >= round.end) {
+        A.show.shadowRound = null; emitShow(); changed();
+      } else if (round.state === 'waiting') {
+        const players = ShadowRound.candidates(reports.auditorium, A.roster, emoteNames(), now);
+        const nextRound = ShadowRound.begin(players, previousShadow, now);
+        if (nextRound) { A.show.shadowRound = nextRound; previousShadow = nextRound.emote; emitShow(); changed(); }
+      }
+    }
     checkFull();
     if (subs.lobby.size && !stallGag()) peek();   // (only while a lobby screen is watching: nobody would see it otherwise)
     for (const e of [...A.roster]) if (!e.seat && Date.now() - e.last > AUD.QUEUE_QUIET_MS) removeEntry('auditorium', e.key, 'quiet');
@@ -681,16 +751,18 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   }, 1000);
   timer.unref?.();
 
-  function summary() {
+  function summary(withQuestions = false) {
     const A = state.pages.auditorium;
     return { tag: state.settings.tag || null, fromPanel: !!state.settings.fromPanel,
       lobby: { people: state.pages.lobby.roster.length, screens: subs.lobby.size },
-      auditorium: { seated: A.roster.filter((e) => e.seat).length, waiting: A.roster.filter((e) => !e.seat).length,
-        seats: getSeats()?.length || 0, screens: subs.auditorium.size, show: { ...A.show } } };
+      auditorium: { seated: A.roster.filter((e) => e.seat).length, held: A.roster.filter(e => e.seat && e.steppedOut).length, waiting: A.roster.filter((e) => !e.seat).length,
+        seats: getSeats()?.length || 0, screens: subs.auditorium.size, show: publicShow(),
+        ...(withQuestions ? {questionDesk:discussion.panel(A.show)} : {}) } };
   }
 
   return {
     chatFrame, command, screenState, subscribe, snapshot, summary,
+    discussionAction: c => c.page==='auditorium' ? discussion.act(c,state.pages.auditorium.show) : 'Choose the auditorium.',
     flush: () => { dirty = true; save(); },
     close: () => { clearInterval(timer); save(); },
     state,   // for checks

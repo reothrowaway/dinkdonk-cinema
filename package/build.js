@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { artFiles } = require('./art');
-const { eventFiles, shaderFile, lookGuide, lookFilters } = require('./cinema-release');
+const { eventFiles, extrasFiles, shaderFile, lookGuide, lookFilters } = require('./cinema-release');
 
 const STANDBY = path.resolve(__dirname, '..');
 const SHADER = 'C:/Program Files/obs-studio/data/obs-plugins/obs-shaderfilter/examples/corner-pin.shader';
@@ -68,7 +68,7 @@ for (const f of ['lobby.html', 'auditorium.html', 'control.html', 'standby-serve
 }
 copyTree(path.join(STANDBY, 'shared'), path.join(SCREENS, 'shared'));
 copyTree(path.join(STANDBY, 'assets'), path.join(SCREENS, 'assets'));
-for (const file of eventFiles) copy(path.join(STANDBY, file), path.join(SCREENS, file));
+for (const file of [...eventFiles, ...extrasFiles]) copy(path.join(STANDBY, file), path.join(SCREENS, file));
 copy(path.join(STANDBY, shaderFile), path.join(SCREENS, shaderFile)); // the running OBS bridge reads its own copy
 // last good dinkdonk.mov data, so the screens have film titles before the first refresh
 if (fs.existsSync(path.join(STANDBY, 'cache', 'dinkdonk.json'))) copy(path.join(STANDBY, 'cache', 'dinkdonk.json'), path.join(SCREENS, 'cache', 'dinkdonk.json'));

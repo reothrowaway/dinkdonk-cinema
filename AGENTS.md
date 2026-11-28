@@ -56,9 +56,16 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
    - Layout changes start as a quick labelled **blockout** (plain boxes). Styled drafts come only after the owner
      approves the layout.
    - Before writing the next brief, get a read-only second-opinion critique of the latest draft (from a
-     Claude Opus 5.5 agent, see "Who renders the art") and say which points you took.
+     Claude Opus 5.5 agent, see [model assignments for art](#model-assignments-for-art)) and say which points you took.
    - Run **full renders** only when the owner says so. Stage new packs in a separate folder (such as `out10i/`),
      verify them, back up the current pack, then promote.
+   - For an experimental prop redesign in the lobby or the auditorium, work on the experimental branch. Show three labeled images in order:
+     **1. Original Blender render**, **2. Researched ImageGen design draft**, **3. Updated Blender render**.
+     Research the actual subject and its setting before generating the concept. Match the camera, framing and
+     exterior lighting of the Blender renders and deliver the editable `.blend` alongside the comparison.
+   - Have an independent reviewer compare the third image with the second at the size the prop has in its room. Fix material differences
+     in Blender, render again and have the reviewer check the result. Report what changed and what still differs.
+     Follow the [prop redesign workflow](docs/art-pipeline.md#lobby-and-auditorium-prop-redesigns).
    - Never redo something the owner already approved.
 7. **Cloud GPU (RunPod)** costs real money. Use it only when the owner asks. Stay inside the credit the owner names,
    delete pods and volumes afterwards, and never put API keys in files.
@@ -84,19 +91,26 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
   requests live in `roxy3d/QUEUE-owner.md`.
 - Several agents may work at once (see "Working together" below). Stay inside the area you were asked
   to work on.
+- **"Lobby and auditorium" means both rooms** (owner, 28 Nov 2026). Rules, workflows and design assignments for
+  the rooms apply to the lobby and the auditorium alike. Don't narrow one to a single room unless the owner says so.
 
-## Which Claude model does what
+## Model assignments for art
 
-**Owner, 12 Nov 2026: on Claude's side, Claude Fable 5.2 (high effort) is used only for the Blender design work;
-everything else Claude does (QA, critiques, checks, packing reviews, page work) is done by Claude Opus 5.5.** Astra
+**Lobby and auditorium Blender design (owner, 28 Nov 2026).** Assign the design pass to **GPT-6.2 Astra** with
+**high effort** and **normal speed** (default service tier). This applies to both rooms: the lobby and the
+auditorium, their scenes and their props. Astra researches the
+subject, develops the ImageGen concept, builds the editable Blender model, renders the draft and revises it
+after independent visual review. When a lobby or auditorium design request starts in Claude, hand the design brief to Astra.
+
+**Other Claude-led Blender work** (outside the lobby and auditorium design pass). The owner’s 12 Nov assignment uses Claude Fable 5.2 at high effort for this work.
+Claude Opus 5.5 handles QA, critiques, checks, packing reviews and page work. Astra
 works on all of it too (see "Working together"). Fable's part is what the Codex CLI
 used to do in Blender: building and editing the scenes from the numbered briefs (`roxy3d/BRIEF-NN-*.md`),
 blockouts, styled drafts, and the layer and production renders. In Claude Code that is a subagent with the model set
 to Fable 5.2 and the effort set to high (Agent tool: `model: "fable"`, `effort: "high"`), given the brief as its task
 and run in the background. It writes only inside `roxy3d/` and reports in `roxy3d/NOTES-NN.md`, exactly as Codex
 did. The read-only second-opinion critique of a draft goes to an Opus 5.5 agent (`model: "opus"`), or is skipped
-when the owner says so. Claude does not start `codex exec` jobs for its art work (this is only about how Claude runs
-its own Blender jobs; it doesn't limit GPT 6.2 Astra, see below).
+when the owner says so. Claude runs Fable’s assigned Blender jobs directly through the Claude Code agent tool.
 
 A brief states what to change, what must stay the same, the exact deliverable (for example the single draft
 image) and "write only inside roxy3d/". It ends with a STATUS line.
@@ -104,8 +118,8 @@ image) and "write only inside roxy3d/". It ends with a STATUS line.
 ## Working together: Claude and GPT 6.2 Astra
 
 Owner, 27 Nov 2026: GPT 6.2 Astra (OpenAI) is a full collaborator on the whole project: pages, server, hosting,
-packaging, art, Blender, QA and performance. Neither agent owns an area; both work from the same rules, and either
-one can pick up, review or finish the other's work. Claude Code (Opus 5.5, Fable 5.2) and Astra work in the same
+packaging, art, Blender, QA and performance. Both agents can pick up or review each other's work, subject to the
+art assignments above. Claude Code (Opus 5.5, Fable 5.2) and Astra work in the same
 folder on the same PC, often at the same time.
 
 - **Hand-offs.** Leave work so the other agent can continue it without asking: a `PROGRESS.md` entry with what
@@ -140,6 +154,7 @@ in `roxy3d/QUEUE-owner.md`, area details in `docs/`.
 From the owner, 7-18 Nov 2026. They apply to every agent.
 
 ### Shipping
+- Owner, 27 Nov 2026: develop new ideas from the overnight research session in a separate experimental branch and checkout. Share that branch for review. Promotion to main, the hosted cinema and the release zip waits for the owner's direction.
 - A finished, checked change goes to all four copies in the same turn: the local live files, the GitHub repo
   (commit + push), the hosted edition (`bash web/deploy/deploy.sh`, then compare the server's files with the local
   build by SHA-256), and the zip (`node package/build.js`, then smoke-test it on a spare port: a fresh room's

@@ -1,0 +1,15 @@
+.lantern-slide {
+  position:relative; display:grid; place-items:center; container-type:inline-size; box-sizing:border-box;
+  aspect-ratio:16 / 9; color:#fff0cb; text-align:center;
+  background:radial-gradient(ellipse at center,#2b5452,#173536 74%,#0b2527);
+}
+.lantern-slide[hidden] { display:none }
+.lantern-slide::before, .lantern-slide::after {
+  content:""; position:absolute; pointer-events:none; border:1px solid #dbbe7b;
+}
+.lantern-slide::before { inset:5.2% 3.5%; border-width:2px }
+.lantern-slide::after { inset:3.6% 4.5% }
+.lantern-words { box-sizing:border-box; width:85%; padding:4% 0; }
+.lantern-words small { color:#f0ca80; font:700 2.6cqw/1.2 Georgia,serif; letter-spacing:.14em; text-transform:uppercase }
+.lantern-words strong { display:block; margin-top:2.2cqw; font:600 6.8cqw/1.12 Georgia,serif; overflow-wrap:anywhere; text-wrap:balance }
+.lantern-slide.long .lantern-words strong { font-size:4.5cqw }

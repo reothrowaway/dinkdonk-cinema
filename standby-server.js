@@ -287,6 +287,11 @@ async function controlRoute(req, res, pathname) {
     if (!cmd || typeof cmd.cmd !== 'string') { send(res, 400, TYPES['.json'], '{"error":"no cmd"}'); return true; }
     const page = cmd.page || 'lobby';   // old panels keep controlling every lobby screen
     if (!['lobby', 'auditorium'].includes(page)) { send(res, 400, TYPES['.json'], '{"error":"unknown page"}'); return true; }
+    if (cmd.cmd==='discussion') {
+      const error=room ? room.discussionAction(cmd) : 'Shared room unavailable.';
+      send(res,error ? 409 : 200,TYPES['.json'],JSON.stringify(error ? {error} : {ok:true}));
+      return true;
+    }
     try { room?.command(cmd); } catch (e) { console.error('Room:', e); }
     // the lobby's roll-up poll screen: remembered here, so a reload or a second viewer sees it the same way
     if (cmd.cmd === 'pollscreen' && page === 'lobby') pollDraft.setScreen(!!cmd.on);
@@ -338,7 +343,8 @@ async function controlRoute(req, res, pathname) {
     return true;
   }
   if (pathname === '/ctl/room-state' && req.method === 'GET') {
-    send(res, room ? 200 : 404, TYPES['.json'], JSON.stringify(room ? room.summary() : { error: 'room off' }));
+    const questions=new URL(req.url,'http://localhost').searchParams.get('questions')==='1';
+    send(res, room ? 200 : 404, TYPES['.json'], JSON.stringify(room ? room.summary(questions) : { error: 'room off' }));
     return true;
   }
   if (pathname === '/ctl/state' && req.method === 'GET') {

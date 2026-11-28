@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>House organ · DinkDonk Cinema</title>
+<style>
+*{box-sizing:border-box} :root{color-scheme:dark;background:#191611;color:#f7ead3;font:16px/1.4 "Segoe UI",sans-serif}
+body{margin:0}main{width:min(900px,100%);margin:auto;padding:clamp(16px,4vw,40px)}
+header,nav,.transport,.stops{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
+header{border-bottom:1px solid #756047;padding:0 0 12px}a{color:#edd194;text-underline-offset:.2em}
+h1{font:normal clamp(46px,8vw,80px)/1 Georgia,serif;letter-spacing:-.05em;margin:20px 0 5px}
+p{margin:8px 0 18px}.console{overflow:hidden;border:2px solid #62462e;border-radius:12px;background:#302019;box-shadow:0 10px 25px #0f0d08}
+.rack{display:block;width:100%;height:clamp(100px,18vw,165px);object-fit:cover}
+.stops{background:linear-gradient(#321f19,#211814);padding:14px clamp(9px,3vw,26px);border-block:2px solid #806647}
+fieldset{display:flex;gap:4px;min-width:0;margin:0;padding:0;border:0}legend,.register{font-size:.85rem;color:#ead3a6}
+.stop{position:relative;display:inline-flex}.stop input{position:absolute;opacity:0;width:1px;height:1px}
+.stop span{display:grid;place-items:center;min-height:40px;color:#332717;background:#decfb5;padding:6px 13px;cursor:pointer;border-radius:3px 3px 8px 8px;border-bottom:5px solid #937b60;font-weight:650}
+.stop input:checked+span{background:#f4ce79;border-bottom-color:#af793b;box-shadow:inset 0 3px 5px #b18b4b}
+.stop input:focus-visible+span,:focus-visible{outline:3px solid #84d7dc;outline-offset:2px}
+select,button{font:inherit;color:inherit}select,.transport button{background:#392c23;border:1px solid #ac9474;border-radius:4px;padding:6px 12px;min-height:40px}
+.register{display:grid;gap:3px}.keys{height:clamp(140px,24vw,205px);margin:0 clamp(8px,2vw,17px) 16px;position:relative;display:flex;touch-action:none;user-select:none}
+.key{touch-action:none;position:relative;border:1px solid #3b3028;border-top:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer}
+.key.white{width:12.5%;height:100%;background:linear-gradient(#b5a692,#eee4cd 17%,#fff8da 90%,#d0bfa3);color:#40382c;border-radius:0 0 5px 5px}
+.key.black{position:absolute;top:0;width:8%;height:61%;margin-left:-4%;z-index:1;background:linear-gradient(90deg,#231e1b,#403a34 52%,#161413);color:#efdfbd;border:2px solid #100e0c;border-radius:0 0 3px 3px;box-shadow:2px 3px 3px #16110c77}
+.key.white.down{background:linear-gradient(#b38e57,#ead09c 28%,#e2b76a)}.key.black.down{background:linear-gradient(90deg,#6d4326,#8c623f,#503520)}
+.pitch{font:700 clamp(.75rem,2vw,1.2rem) Georgia,serif;pointer-events:none}
+kbd{font:.73rem/1.1 "Courier New",monospace;margin:3px 0 8px;pointer-events:none}
+.transport{justify-content:flex-start;margin:20px 0 0}.transport button{cursor:pointer}.transport button:first-child{background:#e5c88e;color:#30251a;border-color:#e5c88e;font-weight:650}
+button:disabled{opacity:.46;cursor:default}.volume{display:flex;align-items:center;gap:8px}.volume input{accent-color:#cba55e;width:90px}
+#status{min-height:1.5em;color:#e8d4b4;margin-bottom:0}
+@media(max-width:480px){.stops{gap:8px}.stop span{padding:6px 8px}nav{gap:10px}header{font-size:.9rem}.register select{padding:6px}.volume{width:100%}}
+</style></head><body><main>
+<header><strong>DinkDonk Cinema</strong><nav><a href="../cinema-guide/index.html">Cinema guide</a><a href="../projection-booth/index.html">Projection booth</a></nav></header>
+<h1>House organ</h1><p>Play the keys with your keyboard or touch. Hold several notes for a chord.</p>
+<section class="console" aria-label="Organ console">
+  <img class="rack" src="./console.webp" alt="" width="1320" height="440">
+  <div class="stops"><fieldset><legend>Organ stop</legend>
+    <label class="stop"><input type="radio" name="stop" value="flute" checked><span>Flute</span></label>
+    <label class="stop"><input type="radio" name="stop" value="diapason"><span>Diapason</span></label>
+    <label class="stop"><input type="radio" name="stop" value="reed"><span>Reed</span></label>
+  </fieldset><label class="register">Keyboard range<select id="octave"><option value="48">C3 – C4</option><option value="60" selected>C4 – C5</option><option value="72">C5 – C6</option></select></label></div>
+  <div id="keys" class="keys" role="group" aria-label="Playable notes"></div>
+</section>
+<div class="transport"><button id="overture">Play house overture</button><button id="stop" disabled>Stop sound</button>
+<label class="volume">Volume <input type="range" id="volume" min="0" max="100" value="55"></label></div>
+<p id="status" role="status">Ready to play.</p>
+<p><a href="./save-me-a-seat.mp4">Watch the house sing-along · Save Me a Seat</a></p>
+</main><script src="./instrument.js"></script><script src="./organ.js"></script></body></html>

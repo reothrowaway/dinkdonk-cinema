@@ -73,6 +73,70 @@
     flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;
     opacity: 0; transition: opacity .8s; text-shadow: 0 0 3px #d8c39444; }
   .ps-slide.active { opacity: 1; }
+  #house-curtain { position:absolute; left:0; top:0; width:960px; height:540px; transform-origin:0 0;
+    overflow:hidden; pointer-events:none; z-index:70001; visibility:hidden; transition:visibility 0s 3.2s }
+  #house-curtain.closed { visibility:visible; transition-delay:0s }
+  #house-curtain > i { position:absolute; inset-block:0; width:50.12%; background-color:#661722;
+    background-size:100% 100%; transform:scaleX(0); transition:transform 3.2s cubic-bezier(.42,0,.25,1) }
+  #house-curtain.used > i { background-image:linear-gradient(to bottom,#21060b30,transparent 55%,#16030842),url('concepts/cinema-mods/preshow/house-velvet.webp') }
+  #house-curtain > i:first-child { left:0; transform-origin:left; box-shadow:inset -3px 0 5px #120207 }
+  #house-curtain > i:last-child { right:0; transform-origin:right; box-shadow:inset 3px 0 5px #120207 }
+  #house-curtain.closed > i { transform:scaleX(1) }
+  @media (prefers-reduced-motion:reduce) { #house-curtain, #house-curtain > i { transition:none } }
+  #preshow.framing { background: #060708; filter: none }
+  #ps-notice { position:absolute; inset:0; z-index:5 }
+  #ps-song { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#191411; z-index:6 }
+  #ps-song.needs-audio { pointer-events:auto; cursor:pointer }
+  #preshow.with-song { filter:none }
+  #preshow.with-song::after, #preshow.with-song > :not(#ps-song) { display:none }
+  #preshow.with-notice > :not(#ps-notice) { display:none }
+  #preshow.with-shadow > :not(#ps-shadow) { display:none }
+  #ps-shadow { position:absolute; inset:0; display:grid; grid-template-rows:auto 1fr auto auto; justify-items:center;
+    box-sizing:border-box; padding:30px 48px; background:radial-gradient(ellipse,#fff3c3,#e6c894 72%,#c19769);
+    color:#302a20; text-align:center; gap:6px; border:12px solid #614f3b }
+  #ps-shadow[hidden] { display:none }
+  #shadow-heading { font:700 45px/1.1 Georgia,serif }
+  #shadow-shape { display:grid; place-items:center; align-self:stretch; filter:brightness(0) }
+  #ps-shadow.revealed #shadow-shape { filter:none }
+  #shadow-answer { font:700 43px/1.1 Georgia,serif; overflow-wrap:anywhere; max-width:100% }
+  #shadow-instruction { font:500 26px/1.25 Arial,sans-serif }
+  #preshow.framing::after, #preshow.framing > :not(#ps-chart) { display: none }
+  #ps-chart { position:absolute; top:50%; left:0; transform:translateY(-50%); width:100%; aspect-ratio:1.85;
+    box-shadow:inset 0 0 0 4px #f8f5e9; color:#f8f5e9; text-align:center; font: bold 26px/1.15 Arial,sans-serif;
+    background-color:#17252c; background-image:linear-gradient(#4c5b5e 2px,transparent 2px),linear-gradient(90deg,#4c5b5e 2px,transparent 2px);
+    background-position:center; background-size:48px 48px }
+  #ps-chart[hidden] { display:none }
+  #ps-chart.scope { aspect-ratio:2.39 }
+  #ps-chart::before, #ps-chart::after { position:absolute; content:""; pointer-events:none }
+  #ps-chart::before { inset:2%; border:3px solid #ffbb52 }
+  #ps-chart::after { inset:5%; border:3px dashed #b1e8f4 }
+  #chart-marks { position:absolute; inset:0; display:grid; place-items:center;
+    background:linear-gradient(90deg,transparent calc(50% - 1px),white calc(50% - 1px),white calc(50% + 1px),transparent calc(50% + 1px)),
+    linear-gradient(transparent calc(50% - 1px),white calc(50% - 1px),white calc(50% + 1px),transparent calc(50% + 1px)) }
+  #chart-marks::before { content:""; width:160px; height:160px; border:4px solid white; border-radius:50% }
+  #chart-format, #chart-key { position:absolute; left:50%; transform:translateX(-50%); white-space:nowrap; background:#17252c; padding:1px 12px }
+  #chart-format { top:10%; font-size:40px }
+  #chart-key { bottom:10%; font-size:22px }
+  #ps-quiz { gap: 15px; padding: 32px 46px; }
+  #ps-quiz h2 { font-size: 60px; }
+  #ps-quiz p { width: 100%; font-size: 48px; font-weight: 600; line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; }
+  #ps-quiz p.earlier { color: #ffd285; }
+  #ps-quiz .earlier::before { content: "✓ "; }
+  #ps-quiz .long-title { font-size: 36px; }
+  #ps-ballot { padding: 34px 48px; }
+  .ballot-card { box-sizing: border-box; width: 100%; padding: 20px 28px; background: #e8dbaf; color: #2d3026;
+    border-block: 8px dotted #544e35; text-shadow: none; }
+  .ballot-card .ps-small { margin: 0 0 12px; color: #48533d; font-weight: 700; }
+  #ps-ballot h2 { font-size: 52px; overflow-wrap: anywhere; line-height: 1.06; }
+  #ps-ballot h2.long-title { font-size: 38px; }
+  #ps-break { position:absolute;inset:18px;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:7px double #884c34;background:#efe6c8;color:#3b3029;gap:8px;text-align:center }
+  #ps-break[hidden], #preshow.on-break .ps-slide, #preshow.on-break #ps-pops { display:none }
+  #ps-break h2 { margin:0;color:#803d2a;font:italic bold 80px/1 Georgia,serif;text-transform:none }
+  #ps-break-time { font:bold 136px/1 "Courier New",monospace;color:#263d37 }
+  #ps-break-caption { margin:0;font:32px/1.2 Georgia,serif }
+  #ps-ballot-score { display: block; font: bold 79px/1.1 Georgia, serif; margin: 12px 0 4px; }
+  #ps-ballot-count { font: 30px/1.2 "Courier New", monospace; }
   .ps-small { font-size: 26px; letter-spacing: .16em; text-transform: uppercase; }
   .ps-slide h2 { margin: 0; font-size: 72px; font-weight: 500; line-height: 1.08; }
   .ps-slide p { margin: 0; font-size: 34px; line-height: 1.25; }
@@ -125,6 +189,19 @@
     background: radial-gradient(closest-side, rgba(0,0,0,.5), rgba(0,0,0,0)); }
   .w.sit .sh { display: none; }
   .w .bod { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+  .festival-mic { position:absolute; z-index:4; width:7px; height:24px; background:#25262b; border:1px solid #e2d6ac;
+    border-radius:3px; transform:rotate(var(--angle,15deg)); transform-origin:50% 80%; pointer-events:none }
+  .festival-mic i { position:absolute; display:block }
+  .seat-pass { position:absolute; pointer-events:none; padding:2px 4px; border:1px solid #6d4d26; border-radius:2px; color:#392813;
+    background:#f3d899; box-shadow:0 1px 2px #1e1423; font:bold 10px/1 "Courier New",monospace; transform:translate(-50%,-100%) rotate(-8deg) }
+  .mic-grille { left:-3px; top:-6px; width:11px; height:12px; border:1px solid #21222a; border-radius:50%;
+    background:repeating-linear-gradient(25deg,#a8afad 0 1px,#495356 1px 2px) }
+  .mic-flag { left:-4px; top:5px; width:13px; height:9px; background:#f5cf6b; border:1px solid #362a23; color:#291f23; text-align:center; font:bold 8px/9px Arial,sans-serif }
+  .mic-grip { left:-3px; top:15px; width:9px; height:5px; border:1px solid #534139; border-radius:4px; background:#e9ba91 }
+  .festival-program { position:absolute; inset:0; z-index:3; display:grid; place-content:center; gap:20px; text-align:center; background:#232c30; color:#f3e6c1 }
+  .festival-program strong { font:italic bold 80px/1 Georgia,serif }
+  .festival-program span { font:34px/1.15 Georgia,serif; overflow-wrap:anywhere }
+  .festival-program small { color:#f4ca70; font:bold 20px/1.2 sans-serif; text-transform:uppercase; letter-spacing:.15em }
   .w .em { position: absolute; bottom: 0; }
   /* golden WEOW (queue 65, L50), as in the lobby: DGG's own gold cell of the emote's sheet, a pulsing aura with
      sparkles behind the emote and a gold name. No filter on the emote, so the dark-room brightness rule above still
@@ -179,6 +256,19 @@
      filter in the lit room; in the dark it shows its dark picture (.dk), also without a filter. The third rule is the
      dark look relative to the lit picture (.42 / .9, .8 / .9), for a baked piece whose dark picture is not there. */
   .litter { position: absolute; pointer-events: none; transition: opacity 2s; }
+  .lost-glasses { position: absolute; width: 32px; height: 12px; pointer-events: none; color: #f1ae5c;
+    background: linear-gradient(currentColor,currentColor) center 3px / 8px 3px no-repeat; }
+  .lost-glasses::before, .lost-glasses::after { content: ''; position: absolute; top: 0; width: 10px; height: 7px;
+    border: 3px solid currentColor; border-radius: 4px 4px 7px 7px; background: #293541; }
+  .lost-glasses::before { left: 0; } .lost-glasses::after { right: 0; }
+  .lost-glasses.in-hand { left: 8px; top: -36px; transform: rotate(-8deg); animation: show-found-glasses 3s ease-in-out; }
+  .lost-tag { position: absolute; bottom: 12px; left: 10px; padding: 2px 5px; color: #302a21; background: #f1ddad;
+    font: bold 14px/1 monospace; white-space: nowrap; border-left: 2px solid #ac7950; }
+  @keyframes show-found-glasses {
+    0%, 100% { transform: rotate(-8deg); }
+    18%, 78% { transform: translateY(-18px) rotate(-4deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .lost-glasses.in-hand { animation: none; } }
   .litter:not(.baked) { filter: brightness(.9) saturate(.9); }
   .crowd-dark .litter:not(.baked) { filter: brightness(.42) saturate(.8); }
   .crowd-dark .litter.baked:not(.dk) { filter: brightness(.4667) saturate(.8889); }
@@ -305,8 +395,25 @@
         </div>
         <div class="ps-small">Thank you for your patience</div></div>
       <div class="ps-slide"><div class="ps-small">In the audience</div><div id="ps-audience"><div id="ps-credits"></div></div></div>
+      <div class="ps-slide" id="ps-quiz"><h2>Which came out first?</h2>
+        <p></p><span aria-hidden="true">◆</span><p></p>
+      </div>
+      <div class="ps-slide" id="ps-ballot"><div class="ballot-card">
+        <div class="ps-small">Last rated film</div><h2 id="ps-ballot-title"></h2>
+        <strong id="ps-ballot-score"></strong><span id="ps-ballot-count"></span>
+      </div></div>
+      <section id="ps-break" hidden><h2>Intermission</h2><strong id="ps-break-time"></strong>
+        <p id="ps-break-caption">Time remaining</p></section>
       <div id="ps-pops"></div>
+      <video id="ps-song" hidden playsinline preload="none" tabindex="0" aria-label="Save Me a Seat, a house organ sing-along. Activate to enable sound."></video>
+      <section class="lantern-slide" id="ps-notice" hidden><div class="lantern-words">
+        <small id="ps-notice-label">House notice</small><strong id="ps-notice-text"></strong></div></section>
+      <section id="ps-shadow" hidden><strong id="shadow-heading"></strong><div id="shadow-shape" aria-hidden="true"></div>
+        <strong id="shadow-answer"></strong><span id="shadow-instruction"></span></section>
+      <div id="ps-chart" hidden><div id="chart-marks"></div><strong id="chart-format"></strong>
+        <span id="chart-key">Solid 2% · Dashed 5%</span></div>
     </div>
+    <div id="house-curtain" hidden aria-hidden="true"><i></i><i></i></div>
   </div>
   <div id="names"></div>
   </div>
@@ -314,8 +421,13 @@
 </div>
 <script>window.DD_ROOM_CAPS = 'vote';   // room events this page plays (queue 50; shared/cinema.js)</script>
 <script>window.DD_ROOM_PAGE = 'auditorium';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
+<link rel="stylesheet" href="shared/house-notice.css">
+<script src="shared/house-notice.js"></script>
+<script src="shared/shadow-round.js"></script>
+<script src="shared/sing-along.js"></script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
+<script src="concepts/preshow-quiz/deck.js"></script>
 <script src="shared/live.js"></script>
 <script src="shared/aud-shots.js"></script>
 <script>
@@ -414,7 +526,65 @@
   let preshowEvents = null;
   let timedEventsEnabled = true;
   const SLIDES = ['upnext', 'loading', 'audience'];
-  const filmOnScreen = () => show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film');
+  const chartFormats = new Map([['chart-flat', 'FLAT  1.85:1'], ['chart-scope', 'SCOPE  2.39:1']]);
+  const screenChoices = ['auto', ...SLIDES, ...chartFormats.keys(), 'curtain', 'film'];
+  const QUIZ_SLIDE = SLIDES.length, BALLOT_SLIDE = QUIZ_SLIDE + 1;
+  let ballot = null, lastProjectorPhase = '';
+  show.intermissionUntil = 0;
+  show.singAlongAt = 0;
+  let songOffset = 0;
+  let songSourceActive = true, songSourceVisible = true;
+  const syncSong = CinemaSingAlong.player($('ps-song'),visible=>$('preshow').classList.toggle('with-song',visible));
+  function drawSong() {
+    const eligible = songSourceActive && songSourceVisible && !document.hidden && !alwaysGreen && !!screenPoly && CinemaSingAlong.allowed({...show,houseOut});
+    syncSong(eligible ? show.singAlongAt : 0,show.singAlongAt+songOffset);
+  }
+  document.addEventListener('visibilitychange',drawSong);
+  window.addEventListener('obsSourceActiveChanged',e=>{ songSourceActive=e.detail?.active!==false; drawSong(); });
+  window.addEventListener('obsSourceVisibleChanged',e=>{ songSourceVisible=e.detail?.visible!==false; drawSong(); });
+  window.addEventListener('pagehide',()=>syncSong(0,0));
+  let roomHasBreakClock = false;
+  const filmOnScreen = () => !show.intermissionUntil && (show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film'));
+  function breakSeconds() {
+    return show.intermissionUntil ? Math.max(0, Math.ceil((show.intermissionUntil - Date.now()) / 1000)) : null;
+  }
+  function drawBreakClock() {
+    const seconds = breakSeconds();
+    if (seconds === null) return;
+    const digits = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+    const time = $('ps-break-time'), caption = $('ps-break-caption');
+    if (time.textContent !== digits) time.textContent = digits;
+    const message = seconds ? 'Time remaining' : 'Please take your seats';
+    if (caption.textContent !== message) caption.textContent = message;
+  }
+  let shadowOffset = 0, shadowImage = '';
+  const reducedShadow = matchMedia('(prefers-reduced-motion: reduce)');
+  function drawShadow() {
+    const round = show.shadowRound, now = Date.now() - shadowOffset;
+    const visible = round?.state === 'playing' && now < round.end && ShadowRound.allowed(show) && !alwaysGreen && !!screenPoly;
+    const card = $('ps-shadow');
+    card.hidden = !visible;
+    $('preshow').classList.toggle('with-shadow', visible);
+    if (!visible) {
+      if (shadowImage) { $('shadow-shape').replaceChildren(); shadowImage = ''; }
+      return;
+    }
+    const image = SB.emotes?.css ? round.emote : '';
+    if (shadowImage !== image) {
+      const shape = $('shadow-shape');
+      shape.replaceChildren();
+      if (image) shape.append(emoteFit(image, 237, 430));
+      shadowImage = image;
+    }
+    const reveal = now >= round.reveal;
+    card.classList.toggle('revealed', reveal);
+    $('shadow-heading').textContent = reveal ? 'The emote was…' : image ? 'Name that emote' : 'Loading the silhouette…';
+    const hint = now >= round.start + 8000 ? ' · Starts with ' + round.emote[0] : '';
+    const seconds = Math.ceil((round.reveal - now) / 1000);
+    $('shadow-answer').textContent = reveal ? round.emote : seconds + (seconds === 1 ? ' second' : ' seconds') + hint;
+    $('shadow-instruction').textContent = reveal ? (round.winner ? 'Guessed by ' + round.winner + ' · ' : '') + 'Worn by ' + round.wearer :
+      'Type !guess and the emote name in chat';
+  }
   // litter (queue 60, see stepLitter)
   const LITTER = { DELAY: 10 * 60000, GROW: 25 * 60000, MAX: 140, FULL: 0.6 };
   const LITTER_PREVIEW = q.has('littermin') ? Math.max(0, Number(q.get('littermin')) || 0) * 60000 : null;
@@ -435,7 +605,7 @@
   // hopping in the middle of it made every lights-up show 21-24 frames a frame late at 60 fps (1-3 without the
   // applause; perf 11 Nov 2026, res/run_audup_11nov.txt). ?clapwait=0: 1.8 s into the fade, as it was.
   const CLAP_WAIT = q.get('clapwait') === '0' ? 1800 : 6200;
-  function applyPhase() {
+  function applyPhase(snapCurtain = false) {
     preshowEvents?.checkPhase();
     // lightsOn: the house lights come up while the film keeps playing (credits); the next phase brings them back
     const down = (show.phase === 'dim' || show.phase === 'film') && !show.lightsOn;
@@ -456,6 +626,42 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    drawSong();
+    drawShadow();
+    const discussion = !green && !show.intermissionUntil && show.phase==='up' && show.screen==='auto' && show.discussion;
+    const notice = !!discussion || (!green && !show.intermissionUntil && show.screen === 'notice' && !!show.noticeText);
+    const question = discussion?.question;
+    const noticeText = discussion ? (question?.text || 'Type !ask followed by your question in chat.') : (show.noticeText || '');
+    const noticeLabel = discussion ? (question ? (question.nick ? 'Question from '+question.nick : 'Question from the host') : 'Audience Q&A') : 'House notice';
+    $('preshow').classList.toggle('with-notice', notice);
+    $('ps-notice').hidden = !notice;
+    $('ps-notice').classList.toggle('long', noticeText.length > 56);
+    if ($('ps-notice-label').textContent !== noticeLabel) $('ps-notice-label').textContent = noticeLabel;
+    if ($('ps-notice-text').textContent !== noticeText) $('ps-notice-text').textContent = noticeText;
+    const curtain = $('house-curtain');
+    const closeCurtain = show.screen === 'curtain' && !show.intermissionUntil && !alwaysGreen;
+    if (closeCurtain) curtain.classList.add('used');
+    curtain.hidden = !screenPoly || alwaysGreen;
+    if (curtain.classList.contains('closed') !== closeCurtain) {
+      curtain.classList.toggle('closed', closeCurtain);
+      if (snapCurtain) curtain.getAnimations({subtree:true}).forEach(animation => animation.finish());
+    }
+    const chart = !green && !show.intermissionUntil && chartFormats.has(show.screen);
+    $('preshow').classList.toggle('framing', chart);
+    $('ps-chart').hidden = !chart;
+    if (chart) {
+      $('ps-chart').classList.toggle('scope', show.screen === 'chart-scope');
+      $('chart-format').textContent = chartFormats.get(show.screen);
+    }
+    $('ps-break').hidden = !show.intermissionUntil;
+    $('preshow').classList.toggle('on-break', !!show.intermissionUntil);
+    drawBreakClock();
+    if (show.screen === 'auto' && !green && show.phase === 'up' && lastProjectorPhase !== 'up' && ballot) {
+      showSlide(BALLOT_SLIDE);
+    } else if ((green && show.slide >= QUIZ_SLIDE) || (show.slide === BALLOT_SLIDE && show.phase !== 'up')) {
+      showSlide(0);
+    }
+    lastProjectorPhase = show.phase;
     holdSlide();
     $('screenq').style.display = screenPoly && green ? 'block' : 'none';
     $('preshow').style.display = screenPoly && !green ? 'block' : 'none';
@@ -700,7 +906,30 @@
   // Up next: the poll winner (said as such); without one, what is downloading (once it is found on Cinemeta); without
   // either, no title is claimed
   let pollFilm = null;
+  let quizHistory = [], quizPairs = [], quizRound = null, quizRevealed = false;
+  function updateBallot(data) {
+    const ratings = new Map((data?.ratings || []).map(r => [r.id, r]));
+    let latest = null;
+    for (const entry of data?.history || []) {
+      if (entry.type !== 'Movie' || !entry.title || !entry.ratingId || !Number.isFinite(entry.watchedTs)) continue;
+      if (latest && latest.at >= entry.watchedTs) continue;
+      const summary = ratings.get(entry.ratingId);
+      const votes = summary?.votes ?? data?.details?.ratings?.[entry.ratingId]?.votes?.length;
+      const score = summary?.avg ?? entry.rating;
+      if (!Number.isInteger(votes) || votes < 1 || !Number.isFinite(score) || score < 0 || score > 5) continue;
+      latest = {title: entry.title, at: entry.watchedTs, score, votes};
+    }
+    ballot = latest;
+    if (!ballot) { if (show.slide === BALLOT_SLIDE) showSlide(0); return; }
+    const title = $('ps-ballot-title');
+    title.textContent = ballot.title;
+    title.classList.toggle('long-title', ballot.title.length > 34);
+    $('ps-ballot-score').textContent = ballot.score.toFixed(2) + ' / 5';
+    $('ps-ballot-count').textContent = ballot.votes + (ballot.votes === 1 ? ' audience vote' : ' audience votes');
+  }
   Cinema.onRooms((rooms, data) => {
+    if (Array.isArray(data?.history)) quizHistory = data.history;
+    updateBallot(data);
     const film = upcomingFilm(data);
     const card = film && [...(data?.ratings || []), ...(data?.best || []), ...(data?.worst || [])].find((r) => titleKey(r.title) === titleKey(film.title));
     pollFilm = film && { title: film.title, poster: film.poster || card?.poster };
@@ -735,14 +964,30 @@
     if (SEQ_FADE) setTimeout(() => { if (show.slide === i) next.classList.add('active'); }, 400); else next.classList.add('active');
   }
   function holdSlide() { const i = SLIDES.indexOf(show.screen); if (i >= 0) showSlide(i); }
+  function drawQuiz(reveal) {
+    const first = quizRound[0].year < quizRound[1].year ? 0 : 1;
+    const rows = $('ps-quiz').querySelectorAll('p');
+    quizRound.forEach((film, i) => {
+      const row = rows[i];
+      row.textContent = reveal ? film.title + ' · ' + film.year : film.title;
+      row.classList.toggle('earlier', reveal && i === first);
+      row.classList.toggle('long-title', row.textContent.length > 36);
+    });
+    $('ps-quiz').querySelector('h2').textContent = reveal ? 'Earlier release' : 'Which came out first?';
+    quizRevealed = reveal;
+  }
   setInterval(() => {
-    if (show.screen !== 'auto') return;
-    const slides = document.querySelectorAll('.ps-slide');
-    slides[show.slide].classList.remove('active');
-    show.slide = (show.slide + 1) % slides.length;
-    if (slides[show.slide].contains($('ps-meme'))) nextMeme();
-    const next = slides[show.slide];
-    if (SEQ_FADE) setTimeout(() => next.classList.add('active'), 400); else next.classList.add('active');
+    if (show.intermissionUntil || show.screen !== 'auto' || alwaysGreen || filmOnScreen()) return;
+    if (show.slide === QUIZ_SLIDE && !quizRevealed && show.phase !== 'up') { drawQuiz(true); return; }
+    let next = show.slide >= QUIZ_SLIDE ? 0 : show.slide + 1;
+    if (next === QUIZ_SLIDE && show.phase === 'up') {
+      next = ballot ? BALLOT_SLIDE : 0;
+    } else if (next === QUIZ_SLIDE) {
+      if (!quizPairs.length && quizHistory.length) quizPairs = CinemaQuizDeck.makeDeck(quizHistory);
+      quizRound = quizPairs.pop();
+      if (quizRound) drawQuiz(false); else next = 0;
+    }
+    showSlide(next);
   }, 8000);
   function audience() {
     const seated = [...walkers.values()].filter((w) => w.sitting);
@@ -1139,6 +1384,7 @@
     const value = dimClock.text[p.band];
     if (p.dimLevel !== value) { p.dimLevel = value; p.dim.style.opacity = value; }
   }
+  const preshowCoverCache = {};
   function cullPieces() {
     if (!pieces.length) return;
     const pad = 96, hw = 960 / cam.z + pad, hh = 540 / cam.z + pad;
@@ -1166,6 +1412,8 @@
       }
     };
     for (const w of walkers.values()) if (w.box) cover(w, w.box);
+    const showProp = preshowEvents?.occlusionBox?.();
+    if (showProp) cover(preshowCoverCache, showProp);
     if (doorShot) cover(doorShot, [door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index]);
     // Cold portal tiles used to start rasterizing half a second into the
     // first lights-down. Bring up two at a time while the lit house is seating.
@@ -1581,7 +1829,7 @@
     if (guests() >= seats.length) return false;
     const portal = CORRIDOR[0] || L.walk_route.rear_portal_to_cross_aisle[0];
     for (const w of walkers.values()) {
-      if (!w.sitting && Math.hypot(w.pos[0] - portal[0], w.pos[1] - portal[1], (w.pos[2] - portal[2]) / 60) < WALK_GAP) return false;
+      if (w.passStage !== 'outside' && !w.sitting && Math.hypot(w.pos[0] - portal[0], w.pos[1] - portal[1], (w.pos[2] - portal[2]) / 60) < WALK_GAP) return false;
     }
     // shared room: the server picked the seat (waiting outside until it has one); a seat already taken here (this
     // screen drifted) falls back to the page's own choice
@@ -1601,6 +1849,7 @@
     pendingSpeech(w, m.tokens);
     pendingSpeech(w, m.more);
     walkers.set(w.key, w);
+    w.passWanted = m.steppedOut === true;
     directorArrival(w, m);
     return true;
   }
@@ -1614,7 +1863,7 @@
     if (m.emote === 'MOPPING') { onModMessage({ ...m, nick, features: ['moderator'] }); return; }
     m = { nick, emote: m.emote || Cinema.defaultEmote(nick), text: String(m.text || '').slice(0, 512),
       tokens: shortTokens(m.tokens), color: m.color, rainbow: !!m.rainbow,
-      room: !!m.room, seat: m.seat ?? null, seed: m.seed, follow: !!m.follow };
+      room: !!m.room, seat: m.seat ?? null, steppedOut: m.steppedOut === true, seed: m.seed, follow: !!m.follow };
     const key = nick.toLowerCase();
     const w = walkers.get(key);
     if (!w) {
@@ -1629,7 +1878,7 @@
       } else { if (m.tokens.length) queued.more = m.tokens; queued.color = m.color; queued.rainbow = m.rainbow; queued.at = now; if (m.seat) queued.seat = m.seat; }
       return;
     }
-    if (w.out) return;   // on their way out (banned / muted)
+    if (w.out || w.passStage === 'outside') return;
     nameStyle(w, m);
     if (!m.tokens?.length) return;
     // they talk wherever they are; only someone out of sight (in the tunnel) saves it for when they come out
@@ -1638,6 +1887,7 @@
   }
 
   function removeWalker(w) {
+    w.passCard?.remove();
     if (director.follow?.w === w) endFollow();
     dropBubble(w);
     w.el.remove();
@@ -2148,6 +2398,86 @@
     return exit;
   }
 
+  function markHeld(w) {
+    if (w.passCard) return;
+    const s = w.seat, z = s.z + BACK_Z + 1;
+    const [x, y] = P(s.u, s.v + BACK_DV, z);
+    const card = h('span', 'seat-pass', 'HELD');
+    card.style.left = x + 'px';
+    card.style.top = y + 'px';
+    card.style.zIndex = String(depthZ(s.u, s.v + BACK_DV, z) + 2);
+    card.setAttribute('aria-hidden','true');
+    w.passCard = world.appendChild(card);
+  }
+
+  function returnFromPass(w) {
+    w.passStage = 'returning';
+    w.leaving = w.exiting = false;
+    w.el.hidden = w.nm.hidden = false;
+    w.wait = 0;
+    w.alpha = 0;
+    w.lastMsg = performance.now();
+    if (director.follow?.w === w) director.follow.endAt = 0;
+    go(w, routeTo(w.seat), null);
+    enterVia(w, w.path);
+  }
+
+  function waitOutside(w) {
+    if (houseOut) { removeWalker(w); return; }
+    if (!w.passWanted) { returnFromPass(w); return; }
+    w.passStage = 'outside';
+    w.leaving = true;
+    w.sitting = w.seen = w.nameWant = false;
+    w.alpha = 0;
+    w.el.hidden = w.nm.hidden = true;
+    w.el.classList.remove('sit');
+    w.pending.length = 0;
+    dropBubble(w);
+    if (director.follow?.w === w) {
+      if (director.follow.manual) director.follow.endAt = 0;
+      else endFollow();
+    }
+    rowLight(w);
+    markHeld(w);
+  }
+
+  function stepOut(w) {
+    if (!w.sitting || w.out || w.leaving || w.reeducating || w.pendingSeat || hall.snacker === w || houseOut) return;
+    w.passStage = 'leaving';
+    if (director.follow?.w === w && director.follow.manual) director.follow.endAt = 0;
+    w.leaving = true;
+    doze(w, false);
+    dropBubble(w);
+    w.pending.length = 0;
+    if (w.phone) w.phone.classList.remove('on');
+    w.texting = false;
+    markHeld(w);
+    standUp(w);
+    w.onArrive = waitOutside;
+  }
+
+  function applyPass(w, away) {
+    w.passWanted = away;
+    if (!away && w.passStage === 'outside') returnFromPass(w);
+    else if (away && !w.passStage) stepOut(w);
+  }
+
+  function closeReentryPasses() {
+    for (const w of walkers.values()) {
+      w.passWanted = false;
+      if (w.passStage === 'outside') { removeWalker(w); continue; }
+      if (!w.passStage) continue;
+      w.passCard?.remove();
+      w.passCard = null;
+      if (w.passStage === 'returning') {
+        w.leaving = true;
+        w.wait = 0;
+        goOut(w, [[...w.pos], ...w.path.slice(0, w.seg + 1).reverse()], removeWalker);
+      } else w.onArrive = removeWalker;
+      w.passStage = null;
+    }
+  }
+
   // Someone seated moves to another seat (the panel's "Yee to the front", owner 11 Nov 2026; the room picks the seat):
   // up, down the stair aisle to the cross-aisle, along to the new row and in. They sit down on arrival like anyone.
   function moveSeat(t, seat) {
@@ -2311,10 +2641,13 @@
       ? (x) => { floatAt(x, 'DINK DONK!', '#ffe27a'); go(x, [[...x.pos], [15.0, cross[1], 24], [...cross]], crewOut); }
       : (x) => { x.bounce = 1; floatAt(x, '\u{1F3AC} roll it!', '#ffe27a'); hold(x, 2.5, crewOut); };
   }
+  let cleanupGeneration = 0;
   function startCleanup() {
+    const generation = ++cleanupGeneration;
     hall.cleaning = true;
     const cross = L.walk_route.rear_portal_to_cross_aisle.at(-1);
     [0, 1].forEach((k) => setTimeout(() => {
+      if (generation !== cleanupGeneration) return;
       const w = crewWalker(`mop${k}`, null, { mop: true });
       if (!w) return;
       w.mopping = true;
@@ -2331,11 +2664,43 @@
       };
     }, k * 2500));
   }
+  // Leave one pair in the legroom of a vacated seat on the crew's actual sweep route.
+  // Keep the same prop on the cleaner's hand from pickup to the exit.
+  let lostProperty = null;
+  function clearLostProperty() {
+    lostProperty?.el.remove();
+    lostProperty = null;
+  }
+  function leaveGlasses(seat) {
+    if (!HALL_ON || lostProperty || !seat || seat.block !== 'main' || dark()) return;
+    const v = seat.v - LEG_DV;
+    const [x, y] = P(seat.u, v, seat.z);
+    const el = h('div', 'lost-glasses');
+    Object.assign(el.style, { left: (x - 16) + 'px', top: (y - 7) + 'px', transform: 'rotate(-12deg)',
+      zIndex: String(layers ? depthZ(seat.u, v, seat.z) : Math.round((seat.u + v) * 100) + 5) });
+    world.append(el);
+    lostProperty = { el, u: seat.u, v, row: seat.row, collected: false };
+  }
+  function collectGlasses(w) {
+    const item = lostProperty;
+    if (!item || item.collected || Math.abs(w.pos[0] - item.u) > .48 ||
+        Math.abs(w.pos[1] - item.v) > .32 || Math.abs(w.pos[2] - item.row.z) > 2) return;
+    item.collected = true;
+    item.el.removeAttribute('style');
+    item.el.classList.add('in-hand');
+    item.el.append(h('span', 'lost-tag', 'ROW ' + item.row.name));
+    w.bod.append(item.el);
+    w.wait = 3;
+    floatAt(w, 'Found glasses · row ' + item.row.name, '#ffdeaa', 23);
+  }
   function stepHallLife(now) {
     if (!HALL_ON || !L) return;
+    if (!houseOut && lostProperty) clearLostProperty();
     // litter goes where a mop passes (every frame: two mops, a few dozen pieces)
     for (const w of crewSet) {
-      if (!w.mopping || !litterList) continue;
+      if (!w.mopping) continue;
+      if (lostProperty && !lostProperty.collected) collectGlasses(w);
+      if (!litterList) continue;
       for (let i = 0; i < litterEls.length; i++) {
         const el = litterEls[i], pc = litterList[i];
         if (el.swept || !pc) continue;
@@ -2354,7 +2719,8 @@
     if (hall.lastPhase !== null && show.phase === 'film' && hall.lastPhase !== 'film') setTimeout(() => sendConductor(false), 2500);
     hall.lastPhase = show.phase;
     // A17 clean-up once the hall is empty
-    if (houseOut && !hall.cleaning && guests() === 0 && litterEls.some((el) => !el.swept)) startCleanup();
+    if (houseOut && !hall.cleaning && guests() === 0 &&
+        ((lostProperty && !lostProperty.collected) || litterEls.some((el) => !el.swept))) startCleanup();
   }
   SB.on('combo', ({ emote, count }) => {
     if (!HALL_ON || emote !== 'DinkDonk' || count < 3 || count % 3 || show.phase !== 'film') return;
@@ -2370,6 +2736,7 @@
     const seated = [...walkers.values()].filter((w) => w.sitting && !w.out && !w.jan && !w.usher && !w.leaving);
     if (!seated.length) return;
     const w = seated[Math.floor(Math.random() * seated.length)];
+    leaveGlasses(w.seat);
     w.leaving = true;
     doze(w, false);
     w.pending.length = 0;
@@ -2386,6 +2753,7 @@
   // Never blocks anyone (and isn't blocked); leaves when the lights come up.
   let usher = null;
   let usherDue = 0;
+  let lastRowGuide = -Infinity;
   const guests = () => walkers.size - jannies.size - (usher ? 1 : 0) - crewCount();   // (crew: the hall-life staff below)
   function addUsher() {
     const w = makeWalker({ nick: 'usher', emote: Cinema.defaultEmote('roxy-usher'), color: '#fff' });   // the lobby usher's emote
@@ -2407,6 +2775,9 @@
   function usherNext(w) {
     w.sweep = null;
     if (w.leaving || !dark()) { usherLeave(w); return; }
+    const finishedGuide = w.task === 'guide';
+    w.task = null;
+    if (!finishedGuide && guideLateGuest(w)) return;
     if (w.queued) {
       const t = w.queued;
       w.queued = null;
@@ -2419,7 +2790,6 @@
       t.spotBy = null;
       if (walkers.get(t.key) === t && t.sitting && !t.out) { spotVisit(w, t); return; }
     }
-    w.task = null;
     w.pace = 0.7;   // a slow patrol
     if (Math.random() < 0.45) {
       // up a stair aisle to a row, shine along it, back down
@@ -2442,10 +2812,49 @@
       });
     }
   }
+  // Meet an arriving guest at the aisle. Their assigned seat and ordinary walk-in route stay theirs.
+  function guideLateGuest(u) {
+    const now = performance.now();
+    if (!HALL_ON || houseOut || now - lastRowGuide < 55000) return false;
+    // Pick a guest still coming through the entrance so the usher can reach the row first.
+    const g = [...walkers.values()].find(w => w.late && !w.sorry && !w.guided && !w.sitting && !w.out && !w.leaving &&
+      w.seat && !w.pendingSeat && w.seg <= CORRIDOR.length && w.seg < w.path.length - 3);
+    if (!g) return false;
+    const seat = g.seat, aisleU = seat.block === 'right' ? 15.15 : 3.475;
+    const there = [[...u.pos], ...aisleTo(seat.row, seat.block, aisleU).slice(0, -1)];
+    g.guided = true;
+    lastRowGuide = now;
+    u.task = 'guide';
+    u.pace = 1.35;
+    u.round = {out: there};
+    function atRow() {
+      const valid = walkers.get(g.key) === g && g.seat === seat && !g.out && !g.leaving &&
+        !g.sitting && dark() && !houseOut && !u.leaving && performance.now() - now < 60000;
+      if (!valid) {
+        u.guideSeat = null;
+        u.guideGuest = null;
+        u.round = null;
+        go(u, [...there].reverse(), usherNext);
+        return;
+      }
+      // Only point once the arrival is in sight of this row. Keep the beam below seated faces.
+      if (!u.guideSeat && Math.abs(g.pos[0] - aisleU) < 1.2 && Math.abs(g.pos[1] - seat.v) < 2.5) {
+        u.guideSeat = seat;
+        u.guideGuest = g;
+        g.nameT = 4;
+        floatAt(u, 'This way · row ' + seat.row.name, '#ffe3a9', 23);
+      }
+      hold(u, .4, atRow);
+    }
+    go(u, there, atRow);
+    return true;
+  }
   // a talker needs a visit: break off the look round, back to the cross-aisle the way it came, and go
   function usherRecall(u) {
     const r = u.round;
     if (!r) return;   // coming in, heading back already, or busy: the visit waits for usherNext
+    u.guideSeat = null;
+    u.guideGuest = null;
     u.round = null;
     u.sweep = null;
     u.wait = 0;
@@ -2453,6 +2862,8 @@
     go(u, [[...u.pos], ...[...walked].reverse()], usherNext);
   }
   function usherLeave(w) {
+    w.guideSeat = null;
+    w.guideGuest = null;
     w.leaving = true;
     w.round = null;
     w.sweep = null;
@@ -2478,6 +2889,7 @@
     if (!u || u.leaving || !u.seen || !dark() || w.out || w.spotBy || u.spotQ) return;
     u.spotQ = w;   // next in line after a visit, shush or kick in progress
     w.spotBy = u;
+    if (u.task === 'guide') return;   // finish showing the row before visiting an ordinary talker
     if (!u.task) u.pace = 1;   // on its way back from a round: hurries
     usherRecall(u);
   }
@@ -2523,6 +2935,14 @@
         const [sx, sy] = P(...s.pos);
         t = [sx, sy - s.emH * (s.sitting ? SIT_SCALE : 1) * 0.55];
         w.wait = Math.max(w.wait || 0, 0.05);   // stops to shine on them
+      } else if (w.guideSeat && w.guideGuest?.seat === w.guideSeat && !w.guideGuest.sitting && !w.guideGuest.out) {
+        const seat = w.guideSeat;
+        // Walk the light along the legroom one step ahead, then pick out the empty cushion.
+        const inRow = w.guideGuest.seg >= w.guideGuest.path.length - 2;
+        const fromU = inRow ? w.guideGuest.pos[0] : w.pos[0];
+        const remaining = seat.u - fromU;
+        t = inRow && Math.abs(remaining) <= 1.3 ? P(seat.u, seat.v + SIT_DV, seat.z + SIT_Z)
+          : P(fromU + clamp(remaining, -1.3, 1.3), seat.v - LEG_DV, seat.z);
       } else if (w.sweep) {
         const sw = w.sweep, k = 0.5 - 0.5 * Math.cos((now - sw.t0) / 1000 * 0.9);
         t = P(sw.u0 + (sw.u1 - sw.u0) * k, sw.row.v + SIT_DV, sw.row.z + SIT_Z + 36);
@@ -2642,7 +3062,7 @@
     const tmp = (vel + om * ch) * dt;
     return [target + (ch + tmp) * e, (vel - om * tmp) * e];
   }
-  function placeBubble(w, placed, dt) {
+  function placeBubble(w, placed, dt, guests) {
     const b = w.bub;
     const [x, y] = toScreen(w.bx, w.by);
     const head = toScreen(w.bx, w.by - w.emH - 13 * K)[1];   // + a walking hop, so the head never pokes into it
@@ -2691,7 +3111,7 @@
     }
     w.holdBelow = below;
     top = clamp(natural + dy, 8, 1072 - bh);
-    placed.push({ x0: left, y0: top, x1: left + bw, y1: top + bh, w });
+    if (!guests) placed.push({ x0: left, y0: top, x1: left + bw, y1: top + bh, w });
     // eased offsets from the natural spot (x: from the clamped left edge; y: from over the head)
     const ox = left - (x - bw / 2);
     const oy = top - natural;
@@ -2699,8 +3119,12 @@
       [w.offX, w.offVX] = spring(w.offX, ox, w.offVX, BUB_GLIDE, dt);
       [w.offY, w.offVY] = spring(w.offY, oy, w.offVY, BUB_GLIDE, dt);
     }
-    const dl = clamp(x - bw / 2 + w.offX, 8, 1912 - bw);
-    const dt2 = clamp(natural + w.offY, 8, 1072 - bh);
+    let dl = clamp(x - bw / 2 + w.offX, 8, 1912 - bw);
+    let dt2 = clamp(natural + w.offY, 8, 1072 - bh);
+    if (guests) {
+      [dl,dt2] = preshowEvents.clearOfGuests(dl,dt2,bw,bh,guests,placed);
+      placed.push({x0:dl,y0:dt2,x1:dl+bw,y1:dt2+bh,w});
+    }
     // the tail flips side once the box has passed the speaker's middle on its glide
     b.classList.toggle('below', dt2 > (head + y) / 2);
     style(b, 'transform', `translate(${dl.toFixed(1)}px, ${dt2.toFixed(1)}px)`);  // QA perf: cached
@@ -2765,6 +3189,8 @@
     // other in the aisle for good
     const ahead = [], aheadOut = [];
     for (const w of walkers.values()) {
+      if (w.passStage === 'outside') { if (houseOut) removeWalker(w); continue; }
+      if (w.passWanted && !w.passStage && w.sitting) stepOut(w);
       const line = w.leaving && !w.jan ? aheadOut : ahead;
       step(w, dt, w.usher ? [] : line);
       if (!w.sitting && !w.usher) line.push(w);
@@ -2783,7 +3209,8 @@
     const placed = [];
     for (const [l, t, r, b] of reeduKeeps) { const [x0, y0] = toScreen(l, t), [x1, y1] = toScreen(r, b); placed.push({ x0, y0, x1, y1 }); }
     tethered.clear();
-    for (const w of bubOrder) if (w.bub && w.bub.style.visibility !== 'hidden') placeBubble(w, placed, dt);
+    const applauding = bubOrder.length && preshowEvents?.bubbleClearance(toScreen);
+    for (const w of bubOrder) if (w.bub && w.bub.style.visibility !== 'hidden') placeBubble(w, placed, dt, applauding);
     for (const w of bubOrder) if (w.teth?.on && !tethered.has(w)) tether(w, null);
   }
 
@@ -2793,6 +3220,8 @@
   const nameRank = (w) => (director.follow?.w === w ? 1e6 : 0) + (w.jan ? 1e5 : 0) + w.nameT;
   function showNames() {
     const shown = [];
+    const action = preshowEvents?.actionBounds();
+    if (action) shown.push(action);
     const list = [];
     for (const w of walkers.values()) if (w.nameWant) list.push(w);
     list.sort((a, b) => nameRank(b) - nameRank(a));
@@ -2846,6 +3275,11 @@
       } else if (!b) {
         // arrived at the legroom in front of the seat: sit down, facing the screen (up and to the right)
         w.sitting = true;
+        if (w.passStage === 'returning') {
+          w.passStage = null;
+          w.passCard?.remove();
+          w.passCard = null;
+        }
         w.el.classList.add('sit');
         rowLight(w);
         w.pos = [w.seat.u, w.seat.v + SIT_DV, w.seat.z + SIT_Z];
@@ -3021,7 +3455,7 @@
   }
   const MANUAL_HOLD = clamp(Number(q.get('followhold')) || 15, 3, 120) * 1000;   // ?followhold=<s>: a hand-picked follow on a seated chatter
   function startFollow(w, manual = true) {
-    if (!w || !walkers.has(w.key)) return;
+    if (!w || !walkers.has(w.key) || (!manual && w.passStage === 'outside')) return;
     if (preshowEvents?.playing()) { if (!manual) return; preshowEvents.interrupt(); }
     director.follow = { w, manual, since: performance.now(), lx: null, ly: null, ax: 0, ay: 0, tx: null, ty: null, endAt: 0 };
     director.wantNext = false;
@@ -3039,7 +3473,7 @@
   }
   function followSomeone(nick) {
     const key = nick?.toLowerCase();
-    const list = [...walkers.values()].filter((w) => (!key || w.key === key));
+    const list = [...walkers.values()].filter((w) => (!key ? w.passStage !== 'outside' : w.key === key));
     if (list.length) startFollow(list[Math.floor(Math.random() * list.length)]);
     return list.length > 0;
   }
@@ -3355,10 +3789,11 @@
       const w = f.w;
       // a seated chatter: the director's own follow lets go after 3 s; one asked for by hand (a name in the panel, "follow
       // someone") stays on them a while, also when they were already sitting (owner, 15 Nov 2026)
-      if (!f.endAt && (w.sitting || !walkers.has(w.key) || now - f.since > 150000)) f.endAt = now + (w.sitting ? (f.manual ? MANUAL_HOLD : 3200) : 0);
+      const atSeat = w.sitting || w.passStage === 'outside';
+      if (!f.endAt && (atSeat || !walkers.has(w.key) || now - f.since > 150000)) f.endAt = now + (atSeat ? (f.manual ? MANUAL_HOLD : 3200) : 0);
       if (f.endAt && now >= f.endAt) endFollow();
       else {
-        const pos = w.seen === false ? [2.1, 9.4, 8] : w.pos;
+        const pos = w.passStage === 'outside' ? [w.seat.u, w.seat.v + SIT_DV, w.seat.z + SIT_Z] : w.seen === false ? [2.1, 9.4, 8] : w.pos;
         const [x, foot] = P(...pos);
         const y = foot - w.emH * 0.7;
         // lead the shot a little in the walking direction (smoothed velocity)
@@ -3377,6 +3812,8 @@
     if (director.outro && (director.follow || onScreen(now))) director.outro = false;
     const slow = !director.follow && (onScreen(now) || director.outro);
     if (slow && !director.outro) [tx, ty, tz] = screenShot();
+    const eventCamera = !f && !slow && (!reducedShadow.matches && (!$('ps-shadow').hidden || !$('ps-song').hidden || (show.discussion && !$('ps-notice').hidden)) ? screenShot() : preshowEvents?.camera());
+    if (eventCamera) [tx, ty, tz] = eventCamera;
     const fit = (c, half, size) => clamp(c, half, size - half);
     tx = fit(tx, 960 / tz, 1920);
     ty = fit(ty, 540 / tz, 1080);
@@ -3402,12 +3839,16 @@
     const k = e.key.toLowerCase();
     if (k === 'f') director.wantNext = true;
     else if (k === 'r') followSomeone();
-    else if (k === 'w' || k === 'escape') { director.wantNext = false; director.screenAt = 0; endFollow(); }
+    else if (k === 'w' || k === 'escape') {
+      if (preshowEvents?.camera()) preshowEvents.interrupt();
+      director.wantNext = false; director.screenAt = 0; endFollow();
+    }
     else if (k === 'd') director.on = !director.on;
   });
 
   // ---------- control panel (control.html) through the standby server ----------
   function statusOf(w) {
+    if (w.passStage) return ({leaving:'stepping out', outside:'outside on re-entry pass', returning:'returning to seat'})[w.passStage];
     if (w.usher) return w.task === 'kick' ? 'usher, kicking someone out' : w.task === 'spot' ? 'usher, going to a talker' : w.leaving ? 'usher, leaving' : 'usher';
     if (w.jan) return w.task === 'escort' ? 'janny, escorting' : w.task === 'shush' ? 'janny, shushing' : w.leaving ? 'janny, clocking off' : 'janny';
     if (w.out) return w.outWhy === 'kicked' ? 'kicked by the usher' : w.sitting ? 'banned/muted, waiting for a janny' : 'banned/muted, leaving';
@@ -3471,16 +3912,25 @@
         // Film again after Movie / Film outro: push in now (the lights are already down, so no 10 s wait)
         const again = c.value === 'film' && show.phase === 'film' && (show.shot !== 'push' || show.lightsOn);
         if (c.value === show.phase) show.lightsOn = false;   // the phase's own button dims the house lights again
-        if (c.value === 'film') show.screen = 'auto';   // Film puts the film on the screen
+        if (c.value === 'film') { HouseNotice.forget(show); show.screen = 'auto'; show.intermissionUntil = 0; }   // Film puts the film on the screen
         setPhase(c.value, true);
         if (again) { director.screenAt = now; director.outro = false; endFollow(); pushWanted = true; }
         show.shot = 'push';
         break;
       }
       // Movie: the film starts on the screen with no push in (the wide shot stays; follows still work)
-      case 'movie': show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
+      case 'movie': HouseNotice.forget(show); show.intermissionUntil = 0; show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
       // the panel's screen picker (the room sends the same as a 'show' event)
-      case 'screen': if (['auto', ...SLIDES, 'film'].includes(c.value)) { show.screen = c.value; applyPhase(); } break;
+      case 'screen': if (screenChoices.includes(c.value)) { HouseNotice.forget(show); show.intermissionUntil = 0; show.screen = c.value; applyPhase(); } break;
+      case 'houseNotice': if (HouseNotice.apply(show, c)) applyPhase(); break;
+      case 'intermission':
+        // A shared room broadcasts one authoritative deadline; isolated and older screens use the local clock.
+        if (!(inRoom() && roomHasBreakClock) && [0, 5, 10, 15].includes(c.minutes)) {
+          if (c.minutes && show.intermissionUntil) break;
+          show.intermissionUntil = c.minutes ? Date.now() + c.minutes * 60000 : 0;
+          applyPhase();
+        }
+        break;
       // Litter off sweeps it up; on again: the clock restarts at the next 60% full house (the room decides it)
       case 'litter': show.litter = !!c.on; if (!inRoom()) show.fullAt = 0; stepLitter(); break;
       // Film outro: the push in reversed - the film keeps playing while the camera eases back out to the wide shot,
@@ -3511,8 +3961,8 @@
       // House lights up while the film keeps playing (on: false dims them again)
       case 'lights': show.lightsOn = !!c.on && show.phase === 'film'; applyPhase(); break;
       // Show over: everyone stands up and leaves, new arrivals wait until the next Seating (on: false stops it)
-      case 'houseOut': houseOut = !!c.on; nextLeaver = 0; break;
-      case 'reset': resetHall(); break;
+      case 'houseOut': houseOut = !!c.on; nextLeaver = 0; if (houseOut) closeReentryPasses(); break;
+      case 'reset': HouseNotice.apply(show, {withdraw:true}); show.intermissionUntil = 0; applyPhase(); resetHall(); break;
       case 'remove': removeNick(key); break;
       case 'reeducate': if (!inRoom()) reeducate(key); break;   // (in the room it comes back as a room event, on every screen)
       case 'add':
@@ -3531,6 +3981,9 @@
     }
   }
   function resetHall() {
+    clearLostProperty();
+    cleanupGeneration++;
+    hall.cleaning = false;
     preshowEvents?.interrupt();
     houseOut = false;
     show.fullAt = 0;   // a reset also sweeps the litter (the room does the same)
@@ -3573,28 +4026,40 @@
     SB.faceEmote(w.em, w.emName, 1);
     placeItem(w);
     walkers.set(w.key, w);
+    if (m.steppedOut) { w.passWanted = true; waitOutside(w); }
     return true;
   }
   // the room's screen picker and litter clock (fullAt is server time: shift it by the server's clock offset)
   function roomShow(s, serverNow) {
-    if (['auto', ...SLIDES, 'film'].includes(s.screen)) show.screen = s.screen;
+    if (s.screen === 'notice' && HouseNotice.text(s.noticeText)) {
+      show.screen = 'notice'; show.noticeText = HouseNotice.text(s.noticeText);
+      show.noticePrevious = screenChoices.includes(s.noticePrevious) ? s.noticePrevious : 'auto';
+    } else if (screenChoices.includes(s.screen)) { HouseNotice.forget(show); show.screen = s.screen; }
     if (typeof s.litter === 'boolean') show.litter = s.litter;
     const off = Number.isFinite(serverNow) ? Date.now() - serverNow : 0;
+    songOffset = off;
+    show.singAlongAt = Number.isFinite(s.singAlongAt) ? s.singAlongAt : 0;
+    shadowOffset = off;
+    show.shadowRound = s.shadowRound || null;
+    show.discussion = s.discussion || null;
+    roomHasBreakClock = Object.hasOwn(s, 'intermissionUntil');
+    if (roomHasBreakClock) show.intermissionUntil = Number.isFinite(s.intermissionUntil) && s.intermissionUntil > 0 ? s.intermissionUntil + off : 0;
     show.fullAt = Number.isFinite(s.fullAt) && s.fullAt > 0 ? s.fullAt + off : 0;
     stepLitter();
   }
   let pendingSnapshot = null;
   function applySnapshot(ev) {
-    if (!L || !seats.length) { pendingSnapshot = ev; return; }
-    pendingSnapshot = null;
     const s = ev.show;
     if (s) {
       if (s.phase !== show.phase) setPhase(s.phase);
       Object.assign(show, { shot: s.shot, lightsOn: !!s.lightsOn, auto: !!s.auto });
-      if (houseOut !== !!s.houseOut) { houseOut = !!s.houseOut; nextLeaver = 0; }
+      if (houseOut !== !!s.houseOut) { houseOut = !!s.houseOut; nextLeaver = 0; if (houseOut) closeReentryPasses(); }
       roomShow(s, ev.now);
-      applyPhase();
+      applyPhase(true);
     }
+    // Apply the projector state at receipt. Seat placement can wait for the art without shifting the room clock.
+    if (!L || !seats.length) { pendingSnapshot = {...ev, show:null}; return; }
+    pendingSnapshot = null;
     if (ev.director) {
       director.on = !!ev.director.on;
       if (Number.isFinite(ev.director.every)) director.every = clamp(ev.director.every, 30, 1800);
@@ -3602,13 +4067,13 @@
     }
     const want = new Map(ev.roster.map((m) => [m.nick.toLowerCase(), m]));
     // gone from the room while this screen was away: out (staff and anyone already leaving stay)
-    for (const w of [...walkers.values()]) if (!w.jan && !w.usher && !w.out && !w.leaving && !want.has(w.key)) removeWalker(w);
+    for (const w of [...walkers.values()]) if (!w.jan && !w.usher && !w.out && (!w.leaving || w.passStage) && !want.has(w.key)) removeWalker(w);
     for (let i = arrivals.length - 1; i >= 0; i--) if (!want.has(arrivals[i].nick.toLowerCase())) arrivals.splice(i, 1);
     const now = performance.now();
     for (const [key, m] of want) {
-      if (walkers.has(key)) continue;
+      if (walkers.has(key)) { applyPass(walkers.get(key), m.steppedOut === true); continue; }
       const queued = arrivals.find((a) => a.nick.toLowerCase() === key);
-      if (queued) { queued.seat = m.seat; continue; }
+      if (queued) { queued.seat = m.seat; queued.steppedOut = m.steppedOut === true; continue; }
       if (m.seat && seatNow(m)) continue;
       arrivals.push({ ...shortMsg(m), at: now });   // waiting outside, or a seat this screen has taken already
     }
@@ -3618,6 +4083,15 @@
     const key = String(ev.nick || '').toLowerCase();
     switch (ev.t) {
       case 'snapshot': applySnapshot(ev); break;
+      case 'reentryPass': {
+        const w = walkers.get(key);
+        if (w) applyPass(w, ev.away === true);
+        const queued = arrivals.find(a => a.nick.toLowerCase() === key);
+        if (queued) queued.steppedOut = ev.away === true;
+        const early = pendingSnapshot?.roster.find(m => m.nick.toLowerCase() === key);
+        if (early) early.steppedOut = ev.away === true;
+        break;
+      }
       case 'show': if (ev.show) { roomShow(ev.show, ev.now); applyPhase(); } break;
       case 'seat': {
         const a = arrivals.find((x) => x.nick.toLowerCase() === key);
@@ -3640,6 +4114,7 @@
       case 'clear': resetHall(); break;
       case 'remove': {
         const w = walkers.get(key);
+        if (w?.passStage || w?.passWanted) { removeNick(key); break; }
         // the leading screen's usher kicked them (or they went home): the same exit here, without the usher
         if ((ev.why === 'kicked' || ev.why === 'home') && w && w.sitting && !w.out) {
           goingOut(w, ev.why === 'kicked' ? '🔦 kicked' : '💤 heading home');
@@ -3664,7 +4139,7 @@
         timedShow: preshowEvents && { event: preshowEvents.status().event, cue: preshowEvents.status().cue },
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         preshow: { phase: show.phase, shot: show.shot, lightsOn: show.lightsOn, houseOut, auto: show.auto, download: show.download, alwaysGreen,
-          screen: show.screen, litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
+          screen: show.screen, noticeText: show.noticeText || '', intermissionRemaining: breakSeconds(), litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
         house: { capacity: seats.length, occupied: guests(), waiting: arrivals.length, queueLimit: MAX_QUEUE },
         shots: window.DD_SHOTS?.state?.() || null,   // Brief 102: the panel enables T1 / T2 / T3 from this
         jannies: L ? { area: janArea(), setting: JAN_AREA, duty: dutyActive(), count: [...jannies.values()].filter((j) => !j.leaving).length } : null,
@@ -3698,7 +4173,7 @@
       const down = $('stage').classList.contains('lights-down');
       const out = [];
       for (const w of walkers.values()) {
-        if (!w.pos || !w.em) continue;
+        if (!w.pos || !w.em || w.passStage === 'outside') continue;
         const items = [];
         for (const im of [w.item, w.cap]) {
           if (!im || im.style.display === 'none' || !im.litSrc) continue;
@@ -4111,7 +4586,7 @@
     }
     litterShown = litterEls.length;
   }
-  setInterval(stepLitter, 1000);
+  setInterval(() => { stepLitter(); if (show.intermissionUntil) drawBreakClock(); if (show.shadowRound) drawShadow(); }, 1000);
 
   // ---------- start ----------
   Cinema.onWalkIn(onMessage);
@@ -4200,6 +4675,7 @@
       // Columns are TL->TR / 960 and TL->BL / 540: all four corners match the layout exactly.
       $('preshow').style.transform = `matrix(${(c.TR[0] - c.TL[0]) / 960}, ${(c.TR[1] - c.TL[1]) / 960}, ${(c.BL[0] - c.TL[0]) / 540}, ${(c.BL[1] - c.TL[1]) / 540}, ${c.TL[0]}, ${c.TL[1]})`;
       $('glowbloom').style.transform = $('preshow').style.transform;
+      $('house-curtain').style.transform = $('preshow').style.transform;
       placeSpill();
       placeAisleLights();
       placeBeam();
@@ -4240,19 +4716,37 @@
       const active = w => walkers.get(w.key) === w && w.sitting && w.seat && w.seen && !w.leaving && !w.out && !w.reeducating;
       preshowEvents = createHouseEvents({
         ready: kind => {
+          if (show.discussion || show.singAlongAt || show.shadowRound?.state === 'playing') return false;
           if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
+          if (kind === 'interval-ices') return HALL_ON && show.intermissionUntil > Date.now() && !alwaysGreen;
+          if (kind === 'beach-ball' || kind === 'organ-lift' || kind === 'rain-foley' || kind === 'paris-3d') return show.phase === 'seating' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
+          if (kind === 'visual-applause') return show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
+          if (kind === 'mic-runner') return HALL_ON && show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           return !alwaysGreen && !filmOnScreen() && (show.phase === 'seating' || show.phase === 'up');
         },
         canStart: () => !hall.snacker && !walkers.has('#vendor') && !hall.cleaning,
         startNative: startHallEvent,
+        staff: (id='mic-runner') => crewWalker(id, SB.emotes?.names?.has('FeelsOkayMan') ? 'FeelsOkayMan' : Cinema.defaultEmote('roxy-usher'), {cap:true, pace:1.65}),
+        dismissStaff: crewDone,
+        breakRemaining: () => Math.max(0,(show.intermissionUntil-Date.now())/1000),
+        breakDeadline: () => show.intermissionUntil,
+        present: w => walkers.get(w.key) === w,
+        toAisle: (runner, seat, aisle) => [[...runner.pos], ...aisleTo(seat.row, aisle > 10 ? 'right' : 'main', aisle).slice(0, -1),
+          [aisle, seat.v + .12, seat.z]],
+        go, hold, face: faceToward, out: crewOut,
+        exitEntry: (w, entry) => goOut(w, [[...w.pos], ...entry.slice(0, w.seg + 1).reverse()], crewDone),
+        label: w => floatAt(w, 'Audience Q&A', '#ffe5a8', 21),
         active,
+        seats: () => seats,
         seated: () => [...walkers.values()].filter(w => active(w) && !w.jan && !w.usher && !w.crew),
         screen: () => screenPoly,
         point: w => P(...w.pos),
+        aisleSpot: (u,v,z) => ({x:P(u,v,z)[0],y:P(u,v,z)[1],depth:depthZ(u,v,z)}),
+        floor: (u,v) => ({point:P(u,v,24),depth:depthZ(u,v,24)}),
         apex: () => { const su = L.screen?.u || [4.9,13.9]; return P((su[0]+su[1])/2-2.3,L.room?.v[1] ?? 14.9,580); }
-      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run'], automatic: timedPreshows, enabled: timedEventsEnabled });
+      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift','interval-ices','rain-foley','paris-3d'], automatic: timedPreshows, enabled: timedEventsEnabled });
       window.auditoriumEvents = preshowEvents;
       SB.on('msg', m => preshowEvents.message(m));
     }).catch(err => console.warn('[preshow]',err));

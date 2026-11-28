@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket counter · DinkDonk Cinema</title>
+<style>
+  * { box-sizing: border-box }
+  :root { color-scheme: dark; font-family: 'Segoe UI', sans-serif; color: #f4eddf; background: #18332f }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, #294b40, transparent 75%) }
+  main { width: min(840px, 100%); margin: auto; padding: clamp(24px, 7vh, 76px) 22px }
+  header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; border-bottom: 1px solid #709389; padding-bottom: 15px }
+  h1 { margin: 0; font: normal clamp(32px, 6vw, 52px)/1 Georgia, serif }
+  header small, label, button { font: bold 14px/1.4 'Courier New', monospace }
+  header small { color: #d3ddd2 }
+  .counter { padding: clamp(28px, 7vw, 64px) 0 }
+  canvas { display: block; width: 100%; height: auto; filter: drop-shadow(1px 10px 8px #081a1566) }
+  [hidden] { display: none !important }
+  .controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px }
+  label { display: grid; gap: 7px; flex: 1 1 260px; min-width: 0 }
+  select, button { min-height: 44px; padding: 10px 12px; border-radius: 3px }
+  select { width: 100%; color: #f4eddf; background: #17332e; border: 1px solid #a4b9aa; font-size: 16px }
+  button { border: 1px solid #f0be81; cursor: pointer; color: #232d27; background: #f0be81 }
+  button:disabled { opacity: .55; cursor: default }
+  :focus-visible { outline: 3px solid #fff; outline-offset: 3px }
+  #status { color: #e2dfd1; margin: 12px 0 }
+  #status:empty { margin: 0 }
+  header a { color: #e3d5ae }
+  .controls a { color: #f0be81; text-underline-offset: .2em; padding: 10px 0 }
+  #passport { margin-top: 32px; padding: 24px; color: #303c32; background: #f1e6c8; border-radius: 3px; }
+  .passport-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid #89927e; padding-bottom: 14px }
+  #passport h2 { font: normal clamp(26px, 5vw, 36px)/1.1 Georgia, serif; margin: 0 }
+  #passport button { background: transparent; color: #334a3d; border-color: #627763 }
+  #passport :focus-visible { outline-color: #275244 }
+  #passport-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 18px; list-style: none; padding: 0; margin: 20px 0 }
+  #passport-list:empty { display: none }
+  .stamp { display: grid; align-content: center; gap: 7px; min-height: 118px; padding: 12px; text-align: center; color: #405e4e; border: 3px double currentColor; border-radius: 22px 5px }
+  .stamp:nth-child(3n + 2) { color: #854733; border-radius: 5px 22px }
+  .stamp:nth-child(3n) { color: #405877; border-radius: 20px }
+  .stamp strong { font: bold 20px/1.12 Georgia, serif; overflow-wrap: anywhere }
+  .stamp small, #passport-count { font: bold 12px/1.35 'Courier New', monospace }
+  #passport .stamp button { justify-self: center; min-height: 32px; padding: 1px 8px; border: 0; font-size: 12px; text-decoration: underline; }
+  #passport-note { margin: 12px 0 0 }
+  @media print {
+    :root, body, #passport { color: #111; background: white }
+    main { width: auto; padding: 0 }
+    main > :not(#passport), #passport button, #passport-note { display: none }
+    #passport { margin: 0; padding: 0 }
+    #passport-list { grid-template-columns: repeat(3, 1fr) }
+    .stamp { break-inside: avoid }
+    .passport-head::before { content: "DinkDonk Cinema"; font: bold 14px Georgia, serif }
+  }
+</style>
+</head>
+<body><main>
+  <header><h1>Ticket counter</h1><small><a href="../cinema-guide/index.html">Cinema guide</a></small></header>
+  <div class="counter"><canvas id="ticket" hidden width="1400" height="540" role="img" aria-label="Screening ticket"></canvas></div>
+  <div class="controls">
+    <label>Screening<select id="screenings" disabled></select></label>
+    <button id="save" type="button" disabled>Save ticket PNG</button>
+    <button id="stamp" type="button" disabled>Stamp passport</button>
+    <a id="diary" href="../film-diary/index.html" hidden>Write diary entry</a>
+    <button id="retry" type="button" hidden>Try again</button>
+  </div>
+  <p id="status" role="status">Opening the watch log…</p>
+  <section id="passport" aria-labelledby="passport-heading">
+    <div class="passport-head"><h2 id="passport-heading">Screening passport</h2>
+      <span id="passport-count"></span><button id="print-passport" type="button" hidden>Print passport</button></div>
+    <ul id="passport-list"></ul><p id="passport-note" role="status"></p>
+  </section>
+</main>
+<script src="./ticket.js"></script>
+</body></html>

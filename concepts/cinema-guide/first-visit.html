@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your first visit · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box }
+  :root { color-scheme:light; color:#26332d; background:#f1eee2; font:17px/1.5 "Segoe UI",sans-serif }
+  body { margin:0 } main { max-width:1120px; margin:auto; padding:clamp(18px,4vw,46px) }
+  header,.intro,.steps,.legend,.choices { display:flex; align-items:center; justify-content:space-between; gap:10px 16px; flex-wrap:wrap }
+  header { border-bottom:2px solid #304838; padding-bottom:9px; font-size:15px; font-weight:650 }
+  a { color:#28523b; text-underline-offset:.2em }
+  h1,h2,h3 { font-family:Georgia,serif; line-height:1.08; font-weight:normal; margin:0 }
+  h1 { font-size:clamp(40px,7vw,75px); letter-spacing:-.055em }
+  h2 { font-size:clamp(30px,4vw,48px); letter-spacing:-.035em }
+  h3 { font-size:24px }
+  .intro { margin:24px 0 18px }
+  button { border:1px solid #7f8b75; border-radius:3px; padding:8px 13px; min-height:42px; font:600 15px/1.4 "Segoe UI",sans-serif; background:transparent; color:inherit; cursor:pointer }
+  .steps { justify-content:flex-start; border-block:1px solid #9b9f8a; padding:8px 0; margin-bottom:20px }
+  .steps a { padding:7px 10px; border-radius:3px; font-size:16px }
+  .steps a[aria-current="step"],button[aria-pressed="true"] { background:#2c4939; color:#fbf6de; border-color:#2c4939 }
+  :focus-visible { outline:3px solid #954d31; outline-offset:3px }
+  article { margin:0 0 24px; scroll-margin:15px }
+  .enhanced article:not(.current) { display:none }
+  .summary { margin:6px 0 14px; max-width:75ch }
+  figure { margin:0 }
+  .scene { position:relative; overflow:hidden; aspect-ratio:16/9; background:#141818; border-radius:4px }
+  .scene img,.scene canvas { position:absolute; width:100%; height:100%; inset:0; display:block }
+  .scene .caption,.badge { position:absolute; color:#f7efd6; background:#17241fe8; padding:5px 9px; border-radius:3px; font:600 13px/1.3 "Segoe UI",sans-serif }
+  .scene .caption { top:12px; left:12px }
+  .pin { position:absolute; width:clamp(19px,3%,30px); aspect-ratio:1; border:3px solid #ffdb8b; border-radius:50%; box-shadow:0 0 0 2px #191e18; transform:translate(-50%,-50%) }
+  .scene #route,.print-pin { display:none }
+  .enhanced .scene #route { display:block }
+  .choices { justify-content:flex-start; margin:12px 0 8px; gap:7px }
+  .detail { margin:5px 0; min-height:1.5em }
+  .instruction { margin:7px 0 0; color:#46534b }
+  .full-notes { margin-top:7px } .full-notes li { margin:.25em 0 }
+  .enhanced .full-notes { display:none }
+  .scene #lit { clip-path:inset(0 calc(100% - var(--split,50%)) 0 0) }
+  #division { position:absolute; left:var(--split,50%); inset-block:0; width:2px; background:#fcdb90 }
+  .badge { top:12px } .badge.left { left:12px } .badge.right { right:12px }
+  .compare { margin:10px 0 0; display:grid; gap:5px; max-width:510px }
+  input[type="range"] { width:100%; accent-color:#386544; min-height:30px }
+  .after { border-left:4px solid #89977b; padding:5px 0 5px 14px; margin-top:15px; }
+  .after p { margin:4px 0 }
+  [hidden] { display:none !important }
+  @media(max-width:560px) { main { padding:15px } .steps { gap:3px } .steps a { font-size:14px; padding:8px 6px } .badge,.scene .caption { font-size:11px; top:5px } }
+  @page { size:A4 landscape; margin:13mm }
+  @media print {
+    :root,body { background:white; color:#111 } main { max-width:none; padding:0 }
+    header,.intro,.steps,.choices,.detail,.compare,.instruction { display:none }
+    .enhanced article:not(.current),article { display:block; margin:0; break-after:page }
+    article:last-of-type { break-after:auto }
+    .enhanced .full-notes { display:block } h2 { font-size:24pt }
+    .scene { width:244mm; max-width:100%; background:#131817; print-color-adjust:exact }
+    .scene .caption,.pin { display:none }
+    .print-pin { display:grid; place-items:center; position:absolute; transform:translate(-50%,-50%); width:6mm; height:6mm; border:1px solid #27251c; border-radius:50%; color:#191f16; background:#ffe19b; font:bold 11pt/1 sans-serif }
+    .summary,.full-notes,.after { font-size:11pt; margin:4px 0 }
+    .scene #lit { clip-path:inset(0 50% 0 0) } #division { left:50% }
+    .badge[hidden] { display:block !important }
+  }
+</style></head><body><main>
+  <header><span>DinkDonk Cinema</span><a href="./index.html">Cinema guide</a></header>
+  <div class="intro"><h1>Your first visit</h1><button type="button" id="print" hidden>Print all three stops</button></div>
+  <nav class="steps" aria-label="Visit stops"><a href="#lobby">The lobby</a><a href="#seating">Finding a seat</a><a href="#lights">When the lights change</a></nav>
+  <article id="lobby" aria-labelledby="lobby-title">
+    <h2 id="lobby-title">The lobby</h2>
+    <p class="summary">The lobby looks onto a rainy street. Chatters appear as little guests who walk through the lobby. You can watch the whole visit without typing.</p>
+    <figure><div class="scene"><img src="../../roxy3d/out10s/full.png" alt="An open-sided view of the cinema, with glass street doors, a box office and a row of screen doors.">
+      <span class="caption" id="landmark" aria-hidden="true">Street doors</span><i class="pin" id="pin" style="left:48.2%;top:82.2%" aria-hidden="true"></i></div></figure>
+    <div class="choices" id="landmarks" role="group" aria-label="Lobby landmarks" hidden>
+      <button data-x="48.2" data-y="82.2" aria-pressed="true">Street doors</button>
+      <button data-x="38.2" data-y="58.5" aria-pressed="false">Box office</button>
+      <button data-x="72.5" data-y="50.5" aria-pressed="false">Screen doors</button>
+    </div>
+    <p class="detail" id="landmark-note" role="status"></p>
+    <ol class="full-notes" id="lobby-notes"><li>The glass entrance is on the street side, below the lobby carpet.</li><li>The ticket windows are on the left side of the carpet.</li><li>The red doors along the far wall lead toward the screens.</li></ol>
+  </article>
+  <article id="seating" aria-labelledby="seating-title">
+    <h2 id="seating-title">Finding a seat</h2>
+    <p class="summary">In the auditorium, guests enter from the lower left and walk to an assigned seat. This example follows a guest to row F.</p>
+    <figure><div class="scene"><img src="../../roxy3d/qa11/cinema_draft_14.png" alt="The corridor enters at the lower left of the auditorium. Purple seats face the screen on the upper right wall.">
+      <canvas id="route" width="1920" height="1080" aria-hidden="true"></canvas></div></figure>
+    <div id="route-choices" class="choices" role="group" aria-label="Parts of the seating route" hidden><button aria-pressed="true">Full route</button><button aria-pressed="false">Entrance</button><button aria-pressed="false">Stair aisle</button><button aria-pressed="false">Row F</button></div>
+    <p class="detail" id="route-note" role="status"></p>
+    <ul class="full-notes" id="route-notes"><li>The passage runs from the street-side corridor to the cross aisle.</li><li>The stair aisle runs beside the raised rows.</li><li>The guest turns into row F and moves along it to an empty chair.</li></ul>
+  </article>
+  <article id="lights" aria-labelledby="lights-title">
+    <h2 id="lights-title">When the lights change</h2>
+    <p class="summary">The house lights fade as the film begins. The rows and the corridor remain faintly visible. Compare the same seats before and after the change.</p>
+    <figure><div class="scene" id="comparison"><img src="../../roxy3d/qa11/cinema_draft_14_dim.png" alt="The auditorium at film lighting, with faintly visible rows.">
+      <img id="lit" src="../../roxy3d/qa11/cinema_draft_14.png" alt=""><i id="division" aria-hidden="true"></i>
+      <span class="badge left" id="lit-label">House lights up</span><span class="badge right" id="dim-label">Film lighting</span></div></figure>
+    <label class="compare" hidden>Compare the light levels<input type="range" id="split" min="0" max="100" value="50" aria-valuetext="Half lit, half dim"></label>
+    <div class="after"><h3>After the film</h3><p>The host can raise the lights during the credits. Guests can stay for a discussion or walk out through the corridor.</p></div>
+  </article>
+</main><script src="./first-visit.js"></script></body></html>

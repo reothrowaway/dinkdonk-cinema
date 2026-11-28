@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Film diary · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box }
+  :root { color-scheme:light; font:16px/1.5 Georgia,serif; color:#292e27; background:#243a34 }
+  body { margin:0 }
+  main { max-width:1160px; margin:auto; padding:clamp(16px,4vw,48px) }
+  header,.actions,.section-head,.entry-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px }
+  header { margin-bottom:18px; color:#faf4db; font:600 15px/1.4 "Segoe UI",sans-serif }
+  header a { color:inherit; text-underline-offset:.2em }
+  .book { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); background:#f7f0d9; border-radius:4px 9px 9px 4px; box-shadow:0 5px 0 #bdaf89,0 8px 0 #5a6550,0 18px 35px #122520 }
+  section { min-width:0; padding:clamp(20px,3.5vw,42px) }
+  .write { border-right:1px solid #c8bda4; background:linear-gradient(to left,#dbd1b8,transparent 6%); }
+  .leaves { background:linear-gradient(to right,#dfd4bb,transparent 5%); }
+  h1,h2,h3,p { margin:0 }
+  h1 { font-size:clamp(44px,6.4vw,76px); font-weight:normal; letter-spacing:-.065em; line-height:1.05 }
+  h2 { font-size:clamp(23px,3vw,34px); font-weight:normal; letter-spacing:-.03em }
+  h3 { font-size:clamp(22px,2.3vw,32px); line-height:1.1; overflow-wrap:anywhere }
+  form { display:grid; gap:14px; margin-top:22px }
+  label,.meta,.count,button,.privacy,#status,#catalog { font:600 13px/1.45 "Segoe UI",sans-serif }
+  label { display:grid; gap:4px }
+  input,textarea { width:100%; min-width:0; border:0; border-bottom:1px solid #998e71; padding:7px 4px; font:17px/1.4 Georgia,serif; color:inherit; background:#fff9e94f; border-radius:0 }
+  textarea { resize:vertical; min-height:92px }
+  .check { display:flex; align-items:center; gap:8px; color:#853b32 }
+  .check input { width:18px; height:18px; accent-color:#8f362d }
+  button { padding:8px 12px; border:1px solid #807c67; color:inherit; background:transparent; border-radius:3px; cursor:pointer }
+  .primary { background:#293f34; color:#fff9e8; border-color:#293f34 }
+  .actions { justify-content:flex-start }
+  .privacy,#catalog,#status,.count { color:#52594c; font-weight:normal }
+  .privacy { margin-top:7px }
+  #catalog:empty,#status:empty { display:none }
+  :focus-visible { outline:3px solid #a14c36; outline-offset:3px }
+  .section-head { padding-bottom:9px; border-bottom:3px double #7b826b }
+  #entries { list-style:none; padding:0; margin:0 }
+  #entries li { padding:20px 0 17px; border-bottom:1px solid #bbb59f; break-inside:avoid }
+  .meta { margin-bottom:4px; color:#5a6154 }
+  .red { color:#962e29 }
+  .reflection { overflow-wrap:anywhere; white-space:pre-wrap; margin:8px 0; }
+  .performance { font-style:italic; overflow-wrap:anywhere; margin-top:8px }
+  .entry-actions { display:flex; gap:15px; margin-top:7px }
+  .entry-actions button { border:0; padding:5px 0; text-decoration:underline; text-underline-offset:.2em }
+  #empty { margin:20px 0; color:#5e6255 }
+  #print { margin-top:16px }
+  [hidden] { display:none !important }
+  @media(max-width:690px) { .book { grid-template-columns:1fr } .write { border:0; border-bottom:1px solid #b4ac94 } .write,.leaves { background:none } }
+  @media print { :root,body,.book,.leaves { background:white; color:black } main,section { padding:0 } .book { display:block; box-shadow:none } header,.write,.entry-actions,#print { display:none } h2 { font-size:26pt } #entries li { padding:12px 0 } }
+</style>
+</head>
+<body><main>
+  <header><span>DinkDonk Cinema</span><a href="../cinema-guide/index.html">Cinema guide</a></header>
+  <div class="book">
+    <section class="write" aria-labelledby="heading">
+      <h1 id="heading">Film diary</h1>
+      <p class="privacy">Your notes stay in this browser.</p>
+      <form id="entry-form">
+        <label>Film title<input id="film" list="archive" required maxlength="300" autocomplete="off" placeholder="Choose a screening or type a title"></label>
+        <datalist id="archive"></datalist><p id="catalog"></p>
+        <label>Date watched<input id="watched" type="date" required></label>
+        <label>Performance to remember<input id="performance" maxlength="180" placeholder="Actor or character"></label>
+        <label>What stayed with you?<textarea id="note" maxlength="3000" rows="3"></textarea></label>
+        <label class="check"><input id="favorite" type="checkbox">Mark as a red-ink favorite</label>
+        <div class="actions"><button class="primary" id="save">Save entry</button><button type="button" id="cancel" hidden>Cancel edit</button></div>
+        <p id="status" role="status"></p>
+      </form>
+    </section>
+    <section class="leaves" aria-labelledby="entries-heading"><div class="section-head">
+      <h2 id="entries-heading">Viewing entries</h2><span id="count" class="count"></span></div>
+      <p id="empty">Your first viewing will appear here.</p>
+      <ol id="entries"></ol><button id="print" type="button" hidden>Print diary</button>
+    </section>
+  </div>
+</main><script src="./diary.js"></script></body></html>

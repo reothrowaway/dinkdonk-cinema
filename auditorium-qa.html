@@ -72,6 +72,26 @@
     flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;
     opacity: 0; transition: opacity .8s; text-shadow: 0 0 3px #d8c39444; }
   .ps-slide.active { opacity: 1; }
+  #ps-quiz { gap: 15px; padding: 32px 46px; }
+  #ps-quiz h2 { font-size: 60px; }
+  #ps-quiz p { width: 100%; font-size: 48px; font-weight: 600; line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; }
+  #ps-quiz p.earlier { color: #ffd285; }
+  #ps-quiz .earlier::before { content: "✓ "; }
+  #ps-quiz .long-title { font-size: 36px; }
+  #ps-ballot { padding: 34px 48px; }
+  .ballot-card { box-sizing: border-box; width: 100%; padding: 20px 28px; background: #e8dbaf; color: #2d3026;
+    border-block: 8px dotted #544e35; text-shadow: none; }
+  .ballot-card .ps-small { margin: 0 0 12px; color: #48533d; font-weight: 700; }
+  #ps-ballot h2 { font-size: 52px; overflow-wrap: anywhere; line-height: 1.06; }
+  #ps-ballot h2.long-title { font-size: 38px; }
+  #ps-break { position:absolute;inset:18px;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:7px double #884c34;background:#efe6c8;color:#3b3029;gap:8px;text-align:center }
+  #ps-break[hidden], #preshow.on-break .ps-slide, #preshow.on-break #ps-pops { display:none }
+  #ps-break h2 { margin:0;color:#803d2a;font:italic bold 80px/1 Georgia,serif;text-transform:none }
+  #ps-break-time { font:bold 136px/1 "Courier New",monospace;color:#263d37 }
+  #ps-break-caption { margin:0;font:32px/1.2 Georgia,serif }
+  #ps-ballot-score { display: block; font: bold 79px/1.1 Georgia, serif; margin: 12px 0 4px; }
+  #ps-ballot-count { font: 30px/1.2 "Courier New", monospace; }
   .ps-small { font-size: 26px; letter-spacing: .16em; text-transform: uppercase; }
   .ps-slide h2 { margin: 0; font-size: 72px; font-weight: 500; line-height: 1.08; }
   .ps-slide p { margin: 0; font-size: 34px; line-height: 1.25; }
@@ -178,6 +198,19 @@
      filter in the lit room; in the dark it shows its dark picture (.dk), also without a filter. The third rule is the
      dark look relative to the lit picture (.42 / .9, .8 / .9), for a baked piece whose dark picture is not there. */
   .litter { position: absolute; pointer-events: none; transition: opacity 2s; }
+  .lost-glasses { position: absolute; width: 32px; height: 12px; pointer-events: none; color: #f1ae5c;
+    background: linear-gradient(currentColor,currentColor) center 3px / 8px 3px no-repeat; }
+  .lost-glasses::before, .lost-glasses::after { content: ''; position: absolute; top: 0; width: 10px; height: 7px;
+    border: 3px solid currentColor; border-radius: 4px 4px 7px 7px; background: #293541; }
+  .lost-glasses::before { left: 0; } .lost-glasses::after { right: 0; }
+  .lost-glasses.in-hand { left: 8px; top: -36px; transform: rotate(-8deg); animation: show-found-glasses 3s ease-in-out; }
+  .lost-tag { position: absolute; bottom: 12px; left: 10px; padding: 2px 5px; color: #302a21; background: #f1ddad;
+    font: bold 14px/1 monospace; white-space: nowrap; border-left: 2px solid #ac7950; }
+  @keyframes show-found-glasses {
+    0%, 100% { transform: rotate(-8deg); }
+    18%, 78% { transform: translateY(-18px) rotate(-4deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .lost-glasses.in-hand { animation: none; } }
   .litter:not(.baked) { filter: brightness(.9) saturate(.9); }
   .crowd-dark .litter:not(.baked) { filter: brightness(.42) saturate(.8); }
   .crowd-dark .litter.baked:not(.dk) { filter: brightness(.4667) saturate(.8889); }
@@ -304,6 +337,15 @@
         </div>
         <div class="ps-small">Thank you for your patience</div></div>
       <div class="ps-slide"><div class="ps-small">In the audience</div><div id="ps-audience"><div id="ps-credits"></div></div></div>
+      <div class="ps-slide" id="ps-quiz"><h2>Which came out first?</h2>
+        <p></p><span aria-hidden="true">◆</span><p></p>
+      </div>
+      <div class="ps-slide" id="ps-ballot"><div class="ballot-card">
+        <div class="ps-small">Last rated film</div><h2 id="ps-ballot-title"></h2>
+        <strong id="ps-ballot-score"></strong><span id="ps-ballot-count"></span>
+      </div></div>
+      <section id="ps-break" hidden><h2>Intermission</h2><strong id="ps-break-time"></strong>
+        <p id="ps-break-caption">Time remaining</p></section>
       <div id="ps-pops"></div>
     </div>
   </div>
@@ -315,6 +357,7 @@
 <script>window.DD_ROOM_PAGE = 'auditorium';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
+<script src="concepts/preshow-quiz/deck.js"></script>
 <script src="shared/live.js"></script>
 <script src="shared/aud-shots-qa.js"></script>
 <script>
@@ -411,7 +454,23 @@
     litter: true,     // the panel's Litter toggle
     fullAt: 0 };      // Date.now() when the house first reached 60% (the litter clock); 0 = not yet / swept
   const SLIDES = ['upnext', 'loading', 'audience'];
-  const filmOnScreen = () => show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film');
+  const QUIZ_SLIDE = SLIDES.length, BALLOT_SLIDE = QUIZ_SLIDE + 1;
+  let ballot = null, lastProjectorPhase = '';
+  show.intermissionUntil = 0;
+  let roomHasBreakClock = false;
+  const filmOnScreen = () => !show.intermissionUntil && (show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film'));
+  function breakSeconds() {
+    return show.intermissionUntil ? Math.max(0, Math.ceil((show.intermissionUntil - Date.now()) / 1000)) : null;
+  }
+  function drawBreakClock() {
+    const seconds = breakSeconds();
+    if (seconds === null) return;
+    const digits = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+    const time = $('ps-break-time'), caption = $('ps-break-caption');
+    if (time.textContent !== digits) time.textContent = digits;
+    const message = seconds ? 'Time remaining' : 'Please take your seats';
+    if (caption.textContent !== message) caption.textContent = message;
+  }
   // litter (queue 60, see stepLitter)
   const LITTER = { DELAY: 10 * 60000, GROW: 25 * 60000, MAX: 140, FULL: 0.6 };
   const LITTER_PREVIEW = q.has('littermin') ? Math.max(0, Number(q.get('littermin')) || 0) * 60000 : null;
@@ -452,6 +511,15 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    $('ps-break').hidden = !show.intermissionUntil;
+    $('preshow').classList.toggle('on-break', !!show.intermissionUntil);
+    drawBreakClock();
+    if (show.screen === 'auto' && !green && show.phase === 'up' && lastProjectorPhase !== 'up' && ballot) {
+      showSlide(BALLOT_SLIDE);
+    } else if ((green && show.slide >= QUIZ_SLIDE) || (show.slide === BALLOT_SLIDE && show.phase !== 'up')) {
+      showSlide(0);
+    }
+    lastProjectorPhase = show.phase;
     holdSlide();
     $('screenq').style.display = screenPoly && green ? 'block' : 'none';
     $('preshow').style.display = screenPoly && !green ? 'block' : 'none';
@@ -696,7 +764,30 @@
   // Up next: the poll winner (said as such); without one, what is downloading (once it is found on Cinemeta); without
   // either, no title is claimed
   let pollFilm = null;
+  let quizHistory = [], quizPairs = [], quizRound = null, quizRevealed = false;
+  function updateBallot(data) {
+    const ratings = new Map((data?.ratings || []).map(r => [r.id, r]));
+    let latest = null;
+    for (const entry of data?.history || []) {
+      if (entry.type !== 'Movie' || !entry.title || !entry.ratingId || !Number.isFinite(entry.watchedTs)) continue;
+      if (latest && latest.at >= entry.watchedTs) continue;
+      const summary = ratings.get(entry.ratingId);
+      const votes = summary?.votes ?? data?.details?.ratings?.[entry.ratingId]?.votes?.length;
+      const score = summary?.avg ?? entry.rating;
+      if (!Number.isInteger(votes) || votes < 1 || !Number.isFinite(score) || score < 0 || score > 5) continue;
+      latest = {title: entry.title, at: entry.watchedTs, score, votes};
+    }
+    ballot = latest;
+    if (!ballot) { if (show.slide === BALLOT_SLIDE) showSlide(0); return; }
+    const title = $('ps-ballot-title');
+    title.textContent = ballot.title;
+    title.classList.toggle('long-title', ballot.title.length > 34);
+    $('ps-ballot-score').textContent = ballot.score.toFixed(2) + ' / 5';
+    $('ps-ballot-count').textContent = ballot.votes + (ballot.votes === 1 ? ' audience vote' : ' audience votes');
+  }
   Cinema.onRooms((rooms, data) => {
+    if (Array.isArray(data?.history)) quizHistory = data.history;
+    updateBallot(data);
     const film = upcomingFilm(data);
     const card = film && [...(data?.ratings || []), ...(data?.best || []), ...(data?.worst || [])].find((r) => titleKey(r.title) === titleKey(film.title));
     pollFilm = film && { title: film.title, poster: film.poster || card?.poster };
@@ -731,14 +822,30 @@
     if (SEQ_FADE) setTimeout(() => { if (show.slide === i) next.classList.add('active'); }, 400); else next.classList.add('active');
   }
   function holdSlide() { const i = SLIDES.indexOf(show.screen); if (i >= 0) showSlide(i); }
+  function drawQuiz(reveal) {
+    const first = quizRound[0].year < quizRound[1].year ? 0 : 1;
+    const rows = $('ps-quiz').querySelectorAll('p');
+    quizRound.forEach((film, i) => {
+      const row = rows[i];
+      row.textContent = reveal ? film.title + ' · ' + film.year : film.title;
+      row.classList.toggle('earlier', reveal && i === first);
+      row.classList.toggle('long-title', row.textContent.length > 36);
+    });
+    $('ps-quiz').querySelector('h2').textContent = reveal ? 'Earlier release' : 'Which came out first?';
+    quizRevealed = reveal;
+  }
   setInterval(() => {
-    if (show.screen !== 'auto') return;
-    const slides = document.querySelectorAll('.ps-slide');
-    slides[show.slide].classList.remove('active');
-    show.slide = (show.slide + 1) % slides.length;
-    if (slides[show.slide].contains($('ps-meme'))) nextMeme();
-    const next = slides[show.slide];
-    if (SEQ_FADE) setTimeout(() => next.classList.add('active'), 400); else next.classList.add('active');
+    if (show.intermissionUntil || show.screen !== 'auto' || alwaysGreen || filmOnScreen()) return;
+    if (show.slide === QUIZ_SLIDE && !quizRevealed && show.phase !== 'up') { drawQuiz(true); return; }
+    let next = show.slide >= QUIZ_SLIDE ? 0 : show.slide + 1;
+    if (next === QUIZ_SLIDE && show.phase === 'up') {
+      next = ballot ? BALLOT_SLIDE : 0;
+    } else if (next === QUIZ_SLIDE) {
+      if (!quizPairs.length && quizHistory.length) quizPairs = CinemaQuizDeck.makeDeck(quizHistory);
+      quizRound = quizPairs.pop();
+      if (quizRound) drawQuiz(false); else next = 0;
+    }
+    showSlide(next);
   }, 8000);
   function audience() {
     const seated = [...walkers.values()].filter((w) => w.sitting);
@@ -2275,10 +2382,13 @@
       ? (x) => { floatAt(x, 'DINK DONK!', '#ffe27a'); go(x, [[...x.pos], [15.0, cross[1], 24], [...cross]], crewOut); }
       : (x) => { x.bounce = 1; floatAt(x, '\u{1F3AC} roll it!', '#ffe27a'); hold(x, 2.5, crewOut); };
   }
+  let cleanupGeneration = 0;
   function startCleanup() {
+    const generation = ++cleanupGeneration;
     hall.cleaning = true;
     const cross = L.walk_route.rear_portal_to_cross_aisle.at(-1);
     [0, 1].forEach((k) => setTimeout(() => {
+      if (generation !== cleanupGeneration) return;
       const w = crewWalker(`mop${k}`, null, { mop: true });
       if (!w) return;
       w.mopping = true;
@@ -2295,11 +2405,43 @@
       };
     }, k * 2500));
   }
+  // Leave one pair in the legroom of a vacated seat on the crew's actual sweep route.
+  // Keep the same prop on the cleaner's hand from pickup to the exit.
+  let lostProperty = null;
+  function clearLostProperty() {
+    lostProperty?.el.remove();
+    lostProperty = null;
+  }
+  function leaveGlasses(seat) {
+    if (!HALL_ON || lostProperty || !seat || seat.block !== 'main' || dark()) return;
+    const v = seat.v - LEG_DV;
+    const [x, y] = P(seat.u, v, seat.z);
+    const el = h('div', 'lost-glasses');
+    Object.assign(el.style, { left: (x - 16) + 'px', top: (y - 7) + 'px', transform: 'rotate(-12deg)',
+      zIndex: String(layers ? depthZ(seat.u, v, seat.z) : Math.round((seat.u + v) * 100) + 5) });
+    world.append(el);
+    lostProperty = { el, u: seat.u, v, row: seat.row, collected: false };
+  }
+  function collectGlasses(w) {
+    const item = lostProperty;
+    if (!item || item.collected || Math.abs(w.pos[0] - item.u) > .48 ||
+        Math.abs(w.pos[1] - item.v) > .32 || Math.abs(w.pos[2] - item.row.z) > 2) return;
+    item.collected = true;
+    item.el.removeAttribute('style');
+    item.el.classList.add('in-hand');
+    item.el.append(h('span', 'lost-tag', 'ROW ' + item.row.name));
+    w.bod.append(item.el);
+    w.wait = 3;
+    floatAt(w, 'Found glasses · row ' + item.row.name, '#ffdeaa', 23);
+  }
   function stepHallLife(now) {
     if (!HALL_ON || !L) return;
+    if (!houseOut && lostProperty) clearLostProperty();
     // litter goes where a mop passes (every frame: two mops, a few dozen pieces)
     for (const w of crewSet) {
-      if (!w.mopping || !litterList) continue;
+      if (!w.mopping) continue;
+      if (lostProperty && !lostProperty.collected) collectGlasses(w);
+      if (!litterList) continue;
       for (let i = 0; i < litterEls.length; i++) {
         const el = litterEls[i], pc = litterList[i];
         if (el.swept || !pc) continue;
@@ -2331,7 +2473,8 @@
     if (hall.lastPhase !== null && show.phase === 'film' && hall.lastPhase !== 'film') setTimeout(() => sendConductor(false), 2500);
     hall.lastPhase = show.phase;
     // A17 clean-up once the hall is empty
-    if (houseOut && !hall.cleaning && guests() === 0 && litterEls.some((el) => !el.swept)) startCleanup();
+    if (houseOut && !hall.cleaning && guests() === 0 &&
+        ((lostProperty && !lostProperty.collected) || litterEls.some((el) => !el.swept))) startCleanup();
   }
   SB.on('combo', ({ emote, count }) => {
     if (!HALL_ON || emote !== 'DinkDonk' || count < 3 || count % 3 || show.phase !== 'film') return;
@@ -2347,6 +2490,7 @@
     const seated = [...walkers.values()].filter((w) => w.sitting && !w.out && !w.jan && !w.usher && !w.leaving);
     if (!seated.length) return;
     const w = seated[Math.floor(Math.random() * seated.length)];
+    leaveGlasses(w.seat);
     w.leaving = true;
     doze(w, false);
     w.pending.length = 0;
@@ -2363,6 +2507,7 @@
   // Never blocks anyone (and isn't blocked); leaves when the lights come up.
   let usher = null;
   let usherDue = 0;
+  let lastRowGuide = -Infinity;
   const guests = () => walkers.size - jannies.size - (usher ? 1 : 0) - crewCount();   // (crew: the hall-life staff below)
   function addUsher() {
     const w = makeWalker({ nick: 'usher', emote: Cinema.defaultEmote('roxy-usher'), color: '#fff' });   // the lobby usher's emote
@@ -2384,6 +2529,9 @@
   function usherNext(w) {
     w.sweep = null;
     if (w.leaving || !dark()) { usherLeave(w); return; }
+    const finishedGuide = w.task === 'guide';
+    w.task = null;
+    if (!finishedGuide && guideLateGuest(w)) return;
     if (w.queued) {
       const t = w.queued;
       w.queued = null;
@@ -2396,7 +2544,6 @@
       t.spotBy = null;
       if (walkers.get(t.key) === t && t.sitting && !t.out) { spotVisit(w, t); return; }
     }
-    w.task = null;
     w.pace = 0.7;   // a slow patrol
     if (Math.random() < 0.45) {
       // up a stair aisle to a row, shine along it, back down
@@ -2419,10 +2566,49 @@
       });
     }
   }
+  // Meet an arriving guest at the aisle. Their assigned seat and ordinary walk-in route stay theirs.
+  function guideLateGuest(u) {
+    const now = performance.now();
+    if (!HALL_ON || houseOut || now - lastRowGuide < 55000) return false;
+    // Pick a guest still coming through the entrance so the usher can reach the row first.
+    const g = [...walkers.values()].find(w => w.late && !w.sorry && !w.guided && !w.sitting && !w.out && !w.leaving &&
+      w.seat && !w.pendingSeat && w.seg <= CORRIDOR.length && w.seg < w.path.length - 3);
+    if (!g) return false;
+    const seat = g.seat, aisleU = seat.block === 'right' ? 15.15 : 3.475;
+    const there = [[...u.pos], ...aisleTo(seat.row, seat.block, aisleU).slice(0, -1)];
+    g.guided = true;
+    lastRowGuide = now;
+    u.task = 'guide';
+    u.pace = 1.35;
+    u.round = {out: there};
+    function atRow() {
+      const valid = walkers.get(g.key) === g && g.seat === seat && !g.out && !g.leaving &&
+        !g.sitting && dark() && !houseOut && !u.leaving && performance.now() - now < 60000;
+      if (!valid) {
+        u.guideSeat = null;
+        u.guideGuest = null;
+        u.round = null;
+        go(u, [...there].reverse(), usherNext);
+        return;
+      }
+      // Only point once the arrival is in sight of this row. Keep the beam below seated faces.
+      if (!u.guideSeat && Math.abs(g.pos[0] - aisleU) < 1.2 && Math.abs(g.pos[1] - seat.v) < 2.5) {
+        u.guideSeat = seat;
+        u.guideGuest = g;
+        g.nameT = 4;
+        floatAt(u, 'This way · row ' + seat.row.name, '#ffe3a9', 23);
+      }
+      hold(u, .4, atRow);
+    }
+    go(u, there, atRow);
+    return true;
+  }
   // a talker needs a visit: break off the look round, back to the cross-aisle the way it came, and go
   function usherRecall(u) {
     const r = u.round;
     if (!r) return;   // coming in, heading back already, or busy: the visit waits for usherNext
+    u.guideSeat = null;
+    u.guideGuest = null;
     u.round = null;
     u.sweep = null;
     u.wait = 0;
@@ -2430,6 +2616,8 @@
     go(u, [[...u.pos], ...[...walked].reverse()], usherNext);
   }
   function usherLeave(w) {
+    w.guideSeat = null;
+    w.guideGuest = null;
     w.leaving = true;
     w.round = null;
     w.sweep = null;
@@ -2455,6 +2643,7 @@
     if (!u || u.leaving || !u.seen || !dark() || w.out || w.spotBy || u.spotQ) return;
     u.spotQ = w;   // next in line after a visit, shush or kick in progress
     w.spotBy = u;
+    if (u.task === 'guide') return;   // finish showing the row before visiting an ordinary talker
     if (!u.task) u.pace = 1;   // on its way back from a round: hurries
     usherRecall(u);
   }
@@ -2500,6 +2689,14 @@
         const [sx, sy] = P(...s.pos);
         t = [sx, sy - s.emH * (s.sitting ? SIT_SCALE : 1) * 0.55];
         w.wait = Math.max(w.wait || 0, 0.05);   // stops to shine on them
+      } else if (w.guideSeat && w.guideGuest?.seat === w.guideSeat && !w.guideGuest.sitting && !w.guideGuest.out) {
+        const seat = w.guideSeat;
+        // Walk the light along the legroom one step ahead, then pick out the empty cushion.
+        const inRow = w.guideGuest.seg >= w.guideGuest.path.length - 2;
+        const fromU = inRow ? w.guideGuest.pos[0] : w.pos[0];
+        const remaining = seat.u - fromU;
+        t = inRow && Math.abs(remaining) <= 1.3 ? P(seat.u, seat.v + SIT_DV, seat.z + SIT_Z)
+          : P(fromU + clamp(remaining, -1.3, 1.3), seat.v - LEG_DV, seat.z);
       } else if (w.sweep) {
         const sw = w.sweep, k = 0.5 - 0.5 * Math.cos((now - sw.t0) / 1000 * 0.9);
         t = P(sw.u0 + (sw.u1 - sw.u0) * k, sw.row.v + SIT_DV, sw.row.z + SIT_Z + 36);
@@ -3438,16 +3635,24 @@
         // Film again after Movie / Film outro: push in now (the lights are already down, so no 10 s wait)
         const again = c.value === 'film' && show.phase === 'film' && (show.shot !== 'push' || show.lightsOn);
         if (c.value === show.phase) show.lightsOn = false;   // the phase's own button dims the house lights again
-        if (c.value === 'film') show.screen = 'auto';   // Film puts the film on the screen
+        if (c.value === 'film') { show.screen = 'auto'; show.intermissionUntil = 0; }   // Film puts the film on the screen
         setPhase(c.value, true);
         if (again) { director.screenAt = now; director.outro = false; endFollow(); pushWanted = true; }
         show.shot = 'push';
         break;
       }
       // Movie: the film starts on the screen with no push in (the wide shot stays; follows still work)
-      case 'movie': show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
+      case 'movie': show.intermissionUntil = 0; show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
       // the panel's screen picker (the room sends the same as a 'show' event)
-      case 'screen': if (['auto', ...SLIDES, 'film'].includes(c.value)) { show.screen = c.value; applyPhase(); } break;
+      case 'screen': if (['auto', ...SLIDES, 'film'].includes(c.value)) { show.intermissionUntil = 0; show.screen = c.value; applyPhase(); } break;
+      case 'intermission':
+        // A shared room broadcasts one authoritative deadline; isolated and older screens use the local clock.
+        if (!(inRoom() && roomHasBreakClock) && [0, 5, 10, 15].includes(c.minutes)) {
+          if (c.minutes && show.intermissionUntil) break;
+          show.intermissionUntil = c.minutes ? Date.now() + c.minutes * 60000 : 0;
+          applyPhase();
+        }
+        break;
       // Litter off sweeps it up; on again: the clock restarts at the next 60% full house (the room decides it)
       case 'litter': show.litter = !!c.on; if (!inRoom()) show.fullAt = 0; stepLitter(); break;
       // Film outro: the push in reversed - the film keeps playing while the camera eases back out to the wide shot,
@@ -3479,7 +3684,7 @@
       case 'lights': show.lightsOn = !!c.on && show.phase === 'film'; applyPhase(); break;
       // Show over: everyone stands up and leaves, new arrivals wait until the next Seating (on: false stops it)
       case 'houseOut': houseOut = !!c.on; nextLeaver = 0; break;
-      case 'reset': resetHall(); break;
+      case 'reset': show.intermissionUntil = 0; applyPhase(); resetHall(); break;
       case 'remove': removeNick(key); break;
       case 'reeducate': if (!inRoom()) reeducate(key); break;   // (in the room it comes back as a room event, on every screen)
       case 'add':
@@ -3498,6 +3703,9 @@
     }
   }
   function resetHall() {
+    clearLostProperty();
+    cleanupGeneration++;
+    hall.cleaning = false;
     houseOut = false;
     show.fullAt = 0;   // a reset also sweeps the litter (the room does the same)
     director.wantNext = false;
@@ -3546,13 +3754,13 @@
     if (['auto', ...SLIDES, 'film'].includes(s.screen)) show.screen = s.screen;
     if (typeof s.litter === 'boolean') show.litter = s.litter;
     const off = Number.isFinite(serverNow) ? Date.now() - serverNow : 0;
+    roomHasBreakClock = Object.hasOwn(s, 'intermissionUntil');
+    if (roomHasBreakClock) show.intermissionUntil = Number.isFinite(s.intermissionUntil) && s.intermissionUntil > 0 ? s.intermissionUntil + off : 0;
     show.fullAt = Number.isFinite(s.fullAt) && s.fullAt > 0 ? s.fullAt + off : 0;
     stepLitter();
   }
   let pendingSnapshot = null;
   function applySnapshot(ev) {
-    if (!L || !seats.length) { pendingSnapshot = ev; return; }
-    pendingSnapshot = null;
     const s = ev.show;
     if (s) {
       if (s.phase !== show.phase) setPhase(s.phase);
@@ -3561,6 +3769,9 @@
       roomShow(s, ev.now);
       applyPhase();
     }
+    // Apply the projector state at receipt. Seat placement can wait for the art without shifting the room clock.
+    if (!L || !seats.length) { pendingSnapshot = {...ev, show:null}; return; }
+    pendingSnapshot = null;
     if (ev.director) {
       director.on = !!ev.director.on;
       if (Number.isFinite(ev.director.every)) director.every = clamp(ev.director.every, 30, 1800);
@@ -3629,7 +3840,7 @@
       const body = { id: pageId, page: 'auditorium', ts: Date.now(), size: [innerWidth, innerHeight], obs: !!window.obsstudio,
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         preshow: { phase: show.phase, shot: show.shot, lightsOn: show.lightsOn, houseOut, auto: show.auto, download: show.download, alwaysGreen,
-          screen: show.screen, litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
+          screen: show.screen, intermissionRemaining: breakSeconds(), litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
         house: { capacity: seats.length, occupied: guests(), waiting: arrivals.length, queueLimit: MAX_QUEUE },
         shots: window.DD_SHOTS?.state?.() || null,   // Brief 102: the panel enables T1 / T2 / T3 from this
         jannies: L ? { area: janArea(), setting: JAN_AREA, duty: dutyActive(), count: [...jannies.values()].filter((j) => !j.leaving).length } : null,
@@ -4081,7 +4292,7 @@
     }
     litterShown = litterEls.length;
   }
-  setInterval(stepLitter, 1000);
+  setInterval(() => { stepLitter(); if (show.intermissionUntil) drawBreakClock(); }, 1000);
 
   // ---------- start ----------
   Cinema.onWalkIn(onMessage);

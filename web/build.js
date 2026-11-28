@@ -8,7 +8,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { artFiles } = require('../package/art');
-const { eventFiles, shaderFile, lookGuide } = require('../package/cinema-release');
+const { eventFiles, extrasFiles, shaderFile, lookGuide } = require('../package/cinema-release');
 
 const WEB = __dirname;
 const STANDBY = path.resolve(WEB, '..');
@@ -45,6 +45,10 @@ if (fs.existsSync(OUT)) {
 // server
 for (const f of ['server.js', 'package.json']) copy(path.join(WEB, f), path.join(OUT, f));
 copy(path.join(STANDBY, 'shared', 'room.js'), path.join(OUT, 'room.js'));   // shared room state (web/PLAN-shared-rooms.md)
+copy(path.join(STANDBY, 'shared', 'house-notice.js'), path.join(OUT, 'house-notice.js'));
+copy(path.join(STANDBY, 'shared', 'shadow-round.js'), path.join(OUT, 'shadow-round.js'));
+copy(path.join(STANDBY, 'shared', 'sing-along.js'), path.join(OUT, 'sing-along.js'));
+copy(path.join(STANDBY, 'shared', 'discussion.js'), path.join(OUT, 'discussion.js'));
 copy(path.join(STANDBY, 'shared', 'settings.js'), path.join(OUT, 'settings.js'));   // the panel's scene settings (per room)
 copyTree(path.join(WEB, 'node_modules'), path.join(OUT, 'node_modules'));
 copyTree(path.join(WEB, 'deploy'), path.join(OUT, 'deploy'));
@@ -60,7 +64,7 @@ if (fs.existsSync(path.join(STANDBY, 'cache', 'dinkdonk.json'))) copy(path.join(
 for (const f of ['lobby.html', 'roxy.html', 'auditorium.html', 'control.html', 'dinkdonk.js', 'poll-draft.js', 'movie-suggest.js', 'movie-test-list.js']) copy(path.join(STANDBY, f), path.join(SITE, f));
 // QA copies, for testing changes on the hosted server before they go live (same room key)
 for (const f of ['lobby-qa.html', 'auditorium-qa.html', 'control-qa.html']) copy(path.join(STANDBY, f), path.join(SITE, f));
-for (const f of [...eventFiles, shaderFile, lookGuide, 'concepts/vaporwave/scene-looks.json']) copy(path.join(STANDBY, f), path.join(SITE, f));
+for (const f of [...eventFiles, ...extrasFiles, shaderFile, lookGuide, 'concepts/vaporwave/scene-looks.json']) copy(path.join(STANDBY, f), path.join(SITE, f));
 copyTree(path.join(STANDBY, 'shared'), path.join(SITE, 'shared'));
 copy(path.join(STANDBY, 'userscripts', 'dinkdonk-poll-draft.user.js'), path.join(SITE, 'userscripts', 'dinkdonk-poll-draft.user.js'));   // template for each room's poll script
 copyTree(path.join(STANDBY, 'assets'), path.join(SITE, 'assets'));

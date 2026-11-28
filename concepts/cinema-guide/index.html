@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cinema guide · DinkDonk Cinema</title>
+<style>
+  * { box-sizing: border-box }
+  :root { color-scheme: light; font: 16px/1.4 "Segoe UI",sans-serif; color: #232823; background: #ebe8de }
+  body { margin: 0 }
+  main { max-width: 900px; margin: auto; padding: clamp(20px,5vw,55px) clamp(16px,4vw,40px) }
+  header, nav, .tools, footer, .row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px }
+  header { border-bottom: 2px solid #232823; padding-bottom: 12px; font-weight: 700 }
+  a { color: #285644; text-underline-offset: .2em }
+  nav { font-size: .9rem; gap: 16px }
+  h1 { margin: 24px 0 18px; font: bold clamp(44px,9vw,82px)/1 Georgia,serif; letter-spacing: -.05em }
+  .tools { padding: 14px 0; border-block: 1px solid #888c7c; align-items: flex-end }
+  label { font-size: .85rem; font-weight: 650; display: grid; gap: 4px }
+  button,select { font: inherit; min-height: 40px; padding: 7px 12px; border: 1px solid #627163; border-radius: 3px; color: #293e31; background: transparent }
+  button { cursor: pointer }
+  button:disabled { opacity: .4; cursor: default }
+  .tools button { background: #285644; color: white }
+  :focus-visible { outline: 3px solid #955130; outline-offset: 3px }
+  ol { list-style: none; margin: 0; padding: 0 }
+  .row { border-bottom: 1px solid #9a9e8b; padding: 16px 0; gap: 8px 18px; flex-wrap: nowrap }
+  .date { flex: 0 0 7.2rem; font: bold 15px/1.2 "Courier New",monospace; text-transform: uppercase; color: #6e402d }
+  .session { flex: 1; min-width: 0 }
+  .session time { display: block; font: bold clamp(17px,2.6vw,24px)/1.2 Georgia,serif }
+  .details { display: block; margin-top: 4px; overflow-wrap: anywhere }
+  footer { margin-top: 18px }
+  [hidden] { display: none !important }
+  #status:empty { display: none }
+  @media (max-width:560px) { .row { display: grid; grid-template-columns: 1fr auto } .date { grid-column: 1/-1 } .row button { font-size: .85rem } }
+</style>
+</head>
+<body><main>
+  <header><span>DinkDonk Cinema</span><nav aria-label="Movie-night extras"><a href="../double-bill/index.html">Double bill</a><a href="../ticket-counter/index.html">Ticket counter</a><a href="../film-diary/index.html">Film diary</a><a href="../preshow-quiz/index.html">Pre-show quiz</a><a href="../projection-booth/index.html">Projection booth</a><a href="../mutoscope/index.html">Mutoscope</a></nav></header>
+  <h1>Cinema guide</h1>
+  <p><a href="./first-visit.html">Your first visit</a> · Explore the lobby, seating route and house lights.</p>
+  <p><a href="../movie-bingo/index.html">Movie-night bingo</a> · Play along on your phone or print cards for a group.</p>
+  <p><a href="./archive.html">Screening calendar</a> · Browse past movie nights and print a monthly program.</p>
+  <div class="tools"><label>Show times in<select id="zone"></select></label>
+    <button type="button" id="save" disabled>Save upcoming schedule (.ics)</button></div>
+  <p id="status" role="status">Opening the DinkDonk schedule…</p>
+  <button type="button" id="retry" hidden>Try again</button>
+  <ol id="sessions" aria-label="Upcoming sessions"></ol>
+  <footer id="pages" hidden><button id="previous" type="button">Previous</button><span id="page-count" aria-live="polite"></span><button id="next" type="button">Next</button></footer>
+</main><script src="./guide.js"></script></body></html>

@@ -1,9 +1,28 @@
+import {startPopcornPass} from './popcorn-pass.js';
+import {startMicRunner} from './mic-runner.js';
+import {startBeachBall} from './beach-ball.js';
+import {startVisualApplause, clearOfGuests} from './visual-applause.js';
+import {startOrganLift} from './organ-lift.js';
+import {startIntervalIces} from './interval-ices.js';
+import {startRainFoley} from './rain-foley.js';
+import {startParisShow} from './paris-3d.js';
+
 const NS = 'http://www.w3.org/2000/svg';
 const clamp = x => Math.max(0, Math.min(1, x));
 const pulse = (t, start, width) => Math.sin(Math.PI * clamp((t-start)/width));
 const colors = ['#65ffef', '#ff72c7', '#ffc86c', '#afb0ff'];
 const durations = {'laser-choir':14, 'prism-cathedral':10, 'ribbon-plotter':12};
 const ids = Object.keys(durations);
+const guestEvents={
+  'popcorn-pass':startPopcornPass,
+  'mic-runner':startMicRunner,
+  'beach-ball':startBeachBall,
+  'visual-applause':startVisualApplause,
+  'organ-lift':startOrganLift,
+  'interval-ices':startIntervalIces,
+  'rain-foley':startRainFoley,
+  'paris-3d':startParisShow
+};
 function attr(el, props) {
   for (const [key,value] of Object.entries(props)) el.setAttribute(key, value);
   return el;
@@ -146,9 +165,10 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
   let live=null, reason='', pending=enabled&&allowed.includes(query.get('event'))?query.get('event'):null;
   let sourceVisible=true, sourceActive=true, lastAuto=null;
+  let servedBreak=0,iceRetry=0;
   let cue=null, expires=0, retry=0;
   const recent=new Set();
-  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run'].filter(kind=>allowed.includes(kind));
+  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run',...Object.keys(guestEvents)].filter(kind=>allowed.includes(kind));
   const visible=()=>!document.hidden&&sourceVisible&&sourceActive;
   const next=()=>performance.now()+180000+Math.random()*180000;
   let due=pending?performance.now()+2200:next();
@@ -181,9 +201,11 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   }
   function start(kind,cueId=null) {
     if(live||!allowed.includes(kind)||!visible()||!host.ready(kind)||host.canStart?.()===false)return false;
-    if(kind==='aisle-vendor'||kind==='popcorn-run'){
-      const native=host.startNative?.(kind);
+    if(kind==='aisle-vendor'||kind==='popcorn-run'||Object.hasOwn(guestEvents,kind)){
+      const startGuestEvent=guestEvents[kind];
+      const native=startGuestEvent?startGuestEvent(host,motion.matches):host.startNative?.(kind);
       if(!native)return false;
+      if(kind==='interval-ices')servedBreak=host.breakDeadline();
       live={kind,native,cueId,at:performance.now(),t:0};return true;
     }
     const rows=cast(host,kind); if(!rows)return false;
@@ -209,13 +231,20 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
         if(now>=retry){retry=now+500;if(start(cue.kind,cue.id))cue.state='playing';}
         return;
       }
+      // Each timed break gets an early opportunity while the ice creams can still be served.
+      if(enabled&&automatic&&!pending&&visible()&&allowed.includes('interval-ices')&&now>=iceRetry){
+        iceRetry=now+2500;
+        const until=host.breakDeadline?.();
+        if(!until)servedBreak=0;
+        if(until&&Math.abs(servedBreak-until)>3000&&start('interval-ices')){lastAuto='interval-ices';return;}
+      }
       if(!enabled||now<due||!visible())return;
       if(pending){
         if(start(pending))pending=null;else due=now+5000;
       }else if(automatic){
-        const candidates=automaticKinds.filter(kind=>kind!==lastAuto);
+        const candidates=automaticKinds.filter(kind=>kind!==lastAuto&&kind!=='interval-ices');
         for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}
-        if(lastAuto)candidates.push(lastAuto);
+        if(lastAuto&&lastAuto!=='interval-ices')candidates.push(lastAuto);
         const chosen=candidates.find(kind=>start(kind));
         if(chosen)lastAuto=chosen;else due=now+5000;
       }
@@ -240,7 +269,12 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   window.addEventListener('pagehide',interrupt);
   window.addEventListener('obsSourceVisibleChanged',e=>{sourceVisible=e.detail?.visible!==false;if(!sourceVisible)interrupt();});
   window.addEventListener('obsSourceActiveChanged',e=>{sourceActive=e.detail?.active!==false;if(!sourceActive)interrupt();});
-  return {play,request,step,stop,interrupt,checkPhase,setEnabled,playing:()=>!!live,pose:w=>live?.poses?.get(w),
+  return {play,request,step,stop,interrupt,checkPhase,setEnabled,playing:()=>!!live,pose:w=>live?.native?.pose?.(w) ?? live?.poses?.get(w),
+    camera:()=>live?.native?.camera?.(),
+    actionBounds:()=>live?.native?.bounds,
+    occlusionBox:()=>live?.native?.occlusionBox,
+    bubbleClearance:project=>live?.native?.bubbleClearance?.(project),
+    clearOfGuests,
     message(m){if(live?.kind==='laser-choir'&&live.t>10&&live.t<13.5&&m?.nick)live.encore=true;},
     status:()=>({enabled,cue:cue&&{...cue},event:live?.kind||null,seconds:live?.t||0,cast:live?.rows?.map(row=>row.map(w=>w.nick))||[],
       encore:!!live?.encore,reduced:!!live?.reduced,lastStop:reason,

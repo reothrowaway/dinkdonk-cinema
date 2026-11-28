@@ -14,6 +14,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cinema control</title>
+<link rel="stylesheet" href="./concepts/seating-plan/plan.css">
+<link rel="stylesheet" href="./shared/house-notice.css">
+<script src="./shared/house-notice.js"></script>
+<script src="./shared/shadow-round.js"></script>
+<script src="./shared/sing-along.js"></script>
+<script src="./concepts/question-desk/panel.js"></script>
+<script src="./concepts/cinema-mods/cue-desk.js"></script>
+<script defer src="./concepts/seating-plan/plan.js"></script>
 <style>
   :root {
     color-scheme: dark;
@@ -236,6 +244,8 @@
   #mscard details { margin-top: 12px; }
   #mscard summary { cursor: pointer; color: var(--dim); }
   #mscard textarea { max-width: 260px; height: 70px; }
+  #notice-draft { width:100%; resize:vertical; margin:6px 0 }
+  #notice-preview { max-width:340px; margin:5px 0 9px }
 
   /* ---------- narrow: docked beside OBS ---------- */
   @media (max-width: 760px) {
@@ -279,6 +289,14 @@
     #mscard .ms-list td:nth-child(5) { grid-area: m; }
     #mscard .ms-list td:nth-child(6) { grid-area: a; justify-self: end; }
   }
+  #cue-desk{margin:12px 0 16px}#cue-desk summary{cursor:pointer;font-weight:700}#cue-desk[open] summary{margin-bottom:12px}
+  #cue-desk .cue-compose,#cue-desk .cue-call{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:10px 0}
+  #cue-desk label{display:grid;gap:4px;font-size:12px;max-width:100%}#cue-desk input,#cue-desk select{max-width:100%}
+  #cue-desk li>div:first-child{min-width:0;overflow-wrap:anywhere}
+  #cue-desk .cue-call{align-items:center}#cue-desk [data-desk=go]{font-weight:800;padding-inline:22px;background:#254836;color:#e8ffeb;border-color:#739b7c}
+  #cue-desk ol{padding:0;margin:10px 0;list-style:none}#cue-desk li{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding:6px 0}
+  #cue-desk li small{display:block;color:var(--dim);overflow-wrap:anywhere}#cue-desk [data-state=playing] strong{color:#b3eec1}
+  #cue-desk [data-desk=reason],#cue-desk [data-desk=feedback]{font-size:12px;margin:4px 0;color:var(--dim)}
 </style>
 </head>
 <body data-scene="lobby">
@@ -296,7 +314,7 @@
   <section class="now" id="now" aria-label="Now">
     <h2 class="now-h">Now</h2>
     <div class="tiles">
-      <div class="tile tile-room" id="roomcard" hidden><div class="tile-l">Room</div><div id="roomstate"></div></div>
+      <div class="tile tile-room" id="roomcard" hidden><div class="tile-l">Room</div><div id="roomstate"></div><button id="open-seating-plan" type="button">Seating plan</button></div>
       <div class="tile"><div class="tile-l">Camera</div><div class="val" id="dirstate"></div></div>
       <div class="tile lobby-only"><div class="tile-l">Poll</div><div class="val" id="pollstate"></div></div>
       <div class="tile aud-only"><div class="tile-l">Show</div><div class="val" id="phasestate"></div></div>
@@ -304,6 +322,16 @@
     </div>
   </section>
 
+  <details id="cue-desk" class="card"><summary>Show caller · event cue list</summary>
+    <div class="cue-compose">
+      <label>Room<select data-desk="room"><option value="lobby">Lobby</option><option value="auditorium">Auditorium</option></select></label>
+      <label>Event<select data-desk="event"></select></label><label>Standby note<input data-desk="note" type="text" maxlength="240" placeholder="Optional"></label>
+      <button type="button" data-desk="add">Add cue</button>
+    </div>
+    <strong data-desk="standby" role="status"></strong><div class="cue-call"><button type="button" data-desk="go" disabled>GO</button>
+      <button type="button" data-desk="skip" disabled>Skip next cue</button><button type="button" data-desk="again" disabled>Rearm list</button></div>
+    <p data-desk="reason"></p><ol data-desk="list" aria-label="Event cues"></ol><p data-desk="feedback" role="status"></p>
+  </details>
   <div class="cols">
     <div class="col col-main">
       <!-- the lobby's show: off to the cinema, and the roll-up poll screen -->
@@ -419,11 +447,45 @@
           </div>
         </div>
         <div class="grp box">
+          <div class="grp-l">Intermission clock</div>
+          <div class="btns"><label>Break length <select id="break-length"><option value="5">5 minutes</option><option value="10" selected>10 minutes</option><option value="15">15 minutes</option></select></label>
+            <button id="break-start">Start break</button><button id="break-end" disabled>End break</button></div>
+          <div id="break-status" class="state"></div>
+        </div>
+        <details class="grp box"><summary>House notice</summary>
+          <label for="notice-draft">Message (up to 120 characters)</label>
+          <textarea id="notice-draft" rows="2" maxlength="120" placeholder="Write a message for the auditorium"></textarea>
+          <div id="notice-preview" class="lantern-slide" aria-label="Slide preview" hidden><div class="lantern-words"><small>House notice</small><strong id="notice-copy"></strong></div></div>
+          <div class="btns"><button id="notice-project" disabled>Project notice</button><button id="notice-withdraw" disabled>Withdraw notice</button></div>
+          <div id="notice-state" class="state" role="status"></div>
+        </details>
+        <details class="grp box" id="question-desk"><summary>Audience question desk</summary>
+          <div class="btns"><button type="button" id="question-open" disabled>Open Q&amp;A</button><button type="button" id="question-close" disabled>End Q&amp;A</button></div>
+          <p id="question-state" class="state" role="status"></p>
+          <button type="button" id="question-answered" disabled>Mark projected question answered</button>
+          <div id="question-waiting" hidden><p>Viewers can submit one pending question each with <b>!ask</b>. Ending the Q&amp;A clears the list.</p><p id="question-count"></p><ol id="question-list"></ol>
+            <label for="question-draft">Host question (up to 160 characters)</label>
+            <textarea id="question-draft" rows="2" maxlength="160" disabled></textarea>
+            <button type="button" id="question-host" disabled>Add host question</button>
+          </div><div id="question-error" role="status"></div>
+        </details>
+        <div class="grp box"><div class="grp-l">House organ sing-along</div>
+          <div class="btns"><button id="song-start" disabled>Play Save Me a Seat</button><button id="song-stop" disabled>Stop song</button></div>
+          <div id="song-state" class="state" role="status"></div>
+        </div>
+        <div class="grp box"><div class="grp-l">Audience silhouette</div>
+          <div class="btns"><button id="shadow-start" disabled>Start guessing round</button><button id="shadow-end" disabled>End round</button></div>
+          <div id="shadow-status" class="state" role="status">Waiting for the shared room.</div>
+        </div>
+        <div class="grp box">
           <div class="grp-l">Screen and floor</div>
           <div class="btns">
             <label>Cinema screen shows <select id="screenpick" title="Auto: the pre-show slides take turns, the film comes on with Film / Movie">
               <option value="auto">Auto (slides, then the film)</option><option value="upnext">Slide: Up next</option>
               <option value="loading">Slide: The feature will begin shortly</option><option value="audience">Slide: In the audience</option>
+              <option value="chart-flat">Framing chart · Flat 1.85:1</option><option value="chart-scope">Framing chart · Scope 2.39:1</option>
+              <option value="curtain">Close house curtains</option>
+              <option value="notice" disabled>House notice</option>
               <option value="film">The film</option></select></label>
             <button id="litter" class="tog" title="About 10 min after the hall is 60% full, popcorn, cups and wrappers pile up on the floor. Off sweeps it all up">Litter: on</button>
           </div>
@@ -560,6 +622,43 @@
   // The auditorium-only controls name their scene: right after a switch to the Lobby, a refresh still in flight left the
   // "Reset auditorium" button showing, and a click reset the LOBBY (Codex audit 15 Nov 2026, C4)
   const aud = (c) => send({ ...c, page: 'auditorium' });
+  let roomNoticeKnown = false;
+  $('notice-draft').oninput = () => {
+    const text = HouseNotice.text($('notice-draft').value);
+    $('notice-copy').textContent = text;
+    $('notice-preview').hidden = !text;
+    $('notice-preview').classList.toggle('long', text.length > 56);
+    $('notice-project').disabled = !text;
+  };
+  $('notice-project').onclick = () => aud({cmd:'houseNotice', text:HouseNotice.text($('notice-draft').value)});
+  $('notice-withdraw').onclick = () => aud({cmd:'houseNotice', withdraw:true});
+  $('shadow-start').onclick = () => aud({cmd:'shadowRound', action:'start'});
+  $('shadow-end').onclick = () => aud({cmd:'shadowRound', action:'end'});
+  $('song-start').onclick = () => aud({cmd:'singAlong',action:'start'});
+  $('song-stop').onclick = () => aud({cmd:'singAlong',action:'stop'});
+  function showShadowState(room) {
+    const show = room?.show, round = show?.shadowRound;
+    const ready = room?.screens > 0 && ShadowRound.allowed(show) && Object.hasOwn(show, 'shadowRound');
+    $('shadow-start').disabled = !ready || !!round || !!show?.singAlongAt;
+    const songReady = room?.screens>0 && show && Object.hasOwn(show,'singAlongAt') && CinemaSingAlong.allowed(show);
+    $('song-start').disabled = !songReady || !!show?.singAlongAt;
+    $('song-stop').disabled = !show?.singAlongAt;
+    const songStatus = show?.singAlongAt ? 'The 18-second short is on screen.' : songReady ? 'Original organ music and on-screen lyrics.' : 'Open a shared auditorium in Seating or Lights up with the screen on Auto.';
+    if ($('song-state').textContent!==songStatus) $('song-state').textContent=songStatus;
+    $('shadow-end').disabled = !round;
+    const status = round?.state === 'waiting' ? 'Waiting up to 30 seconds for a seated guest with an emote.' :
+      round ? 'Round in progress. Chat can answer with !guess followed by the emote name.' :
+      ready ? 'The projector uses an emote worn by a seated guest.' : 'Open a shared auditorium in Seating or Lights up with the screen on Auto.';
+    if ($('shadow-status').textContent !== status) $('shadow-status').textContent = status;
+  }
+  function showNoticeState(show, onBreak) {
+    const message = show?.screen === 'notice' && HouseNotice.text(show.noticeText);
+    $('notice-withdraw').disabled = !message;
+    const status = message ? (onBreak ? 'After intermission · ' : 'Projected notice · ') + message : '';
+    if ($('notice-state').textContent !== status) $('notice-state').textContent = status;
+  }
+  $('break-start').onclick = () => aud({cmd:'intermission', minutes:Number($('break-length').value)});
+  $('break-end').onclick = () => aud({cmd:'intermission', minutes:0});
   for (const b of document.querySelectorAll('[data-phase]')) b.onclick = () => aud({ cmd: 'phase', value: b.dataset.phase });
   $('phaseauto').onclick = () => aud({ cmd: 'phaseAuto', on: !preshow?.auto });
   $('movie').onclick = () => aud({ cmd: 'movie' });
@@ -649,15 +748,39 @@
     .then(refreshRoom).catch(() => {});
   let whoEdited = false;
   for (const id of ['who', 'whonick']) $(id).addEventListener('focus', () => { whoEdited = true; });
+  let breakRoomKnown = false;
+  function showBreakControls(seconds) {
+    const onBreak = Number.isFinite(seconds);
+    $('break-start').disabled = onBreak;
+    $('break-end').disabled = !onBreak;
+    $('break-length').disabled = onBreak;
+    $('break-status').textContent = onBreak ? (seconds ? Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') + ' remaining' : 'Time is up. Waiting for the operator.') : '';
+  }
+  const updateQuestions=createQuestionDeskPanel($('question-desk'),refreshRoom);
+  let roomRequest=0, roomApplied=0;
   async function refreshRoom() {
-    let r;
+    const request=++roomRequest;
+    let r, serverTime;
     try {
-      const res = await fetch('/ctl/room-state', { cache: 'no-store', signal: AbortSignal.timeout(3500) });
+      const endpoint=$('question-desk').open ? '/ctl/room-state?questions=1' : '/ctl/room-state';
+      const res = await fetch(endpoint, { cache: 'no-store', signal: AbortSignal.timeout(3500) });
       if (!res.ok) throw new Error();
+      serverTime = Date.parse(res.headers.get('Date')) || Date.now();
       r = await res.json();
-    } catch { $('roomcard').hidden = true; return; }   // an older server: no shared room
+    } catch { if(request<roomApplied)return; roomApplied=request;updateQuestions(null);breakRoomKnown = false; roomNoticeKnown = false; showShadowState(null); $('roomcard').hidden = true; return; }   // an older server: no shared room
+    if(request<roomApplied)return;
+    roomApplied=request;
     $('roomcard').hidden = false;
     const a = r.auditorium;
+    updateQuestions(a.questionDesk);
+    showShadowState(a);
+    roomNoticeKnown = Object.hasOwn(a.show || {}, 'noticeText');
+    if (roomNoticeKnown) showNoticeState(a.show, !!a.show.intermissionUntil);
+    breakRoomKnown = Object.hasOwn(a.show || {}, 'intermissionUntil');
+    if (breakRoomKnown) {
+      const until = a.show.intermissionUntil;
+      showBreakControls(Number.isFinite(until) && until > 0 ? Math.max(0, Math.ceil((until - serverTime) / 1000)) : null);
+    }
     const n = r.lobby.screens + a.screens;
     // big numbers for a glance (layout 15 Nov 2026). The front-row seats stay empty on purpose (the front row is for Yee
     // only, owner's rule: shared/room.js chooseSeat), so "seated" says so; it read like a bug (audit 15 Nov 2026, F17)
@@ -665,7 +788,7 @@
     const stat = (label, value, ...notes) => div('stat', '', div('stat-l', label), div('stat-v', value), ...notes.map((t) => div('stat-s', t)));
     $('roomstate').replaceChildren(
       div('stats', '', stat('Lobby', String(r.lobby.people), r.lobby.people === 1 ? 'person' : 'people'),
-        stat('Auditorium', `${a.seated}/${a.seats}`, 'seated (front row: Yee only)', `${a.waiting} waiting outside`)),
+        stat('Auditorium', `${a.seated}/${a.seats}`, 'seats assigned (front row: Yee only)', `${a.waiting} waiting outside`, ...(a.held ? [`${a.held} held for re-entry`] : []))),
       div('room-note', `Walk in: ${r.tag ? `chatters who tag ${r.tag}` : 'everyone who chats'}${r.fromPanel ? '' : ' (from the screen links; Set overrides them)'}`
         + ` · ${n} screen${n === 1 ? '' : 's'} on the room. The room keeps filling with no screen open.`));
     if (!whoEdited) { $('who').value = r.tag ? 'tag' : 'everyone'; $('whonick').value = r.tag || ''; $('whonick').hidden = !r.tag; }
@@ -689,10 +812,17 @@
       'infinity-foyer': 'Infinity Foyer', 'glyph-cascade': 'Glyph Cascade · PEPE WINS',
       'yee-vs-pepe': 'PEPE vs. YEE fight', 'restroom-gag': 'Restroom rendezvous',
       quickdraw: 'PARDNER vs. YEEHAW quickdraw', 'nothing-burger': 'Nothing Burger',
-      aristortle: 'Aristortle crossing'
+      aristortle: 'Aristortle crossing', 'marquee-photo': 'Marquee photo', 'shared-umbrella': 'Share an umbrella', 'dish-night': 'Dish Night giveaway', 'tape-swap': 'VHS tape swap', 'poster-bin': 'Free movie poster'
     },
-    auditorium: { 'laser-choir': 'Laser Choir', 'aisle-vendor': 'Aisle vendor', 'popcorn-run': 'Popcorn run' }
+    auditorium: { 'laser-choir': 'Laser Choir', 'aisle-vendor': 'Aisle vendor', 'popcorn-run': 'Popcorn run', 'popcorn-pass': 'Pass the popcorn', 'mic-runner': 'Audience Q&A microphone', 'beach-ball': 'Festival beach ball', 'visual-applause': 'Visual applause', 'organ-lift': 'Rising house organ', 'interval-ices': 'Interval ice creams', 'rain-foley': 'Audience rainstorm', 'paris-3d': 'Paris in 3-D' }
   };
+  async function sendRunEvent(page,event,requestId){
+    const reply=await fetch('/ctl/cmd',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({page,cmd:'runEvent',event,requestId}),signal:AbortSignal.timeout(3500)});
+    if(!reply.ok)throw Error('Event command failed');return reply.json();
+  }
+  const cueDesk=window.CinemaCueDesk?.mount($('cue-desk'),eventNames,sendRunEvent);
+  if(!cueDesk)$('cue-desk').hidden=true;
   const eventCards = new Map();
   for (const group of document.querySelectorAll('[data-event-controls]')) {
     const page = group.dataset.eventControls, names = eventNames[page];
@@ -708,10 +838,7 @@
       button.disabled = true;
       status.textContent = 'Sending ' + names[select.value] + '…';
       try {
-        const reply = await fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ page, cmd: 'runEvent', event: select.value, requestId: token }), signal: AbortSignal.timeout(3500) });
-        if (!reply.ok) throw Error('Event command failed');
-        const response = await reply.json();
+        const response = await sendRunEvent(page,select.value,token);
         if (!response.screens) { submitted = null; status.textContent = 'Open the ' + page + ' screen to run an event.'; }
       } catch { submitted = null; status.textContent = 'Could not send the event request.'; }
       finally { sending = false; button.disabled = !ready; }
@@ -943,7 +1070,7 @@
   }
   async function refreshState() {
     let data;
-    try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
+    try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { cueDesk?.offline();$('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
     controlVersion = data.controlVersion || 0;
     for (const render of roomSettingCards) render();
     const page = $('page').value;
@@ -951,7 +1078,9 @@
     const screens = all.filter((s) => (s.page || 'lobby') === page);
     sceneControls(page);
     const blocked = page === 'auditorium' && controlVersion < 2;
-    for (const el of document.querySelectorAll('button:not([data-run-event]), input:not([data-timed-events])')) el.disabled = blocked;
+    for (const el of document.querySelectorAll('button:not([data-run-event]), input:not([data-timed-events])')) {
+      if(!el.closest('#cue-desk'))el.disabled=blocked;
+    }
     $('screens').textContent = screens.length ? `${screens.length} screen${screens.length > 1 ? 's' : ''} open (${screens.map((s) => s.size.join('×')).join(', ')}) - commands go to all of them`
       : 'No screen is open: start the standby screen (or the OBS source) first.';
     $('screens').textContent = blocked ? 'Restart standby-server.js to enable safe auditorium controls.'
@@ -961,7 +1090,8 @@
     const preferred = list => list.sort((a, b) => (b.obs === true) - (a.obs === true) || b.size[0] * b.size[1] - a.size[0] * a.size[1])[0];
     const s = preferred(screens);
     for (const [room, render] of eventCards) {
-      render(room === page ? s : preferred(all.filter(screen => (screen.page || 'lobby') === room)));
+      const target=room===page?s:preferred(all.filter(screen=>(screen.page||'lobby')===room));
+      render(target);cueDesk?.update(room,target,controlVersion);
     }
     setScreen = s?.settings ? s : null;   // the scene settings show what this screen uses
     if (setBuiltFor === page) showSettings();
@@ -1002,6 +1132,8 @@
     for (const b of document.querySelectorAll('[data-phase]')) b.classList.toggle('on', b.dataset.phase === preshow?.phase && (b.dataset.phase !== 'film' || shot === 'push'));
     $('movie').classList.toggle('on', shot === 'movie');
     if (document.activeElement !== $('screenpick')) $('screenpick').value = preshow?.screen || 'auto';
+    if (!breakRoomKnown) showBreakControls(preshow?.intermissionRemaining);
+    if (!roomNoticeKnown) showNoticeState(preshow, preshow?.intermissionRemaining != null);
     const litterOn = preshow?.litter ?? true;
     $('litter').textContent = `Litter: ${litterOn ? 'on' : 'off'}`;
     $('litter').classList.toggle('on', litterOn);
@@ -1064,6 +1196,8 @@
       if (tr.cells[1].textContent !== (c.emote || '')) tr.cells[1].textContent = c.emote || '';
       if (tr._pill.textContent !== c.status) tr._pill.textContent = c.status;
       tr._follow.disabled = blocked || c.status === 'waiting outside';
+      const followLabel = c.status === 'outside on re-entry pass' ? 'Show held seat' : 'Follow';
+      if (tr._follow.textContent !== followLabel) tr._follow.textContent = followLabel;
       tr._reedu.hidden = !YEE_LOOKS.has(c.emote);   // lobby and auditorium (owner, 16 Nov 2026)
       tr._reedu.disabled = blocked;
       // Preserve button identity while someone is pressing it during a one-second state refresh.
@@ -1232,5 +1366,17 @@
   }
 })();
 </script>
+<dialog id="seating-plan" aria-labelledby="plan-heading">
+  <header><h2 id="plan-heading">Auditorium seating plan</h2><form method="dialog"><button type="submit">Close</button></form></header>
+  <label for="plan-name">Find a chatter</label>
+  <input id="plan-name" type="search" list="plan-names" placeholder="Chatter name" autocomplete="off" maxlength="40">
+  <datalist id="plan-names"></datalist>
+  <p id="plan-selection" role="status">Select a seat or enter a name.</p>
+  <button id="plan-pass" type="button" hidden>Step out and hold seat</button>
+  <p class="plan-screen">Screen</p>
+  <div id="plan-rows" role="group" aria-label="Auditorium seats"></div>
+  <p class="plan-legend"><span class="plan-assigned">Assigned</span><span class="plan-free">Unassigned</span><span id="plan-held-key" hidden>Held for re-entry</span></p>
+  <p id="plan-count"></p><p id="plan-status" role="status"></p>
+</dialog>
 </body>
 </html>

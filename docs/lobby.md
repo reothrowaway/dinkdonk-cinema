@@ -144,6 +144,7 @@ The header comment lists only some of these. This table is from the actual `q.ge
 | `mqfold=0` | on | The marquee's shadow and light pieces all drawn as separate layers again. Default (24 Nov 2026): 87 of the 186 pieces that lie on a plain wall picture are baked into that picture offline (`out10m/fold3/` + `fold3.json`, built by `roxy3d/marquee/fold_light3.mjs`; within 2/255 of the layered result), so the page shows 87 fewer layers. Only with the default set (`merged2`) and the base pack named in `fold3.json` (`out10s`); a missing or mismatching file leaves the pieces as before | `mergeMarquee` |
 | `loopmin=<0-255>` | `9` | Light loops whose brightest pixel ever stays under this value (of 255) are not built: with 9, 73 of the 127 loops of `out10s` + `out10m` (48 wet-ground reflections, 25 chase lights; each adds at most 8/255). `0` = every loop, as before. The peaks come from `roxy3d/loop-peaks.json` (built by `roxy3d/marquee/loop_peaks.mjs`; rerun it when a pack's loops change). No file = every loop. Together with `mqfold`: about 14% less CPU at 30 fps in OBS (24 Nov 2026) | `LOOPMIN`, `loadLoopPeaks`, `loopTooFaint` |
 | `marquee1=<text>`, `marquee2=<text>` | empty | The marquee board's two lines (40 characters each). Empty = automatic (screen 1's film, `NOW SHOWING · title` / `SCREEN 1 · ★ rating`); `-` = a blank line. Also in the panel ("Marquee line 1/2") | `MARQ.custom`, `showMarquee` |
+| `mqhouse=0` | on | From second 20 through 34 each minute, automatic line 2 shows Screen 1's unassigned seats or its standby count. It can also announce lights down, a feature in progress, or a clearing house. A custom line or deliberate blank takes priority. An unavailable or sleeping shared room leaves the film information on the board. Seat counts include any seats reserved for specific guests. | `houseStatus`, `marqueeHouseLine` |
 | `mqdry=0` | on | Drop the dry patch under the marquee's roof (a still of the loop's base over the baked rain rings there). The extra rain's splash crowns leave that sidewalk and land on the roof either way | `buildMarqueeDry`, `startRain2` |
 | `mqlines=0` | on | No marquee one-liners. While line 2 is on automatic, the last 12 s of every minute it shows a stock line (IT'S OVER. / MANY SUCH CASES! / WAOW (BASED BASED BASED) ...), picked by the wall clock so every screen agrees; a line set in the panel wins | `MQ_LINES`, `mqOneLiner` |
 | `gold=<0..1>` | 0.05 | Odds that a chatter wearing WEOW (or glorp) walks in as the golden WEOW (DGG's own gold cell of the WEOW sheet, with an aura and sparkles). One roll per visit from the room's seed (`w.goldRoll`), so every screen agrees | `GOLD_P`, `gild` |
@@ -688,6 +689,8 @@ Make the change in `lobby-qa.html` first, check it with real chat (`?everyone=1`
    auditorium before adding one there.
 
 ### Swap the art pack (`artdir`)
+
+For changes to an individual prop, start with the [Blender and ImageGen prop redesign workflow](art-pipeline.md#lobby-and-auditorium-prop-redesigns).
 
 - Try a pack with `?artdir=<folder>` (under `roxy3d/`). It needs `manifest.json` with `bg` or `base` and an
   `occluders` array. Missing optional parts just switch features off.

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Running order · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box }
+  :root { color-scheme:light; background:#e7e3d9; color:#262e28; font:16px/1.45 "Segoe UI",sans-serif }
+  body { margin:0 } main { max-width:1050px; padding:clamp(18px,4vw,46px); margin:auto }
+  header,.head,.setup,.transport,.metrics { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:9px 18px }
+  header { padding-bottom:10px; border-bottom:2px solid #3a443b; font-weight:650 }
+  a { color:#39523e; text-underline-offset:.2em } h1,h2,p {margin:0}
+  h1 { font:normal clamp(42px,7vw,76px)/1.1 Georgia,serif; letter-spacing:-.05em }
+  h2 { font:normal 24px/1.25 Georgia,serif } .head { margin:22px 0 }
+  button,input { font:inherit;border:1px solid #858a7b; border-radius:3px; padding:7px 10px; background:#fbf9ee; color:inherit }
+  button { cursor:pointer; font-weight:650; min-height:42px } button:disabled { opacity:.56; cursor:default }
+  input { max-width:100%; min-width:0 } label { display:grid; gap:3px; font-size:14px; font-weight:650 }
+  .setup { border-block:1px solid #909381; justify-content:flex-start; padding:12px 0; align-items:flex-end }
+  #zone { font-size:13px; color:#4c574c }
+  .metrics { align-items:flex-start; gap:8px; margin:19px 0 }
+  .metrics>div { background:#263f33; color:#f5efdd; flex:1 1 170px; padding:12px 15px; min-height:90px }
+  .metrics small,.metrics output { display:block } .metrics output { font:normal clamp(22px,3.7vw,37px)/1.2 Georgia,serif; margin:4px 0 }
+  .sheet { background:#fbf7e8; padding:clamp(13px,2vw,22px); box-shadow:0 2px 4px #1825191c }
+  table { border-collapse:collapse; width:100%; margin-top:6px }
+  th,td { text-align:left; vertical-align:middle; border-bottom:1px solid #bdbea9; padding:9px 5px }
+  th {font-size:13px;color:#465446} th[scope=row] {font-size:16px;color:#232e25}
+  td.time {font:14px/1.25 "Courier New",monospace; white-space:nowrap} td input { width:5em }
+  tr.live {background:#e1edd7;box-shadow:inset 4px 0 #51724b} tr.live th, tr.live td:first-child {padding-left:10px}
+  .transport {justify-content:flex-start; margin-top:16px} #advance { background:#2e503b;color:white }
+  #status {margin-top:9px;min-height:1.4em;color:#4e5549} #missing {padding:16px 0}
+  [hidden] {display:none!important} :focus-visible {outline:3px solid #a34b34;outline-offset:3px}
+  @media(max-width:560px) { .metrics>div {flex:1 1 43%;min-height:70px} main {padding:14px} .sheet {padding:10px} th,td {padding:8px 3px} td.time {font-size:12px;white-space:normal} td input {width:3.4em;padding:6px 3px} th[scope=row] {font-size:14px} }
+  @media print { :root,body,.sheet,.metrics>div {background:white;color:black} main,.sheet {padding:0;box-shadow:none} header a,#print,.transport,#status {display:none}
+    h1 {font-size:30pt} .metrics {margin:10px 0} .metrics>div {border:1px solid #444;min-height:0} .metrics output {font-size:19pt}
+    input,input:disabled {border:0;color:#111;opacity:1;padding:0} tr {break-inside:avoid} }
+</style></head><body><main>
+  <header><span>DinkDonk Cinema</span><a href="./index.html">Double bill</a></header>
+  <div class="head"><h1>Running order</h1><button type="button" id="print" hidden>Print cue sheet</button></div>
+  <p id="missing">Choose two films in <a href="./index.html">Double bill</a> to open their running order.</p>
+  <div id="desk" hidden>
+    <div class="setup"><label>Planned start<input type="datetime-local" id="start" required></label><label>Finish by (optional)<input type="datetime-local" id="deadline"></label><span id="zone"></span></div>
+    <div class="metrics"><div><small>Planned finish</small><output id="planned">—</output></div><div><small id="estimate-label">Expected finish</small><output id="expected">—</output></div><div><small id="margin-label">Time against plan</small><output id="margin">—</output></div></div>
+    <section class="sheet" aria-labelledby="calling"><h2 id="calling">Calling sheet</h2>
+      <table><thead><tr><th scope="col">Cue</th><th scope="col">Minutes</th><th scope="col">Planned</th><th scope="col">Actual</th></tr></thead><tbody id="rows"></tbody></table>
+    </section>
+    <div class="transport"><button type="button" id="advance">Start program now</button><button type="button" id="undo" hidden>Undo last cue</button></div>
+    <p id="status" role="status"></p>
+  </div>
+</main><script src="./rundown.js"></script></body></html>

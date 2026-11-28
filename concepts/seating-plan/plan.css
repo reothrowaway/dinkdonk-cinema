@@ -1,0 +1,28 @@
+#open-seating-plan { margin-top: 8px }
+#seating-plan { box-sizing: border-box; width: min(820px, 96vw); max-height: 94vh; overflow: auto; padding: clamp(12px, 3vw, 26px); border: 1px solid #5c687b; border-radius: 10px; color: #e6ebf2; background: #171d27; font: 15px/1.4 "Segoe UI",sans-serif }
+#seating-plan::backdrop { background: rgba(5, 9, 15, .8) }
+#seating-plan header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #434f60 }
+#seating-plan h2, #seating-plan form { margin: 0 }
+#seating-plan h2 { color: inherit; font-size: clamp(19px,4vw,27px) }
+#seating-plan label { display: block; margin: 14px 0 4px; color: #ccd5e2; font-weight: 600 }
+#seating-plan input { box-sizing: border-box; width: min(100%, 340px); min-height: 40px; padding: 6px 10px }
+#plan-selection { min-height: 1.5em; overflow-wrap: anywhere; font-weight: 600 }
+.plan-screen { width: 67%; margin: 18px auto; padding-top: 3px; border-top: 3px solid #bdc9d5; text-align: center; color: #c3cfdd; font-size: 12px; letter-spacing: .16em; text-transform: uppercase }
+.plan-row { display: grid; grid-template-columns: 1.1em minmax(0,1fr); align-items: center; gap: 5px; margin: 3px 0 }
+.plan-row-name { font: bold 13px/1 monospace; color: #bfcad8 }
+.plan-seats { position: relative; height: clamp(26px, 4vw, 36px) }
+#seating-plan .plan-seat { position: absolute; margin: 0; padding: 0; height: 88%; min-height: 0; min-width: 0; transform: translateX(-50%); border-radius: 4px 4px 2px 2px; border: 1px solid #7d8a9e; border-bottom-width: 3px; background: transparent; color: #f4f8fc; font: bold 11px/1 sans-serif }
+#seating-plan .plan-seat.assigned { background: #38556c; border-color: #85b4d5 }
+#seating-plan .plan-seat.held { border-style:dashed; border-color:#f6c568 }
+#seating-plan .plan-seat[aria-pressed="true"] { outline: 2px solid #f6c568; outline-offset: 1px; color: #241903; background: #f6c568; border-color: #f6c568 }
+#seating-plan :focus-visible { outline: 3px solid white; outline-offset: 1px }
+.plan-legend { display: flex; gap: 18px; margin: 16px 0 4px; font-size: 13px }
+.plan-legend span::before { content: ''; display: inline-block; width: .8em; height: .8em; margin-right: 6px; border: 1px solid #7d8a9e; border-bottom-width: 3px; vertical-align: -.1em }
+.plan-assigned::before { background: #38556c }
+#plan-held-key::before { border:1px dashed #f6c568; background:#38556c }
+#plan-count, #plan-status { margin: 5px 0 0; font-size: 13px; color: #bfccd9 }
+#plan-status:empty { display: none }
+@media (max-width: 600px) {
+  #plan-rows { overflow-x: auto; padding-bottom: 6px }
+  .plan-row { min-width: 565px }
+}
