@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foley bench · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box }
+  :root { color-scheme:dark; background:#172420; color:#faf4dd; font:16px/1.45 "Segoe UI",sans-serif }
+  body { margin:0 } main { max-width:1040px; margin:auto; padding:clamp(18px,4vw,45px) }
+  header,.controls,.ruler,.slate { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:8px 16px }
+  header { padding-bottom:9px; border-bottom:1px solid #738073 }
+  a { color:#ecd098; text-underline-offset:.23em }
+  h1 { font:normal clamp(45px,7vw,78px)/1 Georgia,serif; letter-spacing:-.05em; margin:.32em 0 .13em }
+  .intro,.note { color:#c3cebf; margin:0 0 20px }
+  .bench { display:grid; grid-template-columns: minmax(0,1.2fr) minmax(0,.8fr); gap:clamp(12px,3vw,28px) }
+  figure { margin:0; background:#0e1411; border:1px solid #7e806b; padding:12px }
+  #window { position:relative; aspect-ratio:448/288; overflow:hidden; background:#332f24 }
+  #cards { width:400%; height:300%; position:absolute; inset:0 auto auto 0; user-select:none; pointer-events:none }
+  .slate { font:13px/1.4 "Courier New",monospace; margin-top:10px; color:#d7d5bd }
+  #position { font-variant-numeric:tabular-nums }
+  .desk { align-self:center }
+  h2 { margin:0 0 8px; font:normal 28px/1.15 Georgia,serif }
+  .desk p { margin:0 0 16px; color:#c8d0c1 }
+  .pads { display:grid; grid-template-columns:1fr 1fr; gap:12px }
+  button { color:#fff5df; font:600 15px/1.35 "Segoe UI",sans-serif; background:#2d3d34; border:1px solid #89937d; border-radius:4px; padding:10px 13px; cursor:pointer }
+  button:disabled { opacity:.45; cursor:default }
+  .pad { min-height:105px; touch-action:manipulation; user-select:none; text-align:left; border-color:#bf9672; color:#ffeed7; background:#6c4b38; box-shadow:inset 0 -4px #4c362b }
+  .pad:last-child { background:#6a573c; box-shadow:inset 0 -4px #4e432e }
+  .pad kbd { display:block; font:26px/1.4 "Courier New",monospace }
+  .pad:active,.pad.hit { background:#a5754c; box-shadow:inset 0 2px #4c362b }
+  .track { margin-top:20px; padding:16px; border:1px solid #697663; background:#23312a; border-radius:3px }
+  .track .ruler { font:13px/1.4 "Courier New",monospace; color:#d6d8c0 }
+  #strip { position:relative; margin:7px 0; height:40px; overflow:hidden; border:1px solid #86927c; background:repeating-linear-gradient(to right,transparent 0 calc(25% - 1px),#637060 calc(25% - 1px) 25%) }
+  #strip::before { content:""; position:absolute; top:50%; left:0; right:0; border-top:1px dotted #809079 }
+  .mark { position:absolute; height:12px; width:4px; background:#eab68c; top:4px; border-radius:2px }
+  .mark.b { top:22px; background:#e2cd88 }
+  #cursor { position:absolute; inset:0 auto 0 0; width:2px; background:#fff }
+  .controls { justify-content:flex-start; margin:14px 0 6px }
+  #record { color:#241e15; background:#edd094; border-color:#f8dfa4 }
+  #status { min-height:1.5em; margin:6px 0 0; color:#f0e3b8 }
+  .note { margin-top:17px; font-size:14px }
+  :focus-visible { outline:3px solid #ffeab6; outline-offset:3px }
+  [hidden] { display:none !important }
+  @media(max-width:650px) { .bench { grid-template-columns:1fr } .pad { min-height:66px } .pad kbd { display:inline; margin-right:10px } .desk p { margin-bottom:8px } }
+</style></head><body><main>
+  <header><span>DinkDonk Cinema</span><a href="./index.html">Mutoscope</a></header>
+  <h1>Foley bench</h1><p class="intro">Perform four seconds of hoofbeats for Sallie Gardner’s gallop.</p>
+  <div class="bench"><figure>
+    <div id="window" role="img" aria-label="Muybridge’s photographs of Sallie Gardner and rider"><img id="cards" src="./sallie-gardner.webp" alt="" draggable="false"></div>
+    <figcaption class="slate"><i>The Horse in Motion</i><span id="position">0.00 / 4.00 s</span></figcaption>
+  </figure>
+  <section class="desk" aria-labelledby="shells"><h2 id="shells">Coconut shells</h2>
+    <p>Tap either pad to hear it. Record a take, then play along after the three-count.</p>
+    <div class="pads"><button class="pad" id="low" type="button"><kbd>A</kbd>Low clop</button>
+      <button class="pad" id="high" type="button"><kbd>L</kbd>High clop</button></div>
+  </section></div>
+  <section class="track" aria-label="Recorded soundtrack">
+    <div class="ruler"><span id="hits">0 hits</span><span>4 seconds</span></div>
+    <div id="strip" aria-hidden="true"><span id="marks"></span><i id="cursor"></i></div>
+    <div class="controls"><button id="record" disabled>Record take</button><button id="play" disabled>Play take</button>
+      <button id="stop" disabled>Stop</button><button id="download" disabled>Save WAV</button></div>
+    <p id="status" role="status">Loading the photographs…</p>
+  </section>
+  <p class="note">The two synthesized taps are inspired by coconut-shell Foley. <a href="https://www.youtube.com/watch?v=K3Mw6juw6dM">Star and Shadow Cinema workshop</a> · <a href="https://www.loc.gov/item/97502309/">Original photographs</a></p>
+</main><script src="./foley.js"></script></body></html>

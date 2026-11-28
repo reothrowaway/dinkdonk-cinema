@@ -81,6 +81,8 @@ The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk 
 
 Open **Mutoscope** in the cinema guide to turn through the eleven gallop cards from Eadweard Muybridge’s 1878 print of Sallie Gardner. Drag the crank, use the arrow keys, or select **Run reel**. **Standing pose** displays the separate twelfth photograph. The reel runs locally.
 
+From the mutoscope, open **Foley bench**. Try the low and high shell sounds with **A** and **L** or the two pads. Choose **Record take** and tap after the three-count as the horse runs. The browser remembers the last completed four-second take. You can replay it against the same photographs or save a mono 48 kHz WAV. Canceling or recording an empty take keeps the previous performance.
+
 Open **Projection booth** from the guide to practice a 35 mm reel change. Guided mode holds each cue. In timed mode the upper-right dot appears for four frames at 24 fps. Press **M** to start the incoming motor and **C** to change projectors, or use the two buttons. Leaving the tab pauses the reel.
 
 Open **Reel timing sheet** in the booth to time a 35 mm four-perf or 16 mm print. Enter each reel’s picture footage and extra frames, then choose the projection speed. The sheet shows the duration of each reel, the elapsed time at its end, and the total picture time. The last pair of digits counts frames. The browser saves the sheet locally when storage is available. Open **Share one print between two screens** to allow for reel preparation and a courier’s round trips. Each delivery shows how early or late it reaches Booth B and the earliest uninterrupted second screening.
