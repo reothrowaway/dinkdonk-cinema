@@ -5,6 +5,7 @@ import {startVisualApplause, clearOfGuests} from './visual-applause.js';
 import {startOrganLift} from './organ-lift.js';
 import {startIntervalIces} from './interval-ices.js';
 import {startRainFoley} from './rain-foley.js';
+import {startParisShow} from './paris-3d.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const clamp = x => Math.max(0, Math.min(1, x));
@@ -19,7 +20,8 @@ const guestEvents={
   'visual-applause':startVisualApplause,
   'organ-lift':startOrganLift,
   'interval-ices':startIntervalIces,
-  'rain-foley':startRainFoley
+  'rain-foley':startRainFoley,
+  'paris-3d':startParisShow
 };
 function attr(el, props) {
   for (const [key,value] of Object.entries(props)) el.setAttribute(key, value);
