@@ -83,6 +83,8 @@ The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk 
 
 **Your first visit** in the guide uses still artwork from the two rooms. Select a lobby landmark, follow the example route to row F, or move the lighting divider to compare the same seats with the house lights up and down. Each stop has its own link. **Print all three stops** makes a landscape guide with one stop per page.
 
+**Movie-night bingo** in the guide has decks for the lobby and the film. Mark what you see and tap again to undo. Three in a line wins. Copy the game link and give each viewer a different card number, or use **Print four cards** to deal a blank set on one sheet. Each browser remembers its cards and marks for that game. The card also works offline when opened from the downloaded package.
+
 Open **Mutoscope** in the cinema guide to turn through the eleven gallop cards from Eadweard Muybridge’s 1878 print of Sallie Gardner. Drag the crank, use the arrow keys, or select **Run reel**. **Standing pose** displays the separate twelfth photograph. The reel runs locally.
 
 From the mutoscope, open **Foley bench**. Try the low and high shell sounds with **A** and **L** or the two pads. Choose **Record take** and tap after the three-count as the horse runs. The browser remembers the last completed four-second take. You can replay it against the same photographs or save a mono 48 kHz WAV. Canceling or recording an empty take keeps the previous performance.
