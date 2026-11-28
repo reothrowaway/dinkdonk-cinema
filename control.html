@@ -19,6 +19,7 @@
 <script src="./shared/house-notice.js"></script>
 <script src="./shared/shadow-round.js"></script>
 <script src="./shared/sing-along.js"></script>
+<script src="./concepts/question-desk/panel.js"></script>
 <script defer src="./concepts/seating-plan/plan.js"></script>
 <style>
   :root {
@@ -439,6 +440,16 @@
           <div class="btns"><button id="notice-project" disabled>Project notice</button><button id="notice-withdraw" disabled>Withdraw notice</button></div>
           <div id="notice-state" class="state" role="status"></div>
         </details>
+        <details class="grp box" id="question-desk"><summary>Audience question desk</summary>
+          <div class="btns"><button type="button" id="question-open" disabled>Open Q&amp;A</button><button type="button" id="question-close" disabled>End Q&amp;A</button></div>
+          <p id="question-state" class="state" role="status"></p>
+          <button type="button" id="question-answered" disabled>Mark projected question answered</button>
+          <div id="question-waiting" hidden><p>Viewers can submit one pending question each with <b>!ask</b>. Ending the Q&amp;A clears the list.</p><p id="question-count"></p><ol id="question-list"></ol>
+            <label for="question-draft">Host question (up to 160 characters)</label>
+            <textarea id="question-draft" rows="2" maxlength="160" disabled></textarea>
+            <button type="button" id="question-host" disabled>Add host question</button>
+          </div><div id="question-error" role="status"></div>
+        </details>
         <div class="grp box"><div class="grp-l">House organ sing-along</div>
           <div class="btns"><button id="song-start" disabled>Play Save Me a Seat</button><button id="song-stop" disabled>Stop song</button></div>
           <div id="song-state" class="state" role="status"></div>
@@ -726,16 +737,23 @@
     $('break-length').disabled = onBreak;
     $('break-status').textContent = onBreak ? (seconds ? Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') + ' remaining' : 'Time is up. Waiting for the operator.') : '';
   }
+  const updateQuestions=createQuestionDeskPanel($('question-desk'),refreshRoom);
+  let roomRequest=0, roomApplied=0;
   async function refreshRoom() {
+    const request=++roomRequest;
     let r, serverTime;
     try {
-      const res = await fetch('/ctl/room-state', { cache: 'no-store', signal: AbortSignal.timeout(3500) });
+      const endpoint=$('question-desk').open ? '/ctl/room-state?questions=1' : '/ctl/room-state';
+      const res = await fetch(endpoint, { cache: 'no-store', signal: AbortSignal.timeout(3500) });
       if (!res.ok) throw new Error();
       serverTime = Date.parse(res.headers.get('Date')) || Date.now();
       r = await res.json();
-    } catch { breakRoomKnown = false; roomNoticeKnown = false; showShadowState(null); $('roomcard').hidden = true; return; }   // an older server: no shared room
+    } catch { if(request<roomApplied)return; roomApplied=request;updateQuestions(null);breakRoomKnown = false; roomNoticeKnown = false; showShadowState(null); $('roomcard').hidden = true; return; }   // an older server: no shared room
+    if(request<roomApplied)return;
+    roomApplied=request;
     $('roomcard').hidden = false;
     const a = r.auditorium;
+    updateQuestions(a.questionDesk);
     showShadowState(a);
     roomNoticeKnown = Object.hasOwn(a.show || {}, 'noticeText');
     if (roomNoticeKnown) showNoticeState(a.show, !!a.show.intermissionUntil);

@@ -30,6 +30,7 @@ const path = require('node:path');
 const HouseNotice = require('./house-notice');
 const ShadowRound = require('./shadow-round');
 const SingAlong = require('./sing-along');
+const {createDesk} = require('./discussion');
 
 const LOBBY = { CAP: 40, HARD_CAP: 55, CROWD: 14 };              // lobby.html CAP, HARD_CAP, CROWD
 const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.html MAX_QUEUE, QUEUE_QUIET_MS
@@ -185,6 +186,8 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     } catch { /* first start */ }
   }
   load();
+  const discussion = createDesk(emitShow);
+  const publicShow = () => ({...state.pages.auditorium.show, discussion:discussion.projector()});
 
   // ---------- sending ----------
   function emit(page, ev) {
@@ -199,7 +202,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     const d = P.director;
     return { t: 'snapshot', page, now: Date.now(), roster: P.roster.map(publicEntry),
       director: { on: d.on, every: d.every, zoom: d.zoom, wantNext: d.wantNext },
-      show: page === 'auditorium' ? { ...P.show } : undefined,   // (fullAt in server time: see now)
+      show: page === 'auditorium' ? publicShow() : undefined,   // (fullAt in server time: see now)
       reentryPasses: page === 'auditorium' || undefined,
       settings: { tag: state.settings.tag || null }, lead: lead[page] };
   }
@@ -455,6 +458,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   function purge(nick) {
     const key = String(nick || '').trim().toLowerCase();
     if (!key) return;
+    discussion.purge(key);
     const show = state.pages.auditorium.show, round = show.shadowRound;
     if (round?.wearer?.toLowerCase() === key || round?.winner?.toLowerCase() === key) {
       show.shadowRound = null; emitShow(); changed();
@@ -479,6 +483,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     try { d = JSON.parse(raw.slice(sp + 1)); } catch { return; }
     if (!d || typeof d !== 'object') return;
     if (type === 'MSG') {
+      discussion.receive(d.nick,d.data);
       if (ShadowRound.guess(state.pages.auditorium.show.shadowRound, d.data, d.nick, Date.now())) { emitShow(); changed(); }
       onMessage(d);
     }
@@ -626,6 +631,10 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         (!SingAlong.allowed(P.show) || ['reset','runEvent'].includes(c.cmd) || (c.cmd==='screen' && SCREENS.includes(c.value)))) {
       P.show.singAlongAt = 0; emitShow();
     }
+    if (page === 'auditorium') {
+      if (c.cmd==='reset' || c.cmd==='runEvent' || (c.cmd==='screen' && SCREENS.includes(c.value))) discussion.close();
+      else discussion.reconcile(P.show);
+    }
     changed();
   }
   function applyShow(c) {
@@ -697,10 +706,11 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       if (['push', 'movie', 'outro'].includes(p.shot) && p.shot !== s.shot) { s.shot = p.shot; changed(); }
       if (typeof p.auto === 'boolean' && p.auto !== s.auto) { s.auto = p.auto; changed(); }
       if (typeof p.lightsOn === 'boolean' && p.lightsOn !== s.lightsOn) { s.lightsOn = p.lightsOn; changed(); }
+      discussion.reconcile(s);
     }
   }
 
-  function emitShow() { emit('auditorium', { t: 'show', show: { ...state.pages.auditorium.show }, now: Date.now() }); }
+  function emitShow() { emit('auditorium', { t: 'show', show: publicShow(), now: Date.now() }); }
   // the litter clock: the first moment the house is 60% seated (kept until a reset or the litter toggle)
   function checkFull() {
     const A = state.pages.auditorium;
@@ -741,16 +751,18 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   }, 1000);
   timer.unref?.();
 
-  function summary() {
+  function summary(withQuestions = false) {
     const A = state.pages.auditorium;
     return { tag: state.settings.tag || null, fromPanel: !!state.settings.fromPanel,
       lobby: { people: state.pages.lobby.roster.length, screens: subs.lobby.size },
       auditorium: { seated: A.roster.filter((e) => e.seat).length, held: A.roster.filter(e => e.seat && e.steppedOut).length, waiting: A.roster.filter((e) => !e.seat).length,
-        seats: getSeats()?.length || 0, screens: subs.auditorium.size, show: { ...A.show } } };
+        seats: getSeats()?.length || 0, screens: subs.auditorium.size, show: publicShow(),
+        ...(withQuestions ? {questionDesk:discussion.panel(A.show)} : {}) } };
   }
 
   return {
     chatFrame, command, screenState, subscribe, snapshot, summary,
+    discussionAction: c => c.page==='auditorium' ? discussion.act(c,state.pages.auditorium.show) : 'Choose the auditorium.',
     flush: () => { dirty = true; save(); },
     close: () => { clearInterval(timer); save(); },
     state,   // for checks

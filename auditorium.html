@@ -407,7 +407,7 @@
       <div id="ps-pops"></div>
       <video id="ps-song" hidden playsinline preload="none" tabindex="0" aria-label="Save Me a Seat, a house organ sing-along. Activate to enable sound."></video>
       <section class="lantern-slide" id="ps-notice" hidden><div class="lantern-words">
-        <small>House notice</small><strong id="ps-notice-text"></strong></div></section>
+        <small id="ps-notice-label">House notice</small><strong id="ps-notice-text"></strong></div></section>
       <section id="ps-shadow" hidden><strong id="shadow-heading"></strong><div id="shadow-shape" aria-hidden="true"></div>
         <strong id="shadow-answer"></strong><span id="shadow-instruction"></span></section>
       <div id="ps-chart" hidden><div id="chart-marks"></div><strong id="chart-format"></strong>
@@ -628,11 +628,16 @@
     const green = alwaysGreen || filmOnScreen();
     drawSong();
     drawShadow();
-    const notice = !green && !show.intermissionUntil && show.screen === 'notice' && !!show.noticeText;
+    const discussion = !green && !show.intermissionUntil && show.phase==='up' && show.screen==='auto' && show.discussion;
+    const notice = !!discussion || (!green && !show.intermissionUntil && show.screen === 'notice' && !!show.noticeText);
+    const question = discussion?.question;
+    const noticeText = discussion ? (question?.text || 'Type !ask followed by your question in chat.') : (show.noticeText || '');
+    const noticeLabel = discussion ? (question ? (question.nick ? 'Question from '+question.nick : 'Question from the host') : 'Audience Q&A') : 'House notice';
     $('preshow').classList.toggle('with-notice', notice);
     $('ps-notice').hidden = !notice;
-    $('ps-notice').classList.toggle('long', (show.noticeText || '').length > 56);
-    if ($('ps-notice-text').textContent !== (show.noticeText || '')) $('ps-notice-text').textContent = show.noticeText || '';
+    $('ps-notice').classList.toggle('long', noticeText.length > 56);
+    if ($('ps-notice-label').textContent !== noticeLabel) $('ps-notice-label').textContent = noticeLabel;
+    if ($('ps-notice-text').textContent !== noticeText) $('ps-notice-text').textContent = noticeText;
     const curtain = $('house-curtain');
     const closeCurtain = show.screen === 'curtain' && !show.intermissionUntil && !alwaysGreen;
     if (closeCurtain) curtain.classList.add('used');
@@ -3754,7 +3759,7 @@
     if (director.outro && (director.follow || onScreen(now))) director.outro = false;
     const slow = !director.follow && (onScreen(now) || director.outro);
     if (slow && !director.outro) [tx, ty, tz] = screenShot();
-    const eventCamera = !f && !slow && (!reducedShadow.matches && (!$('ps-shadow').hidden || !$('ps-song').hidden) ? screenShot() : preshowEvents?.camera());
+    const eventCamera = !f && !slow && (!reducedShadow.matches && (!$('ps-shadow').hidden || !$('ps-song').hidden || (show.discussion && !$('ps-notice').hidden)) ? screenShot() : preshowEvents?.camera());
     if (eventCamera) [tx, ty, tz] = eventCamera;
     const fit = (c, half, size) => clamp(c, half, size - half);
     tx = fit(tx, 960 / tz, 1920);
@@ -3983,6 +3988,7 @@
     show.singAlongAt = Number.isFinite(s.singAlongAt) ? s.singAlongAt : 0;
     shadowOffset = off;
     show.shadowRound = s.shadowRound || null;
+    show.discussion = s.discussion || null;
     roomHasBreakClock = Object.hasOwn(s, 'intermissionUntil');
     if (roomHasBreakClock) show.intermissionUntil = Number.isFinite(s.intermissionUntil) && s.intermissionUntil > 0 ? s.intermissionUntil + off : 0;
     show.fullAt = Number.isFinite(s.fullAt) && s.fullAt > 0 ? s.fullAt + off : 0;
@@ -4652,7 +4658,7 @@
       const active = w => walkers.get(w.key) === w && w.sitting && w.seat && w.seen && !w.leaving && !w.out && !w.reeducating;
       preshowEvents = createHouseEvents({
         ready: kind => {
-          if (show.singAlongAt || show.shadowRound?.state === 'playing') return false;
+          if (show.discussion || show.singAlongAt || show.shadowRound?.state === 'playing') return false;
           if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';

@@ -478,7 +478,7 @@ async function controlRoute(req, res, pathname, key) {
     req.on('close', () => { clearInterval(ping); off(); room.roomSubs -= 1; roomScreenClosed(key); });
     return;
   }
-  if (pathname === '/ctl/room-state' && req.method === 'GET') return json(res, 200, { ...ensureRoom(key).summary(), asleep: roomAsleep(key) });
+  if (pathname === '/ctl/room-state' && req.method === 'GET') return json(res, 200, { ...ensureRoom(key).summary(url.searchParams.get('questions')==='1'), asleep: roomAsleep(key) });
   // read-only roster (no subscription): the lobby's fly-through needs who sits where in the auditorium
   if (pathname === '/ctl/room-roster' && req.method === 'GET') {
     return json(res, 200, ensureRoom(key).snapshot(url.searchParams.get('page') === 'auditorium' ? 'auditorium' : 'lobby'));
@@ -498,6 +498,10 @@ async function controlRoute(req, res, pathname, key) {
     if (!cmd || typeof cmd.cmd !== 'string') return json(res, 400, { error: 'no cmd' });
     const page = cmd.page || 'lobby';
     if (!['lobby', 'auditorium'].includes(page)) return json(res, 400, { error: 'unknown page' });
+    if (cmd.cmd==='discussion') {
+      const error=ensureRoom(key).discussionAction(cmd);
+      return json(res,error ? 409 : 200,error ? {error} : {ok:true});
+    }
     try { ensureRoom(key).command(cmd); } catch (e) { log(`room: ${e.message}`); }
     // the room's roll-up poll screen: remembered here, so a reload or a second viewer of this room sees it the same way
     if (cmd.cmd === 'pollscreen' && page === 'lobby') pollDraft.setScreen(!!cmd.on, key);

@@ -73,6 +73,8 @@ During **Lights up** with the projector on **Auto**, **Visual applause** brings 
 
 For a festival-style discussion, choose **Lights up** and leave the projector on **Auto**. **Audience Q&A microphone** sends a capped volunteer down the stair to a real chatter in an aisle seat. The projector shows who has the microphone. The volunteer collects it and walks back through the entrance. The event can run automatically or from **Run event** with Auto events switched off.
 
+For a moderated discussion, choose **Lights up → Auto** and open **Audience question desk → Open Q&A**. The projector invites viewers to type `!ask` and a question of up to 160 characters in chat. Each viewer can have one question waiting, and the desk holds twenty at a time. The host can also add an opening question. Choose **Project** to display a waiting question and **Mark projected question answered** to return to the invitation. **Dismiss** removes a waiting item. Refreshing the panel preserves the active session. Ending the Q&A, replacing the projection, leaving Lights up, or restarting the room clears it.
+
 ### Movie-night extras
 
 The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk sessions in your time zone or the published cinema time zone. Choose **Save .ics** beside a session or download the whole upcoming schedule. Untitled slots retain their published start and end times.
