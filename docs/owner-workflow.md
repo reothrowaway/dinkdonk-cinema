@@ -87,6 +87,8 @@ Choose **Double bill** from the guide to program two films from the watch log. P
 
 Choose **Audience favorites** to browse the recent public ballots matched to films in the watch log. Pick a minimum turnout and an opening or second feature slot, then select a film title. Each film uses its latest valid ballot. Averages are shown to two decimals and equal displayed scores share a rank.
 
+Choose **Mystery screening** to put the selected pair on an audience clue sheet. It shows the available release year, runtime and genre, using title length or first letter as extra hints when a film has sparse metadata. Reveal either title when the audience is ready. **Print clues** gives guests space to write their guesses and omits both answers and the host's program notes, even after an on-screen reveal.
+
 In a server running the experimental branch, open `/concepts/ticket-counter/index.html` to make a souvenir PNG for a screening from the DinkDonk watch log. Pick the title and screening time, then choose **Save ticket PNG**. Each stub uses the screening's watch-log number and New York time. Choose **Stamp passport** for a screening you attended. Your browser keeps one stamp per screening. You can remove individual stamps or print the collection.
 
 Play **Which came out first?** at `/concepts/preshow-quiz/index.html` before the film. Pick a title to guess or click **Reveal years** to let chat guess aloud. **Next pair** deals two more films from the watch log. You can open the page separately or add its URL as an OBS browser source and use **Interact**.

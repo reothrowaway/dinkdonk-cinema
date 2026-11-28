@@ -130,6 +130,50 @@
   el('award-min').addEventListener('change', showFavorites);
   el('close-awards').addEventListener('click', () => el('favorites').close());
 
+  function clueCard(film, slot) {
+    const card = document.createElement('section');
+    card.className = 'film';
+    card.innerHTML = '<h3></h3><dl class="mystery-clues"></dl><p class="guess-line">Your guess</p>' +
+      '<p class="mystery-answer" aria-live="polite" hidden></p><button class="reveal" type="button" aria-expanded="false"></button>';
+    card.querySelector('h3').textContent = slot === 0 ? 'Opening feature' : 'Second feature';
+    const clues = card.querySelector('dl');
+    const facts = [['Release year',film.year],['Runtime',film.minutes && duration(film.minutes)],['Genre',film.genres.join(', ')]].filter(([,value])=>value);
+    const words = film.title.trim().split(/\s+/u).length;
+    const letters = Array.from(film.title.matchAll(/[\p{L}\p{N}]/gu),match=>match[0]);
+    if (facts.length < 3) facts.push(['Title length',words + (words === 1 ? ' word' : ' words')]);
+    if (facts.length < 3 && letters.length > 1) facts.push(['First letter or digit',letters[0].toUpperCase()]);
+    for (const [label,value] of facts) {
+      const group = document.createElement('div'), term = document.createElement('dt'), detail = document.createElement('dd');
+      term.textContent = label;
+      detail.textContent = value;
+      group.append(term,detail);
+      clues.append(group);
+    }
+    const answer = card.querySelector('.mystery-answer'), button = card.querySelector('button');
+    const which = slot === 0 ? 'opening title' : 'second title';
+    answer.id = 'mystery-answer-' + slot;
+    button.setAttribute('aria-controls',answer.id);
+    button.textContent = 'Reveal ' + which;
+    button.onclick = () => {
+      const reveal = answer.hidden;
+      answer.textContent = reveal ? film.title : '';
+      answer.hidden = !reveal;
+      button.setAttribute('aria-expanded',String(reveal));
+      button.textContent = (reveal ? 'Hide ' : 'Reveal ') + which;
+    };
+    return card;
+  }
+  el('open-mystery').addEventListener('click', () => {
+    el('mystery-cards').replaceChildren(...lineup.map((index,slot)=>clueCard(films[index],slot)));
+    el('mystery-interval').textContent = el('interval').textContent;
+    el('mystery').showModal();
+  });
+  el('mystery-close').onclick = () => el('mystery').close();
+  el('mystery').addEventListener('close', () => {
+    if (!el('mystery').open) el('mystery-cards').replaceChildren();
+  });
+  el('mystery-print').onclick = () => window.print();
+
   function readNote(key) {
     if (unsavedNotes.has(key)) return unsavedNotes.get(key);
     try { return (localStorage.getItem(notePrefix + key) || '').slice(0, 600); }
