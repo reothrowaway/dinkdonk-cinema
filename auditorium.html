@@ -1379,6 +1379,8 @@
       }
     };
     for (const w of walkers.values()) if (w.box) cover(...w.box);
+    const showProp = preshowEvents?.occlusionBox?.();
+    if (showProp) cover(...showProp);
     if (doorShot) cover(door.x, door.y, door.x + door.frame_width, door.y + door.frame_height, door.z_index);
     if (entry.until) {   // the way in, ahead of the usher (entryAhead)
       const now = performance.now();
@@ -4662,7 +4664,7 @@
           if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
-          if (kind === 'beach-ball') return show.phase === 'seating' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
+          if (kind === 'beach-ball' || kind === 'organ-lift') return show.phase === 'seating' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           if (kind === 'visual-applause') return show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           if (kind === 'mic-runner') return HALL_ON && show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           return !alwaysGreen && !filmOnScreen() && (show.phase === 'seating' || show.phase === 'up');
@@ -4681,8 +4683,9 @@
         seated: () => [...walkers.values()].filter(w => active(w) && !w.jan && !w.usher && !w.crew),
         screen: () => screenPoly,
         point: w => P(...w.pos),
+        floor: (u,v) => ({point:P(u,v,24),depth:depthZ(u,v,24)}),
         apex: () => { const su = L.screen?.u || [4.9,13.9]; return P((su[0]+su[1])/2-2.3,L.room?.v[1] ?? 14.9,580); }
-      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause'], automatic: timedPreshows, enabled: timedEventsEnabled });
+      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift'], automatic: timedPreshows, enabled: timedEventsEnabled });
       window.auditoriumEvents = preshowEvents;
       SB.on('msg', m => preshowEvents.message(m));
     }).catch(err => console.warn('[preshow]',err));

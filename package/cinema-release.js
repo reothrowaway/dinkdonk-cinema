@@ -12,6 +12,7 @@ const eventFiles = [
   'preshow/house-velvet.webp',
   'preshow/beach-ball.js', 'preshow/beach-ball.webp',
   'preshow/visual-applause.js',
+  'preshow/organ-lift.js', 'preshow/player-organ.webp', 'preshow/organ-overture.mp4',
 ].map(file => base + file);
 const extrasFiles = [
   'ticket-counter/index.html', 'ticket-counter/ticket.js',

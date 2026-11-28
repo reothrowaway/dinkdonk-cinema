@@ -16,6 +16,17 @@
     {bass:50,chord:[53,57,60],tune:[[65,1],[69,.5],[67,.5],[62,1]]},
     {bass:48,chord:[55,64,69],tune:[[60,3]]}
   ];
+  const beat = .56;
+  function melodyAt(start) {
+    return bars.flatMap(({tune},bar)=>{
+      let time=start+bar*3*beat;
+      return tune.map(([pitch,length])=>{
+        const key={pitch,time,end:time+length*beat*.91};
+        time+=length*beat;
+        return key;
+      });
+    });
+  }
   function create(context, destination = context.destination) {
     const master = context.createGain();
     master.gain.value = .55;
@@ -51,21 +62,16 @@
       return voice;
     }
     function playOverture() {
-      const beat = .56, start = context.currentTime + .06, melody = [];
-      bars.forEach(({bass,chord,tune}, bar) => {
-        let time = start + bar * 3 * beat;
+      const start = context.currentTime + .06, melody = melodyAt(start);
+      bars.forEach(({bass,chord}, bar) => {
+        const time = start + bar * 3 * beat;
         note(bass, time, .10).release(time + 2.7 * beat);
         for (const offset of [1,2]) for (const pitch of chord) {
           const t = time + offset * beat;
           note(pitch, t, .052).release(t + beat * .68);
         }
-        for (const [pitch,length] of tune) {
-          const end = time + length * beat * .91;
-          note(pitch, time, .19).release(end);
-          melody.push({pitch, time, end});
-          time += length * beat;
-        }
       });
+      for (const key of melody) note(key.pitch,key.time,.19).release(key.end);
       return {melody, end:start + 24 * beat + .14};
     }
     return {note, playOverture,
@@ -74,5 +80,5 @@
       silence() { for (const voice of sounding) voice.release(); }
     };
   }
-  window.CinemaOrgan = {create};
+  window.CinemaOrgan = {create,melodyAt};
 })();

@@ -69,6 +69,8 @@ In the auditorium, Laser Choir performs during seating or lights-up, the aisle v
 
 **Festival beach ball** runs during Seating with the projector on Auto. Two or three seated guests tap an inflatable ball across the seats and back to its owner. Select it under Auditorium events or let it run in the automatic rotation. A film cue clears the ball.
 
+**Rising house organ** runs during Seating on Auto, once a guest has taken a seat. The pit opens, the player console rises for the house overture, and its paper roll and keys move with the music before the lift descends. Run it from Auditorium events or leave it in rotation. A film cue stops the music and clears the pit. If a web browser blocks sound, a click in the auditorium during the overture joins the performance already in progress.
+
 During **Lights up** with the projector on **Auto**, **Visual applause** brings two to four nearby seated guests into view. Each raises both hands and turns their wrists as the next guest joins in. Choose it under Auditorium events or leave it in the automatic rotation. With reduced motion, the camera stays in place and the hands turn gently.
 
 For a festival-style discussion, choose **Lights up** and leave the projector on **Auto**. **Audience Q&A microphone** sends a capped volunteer down the stair to a real chatter in an aisle seat. The projector shows who has the microphone. The volunteer collects it and walks back through the entrance. The event can run automatically or from **Run event** with Auto events switched off.
