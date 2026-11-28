@@ -101,6 +101,8 @@ Choose **Mystery screening** to put the selected pair on an audience clue sheet.
 
 In a server running the experimental branch, open `/concepts/ticket-counter/index.html` to make a souvenir PNG for a screening from the DinkDonk watch log. Pick the title and screening time, then choose **Save ticket PNG**. Each stub uses the screening's watch-log number and New York time. Choose **Stamp passport** for a screening you attended. Your browser keeps one stamp per screening. You can remove individual stamps or print the collection.
 
+Open **Film diary** in the cinema guide to record a viewing. From the ticket counter, **Write diary entry** fills in the film and the New York screening date. Each visit has its own date, performance, note and optional red-ink favorite mark. Keep multiple visits to the same title to see their order. Entries stay in the current browser and are available when the watch log is offline. **Print diary** prints the entries or saves them through the browser’s PDF printer.
+
 Play **Which came out first?** at `/concepts/preshow-quiz/index.html` before the film. Pick a title to guess or click **Reveal years** to let chat guess aloud. **Next pair** deals two more films from the watch log. You can open the page separately or add its URL as an OBS browser source and use **Interact**.
 
 ### Who shows up

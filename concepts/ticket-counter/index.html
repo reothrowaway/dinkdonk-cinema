@@ -26,6 +26,7 @@
   #status { color: #e2dfd1; margin: 12px 0 }
   #status:empty { margin: 0 }
   header a { color: #e3d5ae }
+  .controls a { color: #f0be81; text-underline-offset: .2em; padding: 10px 0 }
   #passport { margin-top: 32px; padding: 24px; color: #303c32; background: #f1e6c8; border-radius: 3px; }
   .passport-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid #89927e; padding-bottom: 14px }
   #passport h2 { font: normal clamp(26px, 5vw, 36px)/1.1 Georgia, serif; margin: 0 }
@@ -58,6 +59,7 @@
     <label>Screening<select id="screenings" disabled></select></label>
     <button id="save" type="button" disabled>Save ticket PNG</button>
     <button id="stamp" type="button" disabled>Stamp passport</button>
+    <a id="diary" href="../film-diary/index.html" hidden>Write diary entry</a>
     <button id="retry" type="button" hidden>Try again</button>
   </div>
   <p id="status" role="status">Opening the watch log…</p>

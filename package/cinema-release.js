@@ -17,6 +17,7 @@ const extrasFiles = [
   'ticket-counter/index.html', 'ticket-counter/ticket.js',
   'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js',
   'cinema-guide/index.html', 'cinema-guide/guide.js',
+  'film-diary/index.html', 'film-diary/diary.js',
   'mutoscope/index.html', 'mutoscope/viewer.js', 'mutoscope/sallie-gardner.webp',
   'question-desk/panel.js',
   'double-bill/index.html', 'double-bill/bill.js',

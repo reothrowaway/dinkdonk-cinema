@@ -170,6 +170,9 @@ function drawTicket(film) {
   ticket.setAttribute('aria-label', film.title + ', ' + screeningTime(film) + ', ticket ' + serial);
   ticket.hidden = false;
   passport.select(film);
+  const diary = document.getElementById('diary');
+  diary.hidden = film.type !== 'Movie';
+  diary.href = '../film-diary/index.html?screening=' + encodeURIComponent(film.id);
 }
 
 async function load() {
