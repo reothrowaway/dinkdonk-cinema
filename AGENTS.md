@@ -135,8 +135,10 @@ folder on the same PC, often at the same time.
   follow-ups with `codex exec resume <id>`, so Astra keeps its context. Astra ends with a STATUS line; Claude then
   checks the result. A new job starts a new session that reads this file, `PROGRESS.md` and its brief.
 - **Watch Astra's weekly usage** (owner, 28 Nov 2026). Claude checks the Codex weekly usage
-  (`bash roxy3d/tools/codex-usage.sh`) before handing Astra a job, when it reports progress, and at least once per
-  working session. As soon as less than 10% remains (90% or more used), Claude tells the owner so the owner can act.
+  (`bash roxy3d/tools/codex-usage.sh`) before handing Astra a job, when it reports progress, at least once per
+  working session, and every 5 minutes while an Astra job runs (owner, 28 Nov 2026; Claude starts
+  `bash roxy3d/tools/codex-usage-watch.sh <job output folder>` in the background, which logs each reading and wakes
+  Claude at 90% used, at 95% used and when the job ends). As soon as less than 10% remains (90% or more used), Claude tells the owner so the owner can act.
   Astra pauses at a clean point when 5% or less remains (95% or more used), owner, 28 Nov 2026.
   The owner has Codex usage resets: a low reading is a reason to tell the owner, not to move work away from Astra.
 - **Hand-offs.** Leave work so the other agent can continue it without asking: a `PROGRESS.md` entry with what
