@@ -7,6 +7,7 @@ const eventFiles = [
   'lobby-events.js', 'guest-routes.js', 'guest-travel.js',
   'incidents/arcade.js', 'incidents/paper-stage.js', 'incidents/sidewalk.js', 'incidents/stage.js',
   'incidents/marquee-photo.js', 'incidents/shared-umbrella.js', 'incidents/dish-night.js', 'incidents/tape-swap.js', 'events.html',
+  'incidents/poster-bin.js',
   'preshow/transition-cues.js', 'preshow/house-events.js', 'preshow/popcorn-pass.js', 'preshow/mic-runner.js',
   'preshow/house-velvet.webp',
   'preshow/beach-ball.js', 'preshow/beach-ball.webp',
