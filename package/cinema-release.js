@@ -20,6 +20,7 @@ const extrasFiles = [
   'projection-booth/index.html', 'projection-booth/booth.js',
   'projection-booth/sync-leader.html', 'projection-booth/sync-leader.js', 'projection-booth/sync-leader.mp4',
   'projection-booth/framing.html', 'projection-booth/framing.js',
+  'projection-booth/reel-sheet.html', 'projection-booth/reel-sheet.js',
   'house-organ/index.html', 'house-organ/instrument.js', 'house-organ/organ.js', 'house-organ/console.webp',
   'house-organ/save-me-a-seat.mp4',
 ].map(file => 'concepts/' + file);

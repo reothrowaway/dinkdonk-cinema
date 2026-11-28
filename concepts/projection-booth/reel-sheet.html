@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel timing sheet · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box }
+  :root { color-scheme:dark; background:#181a18; color:#f1eadc; font:16px/1.45 "Segoe UI",sans-serif }
+  body { margin:0 }
+  main { max-width:1050px; padding:clamp(16px,4vw,44px); margin:auto }
+  header,.settings,.foot { display:flex; flex-wrap:wrap; align-items:end; gap:12px 22px }
+  header { justify-content:space-between; border-bottom:1px solid #5d6257; padding-bottom:10px }
+  a { color:#d6d9af; text-underline-offset:.2em }
+  h1 { font:normal clamp(42px,7vw,76px)/1 Georgia,serif; margin:.4em 0 .18em }
+  p { margin:.45em 0 1em }
+  label { display:grid; gap:4px }
+  select,input,button { min-height:44px; font:inherit; padding:6px 10px; border:1px solid #8b9384; border-radius:3px; max-width:100% }
+  select,button { background:#2c332c; color:#f2efe1 }
+  button { cursor:pointer }
+  :focus-visible { outline:3px solid #d89329; outline-offset:2px }
+  .settings { margin:22px 0 }
+  .sheet { background:#eee5ce; color:#242a23; padding:clamp(12px,3vw,30px); border-top:5px solid #9e6248 }
+  #reels { display:grid }
+  .reel { display:grid; grid-template-columns:.65fr repeat(2,minmax(65px,.75fr)) repeat(2,minmax(100px,1.1fr)) auto; align-items:end; gap:12px; padding:12px 0; border-bottom:1px solid #aba38b }
+  .reel h2 { font:normal 23px/1.1 Georgia,serif; margin:auto 0 }
+  .reel label,.measure { font-size:.85rem }
+  input { width:100%; background:#faf5e7; color:#242a23; border-color:#948e7b }
+  .measure strong,.foot output { display:block; font:600 1.05rem/1.5 "Courier New",monospace }
+  .reel button { background:transparent; color:#393a32; border-color:#877f6c }
+  .reel button:disabled { visibility:hidden }
+  .foot { justify-content:space-between; align-items:center; padding-top:18px }
+  .foot p { margin:0 }
+  .foot output { font-size:clamp(19px,3vw,32px) }
+  #problem { color:#702a18; font-weight:600; margin:12px 0 0 }
+  input[aria-invalid=true] { border:2px solid #9e3920 }
+  small { display:block; margin-top:12px; color:#d1cebe }
+  @media(max-width:740px) {
+    .reel { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center }
+    .reel h2 { grid-column:1 }.reel button { grid-column:2; grid-row:1; justify-self:end }
+    .settings { align-items:stretch }
+  }
+</style>
+</head>
+<body><main>
+  <header><span>DinkDonk Cinema</span><a href="./index.html">Projection booth</a></header>
+  <h1>Reel timing sheet</h1>
+  <p>Enter the picture length of each reel in feet and extra frames. Leave out the head and tail leaders.</p>
+  <div class="settings">
+    <label>Film format <select id="format"><option value="16">35 mm · 4-perf</option><option value="40">16 mm</option></select></label>
+    <label>Projection speed <select id="speed"><option>16</option><option>18</option><option>20</option><option>22</option><option selected>24</option><option>25</option></select></label>
+    <span id="factor"></span>
+  </div>
+  <section class="sheet" aria-label="Reel measurements">
+    <div id="reels"></div>
+    <div class="foot"><button id="add" type="button">Add reel</button><p>Total picture time <output id="total" aria-live="polite"></output></p></div>
+    <p id="problem" role="status" hidden></p>
+  </section>
+  <small>Times show hours, minutes, seconds and remaining frames at the selected speed. Each reel ends at the elapsed time from the start of the print.</small>
+  <template id="row">
+    <section class="reel">
+      <h2></h2>
+      <label>Feet <input class="feet" type="number" min="0" max="99999" step="1" inputmode="numeric" required></label>
+      <label>Extra frames <input class="frames" type="number" min="0" step="1" inputmode="numeric" required></label>
+      <div class="measure">Reel duration<strong class="duration"></strong></div>
+      <div class="measure">Reel ends at<strong class="end"></strong></div>
+      <button class="remove" type="button">Remove</button>
+    </section>
+  </template>
+</main><script src="./reel-sheet.js"></script></body>
+</html>
