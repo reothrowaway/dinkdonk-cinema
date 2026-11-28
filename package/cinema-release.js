@@ -9,6 +9,7 @@ const eventFiles = [
   'incidents/marquee-photo.js', 'incidents/shared-umbrella.js', 'incidents/dish-night.js', 'incidents/tape-swap.js', 'events.html',
   'preshow/transition-cues.js', 'preshow/house-events.js', 'preshow/popcorn-pass.js', 'preshow/mic-runner.js',
   'preshow/house-velvet.webp',
+  'preshow/beach-ball.js', 'preshow/beach-ball.webp',
 ].map(file => base + file);
 const extrasFiles = [
   'ticket-counter/index.html', 'ticket-counter/ticket.js',
