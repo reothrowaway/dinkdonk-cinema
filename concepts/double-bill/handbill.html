@@ -14,7 +14,7 @@ canvas{width:100%;height:auto;display:block;box-shadow:0 2px 12px #29354030}figu
 #message{margin:0;font-size:.9rem}#print-sheet{display:none}footer{font-size:.85rem;margin-top:18px}
 @media(max-width:650px){.layout{grid-template-columns:1fr}figure{max-width:480px}}
 @page{size:auto;margin:8mm}
-@media print{body{background:#fff}main{display:none}#print-sheet{display:grid;grid-template-columns:repeat(2,1fr);width:min(100%,178mm);margin:0 auto;gap:0}
+@media print{:root,body{background:#fff}main{display:none}#print-sheet{display:grid;grid-template-columns:repeat(2,1fr);width:min(100%,178mm);margin:0 auto;gap:0}
 #print-sheet canvas{display:block;width:100%;height:auto;box-shadow:none;break-inside:avoid;border:.2mm dashed #999}}
 </style></head><body>
 <main><header><span>DinkDonk Cinema</span><a href="./index.html">Double-bill planner</a></header>
