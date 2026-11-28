@@ -33,6 +33,22 @@
   textarea { display: block; width: 100%; min-height: 5em; resize: vertical; padding: 8px; font: 1rem/1.4 Georgia,serif; color: inherit; background: #fffaf0; border: 1px solid #796e61 }
   .include { display: flex; align-items: center; gap: 8px }
   .note-status { color: #514d44; font-size: .85rem }
+  #favorites { width:min(640px,calc(100% - 24px)); max-height:90vh; padding:0; border:1px solid #72634f; background:#fffaeb; color:#25241f }
+  #favorites[open] { display:flex; flex-direction:column }
+  #favorites::backdrop { background:#201d19aa }
+  .award-head { padding:18px clamp(14px,4vw,28px); border-top:8px solid #932e21; flex:none }
+  .award-head header { border:0 }
+  .award-head h2 { font: bold clamp(27px,5vw,42px)/1 Georgia,serif; letter-spacing:-.04em }
+  .award-filters { display:flex; gap:12px; flex-wrap:wrap }
+  .award-filters label { flex:1 1 100px }
+  #award-count { font-size:.88rem; color:#514d44; margin-top:10px }
+  .award-list { overflow:auto; padding:0 clamp(14px,4vw,28px) 18px }
+  #favorites table { border-collapse:collapse; width:100%; text-align:left; font-variant-numeric:tabular-nums }
+  #favorites th, #favorites td { border-bottom:1px solid #ccbeaa; padding:6px 4px }
+  #favorites th { border-bottom:2px solid #796e61; font-size:.82rem }
+  #favorites td:nth-last-child(-n+2), #favorites th:nth-last-child(-n+2) { text-align:right }
+  #favorites td:first-child { font:bold 1rem Georgia,serif; color:#862719 }
+  #favorites td button { border:0; padding:3px 0; text-decoration:underline; text-underline-offset:.15em; background:none; color:#75251c; text-align:left; overflow-wrap:anywhere }
   fieldset { border: 0; padding: 0; margin: 0; min-width: 0 }
   aside p, label { margin-top: 12px }
   aside, article { min-width: 0; overflow-wrap: anywhere }
@@ -49,7 +65,7 @@
     @page { margin: 15mm }
     :root, article { background: white }
     main { padding: 0; width: auto }
-    header, aside { display: none }
+    header, aside, #favorites[open] { display: none }
     .layout { display: block; margin: 0 }
     article { padding: 8mm }
     .film { break-inside: avoid }
@@ -78,7 +94,7 @@
     <fieldset id="tools" disabled aria-labelledby="programmer">
       <label>Opening feature<select id="first"></select></label>
       <label>Second feature<select id="second"></select></label>
-      <div class="buttons"><button id="swap" type="button">Swap order</button></div>
+      <div class="buttons"><button id="swap" type="button">Swap order</button><button id="browse-awards" type="button">Audience favorites</button></div>
       <label>Find films with<select id="match"><option value="genre">A shared genre</option><option value="year">The same release year</option></select></label>
       <div class="buttons"><button id="suggest" type="button">Suggest a pair</button></div>
       <label>Intermission<select id="minutes"><option value="5">5 minutes</option><option value="10" selected>10 minutes</option><option value="15">15 minutes</option></select></label>
@@ -93,4 +109,12 @@
     </fieldset>
   </aside>
 </div>
+<dialog id="favorites" aria-labelledby="award-title">
+  <div class="award-head"><header><h2 id="award-title">Audience favorites</h2><button id="close-awards" type="button">Close</button></header>
+    <p>Choose a film to add it to your bill.</p>
+    <div class="award-filters"><label>Feature slot<select id="award-slot"><option value="0">Opening feature</option><option value="1">Second feature</option></select></label>
+      <label>Minimum votes<select id="award-min"><option value="1">1 vote</option><option value="10" selected>10 votes</option><option value="25">25 votes</option><option value="50">50 votes</option></select></label></div>
+    <p id="award-count" role="status"></p></div>
+  <div class="award-list"><table id="award-table"><thead><tr><th scope="col">Rank</th><th scope="col">Film</th><th scope="col">Avg / 5</th><th scope="col">Votes</th></tr></thead><tbody id="award-rows"></tbody></table></div>
+</dialog>
 </main><script src="./bill.js"></script></body></html>

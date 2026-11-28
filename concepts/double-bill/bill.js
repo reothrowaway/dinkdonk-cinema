@@ -5,6 +5,7 @@
   let films = [];
   let pairs = {};
   let lineup = [];
+  let ballotCount = 0;
   let cached = false;
   const notePrefix = 'dinkdonk.double-bill.note.';
   const includeKey = 'dinkdonk.double-bill.includeNotes';
@@ -29,7 +30,7 @@
       const title = entry.title.trim();
       const year = /^\d{4}$/.test(String(entry.year)) ? String(entry.year) : '';
       const imdb = /\/title\/(tt\d+)(?:[/?#]|$)/i.exec(entry.imdb || '')?.[1].toLowerCase();
-      return {title, year, imdb, label: title.toLowerCase() + '|' + year, detail: ratings[entry.ratingId]};
+      return {title, year, imdb, label: title.toLowerCase() + '|' + year, ratingId: entry.ratingId, detail: ratings[entry.ratingId]};
     });
     const knownIds = new Map();
     for (const {imdb, label} of rows) {
@@ -37,7 +38,8 @@
       if (!knownIds.has(label)) knownIds.set(label, new Set());
       knownIds.get(label).add(imdb);
     }
-    for (const {title, year, imdb, label, detail} of rows) {
+    const ballotFilms = new Map();
+    for (const {title, year, imdb, label, ratingId, detail} of rows) {
       const ids = knownIds.get(label);
       if (!imdb && ids?.size > 1) continue;
       const key = imdb || ids?.values().next().value || label;
@@ -50,6 +52,18 @@
         }
       }
       catalog.set(key, film);
+      if (ratingId) {
+        if (!ballotFilms.has(ratingId)) ballotFilms.set(ratingId, film);
+        else if (ballotFilms.get(ratingId) !== film) ballotFilms.set(ratingId, null);
+      }
+    }
+    const recent = Array.isArray(feed.ratings) ? feed.ratings : [];
+    ballotCount = recent.length;
+    for (const ballot of recent) {
+      const film = ballotFilms.get(ballot?.id);
+      if (!film || film.ballot || !Number.isInteger(ballot.votes) || ballot.votes < 1 ||
+          !Number.isFinite(ballot.avg) || ballot.avg < 0 || ballot.avg > 5) continue;
+      film.ballot = {score: Math.round(ballot.avg * 100), votes: ballot.votes};
     }
     return Array.from(catalog.values()).sort((a, b) => a.title.localeCompare(b.title) || a.year.localeCompare(b.year));
   }
@@ -77,6 +91,44 @@
     lineup = pool[Math.floor(Math.random() * pool.length)].slice();
     render();
   }
+
+  function selectFeature(slot, index) {
+    if (lineup[1 - slot] === index) lineup.reverse();
+    else lineup[slot] = index;
+    render();
+  }
+
+  function showFavorites() {
+    const min = Number(el('award-min').value);
+    const ranked = films.filter(film => film.ballot && film.ballot.votes >= min)
+      .sort((a, b) => b.ballot.score - a.ballot.score || a.title.localeCompare(b.title));
+    el('award-count').textContent = ballotCount ? ranked.length + (ranked.length === 1 ? ' film qualifies' : ' films qualify') +
+      ' from the ' + ballotCount + ' latest ' + (cached ? 'cached ' : '') + 'ratings. Latest valid ballot per film.' :
+      'The watch log has no recent ratings.';
+    el('award-table').hidden = !ranked.length;
+    let rank = 0;
+    el('award-rows').replaceChildren(...ranked.map((film, i) => {
+      const tiedBefore = ranked[i - 1]?.ballot.score === film.ballot.score;
+      if (!tiedBefore) rank = i + 1;
+      const tied = tiedBefore || ranked[i + 1]?.ballot.score === film.ballot.score;
+      const row = document.createElement('tr');
+      row.insertCell().textContent = (tied ? '=' : '') + rank;
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.textContent = film.title + (film.year ? ' (' + film.year + ')' : '');
+      pick.onclick = () => {
+        selectFeature(Number(el('award-slot').value), films.indexOf(film));
+        el('favorites').close();
+      };
+      row.insertCell().append(pick);
+      row.insertCell().textContent = (film.ballot.score / 100).toFixed(2);
+      row.insertCell().textContent = film.ballot.votes;
+      return row;
+    }));
+  }
+  el('browse-awards').addEventListener('click', () => { showFavorites(); el('favorites').showModal(); });
+  el('award-min').addEventListener('change', showFavorites);
+  el('close-awards').addEventListener('click', () => el('favorites').close());
 
   function readNote(key) {
     if (unsavedNotes.has(key)) return unsavedNotes.get(key);
@@ -173,10 +225,7 @@
   }
 
   positions.forEach((pos, i) => el(pos).addEventListener('change', () => {
-    const next = Number(el(pos).value);
-    if (lineup[1 - i] === next) lineup.reverse();
-    else lineup[i] = next;
-    render();
+    selectFeature(i, Number(el(pos).value));
   }));
   el('swap').addEventListener('click', () => { lineup.reverse(); render(); });
   el('suggest').addEventListener('click', suggest);
