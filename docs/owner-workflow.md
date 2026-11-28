@@ -55,6 +55,8 @@ The twelve lobby choices are Black Hole Matinee, Mirrorball Ballroom, Infinity F
 
 On **Lights up** with the projector on **Auto**, the auditorium shows the latest rated film in the DinkDonk watch log. The card uses its recorded score and vote count.
 
+In **Auditorium → Cinema screen shows**, choose **Framing chart · Flat 1.85:1** or **Scope 2.39:1** to check the projected picture. The white edge marks the full frame. The solid amber and dashed pale blue rectangles sit 2% and 5% inside each edge. The circle and cross mark the picture center. Select **Auto** to resume the pre-show, or use **Film** or **Movie** to start the feature.
+
 For a break, open **Auditorium → Intermission clock**, choose 5, 10 or 15 minutes, then **Start break**. Every connected auditorium uses the same deadline, including screens opened during the break. At zero the projector asks the audience to take their seats. **End break** restores the previous screen selection. **Film**, **Movie** or an explicit screen selection also dismisses the clock. A source configured to stay green keeps that setting. External movie playback is controlled separately.
 
 In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film. In **Pass the popcorn**, two guests in neighboring seats share one bucket during Seating or Lights up. The director waits until one guest has popcorn and the other has a free hand or a drink.
