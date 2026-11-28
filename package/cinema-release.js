@@ -17,6 +17,7 @@ const extrasFiles = [
   'double-bill/index.html', 'double-bill/bill.js',
   'seating-plan/plan.js', 'seating-plan/plan.css',
   'projection-booth/index.html', 'projection-booth/booth.js',
+  'projection-booth/sync-leader.html', 'projection-booth/sync-leader.js', 'projection-booth/sync-leader.mp4',
   'house-organ/index.html', 'house-organ/instrument.js', 'house-organ/organ.js', 'house-organ/console.webp',
 ].map(file => 'concepts/' + file);
 

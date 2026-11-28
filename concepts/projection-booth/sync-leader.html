@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Picture &amp; sound sync · DinkDonk Cinema</title>
+<style>
+  * { box-sizing:border-box }
+  :root { color-scheme:dark; background:#181a18; color:#f1eadc; font:16px/1.5 "Segoe UI",sans-serif }
+  body { margin:0 }
+  main { max-width:1020px; margin:auto; padding:clamp(16px,4vw,44px) }
+  header, nav, .transport { display:flex; gap:12px 18px; align-items:center; flex-wrap:wrap }
+  header { justify-content:space-between; border-bottom:1px solid #5d6257; padding-bottom:10px }
+  a { color:#d6d9af; text-underline-offset:.22em }
+  h1 { font:normal clamp(38px,6vw,68px)/1.05 Georgia,serif; margin:.42em 0 .18em }
+  p { max-width:68ch; color:#d1cebe; margin:.5em 0 1.1em }
+  video { display:block; width:100%; aspect-ratio:16/9; background:#090b0a; border:1px solid #6c6e5f }
+  .transport { justify-content:space-between; padding:14px 0; border-bottom:1px solid #5d6257 }
+  output { font:600 16px/1.4 "Courier New",monospace; color:#e1c88a }
+  .steps, .cues { display:flex; flex-wrap:wrap; gap:8px }
+  .cues { margin:16px 0 8px }
+  button { font:inherit; padding:8px 13px; min-height:44px; background:#2c332c; border:1px solid #8b9384; border-radius:4px; color:#f2efe1; cursor:pointer }
+  button:disabled { opacity:.46; cursor:default }
+  :focus-visible { outline:3px solid #ffd589; outline-offset:3px }
+  small { color:#d1cebe }
+</style>
+</head>
+<body><main>
+  <header><span>DinkDonk Cinema</span><nav aria-label="Cinema tools"><a href="./index.html">Projection booth</a><a href="./sync-leader.mp4" download="DinkDonk-Cinema-Sync-Leader-24fps.mp4">Download MP4</a></nav></header>
+  <h1>Picture &amp; sound sync</h1>
+  <p>Play the leader through your recording setup. The short tone and the picture marked 2 should land on the same frame. First picture follows exactly two seconds later.</p>
+  <video id="leader" controls playsinline preload="metadata" aria-label="Nine-second picture and sound reference">
+    <source src="./sync-leader.mp4" type="video/mp4">
+    <a href="./sync-leader.mp4">Download the sync leader</a>
+  </video>
+  <div class="transport">
+    <output id="position" aria-live="off">Frame 000 · 00:00:00:00</output>
+    <div class="steps"><button type="button" id="prev" disabled>Previous frame</button><button type="button" id="next" disabled>Next frame</button></div>
+  </div>
+  <div class="cues"><button type="button" data-frame="144" disabled>Sync mark · frame 144</button><button type="button" data-frame="192" disabled>First picture · frame 192</button></div>
+  <small>1920 × 1080 · 24 fps · 48 kHz stereo · 1 kHz tone</small>
+  <p id="error" role="status" hidden>The browser could not load the preview. Use Download MP4 to open the reference in a player.</p>
+</main><script src="./sync-leader.js"></script></body></html>

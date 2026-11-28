@@ -75,6 +75,8 @@ The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk 
 
 Open **Projection booth** from the guide to practice a 35 mm reel change. Guided mode holds each cue. In timed mode the upper-right dot appears for four frames at 24 fps. Press **M** to start the incoming motor and **C** to change projectors, or use the two buttons. Leaving the tab pauses the reel.
 
+In the booth, **Picture & sound sync** plays a downloadable nine-second reference through your recording setup. At 24 fps, the picture marked 2 and the 1 kHz stereo tone coincide on frame 144. First picture begins on frame 192. Use the two cue buttons and frame controls to inspect the reference, or import the MP4 into your editor alongside a recording.
+
 From the projection booth, open **House organ**. Play the labeled keys by touch, mouse, or computer keyboard. The Flute, Diapason and Reed stops change the sound of held notes. Choose the range from C3 through C6, or click **Play house overture** for an original eight-bar tune with pedal bass and accompaniment. **Stop sound** releases the keyboard and cancels the tune. The organ plays in the browser where you opened it.
 
 Choose **Double bill** from the guide to program two films from the watch log. Pick each feature yourself or ask for a pair with a shared genre or release year. Set the intermission to 5, 10 or 15 minutes. When the archive lists both runtimes, the playbill adds the break to the full program time. Open **Program notes** to write an introduction for each film. This browser remembers each note when you use the film in another bill. Clear **Include notes on playbill** to keep the introductions for the host. Choose **Print playbill** to print the program or save it as a PDF from your browser.
