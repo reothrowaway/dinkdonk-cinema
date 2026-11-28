@@ -24,6 +24,7 @@ const extrasFiles = [
   'mutoscope/foley.html', 'mutoscope/foley.js',
   'question-desk/panel.js',
   'double-bill/index.html', 'double-bill/bill.js',
+  'double-bill/rundown.html', 'double-bill/rundown.js',
   'seating-plan/plan.js', 'seating-plan/plan.css',
   'projection-booth/index.html', 'projection-booth/booth.js',
   'projection-booth/sync-leader.html', 'projection-booth/sync-leader.js', 'projection-booth/sync-leader.mp4',

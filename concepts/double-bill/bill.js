@@ -228,6 +228,13 @@
     const pause = Number(el('minutes').value);
     el('interval').textContent = pause + '-minute intermission';
     el('total').textContent = a.minutes && b.minutes ? 'Full program · ' + duration(a.minutes + pause + b.minutes) : 'Full program runtime unavailable';
+    const schedule=new URLSearchParams({break:String(pause)});
+    [a,b].forEach((film,i)=>{
+      schedule.set('film'+i,film.title + (film.year ? ' ('+film.year+')' : ''));
+      schedule.set('minutes'+i,String(film.minutes || ''));
+      schedule.set('id'+i,film.key);
+    });
+    el('rundown').href='./rundown.html#'+schedule;
     el('status').textContent = films.length + ' films in the ' + (cached ? 'cached ' : '') + 'watch log. Selected ' + a.title + ' and ' + b.title + '.';
     el('program').hidden = false;
     showNotes();
