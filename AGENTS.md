@@ -59,13 +59,13 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
      Claude Opus 5.5 agent, see [model assignments for art](#model-assignments-for-art)) and say which points you took.
    - Run **full renders** only when the owner says so. Stage new packs in a separate folder (such as `out10i/`),
      verify them, back up the current pack, then promote.
-   - For an experimental lobby prop redesign, work on the experimental branch. Show three labeled images in order:
+   - For an experimental prop redesign in the lobby or the auditorium, work on the experimental branch. Show three labeled images in order:
      **1. Original Blender render**, **2. Researched ImageGen design draft**, **3. Updated Blender render**.
      Research the actual subject and its setting before generating the concept. Match the camera, framing and
      exterior lighting of the Blender renders and deliver the editable `.blend` alongside the comparison.
-   - Have an independent reviewer compare the third image with the second at lobby size. Fix material differences
+   - Have an independent reviewer compare the third image with the second at the size the prop has in its room. Fix material differences
      in Blender, render again and have the reviewer check the result. Report what changed and what still differs.
-     Follow the [lobby prop redesign workflow](docs/art-pipeline.md#lobby-prop-redesigns).
+     Follow the [prop redesign workflow](docs/art-pipeline.md#lobby-and-auditorium-prop-redesigns).
    - Never redo something the owner already approved.
 7. **Cloud GPU (RunPod)** costs real money. Use it only when the owner asks. Stay inside the credit the owner names,
    delete pods and volumes afterwards, and never put API keys in files.
@@ -91,15 +91,18 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
   requests live in `roxy3d/QUEUE-owner.md`.
 - Several agents may work at once (see "Working together" below). Stay inside the area you were asked
   to work on.
+- **"Lobby and auditorium" means both rooms** (owner, 28 Nov 2026). Rules, workflows and design assignments for
+  the rooms apply to the lobby and the auditorium alike. Don't narrow one to a single room unless the owner says so.
 
 ## Model assignments for art
 
-**Lobby Blender design (owner, 28 Nov 2026).** Assign the design pass to **GPT-6.2 Astra** with **high effort**
-and **normal speed** (default service tier). This applies to the lobby scene and its props. Astra researches the
+**Lobby and auditorium Blender design (owner, 28 Nov 2026).** Assign the design pass to **GPT-6.2 Astra** with
+**high effort** and **normal speed** (default service tier). This applies to both rooms: the lobby and the
+auditorium, their scenes and their props. Astra researches the
 subject, develops the ImageGen concept, builds the editable Blender model, renders the draft and revises it
-after independent visual review. When a lobby design request starts in Claude, hand the design brief to Astra.
+after independent visual review. When a lobby or auditorium design request starts in Claude, hand the design brief to Astra.
 
-**Other Claude-led Blender work.** The owner’s 12 Nov assignment uses Claude Fable 5.2 at high effort for this work.
+**Other Claude-led Blender work** (outside the lobby and auditorium design pass). The owner’s 12 Nov assignment uses Claude Fable 5.2 at high effort for this work.
 Claude Opus 5.5 handles QA, critiques, checks, packing reviews and page work. Astra
 works on all of it too (see "Working together"). Fable's part is what the Codex CLI
 used to do in Blender: building and editing the scenes from the numbered briefs (`roxy3d/BRIEF-NN-*.md`),

@@ -164,12 +164,12 @@ The owner builds this with Claude Code and the Codex CLI:
 - **One session per area.** A lobby session owns `lobby.html`; a cinema session owns the auditorium; a QA session
   works only on the `-qa` copies; a packaging session owns `package/` and `web/`. Lobby problems found elsewhere are
   passed to the lobby session instead of being fixed on the side.
-- **Lobby Blender design.** GPT-6.2 Astra handles research, ImageGen concepts, editable models, renders and
-  revisions at high effort and normal speed (default service tier). Claude routes lobby design briefs to Astra.
+- **Lobby and auditorium Blender design.** GPT-6.2 Astra handles research, ImageGen concepts, editable models, renders and
+  revisions at high effort and normal speed (default service tier). Claude routes lobby and auditorium design briefs to Astra.
   A separate reviewer compares the rendered result with the selected design.
 - **Drafts:**
   - For a lobby scene draft, show one 1280x720 image for owner feedback.
-  - For a lobby prop redesign, show the original Blender render, the researched ImageGen concept and the independently reviewed Blender render in that order. Include the editable model and a short account of the critic’s findings and fixes. [Lobby prop review](art-pipeline.md#lobby-prop-redesigns)
+  - For a prop redesign in either room, show the original Blender render, the researched ImageGen concept and the independently reviewed Blender render in that order. Include the editable model and a short account of the critic’s findings and fixes. [Prop review](art-pipeline.md#lobby-and-auditorium-prop-redesigns)
   - Layout changes start as a plain-box blockout.
   - Each draft gets a read-only Codex critique before the next brief.
   - Full renders (the final art pack) happen only when the owner says "final render". Big renders go to a rented

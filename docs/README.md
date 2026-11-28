@@ -6,7 +6,7 @@
 | [lobby.md](lobby.md) | `lobby.html`: structure, every URL option, coordinates and art layers, chatters, director, control commands, recipes |
 | [auditorium.md](auditorium.md) | `auditorium.html`: layout JSON, banded art, seating, phases and lights, the film screen, director, recipes |
 | [server-and-shared.md](server-and-shared.md) | `standby-server.js` routes, chat relay, OBS bridge, dinkdonk.js, LAN proxy, control protocol, `shared/` APIs |
-| [art-pipeline.md](art-pipeline.md) | [Lobby prop redesign and independent visual review](art-pipeline.md#lobby-prop-redesigns), Blender rendering, art packs, cloud rendering, auditorium drafts and brief history |
+| [art-pipeline.md](art-pipeline.md) | [Lobby and auditorium prop redesign and independent visual review](art-pipeline.md#lobby-and-auditorium-prop-redesigns), Blender rendering, art packs, cloud rendering, auditorium drafts and brief history |
 | [../AGENTS.md](../AGENTS.md) | Rules and context for AI coding agents (Claude Code reads it through `CLAUDE.md`) |
 | [../web/README.md](../web/README.md) | Hosted edition (work in progress) |
 
