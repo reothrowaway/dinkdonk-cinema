@@ -26,6 +26,13 @@
   #interval { border-top: 1px dashed #a99c86; padding: 7px 0; color: #6d392b; font-style: italic }
   #total { padding-top: 11px; border-top: 3px double #6c6253; font-weight: 650 }
   .meta { color: #514d44 }
+  .note { margin-top: 12px; border-left: 2px solid #b67b59; padding-left: 12px; font: 1rem/1.5 Georgia,serif; white-space: pre-line; overflow-wrap: anywhere }
+  .note:empty { display: none }
+  details { margin-top: 20px; border-block: 1px solid #a99c86; padding: 10px 0 }
+  summary { cursor: pointer; font-weight: 650 }
+  textarea { display: block; width: 100%; min-height: 5em; resize: vertical; padding: 8px; font: 1rem/1.4 Georgia,serif; color: inherit; background: #fffaf0; border: 1px solid #796e61 }
+  .include { display: flex; align-items: center; gap: 8px }
+  .note-status { color: #514d44; font-size: .85rem }
   fieldset { border: 0; padding: 0; margin: 0; min-width: 0 }
   aside p, label { margin-top: 12px }
   aside, article { min-width: 0; overflow-wrap: anywhere }
@@ -44,7 +51,8 @@
     main { padding: 0; width: auto }
     header, aside { display: none }
     .layout { display: block; margin: 0 }
-    article { padding: 8mm; break-inside: avoid }
+    article { padding: 8mm }
+    .film { break-inside: avoid }
     h1 { font-size: 60pt }
     h3 { font-size: 30pt }
   }
@@ -58,9 +66,9 @@
     <h1 id="bill-title">Double bill</h1>
     <div id="program" hidden>
       <p id="connection"></p>
-      <section class="film"><p class="act">Opening feature</p><h3 id="first-name"></h3><p class="meta" id="first-meta"></p></section>
+      <section class="film"><p class="act">Opening feature</p><h3 id="first-name"></h3><p class="meta" id="first-meta"></p><p class="note" id="first-note"></p></section>
       <p id="interval"></p>
-      <section class="film"><p class="act">Second feature</p><h3 id="second-name"></h3><p class="meta" id="second-meta"></p></section>
+      <section class="film"><p class="act">Second feature</p><h3 id="second-name"></h3><p class="meta" id="second-meta"></p><p class="note" id="second-note"></p></section>
       <p id="total"></p>
     </div>
   </article>
@@ -74,6 +82,13 @@
       <label>Find films with<select id="match"><option value="genre">A shared genre</option><option value="year">The same release year</option></select></label>
       <div class="buttons"><button id="suggest" type="button">Suggest a pair</button></div>
       <label>Intermission<select id="minutes"><option value="5">5 minutes</option><option value="10" selected>10 minutes</option><option value="15">15 minutes</option></select></label>
+      <details><summary>Program notes</summary>
+        <p>Write a short introduction for each film. Notes stay in this browser.</p>
+        <label><span id="first-label">Opening feature note</span><textarea id="first-editor" maxlength="600" rows="3"></textarea></label>
+        <label><span id="second-label">Second feature note</span><textarea id="second-editor" maxlength="600" rows="3"></textarea></label>
+        <label class="include"><input type="checkbox" id="include-notes" checked>Include notes on playbill</label>
+        <p class="note-status" id="note-status" role="status"></p>
+      </details>
       <div class="buttons"><button id="print" type="button">Print playbill</button></div>
     </fieldset>
   </aside>

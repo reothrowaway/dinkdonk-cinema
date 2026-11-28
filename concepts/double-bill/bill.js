@@ -6,6 +6,9 @@
   let pairs = {};
   let lineup = [];
   let cached = false;
+  const notePrefix = 'dinkdonk.double-bill.note.';
+  const includeKey = 'dinkdonk.double-bill.includeNotes';
+  const unsavedNotes = new Map();
 
   function runtime(value) {
     const match = /^(\d{1,2})h(?:\s*(\d{1,2})m)?$|^(\d{1,4})m$/i.exec(String(value || '').trim());
@@ -38,7 +41,7 @@
       const ids = knownIds.get(label);
       if (!imdb && ids?.size > 1) continue;
       const key = imdb || ids?.values().next().value || label;
-      const film = catalog.get(key) || {title, year, genres: [], minutes: 0};
+      const film = catalog.get(key) || {key, title, year, genres: [], minutes: 0};
       if (!film.year) film.year = year;
       if (detail) {
         if (!film.minutes) film.minutes = runtime(detail.runtime);
@@ -75,6 +78,44 @@
     render();
   }
 
+  function readNote(key) {
+    if (unsavedNotes.has(key)) return unsavedNotes.get(key);
+    try { return (localStorage.getItem(notePrefix + key) || '').slice(0, 600); }
+    catch { return ''; }
+  }
+
+  function showNotes() {
+    positions.forEach((pos, i) => {
+      const film = films[lineup[i]];
+      const editor = el(pos + '-editor');
+      const note = readNote(film.key);
+      if (editor.value !== note) editor.value = note;
+      el(pos + '-label').textContent = film.title + ' · program note';
+      el(pos + '-note').textContent = el('include-notes').checked ? note.trim() : '';
+    });
+    el('note-status').textContent = unsavedNotes.size ? 'Browser storage is unavailable. Your edits last for this tab session.' : '';
+  }
+
+  positions.forEach((pos, i) => el(pos + '-editor').addEventListener('input', event => {
+    const key = films[lineup[i]].key;
+    const value = event.target.value;
+    try {
+      if (value) localStorage.setItem(notePrefix + key, value);
+      else localStorage.removeItem(notePrefix + key);
+      unsavedNotes.delete(key);
+    } catch { unsavedNotes.set(key, value); }
+    showNotes();
+  }));
+  try { el('include-notes').checked = localStorage.getItem(includeKey) !== 'off'; } catch {}
+  el('include-notes').addEventListener('change', event => {
+    try { localStorage.setItem(includeKey, event.target.checked ? 'on' : 'off'); } catch {}
+    showNotes();
+  });
+  window.addEventListener('storage', event => {
+    if (event.key === includeKey || event.key === null) el('include-notes').checked = event.newValue !== 'off';
+    if (lineup.length && (event.key === null || event.key === includeKey || event.key.startsWith(notePrefix))) showNotes();
+  });
+
   function render() {
     const [a, b] = lineup.map(i => films[i]);
     const links = [];
@@ -93,6 +134,7 @@
     el('total').textContent = a.minutes && b.minutes ? 'Full program · ' + duration(a.minutes + pause + b.minutes) : 'Full program runtime unavailable';
     el('status').textContent = films.length + ' films in the ' + (cached ? 'cached ' : '') + 'watch log. Selected ' + a.title + ' and ' + b.title + '.';
     el('program').hidden = false;
+    showNotes();
   }
 
   async function load() {
