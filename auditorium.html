@@ -73,6 +73,16 @@
     flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;
     opacity: 0; transition: opacity .8s; text-shadow: 0 0 3px #d8c39444; }
   .ps-slide.active { opacity: 1; }
+  #house-curtain { position:absolute; left:0; top:0; width:960px; height:540px; transform-origin:0 0;
+    overflow:hidden; pointer-events:none; z-index:70001; visibility:hidden; transition:visibility 0s 3.2s }
+  #house-curtain.closed { visibility:visible; transition-delay:0s }
+  #house-curtain > i { position:absolute; inset-block:0; width:50.12%; background-color:#661722;
+    background-size:100% 100%; transform:scaleX(0); transition:transform 3.2s cubic-bezier(.42,0,.25,1) }
+  #house-curtain.used > i { background-image:linear-gradient(to bottom,#21060b30,transparent 55%,#16030842),url('concepts/cinema-mods/preshow/house-velvet.webp') }
+  #house-curtain > i:first-child { left:0; transform-origin:left; box-shadow:inset -3px 0 5px #120207 }
+  #house-curtain > i:last-child { right:0; transform-origin:right; box-shadow:inset 3px 0 5px #120207 }
+  #house-curtain.closed > i { transform:scaleX(1) }
+  @media (prefers-reduced-motion:reduce) { #house-curtain, #house-curtain > i { transition:none } }
   #preshow.framing { background: #060708; filter: none }
   #preshow.framing::after, #preshow.framing > :not(#ps-chart) { display: none }
   #ps-chart { position:absolute; top:50%; left:0; transform:translateY(-50%); width:100%; aspect-ratio:1.85;
@@ -382,6 +392,7 @@
       <div id="ps-chart" hidden><div id="chart-marks"></div><strong id="chart-format"></strong>
         <span id="chart-key">Solid 2% · Dashed 5%</span></div>
     </div>
+    <div id="house-curtain" hidden aria-hidden="true"><i></i><i></i></div>
   </div>
   <div id="names"></div>
   </div>
@@ -491,7 +502,7 @@
   let timedEventsEnabled = true;
   const SLIDES = ['upnext', 'loading', 'audience'];
   const chartFormats = new Map([['chart-flat', 'FLAT  1.85:1'], ['chart-scope', 'SCOPE  2.39:1']]);
-  const screenChoices = ['auto', ...SLIDES, ...chartFormats.keys(), 'film'];
+  const screenChoices = ['auto', ...SLIDES, ...chartFormats.keys(), 'curtain', 'film'];
   const QUIZ_SLIDE = SLIDES.length, BALLOT_SLIDE = QUIZ_SLIDE + 1;
   let ballot = null, lastProjectorPhase = '';
   show.intermissionUntil = 0;
@@ -529,7 +540,7 @@
   // hopping in the middle of it made every lights-up show 21-24 frames a frame late at 60 fps (1-3 without the
   // applause; perf 11 Nov 2026, res/run_audup_11nov.txt). ?clapwait=0: 1.8 s into the fade, as it was.
   const CLAP_WAIT = q.get('clapwait') === '0' ? 1800 : 6200;
-  function applyPhase() {
+  function applyPhase(snapCurtain = false) {
     preshowEvents?.checkPhase();
     // lightsOn: the house lights come up while the film keeps playing (credits); the next phase brings them back
     const down = (show.phase === 'dim' || show.phase === 'film') && !show.lightsOn;
@@ -550,6 +561,14 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    const curtain = $('house-curtain');
+    const closeCurtain = show.screen === 'curtain' && !show.intermissionUntil && !alwaysGreen;
+    if (closeCurtain) curtain.classList.add('used');
+    curtain.hidden = !screenPoly || alwaysGreen;
+    if (curtain.classList.contains('closed') !== closeCurtain) {
+      curtain.classList.toggle('closed', closeCurtain);
+      if (snapCurtain) curtain.getAnimations({subtree:true}).forEach(animation => animation.finish());
+    }
     const chart = !green && !show.intermissionUntil && chartFormats.has(show.screen);
     $('preshow').classList.toggle('framing', chart);
     $('ps-chart').hidden = !chart;
@@ -3892,7 +3911,7 @@
       Object.assign(show, { shot: s.shot, lightsOn: !!s.lightsOn, auto: !!s.auto });
       if (houseOut !== !!s.houseOut) { houseOut = !!s.houseOut; nextLeaver = 0; if (houseOut) closeReentryPasses(); }
       roomShow(s, ev.now);
-      applyPhase();
+      applyPhase(true);
     }
     // Apply the projector state at receipt. Seat placement can wait for the art without shifting the room clock.
     if (!L || !seats.length) { pendingSnapshot = {...ev, show:null}; return; }
@@ -4512,6 +4531,7 @@
       // Columns are TL->TR / 960 and TL->BL / 540: all four corners match the layout exactly.
       $('preshow').style.transform = `matrix(${(c.TR[0] - c.TL[0]) / 960}, ${(c.TR[1] - c.TL[1]) / 960}, ${(c.BL[0] - c.TL[0]) / 540}, ${(c.BL[1] - c.TL[1]) / 540}, ${c.TL[0]}, ${c.TL[1]})`;
       $('glowbloom').style.transform = $('preshow').style.transform;
+      $('house-curtain').style.transform = $('preshow').style.transform;
       placeSpill();
       placeAisleLights();
       placeBeam();

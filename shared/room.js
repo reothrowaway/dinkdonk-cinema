@@ -35,7 +35,7 @@ const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.
 // them all to the usher at once. While no lobby screen is open, a chatter quiet for this long has gone inside.
 const LOBBY_STALE_MS = 10 * 60000;
 const LITTER_FULL = 0.6;                                           // auditorium litter: its clock starts at 60% seated
-const SCREENS = ['auto', 'upnext', 'loading', 'audience', 'chart-flat', 'chart-scope', 'film'];  // panel picker
+const SCREENS = ['auto', 'upnext', 'loading', 'audience', 'chart-flat', 'chart-scope', 'curtain', 'film'];  // panel picker
 const AVATAR_BLOCK = new Set(['JARVIS']);                          // shared/cinema.js AVATAR_BLOCK
 // auditorium.html YEE_EMOTES: the front ("wheelchair") row is theirs
 const YEE_EMOTES = new Set(['YEE', 'diNoThanks', 'YeeMODS', 'YeeLaugh', 'YeeSmug', 'nathanYee', 'TeddYEE', 'ComfYEE',
