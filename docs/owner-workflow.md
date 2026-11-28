@@ -93,6 +93,8 @@ The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk 
 
 Open **Mutoscope** in the cinema guide to turn through the eleven gallop cards from Eadweard Muybridge’s 1878 print of Sallie Gardner. Drag the crank, use the arrow keys, or select **Run reel**. **Standing pose** displays the separate twelfth photograph. The reel runs locally.
 
+Open **Paris stereoscope** from the mutoscope to inspect both photographs on the original 1900 card. Use the arrow keys on the photograph to step between eyes. Choose **Red/cyan** for glasses with red over the left eye, or **Stereo pair** for parallel viewing. **Cross-eye order** reverses the pair. Align on the opera house or the horse omnibus to see how their distances affect the overlap.
+
 The **Thaumatrope workshop** in the mutoscope lets you draw on either face of a two-sided paper toy. Use **Both faces** to align the drawings or turn the disc with the slider. Each design keeps its edits on this device. **Print cut-out toy** produces both discs, alignment and string-hole marks, and assembly instructions on one sheet. The back artwork is already inverted for assembly.
 
 From the mutoscope, open **Foley bench**. Try the low and high shell sounds with **A** and **L** or the two pads. Choose **Record take** and tap after the three-count as the horse runs. The browser remembers the last completed four-second take. You can replay it against the same photographs or save a mono 48 kHz WAV. Canceling or recording an empty take keeps the previous performance.

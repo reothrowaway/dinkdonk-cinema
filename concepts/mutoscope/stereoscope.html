@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paris stereoscope · DinkDonk Cinema</title>
+<style>
+*{box-sizing:border-box} [hidden]{display:none!important}
+:root{color-scheme:dark;font:16px/1.5 system-ui,sans-serif;background:#141e1b;color:#f4eddb}
+body{max-width:1080px;margin:auto;padding:20px clamp(14px,4vw,52px) 32px}
+header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;color:#c7ba99;border-bottom:1px solid #506054;padding-bottom:12px}
+a{color:#e9cb8e;text-underline-offset:3px} h1{font:normal clamp(38px,6vw,68px)/1 Georgia,serif;margin:24px 0 6px}
+p{margin:6px 0 14px} #credit,.sub{color:#cabfa9}.sub{font:18px/1.4 Georgia,serif}
+.modes,.adjust{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0}
+button,select{font:inherit;color:inherit;background:#23362d;border:1px solid #66755d;border-radius:4px;padding:6px 11px;cursor:pointer}
+button[aria-pressed=true]{background:#dfc38b;color:#1f271e;border-color:#ead19e} :focus-visible{outline:3px solid #f9d376;outline-offset:3px}
+figure{margin:0}.mount{background:#30382c;padding:clamp(8px,1.5vw,15px);border:1px solid #68715b;border-radius:6px}
+#views{display:flex;justify-content:center;gap:1.5%;align-items:center;min-height:100px}
+canvas{display:block;width:min(100%,540px);height:auto;min-width:0} #views.pair canvas{width:49.25%}
+#views.fitted{gap:0}#views.pair.fitted canvas{width:min(50%,var(--eye-spacing,58mm))}
+#original{display:block;width:100%;height:auto} figcaption{margin:9px 0;color:#f2e2bc}.adjust{border-top:1px solid #506054;padding-top:12px}
+label{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap} input{accent-color:#dfc38b;width:125px} output{min-width:3rem;font-variant-numeric:tabular-nums}
+#credit{font-size:.88rem;max-width:75ch} @media(max-width:520px){body{padding:12px}.modes,.adjust{gap:6px}button,select{padding:7px 9px}.adjust label{width:100%}}
+</style>
+</head>
+<body>
+<header><span>DinkDonk Cinema</span><a href="./index.html">Back to the mutoscope</a></header>
+<main>
+<h1>Paris stereoscope</h1>
+<p class="sub">Avenue de l’Opéra, Paris · Underwood &amp; Underwood, 1900</p>
+<div class="modes" aria-label="Viewing modes" role="group">
+  <button data-mode="pair" aria-pressed="true">Stereo pair</button>
+  <button data-mode="left" aria-pressed="false">Left eye</button><button data-mode="right" aria-pressed="false">Right eye</button>
+  <button data-mode="alternate" aria-pressed="false">Alternate eyes</button>
+  <button data-mode="color" aria-pressed="false">Red/cyan</button><button data-mode="card" aria-pressed="false">Original card</button>
+</div>
+<figure>
+  <div class="mount" id="mount" tabindex="0" aria-label="Street photograph facing the Paris Opera. Use the left and right arrows to compare eyes.">
+    <div id="views" class="pair"><canvas id="first" width="820" height="724" aria-label="Left-eye view"></canvas><canvas id="second" width="820" height="724" aria-label="Right-eye view"></canvas></div>
+    <img id="original" src="./paris-opera-stereograph.jpg" alt="Original curved-top stereo photographs of horse-drawn traffic on the Avenue de l’Opéra, on the publisher’s printed mount." hidden>
+  </div>
+  <figcaption id="caption" aria-live="polite">Loading the stereograph…</figcaption>
+</figure>
+<div class="adjust" id="adjust">
+  <label>Align on <select id="anchor"><option value="430">Distant opera house</option><option value="428">Horse omnibus</option></select></label>
+  <label>Fine alignment <input id="fine" type="range" min="-6" max="6" step=".5" value="0"><output id="offset" for="fine">0 px</output></label>
+  <button id="swap" aria-pressed="false">Cross-eye order</button>
+  <button id="fit" aria-pressed="false">Fit to eyes</button>
+  <label id="size" hidden>Pair spacing <input id="spacing" aria-label="Pair spacing" type="range" min="40" max="75" value="58"></label>
+</div>
+<p id="credit">The two exposures record slightly different views of the street. Switch eyes to see the shift between the opera house and the omnibus. Scan courtesy of the Library of Congress, Prints and Photographs Division, LC-DIG-stereo-1s24047. <a href="https://www.loc.gov/item/2019642832/">Original catalog record</a></p>
+</main><script src="./stereoscope.js"></script>
+</body></html>
