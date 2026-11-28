@@ -23,6 +23,7 @@ const extrasFiles = [
   'movie-bingo/index.html', 'movie-bingo/bingo.js',
   'mutoscope/index.html', 'mutoscope/viewer.js', 'mutoscope/sallie-gardner.webp',
   'mutoscope/foley.html', 'mutoscope/foley.js',
+  'mutoscope/thaumatrope.html', 'mutoscope/thaumatrope.js',
   'question-desk/panel.js',
   'double-bill/index.html', 'double-bill/bill.js',
   'double-bill/rundown.html', 'double-bill/rundown.js',
