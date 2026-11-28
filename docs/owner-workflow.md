@@ -79,6 +79,8 @@ For a moderated discussion, choose **Lights up → Auto** and open **Audience qu
 
 The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk sessions in your time zone or the published cinema time zone. Choose **Save .ics** beside a session or download the whole upcoming schedule. Untitled slots retain their published start and end times.
 
+**Your first visit** in the guide uses still artwork from the two rooms. Select a lobby landmark, follow the example route to row F, or move the lighting divider to compare the same seats with the house lights up and down. Each stop has its own link. **Print all three stops** makes a landscape guide with one stop per page.
+
 Open **Mutoscope** in the cinema guide to turn through the eleven gallop cards from Eadweard Muybridge’s 1878 print of Sallie Gardner. Drag the crank, use the arrow keys, or select **Run reel**. **Standing pose** displays the separate twelfth photograph. The reel runs locally.
 
 From the mutoscope, open **Foley bench**. Try the low and high shell sounds with **A** and **L** or the two pads. Choose **Record take** and tap after the three-count as the horse runs. The browser remembers the last completed four-second take. You can replay it against the same photographs or save a mono 48 kHz WAV. Canceling or recording an empty take keeps the previous performance.
