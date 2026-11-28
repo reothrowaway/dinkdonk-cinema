@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="./concepts/seating-plan/plan.css">
 <link rel="stylesheet" href="./shared/house-notice.css">
 <script src="./shared/house-notice.js"></script>
+<script src="./shared/shadow-round.js"></script>
 <script defer src="./concepts/seating-plan/plan.js"></script>
 <style>
   :root {
@@ -437,6 +438,10 @@
           <div class="btns"><button id="notice-project" disabled>Project notice</button><button id="notice-withdraw" disabled>Withdraw notice</button></div>
           <div id="notice-state" class="state" role="status"></div>
         </details>
+        <div class="grp box"><div class="grp-l">Audience silhouette</div>
+          <div class="btns"><button id="shadow-start" disabled>Start guessing round</button><button id="shadow-end" disabled>End round</button></div>
+          <div id="shadow-status" class="state" role="status">Waiting for the shared room.</div>
+        </div>
         <div class="grp box">
           <div class="grp-l">Screen and floor</div>
           <div class="btns">
@@ -592,6 +597,18 @@
   };
   $('notice-project').onclick = () => aud({cmd:'houseNotice', text:HouseNotice.text($('notice-draft').value)});
   $('notice-withdraw').onclick = () => aud({cmd:'houseNotice', withdraw:true});
+  $('shadow-start').onclick = () => aud({cmd:'shadowRound', action:'start'});
+  $('shadow-end').onclick = () => aud({cmd:'shadowRound', action:'end'});
+  function showShadowState(room) {
+    const show = room?.show, round = show?.shadowRound;
+    const ready = room?.screens > 0 && ShadowRound.allowed(show) && Object.hasOwn(show, 'shadowRound');
+    $('shadow-start').disabled = !ready || !!round;
+    $('shadow-end').disabled = !round;
+    const status = round?.state === 'waiting' ? 'Waiting up to 30 seconds for a seated guest with an emote.' :
+      round ? 'Round in progress. Chat can answer with !guess followed by the emote name.' :
+      ready ? 'The projector uses an emote worn by a seated guest.' : 'Open a shared auditorium in Seating or Lights up with the screen on Auto.';
+    if ($('shadow-status').textContent !== status) $('shadow-status').textContent = status;
+  }
   function showNoticeState(show, onBreak) {
     const message = show?.screen === 'notice' && HouseNotice.text(show.noticeText);
     $('notice-withdraw').disabled = !message;
@@ -704,9 +721,10 @@
       if (!res.ok) throw new Error();
       serverTime = Date.parse(res.headers.get('Date')) || Date.now();
       r = await res.json();
-    } catch { breakRoomKnown = false; roomNoticeKnown = false; $('roomcard').hidden = true; return; }   // an older server: no shared room
+    } catch { breakRoomKnown = false; roomNoticeKnown = false; showShadowState(null); $('roomcard').hidden = true; return; }   // an older server: no shared room
     $('roomcard').hidden = false;
     const a = r.auditorium;
+    showShadowState(a);
     roomNoticeKnown = Object.hasOwn(a.show || {}, 'noticeText');
     if (roomNoticeKnown) showNoticeState(a.show, !!a.show.intermissionUntil);
     breakRoomKnown = Object.hasOwn(a.show || {}, 'intermissionUntil');

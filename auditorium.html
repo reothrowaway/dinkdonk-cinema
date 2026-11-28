@@ -86,6 +86,16 @@
   #preshow.framing { background: #060708; filter: none }
   #ps-notice { position:absolute; inset:0; z-index:5 }
   #preshow.with-notice > :not(#ps-notice) { display:none }
+  #preshow.with-shadow > :not(#ps-shadow) { display:none }
+  #ps-shadow { position:absolute; inset:0; display:grid; grid-template-rows:auto 1fr auto auto; justify-items:center;
+    box-sizing:border-box; padding:30px 48px; background:radial-gradient(ellipse,#fff3c3,#e6c894 72%,#c19769);
+    color:#302a20; text-align:center; gap:6px; border:12px solid #614f3b }
+  #ps-shadow[hidden] { display:none }
+  #shadow-heading { font:700 45px/1.1 Georgia,serif }
+  #shadow-shape { display:grid; place-items:center; align-self:stretch; filter:brightness(0) }
+  #ps-shadow.revealed #shadow-shape { filter:none }
+  #shadow-answer { font:700 43px/1.1 Georgia,serif; overflow-wrap:anywhere; max-width:100% }
+  #shadow-instruction { font:500 26px/1.25 Arial,sans-serif }
   #preshow.framing::after, #preshow.framing > :not(#ps-chart) { display: none }
   #ps-chart { position:absolute; top:50%; left:0; transform:translateY(-50%); width:100%; aspect-ratio:1.85;
     box-shadow:inset 0 0 0 4px #f8f5e9; color:#f8f5e9; text-align:center; font: bold 26px/1.15 Arial,sans-serif;
@@ -393,6 +403,8 @@
       <div id="ps-pops"></div>
       <section class="lantern-slide" id="ps-notice" hidden><div class="lantern-words">
         <small>House notice</small><strong id="ps-notice-text"></strong></div></section>
+      <section id="ps-shadow" hidden><strong id="shadow-heading"></strong><div id="shadow-shape" aria-hidden="true"></div>
+        <strong id="shadow-answer"></strong><span id="shadow-instruction"></span></section>
       <div id="ps-chart" hidden><div id="chart-marks"></div><strong id="chart-format"></strong>
         <span id="chart-key">Solid 2% · Dashed 5%</span></div>
     </div>
@@ -406,6 +418,7 @@
 <script>window.DD_ROOM_PAGE = 'auditorium';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
 <link rel="stylesheet" href="shared/house-notice.css">
 <script src="shared/house-notice.js"></script>
+<script src="shared/shadow-round.js"></script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="concepts/preshow-quiz/deck.js"></script>
@@ -526,6 +539,34 @@
     const message = seconds ? 'Time remaining' : 'Please take your seats';
     if (caption.textContent !== message) caption.textContent = message;
   }
+  let shadowOffset = 0, shadowImage = '';
+  const reducedShadow = matchMedia('(prefers-reduced-motion: reduce)');
+  function drawShadow() {
+    const round = show.shadowRound, now = Date.now() - shadowOffset;
+    const visible = round?.state === 'playing' && now < round.end && ShadowRound.allowed(show) && !alwaysGreen && !!screenPoly;
+    const card = $('ps-shadow');
+    card.hidden = !visible;
+    $('preshow').classList.toggle('with-shadow', visible);
+    if (!visible) {
+      if (shadowImage) { $('shadow-shape').replaceChildren(); shadowImage = ''; }
+      return;
+    }
+    const image = SB.emotes?.css ? round.emote : '';
+    if (shadowImage !== image) {
+      const shape = $('shadow-shape');
+      shape.replaceChildren();
+      if (image) shape.append(emoteFit(image, 237, 430));
+      shadowImage = image;
+    }
+    const reveal = now >= round.reveal;
+    card.classList.toggle('revealed', reveal);
+    $('shadow-heading').textContent = reveal ? 'The emote was…' : image ? 'Name that emote' : 'Loading the silhouette…';
+    const hint = now >= round.start + 8000 ? ' · Starts with ' + round.emote[0] : '';
+    const seconds = Math.ceil((round.reveal - now) / 1000);
+    $('shadow-answer').textContent = reveal ? round.emote : seconds + (seconds === 1 ? ' second' : ' seconds') + hint;
+    $('shadow-instruction').textContent = reveal ? (round.winner ? 'Guessed by ' + round.winner + ' · ' : '') + 'Worn by ' + round.wearer :
+      'Type !guess and the emote name in chat';
+  }
   // litter (queue 60, see stepLitter)
   const LITTER = { DELAY: 10 * 60000, GROW: 25 * 60000, MAX: 140, FULL: 0.6 };
   const LITTER_PREVIEW = q.has('littermin') ? Math.max(0, Number(q.get('littermin')) || 0) * 60000 : null;
@@ -567,6 +608,7 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    drawShadow();
     const notice = !green && !show.intermissionUntil && show.screen === 'notice' && !!show.noticeText;
     $('preshow').classList.toggle('with-notice', notice);
     $('ps-notice').hidden = !notice;
@@ -3688,7 +3730,7 @@
     if (director.outro && (director.follow || onScreen(now))) director.outro = false;
     const slow = !director.follow && (onScreen(now) || director.outro);
     if (slow && !director.outro) [tx, ty, tz] = screenShot();
-    const eventCamera = !f && !slow && preshowEvents?.camera();
+    const eventCamera = !f && !slow && (!reducedShadow.matches && !$('ps-shadow').hidden ? screenShot() : preshowEvents?.camera());
     if (eventCamera) [tx, ty, tz] = eventCamera;
     const fit = (c, half, size) => clamp(c, half, size - half);
     tx = fit(tx, 960 / tz, 1920);
@@ -3913,6 +3955,8 @@
     } else if (screenChoices.includes(s.screen)) { HouseNotice.forget(show); show.screen = s.screen; }
     if (typeof s.litter === 'boolean') show.litter = s.litter;
     const off = Number.isFinite(serverNow) ? Date.now() - serverNow : 0;
+    shadowOffset = off;
+    show.shadowRound = s.shadowRound || null;
     roomHasBreakClock = Object.hasOwn(s, 'intermissionUntil');
     if (roomHasBreakClock) show.intermissionUntil = Number.isFinite(s.intermissionUntil) && s.intermissionUntil > 0 ? s.intermissionUntil + off : 0;
     show.fullAt = Number.isFinite(s.fullAt) && s.fullAt > 0 ? s.fullAt + off : 0;
@@ -4457,7 +4501,7 @@
     }
     litterShown = litterEls.length;
   }
-  setInterval(() => { stepLitter(); if (show.intermissionUntil) drawBreakClock(); }, 1000);
+  setInterval(() => { stepLitter(); if (show.intermissionUntil) drawBreakClock(); if (show.shadowRound) drawShadow(); }, 1000);
 
   // ---------- start ----------
   Cinema.onWalkIn(onMessage);
@@ -4582,6 +4626,7 @@
       const active = w => walkers.get(w.key) === w && w.sitting && w.seat && w.seen && !w.leaving && !w.out && !w.reeducating;
       preshowEvents = createHouseEvents({
         ready: kind => {
+          if (show.shadowRound?.state === 'playing') return false;
           if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
