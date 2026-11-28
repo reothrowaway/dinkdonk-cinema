@@ -65,6 +65,8 @@ In **Auditorium → Audience silhouette**, choose **Start guessing round** durin
 
 For a break, open **Auditorium → Intermission clock**, choose 5, 10 or 15 minutes, then **Start break**. Every connected auditorium uses the same deadline, including screens opened during the break. At zero the projector asks the audience to take their seats. **End break** restores the previous screen selection. **Film**, **Movie** or an explicit screen selection also dismisses the clock. A source configured to stay green keeps that setting. External movie playback is controlled separately.
 
+**Interval ice creams** sends a capped usher to an occupied aisle seat during a timed break. The usher carries a tray, serves a tub, and walks back to the entrance. Automatic events try once per break as soon as an aisle guest is ready, with at least 50 seconds left. You can also select the event and run it by hand. Ending the break clears the service.
+
 In the auditorium, Laser Choir performs during seating or lights-up, the aisle vendor visits during seating, and the popcorn run needs a seated guest during the film. In **Pass the popcorn**, two guests in neighboring seats share one bucket during Seating or Lights up. The director waits until one guest has popcorn and the other has a free hand or a drink.
 
 **Festival beach ball** runs during Seating with the projector on Auto. Two or three seated guests tap an inflatable ball across the seats and back to its owner. Select it under Auditorium events or let it run in the automatic rotation. A film cue clears the ball.

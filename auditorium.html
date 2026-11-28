@@ -4664,6 +4664,7 @@
           if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
+          if (kind === 'interval-ices') return HALL_ON && show.intermissionUntil > Date.now() && !alwaysGreen;
           if (kind === 'beach-ball' || kind === 'organ-lift') return show.phase === 'seating' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           if (kind === 'visual-applause') return show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           if (kind === 'mic-runner') return HALL_ON && show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
@@ -4671,7 +4672,10 @@
         },
         canStart: () => !hall.snacker && !walkers.has('#vendor') && !hall.cleaning,
         startNative: startHallEvent,
-        staff: () => crewWalker('mic-runner', SB.emotes?.names?.has('FeelsOkayMan') ? 'FeelsOkayMan' : Cinema.defaultEmote('roxy-usher'), {cap:true, pace:1.65}),
+        staff: (id='mic-runner') => crewWalker(id, SB.emotes?.names?.has('FeelsOkayMan') ? 'FeelsOkayMan' : Cinema.defaultEmote('roxy-usher'), {cap:true, pace:1.65}),
+        dismissStaff: crewDone,
+        breakRemaining: () => Math.max(0,(show.intermissionUntil-Date.now())/1000),
+        breakDeadline: () => show.intermissionUntil,
         present: w => walkers.get(w.key) === w,
         toAisle: (runner, seat, aisle) => [[...runner.pos], ...aisleTo(seat.row, aisle > 10 ? 'right' : 'main', aisle).slice(0, -1),
           [aisle, seat.v + .12, seat.z]],
@@ -4683,9 +4687,10 @@
         seated: () => [...walkers.values()].filter(w => active(w) && !w.jan && !w.usher && !w.crew),
         screen: () => screenPoly,
         point: w => P(...w.pos),
+        aisleSpot: (u,v,z) => ({x:P(u,v,z)[0],y:P(u,v,z)[1],depth:depthZ(u,v,z)}),
         floor: (u,v) => ({point:P(u,v,24),depth:depthZ(u,v,24)}),
         apex: () => { const su = L.screen?.u || [4.9,13.9]; return P((su[0]+su[1])/2-2.3,L.room?.v[1] ?? 14.9,580); }
-      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift'], automatic: timedPreshows, enabled: timedEventsEnabled });
+      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift','interval-ices'], automatic: timedPreshows, enabled: timedEventsEnabled });
       window.auditoriumEvents = preshowEvents;
       SB.on('msg', m => preshowEvents.message(m));
     }).catch(err => console.warn('[preshow]',err));

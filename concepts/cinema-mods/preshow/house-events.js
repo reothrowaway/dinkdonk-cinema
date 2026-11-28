@@ -3,6 +3,7 @@ import {startMicRunner} from './mic-runner.js';
 import {startBeachBall} from './beach-ball.js';
 import {startVisualApplause, clearOfGuests} from './visual-applause.js';
 import {startOrganLift} from './organ-lift.js';
+import {startIntervalIces} from './interval-ices.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const clamp = x => Math.max(0, Math.min(1, x));
@@ -152,9 +153,10 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
   let live=null, reason='', pending=enabled&&allowed.includes(query.get('event'))?query.get('event'):null;
   let sourceVisible=true, sourceActive=true, lastAuto=null;
+  let servedBreak=0,iceRetry=0;
   let cue=null, expires=0, retry=0;
   const recent=new Set();
-  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift'].filter(kind=>allowed.includes(kind));
+  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift','interval-ices'].filter(kind=>allowed.includes(kind));
   const visible=()=>!document.hidden&&sourceVisible&&sourceActive;
   const next=()=>performance.now()+180000+Math.random()*180000;
   let due=pending?performance.now()+2200:next();
@@ -187,10 +189,11 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   }
   function start(kind,cueId=null) {
     if(live||!allowed.includes(kind)||!visible()||!host.ready(kind)||host.canStart?.()===false)return false;
-    if(['aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift'].includes(kind)){
-      const startGuestEvent={'popcorn-pass':startPopcornPass,'mic-runner':startMicRunner,'beach-ball':startBeachBall,'visual-applause':startVisualApplause,'organ-lift':startOrganLift}[kind];
+    if(['aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift','interval-ices'].includes(kind)){
+      const startGuestEvent={'popcorn-pass':startPopcornPass,'mic-runner':startMicRunner,'beach-ball':startBeachBall,'visual-applause':startVisualApplause,'organ-lift':startOrganLift,'interval-ices':startIntervalIces}[kind];
       const native=startGuestEvent?startGuestEvent(host,motion.matches):host.startNative?.(kind);
       if(!native)return false;
+      if(kind==='interval-ices')servedBreak=host.breakDeadline();
       live={kind,native,cueId,at:performance.now(),t:0};return true;
     }
     const rows=cast(host,kind); if(!rows)return false;
@@ -216,13 +219,20 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
         if(now>=retry){retry=now+500;if(start(cue.kind,cue.id))cue.state='playing';}
         return;
       }
+      // Each timed break gets an early opportunity while the ice creams can still be served.
+      if(enabled&&automatic&&!pending&&visible()&&allowed.includes('interval-ices')&&now>=iceRetry){
+        iceRetry=now+2500;
+        const until=host.breakDeadline?.();
+        if(!until)servedBreak=0;
+        if(until&&Math.abs(servedBreak-until)>3000&&start('interval-ices')){lastAuto='interval-ices';return;}
+      }
       if(!enabled||now<due||!visible())return;
       if(pending){
         if(start(pending))pending=null;else due=now+5000;
       }else if(automatic){
-        const candidates=automaticKinds.filter(kind=>kind!==lastAuto);
+        const candidates=automaticKinds.filter(kind=>kind!==lastAuto&&kind!=='interval-ices');
         for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}
-        if(lastAuto)candidates.push(lastAuto);
+        if(lastAuto&&lastAuto!=='interval-ices')candidates.push(lastAuto);
         const chosen=candidates.find(kind=>start(kind));
         if(chosen)lastAuto=chosen;else due=now+5000;
       }
