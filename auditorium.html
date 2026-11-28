@@ -3004,7 +3004,7 @@
     const tmp = (vel + om * ch) * dt;
     return [target + (ch + tmp) * e, (vel - om * tmp) * e];
   }
-  function placeBubble(w, placed, dt) {
+  function placeBubble(w, placed, dt, guests) {
     const b = w.bub;
     const [x, y] = toScreen(w.bx, w.by);
     const head = toScreen(w.bx, w.by - w.emH - 13 * K)[1];   // + a walking hop, so the head never pokes into it
@@ -3053,7 +3053,7 @@
     }
     w.holdBelow = below;
     top = clamp(natural + dy, 8, 1072 - bh);
-    placed.push({ x0: left, y0: top, x1: left + bw, y1: top + bh, w });
+    if (!guests) placed.push({ x0: left, y0: top, x1: left + bw, y1: top + bh, w });
     // eased offsets from the natural spot (x: from the clamped left edge; y: from over the head)
     const ox = left - (x - bw / 2);
     const oy = top - natural;
@@ -3061,8 +3061,12 @@
       [w.offX, w.offVX] = spring(w.offX, ox, w.offVX, BUB_GLIDE, dt);
       [w.offY, w.offVY] = spring(w.offY, oy, w.offVY, BUB_GLIDE, dt);
     }
-    const dl = clamp(x - bw / 2 + w.offX, 8, 1912 - bw);
-    const dt2 = clamp(natural + w.offY, 8, 1072 - bh);
+    let dl = clamp(x - bw / 2 + w.offX, 8, 1912 - bw);
+    let dt2 = clamp(natural + w.offY, 8, 1072 - bh);
+    if (guests) {
+      [dl,dt2] = preshowEvents.clearOfGuests(dl,dt2,bw,bh,guests,placed);
+      placed.push({x0:dl,y0:dt2,x1:dl+bw,y1:dt2+bh,w});
+    }
     // the tail flips side once the box has passed the speaker's middle on its glide
     b.classList.toggle('below', dt2 > (head + y) / 2);
     style(b, 'transform', `translate(${dl.toFixed(1)}px, ${dt2.toFixed(1)}px)`);  // QA perf: cached
@@ -3147,7 +3151,8 @@
     const placed = [];
     for (const [l, t, r, b] of reeduKeeps) { const [x0, y0] = toScreen(l, t), [x1, y1] = toScreen(r, b); placed.push({ x0, y0, x1, y1 }); }
     tethered.clear();
-    for (const w of bubOrder) if (w.bub && w.bub.style.visibility !== 'hidden') placeBubble(w, placed, dt);
+    const applauding = bubOrder.length && preshowEvents?.bubbleClearance(toScreen);
+    for (const w of bubOrder) if (w.bub && w.bub.style.visibility !== 'hidden') placeBubble(w, placed, dt, applauding);
     for (const w of bubOrder) if (w.teth?.on && !tethered.has(w)) tether(w, null);
   }
 
@@ -4652,6 +4657,7 @@
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
           if (kind === 'beach-ball') return show.phase === 'seating' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
+          if (kind === 'visual-applause') return show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           if (kind === 'mic-runner') return HALL_ON && show.phase === 'up' && show.screen === 'auto' && !show.intermissionUntil && !alwaysGreen;
           return !alwaysGreen && !filmOnScreen() && (show.phase === 'seating' || show.phase === 'up');
         },
@@ -4670,7 +4676,7 @@
         screen: () => screenPoly,
         point: w => P(...w.pos),
         apex: () => { const su = L.screen?.u || [4.9,13.9]; return P((su[0]+su[1])/2-2.3,L.room?.v[1] ?? 14.9,580); }
-      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball'], automatic: timedPreshows, enabled: timedEventsEnabled });
+      }, q, { allowed: ['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause'], automatic: timedPreshows, enabled: timedEventsEnabled });
       window.auditoriumEvents = preshowEvents;
       SB.on('msg', m => preshowEvents.message(m));
     }).catch(err => console.warn('[preshow]',err));
