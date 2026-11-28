@@ -122,6 +122,10 @@ packaging, art, Blender, QA and performance. Both agents can pick up or review e
 art assignments above. Claude Code (Opus 5.5, Fable 5.2) and Astra work in the same
 folder on the same PC, often at the same time.
 
+- **Why two agents: even weekly usage** (owner, 28 Nov 2026). The point of working with both is to split the work so
+  the weekly usage of the Claude and the OpenAI accounts is spent about evenly, not to have one agent do almost
+  everything. Divide tasks between the two. Before taking on a large job, consider which side has more weekly usage
+  left, and hand the job (or a self-contained part of it) to the other agent when its side has more room.
 - **Hand-offs.** Leave work so the other agent can continue it without asking: a `PROGRESS.md` entry with what
   changed, what was checked, and what is open or unverified. Notes from art jobs go in `roxy3d/NOTES-NN.md` as before.
 - **Second opinions.** A read-only critique or review by the other agent is welcome (drafts, risky changes to shared
