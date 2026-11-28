@@ -27,12 +27,22 @@
     }
     return order;
   }
+  function intervalMs(settings) {
+    return Math.min(600, Math.max(5, Math.round(Number(settings.filterSeconds) || 30))) * 1000;
+  }
+  function untilNextPreset(room, settings, seed, now) {
+    const interval = intervalMs(settings);
+    return interval - (now + hash(seed + '/' + room + '/offset') % interval) % interval;
+  }
+  function strengthFor(room, preset) {
+    return strengths[room][preset] ?? (room === 'auditorium' ? 55 : 85);
+  }
   function choosePreset(room, settings = {}, seed = '', nowMs = Date.now()) {
     if (settings.filterDirector === false) {
       if (settings.cinemaFilter === 'off') return 'off';
       return /^(?:[0-9]|1[0-2])$/.test(String(settings.cinemaFilter)) ? Number(settings.cinemaFilter) : room === 'auditorium' ? 1 : 12;
     }
-    const interval = Math.min(600, Math.max(5, Math.round(Number(settings.filterSeconds) || 30))) * 1000;
+    const interval = intervalMs(settings);
     const key = seed + '/' + room;
     const slot = Math.floor((nowMs + hash(key + '/offset') % interval) / interval);
     const block = Math.floor(slot / presets.length), pos = slot - block * presets.length;
@@ -157,5 +167,5 @@
       refresh() { return reconcile(true); },
     };
   }
-  return { create, choosePreset, presets, localRoom };
+  return { create, choosePreset, untilNextPreset, strengthFor, presets, localRoom };
 });

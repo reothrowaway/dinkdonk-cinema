@@ -533,6 +533,8 @@
 </script>
 <script>window.DD_ROOM_CAPS = 'peek,vote,timedstall';   // room events this page plays (queue 56, 57, 50; shared/cinema.js)</script>
 <script>window.DD_ROOM_PAGE = 'lobby';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
+<script src="shared/obs-look-director.js"></script>
+<script src="shared/page-look.js"></script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="shared/live.js"></script>
@@ -6307,6 +6309,7 @@ void main() {
   const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   let panelSettings = {};   // what the panel set (the rest is the URL's)
   function applySettings(values) {
+    CinemaPageLook.update(values);
     panelSettings = values && typeof values === 'object' ? values : {};
     for (const [k, s] of Object.entries(SETTINGS)) {
       const v = Object.hasOwn(panelSettings, k) ? panelSettings[k] : urlSettings[k];

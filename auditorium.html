@@ -425,6 +425,8 @@
 <script src="shared/house-notice.js"></script>
 <script src="shared/shadow-round.js"></script>
 <script src="shared/sing-along.js"></script>
+<script src="shared/obs-look-director.js"></script>
+<script src="shared/page-look.js"></script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="concepts/preshow-quiz/deck.js"></script>
@@ -3890,6 +3892,7 @@
   const urlSettings = Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   function applySettings(values) {
+    CinemaPageLook.update(values);
     const set = values && typeof values === 'object' ? values : {};
     for (const [k, s] of Object.entries(SETTINGS)) {
       const v = Object.hasOwn(set, k) ? set[k] : urlSettings[k];
