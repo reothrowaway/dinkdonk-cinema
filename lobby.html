@@ -8120,14 +8120,16 @@ void main() {
       import('./concepts/cinema-mods/incidents/sidewalk.js'),
       import('./concepts/cinema-mods/incidents/marquee-photo.js'),
       import('./concepts/cinema-mods/incidents/shared-umbrella.js'),
-      import('./concepts/cinema-mods/incidents/dish-night.js')
-    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }, { sharedUmbrella }, { dishNight }]) => {
+      import('./concepts/cinema-mods/incidents/dish-night.js'),
+      import('./concepts/cinema-mods/incidents/tape-swap.js')
+    ]).then(([{ createLobbyEvents }, { paperStage }, { sidewalk }, { marqueePhoto }, { sharedUmbrella }, { dishNight }, { tapeSwap }]) => {
       const incidents = {
         ...nativeIncidents,
         'infinity-foyer': paperStage['infinity-foyer'], 'glyph-cascade': sidewalk['glyph-cascade'],
         'marquee-photo': marqueePhoto,
         'shared-umbrella': sharedUmbrella(blowUmbrella, walkers, P),
         'dish-night': dishNight(() => windows, staff, fx),
+        'tape-swap': tapeSwap(() => ddData?.history, walkers, P, wearPairedRole),
         ...lobbyLifeIncidents,
       };
       lobbyEvents = createLobbyEvents({
