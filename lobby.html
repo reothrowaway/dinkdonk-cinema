@@ -7199,6 +7199,24 @@ void main() {
       artImgs.push([im, l.file]);
       if (l.anim) (PROPS.els[l.anim] ||= []).push(im);
     }
+    // ImageGen fixtures on the ticket wall and counter. Their depths follow the
+    // supporting slices so the room's own walkers and foreground glass can pass in front.
+    if (PROPS_ON && ['out10s', 'out10t'].includes(ART_DIR)) {
+      for (const [name, x, y, width, z] of [
+        ['payphone', 799, 490, 40, 1792],
+        ['gumball', 1169, 650, 33, 2343],
+      ]) {
+        const im = h('img', 'prop');
+        im.alt = '';
+        im.decoding = 'async';
+        im.src = 'concepts/cinema-mods/lobby-props/' + name + '.webp';
+        const light = ART_DIR === 'out10t' ? (name === 'payphone' ? .68 : .98) : .88;
+        Object.assign(im.style, { left: x + 'px', top: y + 'px', width: width + 'px', height: 'auto',
+          zIndex: String(z), filter: 'brightness(' + light + ') drop-shadow(1px 1px 1px #1b1017ab)' });
+        if (name === 'payphone') im.style.transform = 'skewY(-9deg)';
+        world.append(im);
+      }
+    }
     setupProps();
     buildMarqueeText();
     showMarquee();

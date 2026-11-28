@@ -4,6 +4,7 @@
 // are created by the modules from the live room geometry and guest sprites.
 const base = 'concepts/cinema-mods/';
 const eventFiles = [
+  'lobby-props/payphone.webp', 'lobby-props/gumball.webp',
   'lobby-events.js', 'guest-routes.js', 'guest-travel.js',
   'incidents/arcade.js', 'incidents/paper-stage.js', 'incidents/sidewalk.js', 'incidents/stage.js',
   'incidents/marquee-photo.js', 'incidents/shared-umbrella.js', 'incidents/dish-night.js', 'incidents/tape-swap.js', 'events.html',
