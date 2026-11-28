@@ -4,6 +4,7 @@ import {startBeachBall} from './beach-ball.js';
 import {startVisualApplause, clearOfGuests} from './visual-applause.js';
 import {startOrganLift} from './organ-lift.js';
 import {startIntervalIces} from './interval-ices.js';
+import {startRainFoley} from './rain-foley.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const clamp = x => Math.max(0, Math.min(1, x));
@@ -11,6 +12,15 @@ const pulse = (t, start, width) => Math.sin(Math.PI * clamp((t-start)/width));
 const colors = ['#65ffef', '#ff72c7', '#ffc86c', '#afb0ff'];
 const durations = {'laser-choir':14, 'prism-cathedral':10, 'ribbon-plotter':12};
 const ids = Object.keys(durations);
+const guestEvents={
+  'popcorn-pass':startPopcornPass,
+  'mic-runner':startMicRunner,
+  'beach-ball':startBeachBall,
+  'visual-applause':startVisualApplause,
+  'organ-lift':startOrganLift,
+  'interval-ices':startIntervalIces,
+  'rain-foley':startRainFoley
+};
 function attr(el, props) {
   for (const [key,value] of Object.entries(props)) el.setAttribute(key, value);
   return el;
@@ -156,7 +166,7 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   let servedBreak=0,iceRetry=0;
   let cue=null, expires=0, retry=0;
   const recent=new Set();
-  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift','interval-ices'].filter(kind=>allowed.includes(kind));
+  const automaticKinds=['laser-choir','aisle-vendor','popcorn-run',...Object.keys(guestEvents)].filter(kind=>allowed.includes(kind));
   const visible=()=>!document.hidden&&sourceVisible&&sourceActive;
   const next=()=>performance.now()+180000+Math.random()*180000;
   let due=pending?performance.now()+2200:next();
@@ -189,8 +199,8 @@ export function createHouseEvents(host, query, { allowed = ids, automatic = quer
   }
   function start(kind,cueId=null) {
     if(live||!allowed.includes(kind)||!visible()||!host.ready(kind)||host.canStart?.()===false)return false;
-    if(['aisle-vendor','popcorn-run','popcorn-pass','mic-runner','beach-ball','visual-applause','organ-lift','interval-ices'].includes(kind)){
-      const startGuestEvent={'popcorn-pass':startPopcornPass,'mic-runner':startMicRunner,'beach-ball':startBeachBall,'visual-applause':startVisualApplause,'organ-lift':startOrganLift,'interval-ices':startIntervalIces}[kind];
+    if(kind==='aisle-vendor'||kind==='popcorn-run'||Object.hasOwn(guestEvents,kind)){
+      const startGuestEvent=guestEvents[kind];
       const native=startGuestEvent?startGuestEvent(host,motion.matches):host.startNative?.(kind);
       if(!native)return false;
       if(kind==='interval-ices')servedBreak=host.breakDeadline();

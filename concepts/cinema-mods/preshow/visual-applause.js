@@ -27,7 +27,7 @@ export function clearOfGuests(x,y,width,height,guests,placed) {
   return best;
 }
 
-function nearbyGuests(host) {
+export function nearbyGuests(host) {
   const seats = host.seated().filter(w => w.box && !w.dozing && !w.texting && !w.pendingSeat)
     .map(w => ({w, seat:w.seat, x:host.point(w)[0], y:w.box[1]}))
     .sort((a,b) => a.x-b.x);
@@ -49,7 +49,7 @@ function nearbyGuests(host) {
 }
 
 // The forearm pivots at the spectator's shoulder. The palm twists separately at the wrist.
-function makeHand(w, side) {
+export function makeHand(w, side) {
   const arm = document.createElement('span');
   arm.className = 'visual-applause-arm';
   arm.setAttribute('aria-hidden','true');
