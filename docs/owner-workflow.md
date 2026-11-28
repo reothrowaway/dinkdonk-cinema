@@ -119,6 +119,8 @@ In a server running the experimental branch, open `/concepts/ticket-counter/inde
 
 Open **Film diary** in the cinema guide to record a viewing. From the ticket counter, **Write diary entry** fills in the film and the New York screening date. Each visit has its own date, performance, note and optional red-ink favorite mark. Keep multiple visits to the same title to see their order. Entries stay in the current browser and are available when the watch log is offline. **Print diary** prints the entries or saves them through the browser’s PDF printer.
 
+The guide’s **Screening calendar** groups movie screenings from the current watch log by their New York dates. Select a day to see every time and title or open an individual ticket. The arrows move between archived months. Inside the calendar, arrow keys move by one day or one week. **Print monthly program** prints the overview followed by a complete listing for that month. A previously opened calendar also works from the saved watch log while offline.
+
 Play **Which came out first?** at `/concepts/preshow-quiz/index.html` before the film. Pick a title to guess or click **Reveal years** to let chat guess aloud. **Next pair** deals two more films from the watch log. You can open the page separately or add its URL as an OBS browser source and use **Interact**.
 
 ### Who shows up

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Screening calendar · DinkDonk Cinema</title>
+<style>
+*{box-sizing:border-box}:root{color-scheme:light;background:#efe9da;color:#26241e;font:16px/1.4 "Segoe UI",sans-serif}body{margin:0}main{max-width:1200px;margin:auto;padding:clamp(14px,3.7vw,42px)}
+header,.controls,.mast,.weekday,.day-top,.day-head,.pager{display:flex;align-items:center;gap:8px 12px}header,.controls,.mast,.day-top,.day-head{justify-content:space-between}header{border-bottom:2px solid #29271e;padding-bottom:8px;font-weight:700}a{color:#6c2834;text-underline-offset:.2em}
+h1,h2,h3,p,figure{margin:0}.controls{margin:12px 0;flex-wrap:wrap}.pager{flex-wrap:wrap}button,select{font:inherit;border:1px solid #796e5b;color:inherit;background:#f7f1e5;border-radius:2px;padding:5px 10px;cursor:pointer}button:disabled{opacity:.45;cursor:default}:focus-visible{outline:3px solid #ad512f;outline-offset:1px}
+.mast{border-block:4px solid #302a22;padding:12px 0;gap:16px}.mast h1{font:900 clamp(42px,6.2vw,80px)/.98 Georgia,serif;letter-spacing:-.065em;color:#602a33}.mast p{margin-top:8px;font-weight:600}.strip{display:flex;gap:5px;align-self:stretch;max-width:42%}
+.cover{position:relative;overflow:hidden;background:#3d4637;color:#fff2cc;width:clamp(45px,6.4vw,74px);height:clamp(68px,9.5vw,110px);display:grid;align-content:center;padding:4px;text-align:center;border:1px solid #635d4e}
+.cover:nth-child(2){background:#6a343c}.cover:nth-child(3){background:#434656}.cover span{font:bold clamp(9px,1.1vw,14px)/1 Georgia,serif;overflow-wrap:anywhere}.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-left:1px solid #918878}.calendar>*{min-width:0}
+.weekday{justify-content:center;border-right:1px solid #918878;border-bottom:1px solid #918878;padding:4px;font-size:13px;font-weight:700;color:#f8eed8;background:#38382d}
+.day,.empty{border:0;border-right:1px solid #918878;border-bottom:1px solid #918878;background:transparent;min-height:82px}.empty{background:#e5dfd1}
+.day{display:flex;flex-direction:column;gap:3px;align-items:stretch;padding:5px 7px;text-align:left;border-radius:0}.day:hover{background:#ede1c6}.day[aria-pressed=true]{background:#f2deb5;box-shadow:inset 0 0 0 2px #7b3a3c}
+.num{font:bold 18px/1.15 Georgia,serif}.top-count{font:12px/1 "Courier New",monospace}.titles{font:600 13px/1.18 Georgia,serif;overflow-wrap:anywhere}.titles span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.more{font:12px/1.2 "Segoe UI",sans-serif;color:#7b3540}
+.details{margin:20px 0 0;border-top:3px solid #302a22;padding:12px 0}.day-head{flex-wrap:wrap}.day-head h2,#reverse h2{font:normal 30px/1.1 Georgia,serif}ol{list-style:none;margin:8px 0 0;padding:0}#list li{display:grid;grid-template-columns:88px minmax(0,1fr) auto;align-items:baseline;gap:10px;border-bottom:1px solid #b3ab97;padding:7px 0}
+time{font:600 13px "Courier New",monospace}.title{font:600 18px/1.25 Georgia,serif;overflow-wrap:anywhere}#scope,#notice{color:#625a4a;font-size:14px;margin:7px 0}#notice:empty{display:none}#reverse{display:none}[hidden]{display:none!important}
+@media(max-width:650px){.day,.empty{min-height:46px}.day{padding:6px}.day-top{display:block}.top-count{display:block;font-size:10px}.titles,.more{display:none}.mast{align-items:center}.mast h1{font-size:clamp(31px,8vw,48px)}.mast p{font-size:13px}.strip{max-width:27%}.cover{width:43px;height:66px}.cover:nth-child(3){display:none}.weekday{font-size:11px}.day-head h2{font-size:24px}#list li{grid-template-columns:68px minmax(0,1fr)}#list a{grid-column:2}.title{font-size:16px}}
+@page{size:A4 landscape;margin:9mm}
+@media print{
+  :root,body{background:white;color:black;font-size:10pt}main{max-width:none;padding:0}header,.controls,.details,#notice,#retry{display:none}
+  .mast{height:29mm;padding:1mm 0;border-width:1mm}.mast h1{font-size:33pt}.mast p{font-size:9pt;margin-top:1mm}.cover,.cover:nth-child(3){display:grid;width:16mm;height:24mm}.strip{max-width:none}.mast .strip{align-self:center}
+  .weekday{height:6mm;background:#eee;color:black;font-size:8pt}.day,.empty{min-height:0;height:22mm;overflow:hidden}.day{padding:1mm 1.5mm}.day[aria-pressed=true]{background:white;box-shadow:none}.empty{background:#fafafa}.day-top{display:flex}.num{font-size:10pt}.top-count{display:inline;font-size:7pt}.titles,.more{display:block}.titles{font:600 8pt/1.05 Georgia,serif}.titles span{-webkit-line-clamp:1}.more{font-size:7pt}#scope{font-size:8pt}
+  #reverse{display:block;break-before:page}#reverse h2{font-size:21pt;margin:0 0 1mm}#reverse>p{font-size:8pt}.program{margin-top:3mm;columns:3;column-gap:6mm;column-rule:1px solid #bbb}.program section{break-inside:avoid;padding:0 1mm 2mm 0}.program h3{font:bold 10pt Georgia,serif;border-bottom:1px solid #555;margin:0 0 .7mm}.program ol{margin:0}.program li{display:grid;grid-template-columns:17mm 1fr;column-gap:1mm;line-height:1.13;font-size:8.2pt;margin:0 0 .6mm}.program time{font:7.4pt "Courier New",monospace}.program li span{overflow-wrap:anywhere}
+}
+.outside .num{color:#7d7668}.imprint{display:none}#list li{grid-template-columns:108px minmax(0,1fr) auto}
+@media(max-width:650px){#list li{grid-template-columns:87px minmax(0,1fr)}}
+@media print{
+  .imprint{display:block;font:700 9pt "Courier New",monospace;letter-spacing:.06em;text-transform:uppercase}
+  .day,.empty{height:var(--print-row,24mm)}.top-count{font-size:8pt}.titles{font-size:9pt}
+  .program{column-gap:5mm}.program li{grid-template-columns:24mm 1fr;font-size:10pt;line-height:1.2;margin:0 0 1mm}.program time{font-size:8.5pt;line-height:1.35}
+  .program h3{font-size:12pt;margin:0 0 1mm}.program section{padding-bottom:3mm}
+}
+</style></head><body><main>
+<header><span>DinkDonk Cinema</span><a href="./index.html">Cinema guide</a></header>
+<div class="controls"><div class="pager"><button id="prev" type="button" disabled aria-label="Previous archived month">←</button><label>Screening calendar <select id="month" disabled></select></label><button id="next" type="button" disabled aria-label="Next archived month">→</button></div><button id="print" type="button" disabled>Print monthly program</button></div>
+<p id="notice" role="status">Opening the watch log…</p><button id="retry" type="button" hidden>Retry watch log</button>
+<section id="display" hidden><div class="mast"><div><span class="imprint">DinkDonk Cinema</span><h1 id="heading"></h1><p id="summary"></p></div><div class="strip" id="strip" aria-label="Films from this month"></div></div>
+<div id="calendar" class="calendar" role="group" aria-label="Screenings by day"></div><p id="scope"></p>
+<section class="details" aria-labelledby="day-title"><div class="day-head"><h2 id="day-title"></h2><a id="day-link" href="#">Link to this day</a></div><ol id="list"></ol><p id="none" hidden>No movie screenings for this date in the watch log.</p></section>
+<section id="reverse"><h2 id="reverse-title"></h2><p>Complete monthly program from the watch log · New York time</p><div id="program" class="program"></div></section></section>
+</main><script src="./archive.js"></script></body></html>

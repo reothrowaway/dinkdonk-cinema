@@ -20,6 +20,7 @@ const extrasFiles = [
   'preshow-quiz/index.html', 'preshow-quiz/quiz.js', 'preshow-quiz/deck.js',
   'cinema-guide/index.html', 'cinema-guide/guide.js',
   'cinema-guide/first-visit.html', 'cinema-guide/first-visit.js',
+  'cinema-guide/archive.html', 'cinema-guide/archive.js',
   'film-diary/index.html', 'film-diary/diary.js',
   'movie-bingo/index.html', 'movie-bingo/bingo.js',
   'mutoscope/index.html', 'mutoscope/viewer.js', 'mutoscope/sallie-gardner.webp',

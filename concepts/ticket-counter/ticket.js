@@ -189,9 +189,13 @@ async function load() {
       return;
     }
     screenings.replaceChildren(...films.map(f => new Option(f.title + ' — ' + screeningTime(f), String(f.id))));
-    drawTicket(films[0]);
+    const requested=new URLSearchParams(location.search).get('screening');
+    const chosen=films.find(f=>String(f.id)===requested);
+    screenings.value=String((chosen||films[0]).id);
+    drawTicket(chosen||films[0]);
     screenings.disabled = save.disabled = false;
     statusText.textContent = feed.stale ? 'Showing the last saved watch log.' : '';
+    if(requested&&!chosen)statusText.textContent='The linked screening is outside this watch log. Showing the first available ticket.';
   } catch {
     statusText.textContent = 'The watch log could not be loaded.';
     retry.hidden = false;
