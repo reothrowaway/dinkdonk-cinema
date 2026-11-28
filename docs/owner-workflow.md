@@ -77,6 +77,8 @@ For a festival-style discussion, choose **Lights up** and leave the projector on
 
 The [Cinema guide](../concepts/cinema-guide/index.html) lists upcoming DinkDonk sessions in your time zone or the published cinema time zone. Choose **Save .ics** beside a session or download the whole upcoming schedule. Untitled slots retain their published start and end times.
 
+Open **Mutoscope** in the cinema guide to turn through the eleven gallop cards from Eadweard Muybridge’s 1878 print of Sallie Gardner. Drag the crank, use the arrow keys, or select **Run reel**. **Standing pose** displays the separate twelfth photograph. The reel runs locally.
+
 Open **Projection booth** from the guide to practice a 35 mm reel change. Guided mode holds each cue. In timed mode the upper-right dot appears for four frames at 24 fps. Press **M** to start the incoming motor and **C** to change projectors, or use the two buttons. Leaving the tab pauses the reel.
 
 Open **Reel timing sheet** in the booth to time a 35 mm four-perf or 16 mm print. Enter each reel’s picture footage and extra frames, then choose the projection speed. The sheet shows the duration of each reel, the elapsed time at its end, and the total picture time. The last pair of digits counts frames. The browser saves the sheet locally when storage is available. Open **Share one print between two screens** to allow for reel preparation and a courier’s round trips. Each delivery shows how early or late it reaches Booth B and the earliest uninterrupted second screening.
