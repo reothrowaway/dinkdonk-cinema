@@ -137,6 +137,7 @@ folder on the same PC, often at the same time.
 - **Watch Astra's weekly usage** (owner, 28 Nov 2026). Claude checks the Codex weekly usage
   (`bash roxy3d/tools/codex-usage.sh`) before handing Astra a job, when it reports progress, and at least once per
   working session. As soon as less than 10% remains (90% or more used), Claude tells the owner so the owner can act.
+  Astra pauses at a clean point when 5% or less remains (95% or more used), owner, 28 Nov 2026.
   The owner has Codex usage resets: a low reading is a reason to tell the owner, not to move work away from Astra.
 - **Hand-offs.** Leave work so the other agent can continue it without asking: a `PROGRESS.md` entry with what
   changed, what was checked, and what is open or unverified. Notes from art jobs go in `roxy3d/NOTES-NN.md` as before.
@@ -199,7 +200,7 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
   auditorium, also measure the lights going down and coming up, including zooms during the fades. Report frame
   timing during the moves and fades separately from the settled-room baseline.
 - Preserve visual fidelity when fixing stutter. Compare the original and candidate at wide and close framing and during lighting changes before promoting a performance fix.
-- During extended Codex runs, check the account’s weekly usage and stop with at least 10% remaining.
+- During extended Codex runs, check the account’s weekly usage and pause at a clean point with 5% remaining (owner, 28 Nov 2026).
 - More RAM or VRAM for less stutter is fine; note the memory cost in `PROGRESS.md`.
 - Check the baseline against what a normal scene should look like (people outside, chatting, at the jukebox), using
   a page that has been open a while and the room record (`/ctl/room-state`, `/ctl/room-roster`). Fix causes, not
