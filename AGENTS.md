@@ -131,6 +131,7 @@ folder on the same PC, often at the same time.
 - **Watch Astra's weekly usage** (owner, 28 Nov 2026). Claude checks the Codex weekly usage
   (`bash roxy3d/tools/codex-usage.sh`) before handing Astra a job, when it reports progress, and at least once per
   working session. As soon as less than 10% remains (90% or more used), Claude tells the owner so the owner can act.
+  The owner has Codex usage resets: a low reading is a reason to tell the owner, not to move work away from Astra.
 - **Hand-offs.** Leave work so the other agent can continue it without asking: a `PROGRESS.md` entry with what
   changed, what was checked, and what is open or unverified. Notes from art jobs go in `roxy3d/NOTES-NN.md` as before.
 - **Second opinions.** A read-only critique or review by the other agent is welcome (drafts, risky changes to shared
