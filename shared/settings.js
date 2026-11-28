@@ -164,7 +164,7 @@ function createSettings({ file = null, log = () => {} } = {}) {
       return true;
     },
     // the message every screen of the page gets (after a change, and when it connects)
-    message: (page) => ({ cmd: 'settings', page, values: { ...values[page] } }),
+    message: (page) => ({ cmd: 'settings', page, serverTime: Date.now(), values: { ...values[page] } }),
   };
 }
 

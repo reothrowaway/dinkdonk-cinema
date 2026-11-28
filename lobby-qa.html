@@ -5766,8 +5766,8 @@ void main() {
   const urlSettings = Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   const currentSettings = () => Object.fromEntries(Object.entries(SETTINGS).map(([k, s]) => [k, s.get()]));
   let panelSettings = {};   // what the panel set (the rest is the URL's)
-  function applySettings(values) {
-    CinemaPageLook.update(values);
+  function applySettings(values, serverTime) {
+    CinemaPageLook.update(values, serverTime);
     panelSettings = values && typeof values === 'object' ? values : {};
     for (const [k, s] of Object.entries(SETTINGS)) {
       const v = Object.hasOwn(panelSettings, k) ? panelSettings[k] : urlSettings[k];
@@ -5790,7 +5790,7 @@ void main() {
       case 'fly': window.DD_FLY_PLAY?.({ cut: true }); break;   // fly-through to the auditorium, OBS cuts at the end
       case 'settings':   // the panel's scene settings (on connect and on every change); the first one settles the lobby look
         settleLook(c.values && typeof c.values === 'object' && Object.hasOwn(c.values, 'look') ? c.values.look : URL_LOOK);
-        applySettings(c.values);
+        applySettings(c.values, c.serverTime);
         break;
       case 'director': director.on = !!c.on; if (director.on) director.next = Math.min(director.next, now + 20000); break;
       case 'every': if (Number.isFinite(+c.value)) director.every = clamp(+c.value, 30, 1800); break;

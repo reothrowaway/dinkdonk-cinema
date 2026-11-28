@@ -31,6 +31,7 @@
     [[16,-18,42],[37,-18,30],[.96,.4,1],1.28,1.12,1.05],
     [[0,2,12],[23,10,-7],[1,.72,.46],.91,1.05,.66], crt
   ];
+  const greenTable = Array.from({length:256}, (_, i) => Math.min(i, 254) / 255).join(' ');
   const clamp = x => Math.min(1, Math.max(0, x));
   const primitive = (name, attrs) => element(name, attrs, filter);
   function curves(input, result, channel) {
@@ -40,19 +41,8 @@
       element('feFunc' + component, { type: 'table', tableValues: values.join(' ') }, group);
     });
   }
-  const textures = new Map();
-  function texture(name, w, h, pixel) {
-    if (!textures.has(name)) {
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d'), data = ctx.createImageData(w,h);
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data.data.set(pixel(x,y), 4*(y*w+x));
-      ctx.putImageData(data,0,0);
-      textures.set(name, canvas.toDataURL());
-    }
-    return textures.get(name);
-  }
-  function image(href, result, width='100%', height='100%') {
+  function image(name, result, width=1920, height=1080) {
+    const href = new URL('assets/cinema-filters/' + name + '.png', document.baseURI).href;
     primitive('feImage', { href, result, x:0, y:0, width, height, preserveAspectRatio:'none' });
   }
   function apply(preset) {
@@ -72,13 +62,8 @@
       source = 'room';
     } else if (preset === 7 || preset === 12) {
       const k = (preset === 7 ? .12 : .027) * amount;
-      const scale = 1920 * k;
-      const map = texture('lens'+preset, 256,144,(x,y) => {
-        const u=(x+.5)/128-1, v=(y+.5)/72-1;
-        const factor = (u*u+v*v-2) / (2*(1+2*k));
-        return [255*(.5+u*factor),255*(.5+v*factor*1080/1920),0,255];
-      });
-      image(map,'lens');
+      const scale = 1920 * 1.2 * k / (1 + 2*k);
+      image('lens','lens');
       primitive('feDisplacementMap', { in:source, in2:'lens', xChannelSelector:'R', yChannelSelector:'G', scale, result:'curved' });
       source = 'curved';
     }
@@ -94,10 +79,11 @@
       curves(source,'bulbs',(i,v) => tint[i]*v*clamp((v-.4)/.52)**2*glow);
       primitive('feGaussianBlur', { in:'bulbs', stdDeviation:preset===5 ? '22 1.8' : preset===1 ? 7 : 4.5, result:'halo' });
       if (preset===6) {
-        const offsets = [[-8,-8],[8,-8],[-8,8],[8,8]];
-        offsets.forEach(([dx,dy],i) => primitive('feOffset',{ in:'halo', dx,dy,result:'ray'+i }));
-        const rays = primitive('feMerge',{result:'stars'});
-        offsets.forEach((_,i) => element('feMergeNode',{in:'ray'+i},rays));
+        // A sparse diagonal kernel puts light on all four arms of a point highlight.
+        primitive('feConvolveMatrix', { in:'bulbs', order:5, kernelUnitLength:'6 6',
+          kernelMatrix:'.5 0 0 0 .5  0 1 0 1 0  0 0 0 0 0  0 1 0 1 0  .5 0 0 0 .5',
+          divisor:3, preserveAlpha:'true', result:'spikes' });
+        primitive('feBlend', { in:'spikes', in2:'halo', mode:'screen', result:'stars' });
       }
       primitive('feBlend', { in:'grade', in2:preset===6?'stars':'halo', mode:'screen', result:'lit' });
       result='lit';
@@ -107,37 +93,38 @@
       result='tape';
     }
     if (preset===7 || preset===11) {
-      image(texture('falloff',160,90,(x,y) => {
-        const radius2 = ((x+.5)/80-1)**2 + ((y+.5)/45-1)**2;
-        return [0,0,0,255*.08*radius2**2];
-      }), 'corners');
+      image('falloff','corners');
       primitive('feComposite',{ in:'corners', in2:result, operator:'atop',result:'vignette' });
       result='vignette';
     }
     if (preset===7 || preset===8 || preset===11) {
       const scan = preset===7, size=scan?5:96;
-      image(texture(scan?'scanlines':'grain', size,size,(x,y) => {
-        if (scan) return [0,0,0,255*.065*(1+Math.cos(y*2*Math.PI/5))];
-        const n=(52.9829189*((x*.06711056+y*.00583715)%1))%1;
-        const c=n<.5?0:255;
-        return [c,c,c,Math.abs(n-.5)*8];
-      }),'tile',size,size);
+      image(scan ? 'scanlines' : 'grain','tile',size,size);
       primitive('feTile',{in:'tile',result:'texture'});
       primitive('feComposite',{in:'texture',in2:result,operator:'atop',result:'textured'});
       result='textured';
     }
     primitive('feComposite', { in:result, in2:source, operator:'arithmetic', k2:amount, k3:1-amount, result:'mixed' });
-    if (keyed) primitive('feComposite', { in:'key', in2:'mixed', operator:'over' });
+    if (keyed) {
+      // Reserve #00ff00 for the original aperture. Saturated highlights outside it can
+      // otherwise round to the key color when the grade is clamped to eight bits.
+      const cap = primitive('feComponentTransfer', { in:'mixed', result:'foreground' });
+      element('feFuncG', { type:'table', tableValues:greenTable }, cap);
+      primitive('feComposite', { in:'key', in2:'foreground', operator:'over' });
+    }
     stage.style.filter = 'url(#cinema-page-look)';
   }
-  let settings={}, timer;
-  function update(values=settings) {
+  let settings = {}, timer, serverEpoch;
+  function update(values = settings, serverTime) {
+    // The same settings snapshot reaches every screen. Anchor its wall time to the
+    // monotonic clock so a viewer's local clock setting cannot shift the rotation.
+    if (Number.isFinite(serverTime)) serverEpoch = serverTime - performance.now();
     settings = values || {};
     clearTimeout(timer);
-    const now = Date.now();
+    const now = serverEpoch === undefined ? Date.now() : serverEpoch + performance.now();
     const preset = director.choosePreset(room,settings,'',now);
     if (stage.dataset.cinemaFilter !== String(preset)) apply(preset);
-    if (settings.filterDirector !== false) timer = setTimeout(update, director.untilNextPreset(room,settings,'',now));
+    if (settings.filterDirector !== false) timer = setTimeout(update, Math.ceil(director.untilNextPreset(room, settings, '', now)));
   }
   window.CinemaPageLook = { update };
   document.addEventListener('visibilitychange', () => { if (!document.hidden) update(); });
