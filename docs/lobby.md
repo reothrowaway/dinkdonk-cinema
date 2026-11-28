@@ -690,6 +690,8 @@ Make the change in `lobby-qa.html` first, check it with real chat (`?everyone=1`
 
 ### Swap the art pack (`artdir`)
 
+For changes to an individual prop, start with the [Blender and ImageGen prop redesign workflow](art-pipeline.md#lobby-prop-redesigns).
+
 - Try a pack with `?artdir=<folder>` (under `roxy3d/`). It needs `manifest.json` with `bg` or `base` and an
   `occluders` array. Missing optional parts just switch features off.
 - The manifest's `layout` picks `LAYOUTS[n]`. Staff, queue, door and talk-spot positions are in the page, not the

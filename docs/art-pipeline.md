@@ -174,6 +174,22 @@ re-encode or reformat art or manifests by hand.
 
 ## 3. Render workflow and rules
 
+### Lobby prop redesigns
+
+Use the experimental branch for a prop study. Show the owner three labeled images side by side, from left to right:
+
+| Image | How to make it |
+|---|---|
+| **1. Original Blender render** | Open the model used for the existing lobby prop. Render it from the lobby’s isometric angle. Keep the camera, crop and exterior lighting settings for image 3. |
+| **2. Researched ImageGen design draft** | Look up the actual subject and setting. For the Buddy claw machine, that meant official front, side and back photos of the specific plush edition, plus period prize-crane references. Use the references and the original render to develop the design. Explore additional angles when they help resolve the shape. Put one selected isometric concept in this panel and link the sources in the study notes. |
+| **3. Updated Blender render** | Build the design as editable 3D geometry and materials. Render the saved model with the setup from image 1. Changes to the prop’s own lights belong in the model and should be visible here. Deliver the editable `.blend` with the comparison so the prop can be viewed from another angle or rendered again. |
+
+**Independent visual review.** Give a second reviewer images 2 and 3. Ask what is missing, misplaced or hard to
+recognize at the size the prop appears in the lobby. Use the close view to identify the cause. Fix consequential
+differences in Blender, rerender image 3 and ask the reviewer to inspect the revision. Record what changed and
+which visible differences remain. In the Buddy study, the critic checked that the open claw, the face and the red
+heart of the prize beneath it could all be seen through the glass. [Reviewed Buddy comparison](../concepts/buddy-claw/three-stage-review.jpg) · [Editable model and references](../concepts/buddy-claw/README.md)
+
 ### The loop
 
 1. **Request.** The owner asks for a change; Claude logs it in `QUEUE-owner.md` or `PROGRESS.md`.
@@ -430,6 +446,8 @@ lobby brief and one auditorium ("cinema") brief each.
 - Drafts, QA shots and staging packs are not in git; you start from the `.blend` files and scripts that are.
 
 ### Change lobby art
+
+For a prop redesign, use the [three-image workflow](#lobby-prop-redesigns) for the draft and owner review. The steps below cover the wider scene and production packs.
 
 1. Find the current source scene. The newest lobby production scene in git is
    `roxy3d/cloud/brief57/upload/bundle/out10i/_work/pipeline/scene.blend` (draft 23 sign + floodlight fix). Older

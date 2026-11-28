@@ -167,7 +167,8 @@ The owner builds this with Claude Code and the Codex CLI:
 - **Art is rendered by Codex** from numbered briefs in `roxy3d/`. Claude writes the brief, Codex renders, and
   Claude puts the result into the page and checks it.
 - **Drafts:**
-  - A draft is one 1280x720 image. The owner gives feedback; nothing else is rendered until then.
+  - For a lobby scene draft, show one 1280x720 image for owner feedback.
+  - For a lobby prop redesign, show the original Blender render, the researched ImageGen concept and the independently reviewed Blender render in that order. Include the editable model and a short account of the critic’s findings and fixes. [Lobby prop review](art-pipeline.md#lobby-prop-redesigns)
   - Layout changes start as a plain-box blockout.
   - Each draft gets a read-only Codex critique before the next brief.
   - Full renders (the final art pack) happen only when the owner says "final render". Big renders go to a rented

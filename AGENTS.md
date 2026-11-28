@@ -59,8 +59,13 @@ to fill it, and look at it (screenshot) and at the browser console (it should sh
      Claude Opus 5.5 agent, see "Who renders the art") and say which points you took.
    - Run **full renders** only when the owner says so. Stage new packs in a separate folder (such as `out10i/`),
      verify them, back up the current pack, then promote.
-   - For lobby prop redesigns, show three images in order. First render the existing Blender model. Research the real subject and use those references for one selected ImageGen design draft. Build the revision in Blender and show its render third, with the editable .blend file. Use matching camera framing for the two Blender renders.
-   - Have an independent visual reviewer compare the Blender render with the selected ImageGen draft. Ask which differences materially change the design at the intended viewing size. Address those findings in the editable model, then have the reviewer check the revised render and report any remaining differences.
+   - For an experimental lobby prop redesign, work on the experimental branch. Show three labeled images in order:
+     **1. Original Blender render**, **2. Researched ImageGen design draft**, **3. Updated Blender render**.
+     Research the actual subject and its setting before generating the concept. Match the camera, framing and
+     exterior lighting of the Blender renders and deliver the editable `.blend` alongside the comparison.
+   - Have an independent reviewer compare the third image with the second at lobby size. Fix material differences
+     in Blender, render again and have the reviewer check the result. Report what changed and what still differs.
+     Follow the [lobby prop redesign workflow](docs/art-pipeline.md#lobby-prop-redesigns).
    - Never redo something the owner already approved.
 7. **Cloud GPU (RunPod)** costs real money. Use it only when the owner asks. Stay inside the credit the owner names,
    delete pods and volumes afterwards, and never put API keys in files.
