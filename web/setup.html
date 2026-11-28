@@ -123,9 +123,9 @@
 
   <div class="card">
     <h2>3 · Every stream</h2>
-    <p>Use the control panel’s cinema filter controls to pick a look or change the rotation interval for each room. <a href="/concepts/vaporwave/obs-looks.html">Cinema looks for OBS</a> includes the shader and eight tested scene settings.</p>
+    <p>Use the control panel’s cinema filter controls to pick a look or change the rotation interval for each room. The room page renders the look in a browser or OBS.</p>
     <p style="margin:0 0 8px">Switch to the DinkDonk scenes when you're on break or before the film. The <a id="ctl" target="_blank" rel="noopener">control panel</a> moves the camera, runs the auditorium phases (seating › lights down › film › lights up) and the automatic director. It works from your phone too.</p>
-    <p style="margin:0" class="dim">On OBS 33 or newer, <b>keep the linked control panel open on the OBS computer</b> while using cinema filters or playing the film. It passes filter choices and the auditorium screen position to OBS. Its top line shows the connection status.</p>
+    <p style="margin:0" class="dim">On OBS 33 or newer, <b>keep the linked control panel open on the OBS computer</b> while playing the film. It passes the auditorium screen position to OBS. Its top line shows the connection status.</p>
   </div>
 
   <div class="card">
@@ -137,8 +137,6 @@
     <p class="dim" style="margin:8px 0 0">By hand, the auditorium screen stays green (key your film onto it). For the moving, warped film on the screen, use step 2.</p>
   </div>
 </main>
-<script src="/shared/obs-look-director.js"></script>
-<script src="/web/room-looks.js"></script>
 <script>
 (() => {
   'use strict';
@@ -150,7 +148,7 @@
 
   function who() { return $('who').value === 'tag' && $('nick').value.trim() ? `tag=${encodeURIComponent($('nick').value.trim().replace(/^@/, ''))}` : 'everyone=1'; }
   const obsFragment = (pw, port) => pw === undefined ? '' : `#obs=${encodeURIComponent(pw)}&obsport=${port}` + ($('relayonly').checked ? '&relay=1' : '');
-  const lobbyUrl = (pw, port) => `${base}lobby.html?k=${KEY}&${who()}` + obsFragment(pw, port);
+  const lobbyUrl = () => `${base}lobby.html?k=${KEY}&${who()}`;
   const audUrl = (pw, port) => `${base}auditorium.html?k=${KEY}&${who()}` + obsFragment(pw, port);
   function fillUrls() {
     $('u-lobby').value = lobbyUrl();
@@ -341,7 +339,7 @@
 
       // the lobby: one browser source filling the canvas
       await ensureScene(LOBBY, scenes);
-      await ensureBrowser(LOBBY, LOBBY_SRC, { url: lobbyUrl($('pw').value, Number($('port').value) || 4455), ...size, shutdown: true, restart_when_active: false, reroute_audio: false }, inputs);
+      await ensureBrowser(LOBBY, LOBBY_SRC, { url: lobbyUrl(), ...size, shutdown: true, restart_when_active: false, reroute_audio: false }, inputs);
 
       // the film holder: the streamer's own film source, fitted to the canvas (the corner-pin filter goes on this)
       await ensureScene(FILM, scenes);
@@ -387,8 +385,8 @@
       }
 
       if (shader !== false) {
-        try { await window.createHostedLookDirector(req, error => line('Cinema looks: ' + error.message, 'warn')).refresh(); }
-        catch (e) { line('Cinema looks: ' + e.message + ' Use the cinema looks guide for manual setup.', 'warn'); }
+        try { const { disableLegacyLooks } = await import('/web/room-looks.js'); await disableLegacyLooks(req, () => true); }
+        catch (e) { line('Legacy OBS filter cleanup: ' + e.message, 'warn'); }
       }
 
       if (previous && previous !== NEW_COLLECTION) {

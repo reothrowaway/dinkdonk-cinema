@@ -5,7 +5,7 @@
 // only while the phase is Film. The other things it does, both on the lobby's request during the fly-through: at the
 // start (POST /warm-cinema) it puts the auditorium source off-canvas into the lobby scene so OBS loads it (see
 // warmCinema; removed again after the cut), at the end (POST /cut-to-cinema) it cuts the program to the cinema scene
-// (see cutToCinema). The look director separately manages the cinema shader on this server's browser sources.
+// (see cutToCinema). Old managed cinema filters are disabled when OBS connects or changes collection.
 //
 // Page -> bridge (WebSocket on PORT, text frames of JSON):
 //   { film: true|false, w: <viewport px>, h: <viewport px>, quad: [[x,y] TL, TR, BR, BL] }   (viewport px)
@@ -49,23 +49,22 @@ const log = (...a) => console.log(new Date().toTimeString().slice(0, 8), ...a);
 // ---------- OBS side (obs-websocket v5) ----------
 const obs = { ws: null, ready: false, keyed: false, itemId: null, pending: new Map(), seq: 0, setupAt: 0 };
 const cinemaPort = Number(process.env.STANDBY_PORT || 18770);
-let lastLookError = '', lastLookErrorAt = 0;
-const lookDirector = CinemaLookDirector.create({
-  request,
-  seed: 'local:' + cinemaPort,
-  matchSource: url => CinemaLookDirector.localRoom(url, cinemaPort, ownAddresses()),
-  async readSettings() {
-    const response = await fetch('http://127.0.0.1:' + cinemaPort + '/ctl/settings', { signal: AbortSignal.timeout(3000) });
-    if (!response.ok) throw Error('room settings HTTP ' + response.status);
-    return (await response.json()).values;
-  },
-  readShader: () => fs.promises.readFile(path.join(__dirname, 'concepts/vaporwave/cinema-looks.shader'), 'utf8'),
-  onError(error) {
-    if (lastLookError !== error.message || Date.now() - lastLookErrorAt > 60000) {
-      lastLookError = error.message; lastLookErrorAt = Date.now(); log('cinema looks:', error.message);
+let lookGeneration = 0;
+function cleanLegacyLooks(ws) {
+  const generation = ++lookGeneration;
+  const current = () => generation === lookGeneration && obs.ws === ws && ws.readyState === WebSocket.OPEN;
+  async function clean() {
+    if (!current()) return;
+    try {
+      await CinemaLookDirector.disableLegacy({ request, current,
+        matchSource: url => CinemaLookDirector.localRoom(url, cinemaPort, ownAddresses()),
+        readShader: () => fs.promises.readFile(path.join(__dirname, 'concepts/vaporwave/cinema-looks.shader'), 'utf8') });
+    } catch (error) {
+      if (current()) { log('legacy cinema filter cleanup:', error.message); setTimeout(clean, 15000); }
     }
-  },
-});
+  }
+  void clean();
+}
 
 function obsPassword() {
   if (process.env.OBS_PASSWORD) return process.env.OBS_PASSWORD;
@@ -88,12 +87,14 @@ function obsConnect() {
     } else if (m.op === 2) {   // Identified
       log('OBS connected');
       setup();
-      lookDirector.start();
+      cleanLegacyLooks(ws);
+    } else if (m.op === 5 && m.d.eventType === 'CurrentSceneCollectionChanging') {
+      lookGeneration++;
     } else if (m.op === 5 && m.d.eventType === 'CurrentSceneCollectionChanged') {
       setReady(false);
-      lookDirector.stop();
+      lookGeneration++;
       setup();
-      lookDirector.start();
+      cleanLegacyLooks(ws);
     } else if (m.op === 7) {   // RequestResponse
       const p = obs.pending.get(m.d.requestId);
       if (!p) return;
@@ -107,7 +108,7 @@ function obsConnect() {
     // 4009 = wrong password: say so instead of retrying silently forever
     log(ev.code === 4009 ? 'OBS refused the password (Tools > WebSocket Server Settings)' : `OBS not reachable at ${OBS_URL}, retrying`);
     obs.ws = null;
-    lookDirector.stop();
+    lookGeneration++;
     setReady(false);
     for (const p of obs.pending.values()) p.reject(new Error('OBS closed'));
     obs.pending.clear();

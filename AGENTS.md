@@ -204,9 +204,9 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
   the recorded action at stream size, including where the chatters stand and whether their reactions are readable.
   The QA event screening room is `concepts/cinema-mods/events.html`. It lists automatic events and named previews.
 - Each room’s control-panel card has a default-on automatic event switch, a dropdown of its released performances and a **Run event** button. The director can run one selected show with Auto off and respects the route and room phase. Automatic matchups require the matching emotes. For a manually requested PEPE vs. YEE or Quickdraw, fill missing roles using distinct active chatters’ names, with temporary costumes or performers. Keep PEPE vs. YEE and other standalone timed skits in the room director’s rotation. Black Hole cries, Infinity Foyer and poster remarks use the lobby’s normal incoming chatter-message path and speech queue.
-- The original vaporwave looks are OBS filters. Compare them in `concepts/vaporwave/index.html`; the
-  **DinkDonk Cinema Looks QA** collection holds the selected presets and strengths for each room. Promotion to QA
-  puts a look in that collection or an event in the QA room. Identify which events run on the timer.
+- The lobby and auditorium render their cinema filters in the page. Use the original OBS shader captures in
+  `concepts/vaporwave/index.html` and the **DinkDonk Cinema Looks QA** collection as visual references.
+  Promote page looks to the QA pages and events to the QA room. Identify which events run on the timer.
 - In the live Lobby and Auditorium, each room's Cinema filters dropdown can hold any of the thirteen looks or
   switch them off. Its filter director defaults on, changing the look every 30 seconds. Test manual selection,
   independent room settings, and the auditorium's keyed film cutout when changing those controls.

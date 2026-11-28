@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { artFiles } = require('./art');
-const { eventFiles, extrasFiles, shaderFile, lookGuide, lookFilters } = require('./cinema-release');
+const { eventFiles, extrasFiles, shaderFile, lookGuide } = require('./cinema-release');
 
 const STANDBY = path.resolve(__dirname, '..');
 const SHADER = 'C:/Program Files/obs-studio/data/obs-plugins/obs-shaderfilter/examples/corner-pin.shader';
@@ -80,7 +80,6 @@ patch(path.join(SCREENS, 'obs-bridge.js'), `const SHADER = '${SHADER}';`,
   "const SHADER = path.join(__dirname, '..', 'obs', 'corner-pin.shader').replace(/\\\\/g, '/');");
 copy(SHADER, path.join(OUT, 'obs', 'corner-pin.shader'));
 for (const file of [shaderFile, lookGuide]) copy(path.join(STANDBY, file), path.join(OUT, 'obs', path.basename(file)));
-const lookShader = fs.readFileSync(path.join(STANDBY, shaderFile), 'utf8');
 
 // ---------- 2. art: only what the two pages load ----------
 const art = artFiles(STANDBY, fail);
@@ -143,10 +142,6 @@ function collection(w, h) {
     }
     if (s.id === 'browser_source' && /^http:\/\/127\.0\.0\.1:18770\//.test(s.settings.url)) {
       s.settings.url = s.settings.url.replace('/roxy.html', '/lobby.html');   // renamed 05 Nov; the package has no redirect stub
-      const page = new URL(s.settings.url).pathname;
-      if (page === '/lobby.html' || page === '/auditorium.html') {
-        s.filters.push(...lookFilters(page === '/lobby.html' ? 'lobby' : 'auditorium', lookShader));
-      }
       s.settings.width = Math.round(s.settings.width * f);
       s.settings.height = Math.round(s.settings.height * f);
     }
