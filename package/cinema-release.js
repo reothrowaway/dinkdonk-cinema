@@ -28,7 +28,7 @@ const extrasFiles = [
   'mutoscope/index.html', 'mutoscope/viewer.js', 'mutoscope/sallie-gardner.webp',
   'mutoscope/foley.html', 'mutoscope/foley.js',
   'mutoscope/thaumatrope.html', 'mutoscope/thaumatrope.js',
-  'mutoscope/stereoscope.html', 'mutoscope/stereoscope.js', 'mutoscope/paris-opera-stereograph.jpg',
+  'mutoscope/stereoscope.html', 'mutoscope/stereoscope.js', 'mutoscope/paris-opera-stereograph.webp',
   'question-desk/panel.js',
   'double-bill/index.html', 'double-bill/bill.js',
   'double-bill/rundown.html', 'double-bill/rundown.js',
