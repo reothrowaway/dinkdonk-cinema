@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caption desk · DinkDonk Cinema</title>
+<style>
+*{box-sizing:border-box}:root{color-scheme:dark;background:#192126;color:#f1efe7;font:16px/1.45 "Segoe UI",sans-serif}body{margin:0}main{max-width:1210px;margin:auto;padding:clamp(16px,4vw,44px)}a{color:#9bdbcd;text-underline-offset:.2em}
+header,.tools,footer,.source,.sheet-head,.transport{display:flex;gap:8px 13px;align-items:center;flex-wrap:wrap}header,.sheet-head,.source{justify-content:space-between}header{padding-bottom:12px;border-bottom:1px solid #7e8989;font-weight:650}
+h1,h2,p{margin:0}h1{font:normal clamp(40px,5vw,66px)/1 Georgia,serif;letter-spacing:-.045em;margin:23px 0 13px}h2{font:normal 25px/1.15 Georgia,serif}.screen{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.9fr);gap:clamp(14px,2.5vw,29px);margin:18px 0}.source{padding:9px 0;border-block:1px solid #53636b}.source strong{overflow-wrap:anywhere}
+video{display:block;width:100%;aspect-ratio:16/9;background:black}video::cue{font-family:"Segoe UI",sans-serif;background:rgba(0,0,0,.84);color:white}.transport{margin-top:8px}.clock{font:650 17px "Courier New",monospace;color:#a7decc;margin-right:auto}
+button,.pick,input,textarea{font:inherit}button,.pick{border:1px solid #849697;background:transparent;border-radius:3px;padding:6px 10px;color:inherit;cursor:pointer}button:hover,.pick:hover{background:#374647}button:disabled{opacity:.45;cursor:default}
+.pick{position:relative;display:inline-flex;align-items:center}.pick input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}:focus-visible,.pick:focus-within{outline:3px solid #f1b16e;outline-offset:2px}
+.edit{background:#29363a;padding:16px;align-self:start}.edit h2{margin-bottom:10px}.times{display:grid;grid-template-columns:1fr 1fr;gap:10px}.timefield{min-width:0}.timefield button{font-size:.85rem;padding:4px 7px;margin-top:5px}
+label.field{display:block;font-size:.9rem;font-weight:650}input.time,textarea{color:#fff9ec;background:#172326;border:1px solid #788d8d;border-radius:2px;padding:7px;width:100%;margin-top:3px}input.time{font-family:"Courier New",monospace}textarea{resize:vertical;min-height:66px}
+.edit>.field{margin:9px 0 5px}.primary{background:#a9dbbd;color:#143426;border-color:#a9dbbd;font-weight:700}.primary:hover{background:#c1e7d0}.tools{gap:6px}.helper{color:#c0c8c4;font-size:14px;margin-top:8px}
+.sheet-head{border-top:1px solid #6b7979;padding-top:14px}.sheet-head .tools{margin-left:auto}#cues{padding:0;list-style:none;margin:9px 0}.cue{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px;border-bottom:1px solid #4c5e60;padding:4px 0}.cue.current{box-shadow:inset 3px 0 #97d5be;background:#283d3d}
+.entry{display:grid;grid-template-columns:174px minmax(0,1fr);gap:12px;text-align:left;width:100%;border:0}.entry span:first-child{font:13px/1.6 "Courier New",monospace;color:#abcfc1}.entry span:last-child{white-space:pre-line;overflow-wrap:anywhere}.cue>button:last-child{font-size:14px}#status{min-height:1.5em;color:#f1c796;margin:7px 0}
+footer{border-top:1px solid #627071;padding-top:12px;color:#ced6d1}footer .tools{margin-left:auto}#pages{justify-content:center;margin:10px 0}[hidden]{display:none!important}
+@media(max-width:760px){.screen{grid-template-columns:1fr}.entry{grid-template-columns:1fr;gap:2px}.source .tools,.sheet-head .tools,footer .tools{margin:0}.times{gap:6px}}
+</style></head><body><main>
+<header><span>DinkDonk Cinema</span><a href="./index.html">Projection booth</a></header><h1>Caption desk</h1>
+<div class="source"><strong id="title">Picture &amp; sound sync leader</strong><div class="tools"><label class="pick">Open local video<input type="file" accept="video/*" id="media"></label><button id="sample" type="button">Use sync leader</button></div></div>
+<div class="screen"><section aria-label="Caption preview"><video id="player" controls playsinline preload="auto"></video>
+<div class="transport"><output class="clock" id="clock">00:00:00.000</output><button id="earlier" type="button">−0.1 s</button><button id="later" type="button">+0.1 s</button></div>
+<p class="helper">Pause on a sound or line. Press I to mark its start and O to mark its end. Local videos open on this device.</p></section>
+<section class="edit"><h2 id="form-title">New caption</h2><div class="times">
+<div class="timefield"><label class="field" for="in">In</label><input class="time" id="in" spellcheck="false" value="00:00:00.000"><button id="mark-in" type="button">Mark in (I)</button></div>
+<div class="timefield"><label class="field" for="out">Out</label><input class="time" id="out" spellcheck="false" value="00:00:01.000"><button id="mark-out" type="button">Mark out (O)</button></div></div>
+<label class="field" for="words">Caption text</label><textarea id="words" rows="2"></textarea><div class="tools"><button class="primary" id="save" type="button">Add cue</button><button id="copy" type="button" hidden>Save as new</button><button id="new" type="button">New cue</button><button id="remove" type="button" disabled>Remove</button></div></section></div>
+<div class="sheet-head"><h2>Cue sheet</h2><div class="tools"><label class="pick">Import captions<input type="file" accept=".vtt,.srt,text/vtt" id="import"></label><button id="undo" type="button" disabled>Undo</button></div></div>
+<p id="status" role="status"></p><ol id="cues" aria-label="Timed captions"></ol><div id="pages" class="tools" hidden><button id="prev" type="button">Previous</button><span id="page"></span><button id="next" type="button">Next</button></div>
+<footer><span id="count">0 cues</span><div class="tools"><button id="vtt" type="button">Save WebVTT</button><button id="srt" type="button">Save SRT</button></div></footer>
+</main><script src="./caption-file.js"></script><script src="./captions.js"></script></body></html>
