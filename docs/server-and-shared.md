@@ -523,6 +523,10 @@ invite key (`DATA/room-state/<key>.json`).
   `reset` with `page: 'lobby'` clears the lobby.
 - `GET /ctl/room-state`: the room's counts for the panel. The leading screen (the OBS one, else the oldest) reports
   places and the pre-show state through its `/ctl/state` posts (its id is `Cinema.room.id`).
+- The experimental auditorium roster advertises `reentryPasses`. The panel sends `reentryPass` with the chatter's
+  name, the exact seat ID, and an explicit Boolean `away`. The room stores `steppedOut` on that roster entry and
+  sends every auditorium the accepted change. A restored room still holds the assigned seat. House out, removal
+  and reset release the reservation through their usual roster cleanup.
 
 ## Looked wrong or inconsistent (5 Nov 2026)
 

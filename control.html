@@ -689,7 +689,7 @@
     const stat = (label, value, ...notes) => div('stat', '', div('stat-l', label), div('stat-v', value), ...notes.map((t) => div('stat-s', t)));
     $('roomstate').replaceChildren(
       div('stats', '', stat('Lobby', String(r.lobby.people), r.lobby.people === 1 ? 'person' : 'people'),
-        stat('Auditorium', `${a.seated}/${a.seats}`, 'seated (front row: Yee only)', `${a.waiting} waiting outside`)),
+        stat('Auditorium', `${a.seated}/${a.seats}`, 'seats assigned (front row: Yee only)', `${a.waiting} waiting outside`, ...(a.held ? [`${a.held} held for re-entry`] : []))),
       div('room-note', `Walk in: ${r.tag ? `chatters who tag ${r.tag}` : 'everyone who chats'}${r.fromPanel ? '' : ' (from the screen links; Set overrides them)'}`
         + ` · ${n} screen${n === 1 ? '' : 's'} on the room. The room keeps filling with no screen open.`));
     if (!whoEdited) { $('who').value = r.tag ? 'tag' : 'everyone'; $('whonick').value = r.tag || ''; $('whonick').hidden = !r.tag; }
@@ -1089,6 +1089,8 @@
       if (tr.cells[1].textContent !== (c.emote || '')) tr.cells[1].textContent = c.emote || '';
       if (tr._pill.textContent !== c.status) tr._pill.textContent = c.status;
       tr._follow.disabled = blocked || c.status === 'waiting outside';
+      const followLabel = c.status === 'outside on re-entry pass' ? 'Show held seat' : 'Follow';
+      if (tr._follow.textContent !== followLabel) tr._follow.textContent = followLabel;
       tr._reedu.hidden = !YEE_LOOKS.has(c.emote);   // lobby and auditorium (owner, 16 Nov 2026)
       tr._reedu.disabled = blocked;
       // Preserve button identity while someone is pressing it during a one-second state refresh.
@@ -1263,9 +1265,10 @@
   <input id="plan-name" type="search" list="plan-names" placeholder="Chatter name" autocomplete="off" maxlength="40">
   <datalist id="plan-names"></datalist>
   <p id="plan-selection" role="status">Select a seat or enter a name.</p>
+  <button id="plan-pass" type="button" hidden>Step out and hold seat</button>
   <p class="plan-screen">Screen</p>
   <div id="plan-rows" role="group" aria-label="Auditorium seats"></div>
-  <p class="plan-legend"><span class="plan-assigned">Assigned</span><span class="plan-free">Unassigned</span></p>
+  <p class="plan-legend"><span class="plan-assigned">Assigned</span><span class="plan-free">Unassigned</span><span id="plan-held-key" hidden>Held for re-entry</span></p>
   <p id="plan-count"></p><p id="plan-status" role="status"></p>
 </dialog>
 </body>

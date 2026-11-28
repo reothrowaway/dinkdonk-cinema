@@ -166,7 +166,7 @@
     const emote = [e.emote, ...(e.alt || []).filter((a) => !YEE_LOOKS.has(a))].filter(Boolean).find(okAvatar) || defaultEmote(e.nick);
     return { nick: e.nick, emote, tokens: m.tokens, text: m.text, color: m.color, rainbow: m.rainbow, sub: m.sub,
       ts: e.last || Date.now(), roomIndex: e.roomIndex ?? 0, detour: e.detour ?? null, features: m.features,
-      seed: e.seed >>> 0, seat: e.seat ?? null, place: e.place ?? null, at: e.at, follow: !!ev.follow,
+      seed: e.seed >>> 0, seat: e.seat ?? null, steppedOut: e.steppedOut === true, place: e.place ?? null, at: e.at, follow: !!ev.follow,
       again: !!ev.again, say: !!ev.say, room: true };
   }
   function roomEvent(ev) {

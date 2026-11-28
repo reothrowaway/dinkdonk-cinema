@@ -77,6 +77,8 @@ Play **Which came out first?** at `/concepts/preshow-quiz/index.html` before the
 
 Open **Seating plan** in the control panel's Room card to find a chatter by name or inspect any seat. The chart uses the auditorium's actual rows and aisle gaps. Seats are counted from the left within each block, facing the screen. The room assigns seats before guests finish walking to them. Use the arrow keys to move between seats and Enter to select one. The chart refreshes while it is open.
 
+Choose an assigned seat and **Step out and hold seat** to issue a re-entry pass. The guest walks out through the entrance and a paper **HELD** card marks their seat. Choose **Show held seat** beside their name in the people list to frame the empty chair. **Return to seat** in the seating plan brings them back to the same place. If you recall them while they are leaving, they finish the outbound walk and come back. The shared room remembers the reservation for screens opened later.
+
 By default only chatters who tag the streamer's DGG name walk in. `everyone=1` lets all chatters in. When the owner
 is shown a scene (a screenshot or a link), it is always with `everyone=1` and real chat, never the scripted
 `demo=1`.

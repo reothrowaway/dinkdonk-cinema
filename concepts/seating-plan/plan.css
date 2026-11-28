@@ -13,11 +13,13 @@
 .plan-seats { position: relative; height: clamp(26px, 4vw, 36px) }
 #seating-plan .plan-seat { position: absolute; margin: 0; padding: 0; height: 88%; min-height: 0; min-width: 0; transform: translateX(-50%); border-radius: 4px 4px 2px 2px; border: 1px solid #7d8a9e; border-bottom-width: 3px; background: transparent; color: #f4f8fc; font: bold 11px/1 sans-serif }
 #seating-plan .plan-seat.assigned { background: #38556c; border-color: #85b4d5 }
+#seating-plan .plan-seat.held { border-style:dashed; border-color:#f6c568 }
 #seating-plan .plan-seat[aria-pressed="true"] { outline: 2px solid #f6c568; outline-offset: 1px; color: #241903; background: #f6c568; border-color: #f6c568 }
 #seating-plan :focus-visible { outline: 3px solid white; outline-offset: 1px }
 .plan-legend { display: flex; gap: 18px; margin: 16px 0 4px; font-size: 13px }
 .plan-legend span::before { content: ''; display: inline-block; width: .8em; height: .8em; margin-right: 6px; border: 1px solid #7d8a9e; border-bottom-width: 3px; vertical-align: -.1em }
 .plan-assigned::before { background: #38556c }
+#plan-held-key::before { border:1px dashed #f6c568; background:#38556c }
 #plan-count, #plan-status { margin: 5px 0 0; font-size: 13px; color: #bfccd9 }
 #plan-status:empty { display: none }
 @media (max-width: 600px) {

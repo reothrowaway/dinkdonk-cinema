@@ -196,6 +196,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     return { t: 'snapshot', page, now: Date.now(), roster: P.roster.map(publicEntry),
       director: { on: d.on, every: d.every, zoom: d.zoom, wantNext: d.wantNext },
       show: page === 'auditorium' ? { ...P.show } : undefined,   // (fullAt in server time: see now)
+      reentryPasses: page === 'auditorium' || undefined,
       settings: { tag: state.settings.tag || null }, lead: lead[page] };
   }
 
@@ -414,7 +415,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         if (page === 'lobby' && e.reeducated && PEPE_OF[e.emote]) e.emote = PEPE_OF[e.emote];   // reeducated stays reeducated
         emit(page, { t: 'walk', e, again: true, follow: false, say });
         // a seated / present chatter who talks about the vote: the director goes to them (every screen)
-        if ((page === 'lobby' || e.seat) && voteFollow(page, text)) emit(page, { t: 'follow', nick: e.nick });
+        if ((page === 'lobby' || (e.seat && !e.steppedOut)) && voteFollow(page, text)) emit(page, { t: 'follow', nick: e.nick });
         changed();
         continue;
       }
@@ -489,12 +490,20 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'next': d.wantNext = true; break;
       case 'wide': d.wantNext = false; break;
       case 'random': {
-        const list = page === 'auditorium' ? P.roster.filter((e) => e.seat) : P.roster;
+        const list = page === 'auditorium' ? P.roster.filter((e) => e.seat && !e.steppedOut) : P.roster;
         const pick = list[Math.floor(Math.random() * list.length)];
         if (pick) emit(page, { t: 'follow', nick: pick.nick });
         break;
       }
       case 'remove': removeEntry(page, key, 'panel'); break;
+      case 'reentryPass': {
+        const e = page === 'auditorium' && find(page, key);
+        if (!e || P.show.houseOut || !e.seat || e.seat !== c.seat || typeof c.away !== 'boolean' || !!e.steppedOut === c.away) return;
+        if (c.away) e.steppedOut = true;
+        else delete e.steppedOut;
+        emit(page, {t:'reentryPass', nick:e.nick, seat:e.seat, away:c.away});
+        break;
+      }
       // the leading auditorium screen's usher kicked them, or a dozer went home (?leave=)
       case 'kicked': removeEntry(page, key, c.why === 'home' ? 'home' : 'kicked'); break;
       // a lobby screen saw them leave on their own (in through a door, home, on the bus, run over): the room forgets
@@ -517,7 +526,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         // lobby.html, auditorium.html)
         const e = find(page, key);   // lobby and auditorium (owner, 16 Nov 2026: the auditorium too)
         const to = e && PEPE_OF[e.emote];
-        if (!to) break;
+        if (!to || e.steppedOut) break;
         const from = e.emote;
         e.emote = to;
         e.reeducated = true;
@@ -536,7 +545,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
           const free = all.filter((x) => x.ri !== 0 && !taken.has(x.id)).sort((a, b) => dist(a) - dist(b));
           if (free.length) move = { seat: free[0].id };
           else {
-            const victims = roster.filter((x) => x !== e && x.seat && !isPepeLook(x.emote) && !x.reeducated && seatOf(x.seat)?.ri !== 0);
+            const victims = roster.filter((x) => x !== e && x.seat && !x.steppedOut && !isPepeLook(x.emote) && !x.reeducated && seatOf(x.seat)?.ri !== 0);
             const v = victims[Math.floor(Math.random() * victims.length)];
             if (v) {
               move = { seat: v.seat, kick: v.nick };
@@ -579,7 +588,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         for (const e of P.roster) {
           if (!front.length) break;
           const cur = e.seat && YEE_EMOTES.has(e.emote) ? seatOf(e.seat) : null;
-          if (!cur || cur.ri === 0) continue;
+          if (!cur || cur.ri === 0 || e.steppedOut) continue;
           front.sort((a, b) => Math.abs(a.u - cur.u) - Math.abs(b.u - cur.u));
           e.seat = front.shift().id;
           emit('auditorium', { t: 'seat', nick: e.nick, seat: e.seat, move: true });
@@ -692,7 +701,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     const A = state.pages.auditorium;
     return { tag: state.settings.tag || null, fromPanel: !!state.settings.fromPanel,
       lobby: { people: state.pages.lobby.roster.length, screens: subs.lobby.size },
-      auditorium: { seated: A.roster.filter((e) => e.seat).length, waiting: A.roster.filter((e) => !e.seat).length,
+      auditorium: { seated: A.roster.filter((e) => e.seat).length, held: A.roster.filter(e => e.seat && e.steppedOut).length, waiting: A.roster.filter((e) => !e.seat).length,
         seats: getSeats()?.length || 0, screens: subs.auditorium.size, show: { ...A.show } } };
   }
 

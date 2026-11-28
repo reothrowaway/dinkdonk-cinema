@@ -5,6 +5,7 @@
   const chairs = new Map();
   let rows = [], members = new Map(), occupants = new Map();
   let selection = '', tabSeat = '', lastNames = '', timer, request, observed = false;
+  let passes = false, saving = false, selectedMember = null;
 
   const label = seat => 'Row ' + seat.row + ' · ' + seat.block + ' block · seat ' + seat.number + ' from the left';
 
@@ -60,11 +61,18 @@
     const member = members.get(query);
     const seat = chairs.get(query ? member?.seat : selection);
     const occupant = occupants.get(seat?.id);
+    selectedMember = occupant ? members.get(occupant.toLowerCase()) : null;
     let message = 'Select a seat or enter a name.';
     if (!observed) message = 'Waiting for the first room snapshot.';
-    else if (seat) message = label(seat) + ' — ' + (occupant || 'unassigned') + '.';
+    else if (seat) message = label(seat) + ' — ' + (occupant || 'unassigned') + (selectedMember?.away ? ' (seat held on a re-entry pass)' : '') + '.';
     else if (query) message = member ? member.nick + (member.seat ? ' has an assignment outside this layout.' : ' is waiting for a seat.') : 'No exact match in the room.';
     if (get('plan-selection').textContent !== message) get('plan-selection').textContent = message;
+    const action = get('plan-pass');
+    if (action) {
+      action.hidden = !passes || !selectedMember;
+      action.disabled = saving;
+      action.textContent = selectedMember?.away ? 'Return to seat' : 'Step out and hold seat';
+    }
     for (const chair of chairs.values()) {
       const value = String(chair.id === seat?.id);
       if (chair.button.getAttribute('aria-pressed') !== value) chair.button.setAttribute('aria-pressed', value);
@@ -77,20 +85,23 @@
     members = new Map();
     occupants = new Map();
     let waiting = 0, unknown = 0;
-    for (const {nick, seat} of snapshot.roster) {
+    passes = snapshot.reentryPasses === true && !snapshot.show?.houseOut;
+    for (const {nick, seat, steppedOut} of snapshot.roster) {
       if (typeof nick !== 'string' || !nick) continue;
-      members.set(nick.toLowerCase(), {nick, seat});
+      members.set(nick.toLowerCase(), {nick, seat, away:steppedOut === true});
       if (chairs.has(seat)) occupants.set(seat, nick);
       else if (seat) unknown++;
       else waiting++;
     }
     for (const chair of chairs.values()) {
       const occupant = occupants.get(chair.id);
-      const title = label(chair) + ' — ' + (occupant || 'unassigned');
+      const away = occupant && members.get(occupant.toLowerCase()).away;
+      const title = label(chair) + ' — ' + (occupant || 'unassigned') + (away ? ' (seat held)' : '');
       if (chair.button.title !== title) {
         chair.button.title = title;
         chair.button.setAttribute('aria-label', title);
         chair.button.classList.toggle('assigned', Boolean(occupant));
+        chair.button.classList.toggle('held', Boolean(away));
       }
     }
     const names = Array.from(members.values(), e => e.nick).sort((a,b) => a.localeCompare(b));
@@ -99,7 +110,9 @@
       get('plan-names').replaceChildren(...names.map(nick => new Option(nick, nick)));
       lastNames = signature;
     }
-    get('plan-count').textContent = occupants.size + ' of ' + chairs.size + ' seats assigned · ' + waiting + ' waiting' + (unknown ? ' · ' + unknown + ' outside this layout' : '');
+    const held = [...members.values()].filter(m => m.away).length;
+    if (get('plan-held-key')) get('plan-held-key').hidden = !held;
+    get('plan-count').textContent = occupants.size + ' of ' + chairs.size + ' seats assigned' + (held ? ' · ' + held + ' held for re-entry' : '') + ' · ' + waiting + ' waiting' + (unknown ? ' · ' + unknown + ' outside this layout' : '');
     observed = true;
     describe();
   }
@@ -139,7 +152,11 @@
       update(snapshot);
       get('plan-status').textContent = '';
     } catch {
-      if (request === active) get('plan-status').textContent = (observed ? 'Showing the last room snapshot. ' : '') + 'Room data unavailable. Retrying…';
+      if (request === active) {
+        passes = false;
+        describe();
+        get('plan-status').textContent = (observed ? 'Showing the last room snapshot. ' : '') + 'Room data unavailable. Retrying…';
+      }
     } finally {
       clearTimeout(timeout);
       if (request === active) {
@@ -183,7 +200,30 @@
       rowsEl.scrollLeft += offset - (rowsEl.clientWidth - selected.offsetWidth) / 2;
     }
   });
+  get('plan-pass')?.addEventListener('click', async () => {
+    if (saving || !passes || !selectedMember) return;
+    const {nick, seat, away} = selectedMember;
+    saving = true;
+    describe();
+    try {
+      const response = await fetch('/ctl/cmd', {method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({page:'auditorium',cmd:'reentryPass',nick,seat,away:!away}), signal:AbortSignal.timeout(5000)});
+      if (!response.ok) throw new Error();
+      await refresh();
+      const current = members.get(nick.toLowerCase());
+      if (dialog.open && (!current || current.seat !== seat || current.away === away))
+        get('plan-status').textContent = 'The room could not confirm that pass change.';
+    } catch {
+      await refresh();
+      if (dialog.open) get('plan-status').textContent = 'Check the seat status. The pass request could not be confirmed.';
+    } finally {
+      saving = false;
+      describe();
+    }
+  });
   get('open-seating-plan').addEventListener('click', () => {
+    passes = false;
+    describe();
     dialog.showModal();
     search.focus();
     refresh();

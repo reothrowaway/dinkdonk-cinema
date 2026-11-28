@@ -148,6 +148,8 @@
   .festival-mic { position:absolute; z-index:4; width:7px; height:24px; background:#25262b; border:1px solid #e2d6ac;
     border-radius:3px; transform:rotate(var(--angle,15deg)); transform-origin:50% 80%; pointer-events:none }
   .festival-mic i { position:absolute; display:block }
+  .seat-pass { position:absolute; pointer-events:none; padding:2px 4px; border:1px solid #6d4d26; border-radius:2px; color:#392813;
+    background:#f3d899; box-shadow:0 1px 2px #1e1423; font:bold 10px/1 "Courier New",monospace; transform:translate(-50%,-100%) rotate(-8deg) }
   .mic-grille { left:-3px; top:-6px; width:11px; height:12px; border:1px solid #21222a; border-radius:50%;
     background:repeating-linear-gradient(25deg,#a8afad 0 1px,#495356 1px 2px) }
   .mic-flag { left:-4px; top:5px; width:13px; height:9px; background:#f5cf6b; border:1px solid #362a23; color:#291f23; text-align:center; font:bold 8px/9px Arial,sans-serif }
@@ -1649,7 +1651,7 @@
     if (guests() >= seats.length) return false;
     const portal = CORRIDOR[0] || L.walk_route.rear_portal_to_cross_aisle[0];
     for (const w of walkers.values()) {
-      if (!w.sitting && Math.hypot(w.pos[0] - portal[0], w.pos[1] - portal[1], (w.pos[2] - portal[2]) / 60) < WALK_GAP) return false;
+      if (w.passStage !== 'outside' && !w.sitting && Math.hypot(w.pos[0] - portal[0], w.pos[1] - portal[1], (w.pos[2] - portal[2]) / 60) < WALK_GAP) return false;
     }
     // shared room: the server picked the seat (waiting outside until it has one); a seat already taken here (this
     // screen drifted) falls back to the page's own choice
@@ -1669,6 +1671,7 @@
     pendingSpeech(w, m.tokens);
     pendingSpeech(w, m.more);
     walkers.set(w.key, w);
+    w.passWanted = m.steppedOut === true;
     directorArrival(w, m);
     return true;
   }
@@ -1682,7 +1685,7 @@
     if (m.emote === 'MOPPING') { onModMessage({ ...m, nick, features: ['moderator'] }); return; }
     m = { nick, emote: m.emote || Cinema.defaultEmote(nick), text: String(m.text || '').slice(0, 512),
       tokens: shortTokens(m.tokens), color: m.color, rainbow: !!m.rainbow,
-      room: !!m.room, seat: m.seat ?? null, seed: m.seed, follow: !!m.follow };
+      room: !!m.room, seat: m.seat ?? null, steppedOut: m.steppedOut === true, seed: m.seed, follow: !!m.follow };
     const key = nick.toLowerCase();
     const w = walkers.get(key);
     if (!w) {
@@ -1697,7 +1700,7 @@
       } else { if (m.tokens.length) queued.more = m.tokens; queued.color = m.color; queued.rainbow = m.rainbow; queued.at = now; if (m.seat) queued.seat = m.seat; }
       return;
     }
-    if (w.out) return;   // on their way out (banned / muted)
+    if (w.out || w.passStage === 'outside') return;
     nameStyle(w, m);
     if (!m.tokens?.length) return;
     // they talk wherever they are; only someone out of sight (in the tunnel) saves it for when they come out
@@ -1706,6 +1709,7 @@
   }
 
   function removeWalker(w) {
+    w.passCard?.remove();
     if (director.follow?.w === w) endFollow();
     dropBubble(w);
     w.el.remove();
@@ -2214,6 +2218,86 @@
     const exit = exitRoute(seat);
     goOut(t, exit, removeWalker);
     return exit;
+  }
+
+  function markHeld(w) {
+    if (w.passCard) return;
+    const s = w.seat, z = s.z + BACK_Z + 1;
+    const [x, y] = P(s.u, s.v + BACK_DV, z);
+    const card = h('span', 'seat-pass', 'HELD');
+    card.style.left = x + 'px';
+    card.style.top = y + 'px';
+    card.style.zIndex = String(depthZ(s.u, s.v + BACK_DV, z) + 2);
+    card.setAttribute('aria-hidden','true');
+    w.passCard = world.appendChild(card);
+  }
+
+  function returnFromPass(w) {
+    w.passStage = 'returning';
+    w.leaving = w.exiting = false;
+    w.el.hidden = w.nm.hidden = false;
+    w.wait = 0;
+    w.alpha = 0;
+    w.lastMsg = performance.now();
+    if (director.follow?.w === w) director.follow.endAt = 0;
+    go(w, routeTo(w.seat), null);
+    enterVia(w, w.path);
+  }
+
+  function waitOutside(w) {
+    if (houseOut) { removeWalker(w); return; }
+    if (!w.passWanted) { returnFromPass(w); return; }
+    w.passStage = 'outside';
+    w.leaving = true;
+    w.sitting = w.seen = w.nameWant = false;
+    w.alpha = 0;
+    w.el.hidden = w.nm.hidden = true;
+    w.el.classList.remove('sit');
+    w.pending.length = 0;
+    dropBubble(w);
+    if (director.follow?.w === w) {
+      if (director.follow.manual) director.follow.endAt = 0;
+      else endFollow();
+    }
+    rowLight(w);
+    markHeld(w);
+  }
+
+  function stepOut(w) {
+    if (!w.sitting || w.out || w.leaving || w.reeducating || w.pendingSeat || hall.snacker === w || houseOut) return;
+    w.passStage = 'leaving';
+    if (director.follow?.w === w && director.follow.manual) director.follow.endAt = 0;
+    w.leaving = true;
+    doze(w, false);
+    dropBubble(w);
+    w.pending.length = 0;
+    if (w.phone) w.phone.classList.remove('on');
+    w.texting = false;
+    markHeld(w);
+    standUp(w);
+    w.onArrive = waitOutside;
+  }
+
+  function applyPass(w, away) {
+    w.passWanted = away;
+    if (!away && w.passStage === 'outside') returnFromPass(w);
+    else if (away && !w.passStage) stepOut(w);
+  }
+
+  function closeReentryPasses() {
+    for (const w of walkers.values()) {
+      w.passWanted = false;
+      if (w.passStage === 'outside') { removeWalker(w); continue; }
+      if (!w.passStage) continue;
+      w.passCard?.remove();
+      w.passCard = null;
+      if (w.passStage === 'returning') {
+        w.leaving = true;
+        w.wait = 0;
+        goOut(w, [[...w.pos], ...w.path.slice(0, w.seg + 1).reverse()], removeWalker);
+      } else w.onArrive = removeWalker;
+      w.passStage = null;
+    }
   }
 
   // Someone seated moves to another seat (the panel's "Yee to the front", owner 11 Nov 2026; the room picks the seat):
@@ -2923,6 +3007,8 @@
     // other in the aisle for good
     const ahead = [], aheadOut = [];
     for (const w of walkers.values()) {
+      if (w.passStage === 'outside') { if (houseOut) removeWalker(w); continue; }
+      if (w.passWanted && !w.passStage && w.sitting) stepOut(w);
       const line = w.leaving && !w.jan ? aheadOut : ahead;
       step(w, dt, w.usher ? [] : line);
       if (!w.sitting && !w.usher) line.push(w);
@@ -3006,6 +3092,11 @@
       } else if (!b) {
         // arrived at the legroom in front of the seat: sit down, facing the screen (up and to the right)
         w.sitting = true;
+        if (w.passStage === 'returning') {
+          w.passStage = null;
+          w.passCard?.remove();
+          w.passCard = null;
+        }
         w.el.classList.add('sit');
         rowLight(w);
         w.pos = [w.seat.u, w.seat.v + SIT_DV, w.seat.z + SIT_Z];
@@ -3181,7 +3272,7 @@
   }
   const MANUAL_HOLD = clamp(Number(q.get('followhold')) || 15, 3, 120) * 1000;   // ?followhold=<s>: a hand-picked follow on a seated chatter
   function startFollow(w, manual = true) {
-    if (!w || !walkers.has(w.key)) return;
+    if (!w || !walkers.has(w.key) || (!manual && w.passStage === 'outside')) return;
     if (preshowEvents?.playing()) { if (!manual) return; preshowEvents.interrupt(); }
     director.follow = { w, manual, since: performance.now(), lx: null, ly: null, ax: 0, ay: 0, tx: null, ty: null, endAt: 0 };
     director.wantNext = false;
@@ -3199,7 +3290,7 @@
   }
   function followSomeone(nick) {
     const key = nick?.toLowerCase();
-    const list = [...walkers.values()].filter((w) => (!key || w.key === key));
+    const list = [...walkers.values()].filter((w) => (!key ? w.passStage !== 'outside' : w.key === key));
     if (list.length) startFollow(list[Math.floor(Math.random() * list.length)]);
     return list.length > 0;
   }
@@ -3515,10 +3606,11 @@
       const w = f.w;
       // a seated chatter: the director's own follow lets go after 3 s; one asked for by hand (a name in the panel, "follow
       // someone") stays on them a while, also when they were already sitting (owner, 15 Nov 2026)
-      if (!f.endAt && (w.sitting || !walkers.has(w.key) || now - f.since > 150000)) f.endAt = now + (w.sitting ? (f.manual ? MANUAL_HOLD : 3200) : 0);
+      const atSeat = w.sitting || w.passStage === 'outside';
+      if (!f.endAt && (atSeat || !walkers.has(w.key) || now - f.since > 150000)) f.endAt = now + (atSeat ? (f.manual ? MANUAL_HOLD : 3200) : 0);
       if (f.endAt && now >= f.endAt) endFollow();
       else {
-        const pos = w.seen === false ? [2.1, 9.4, 8] : w.pos;
+        const pos = w.passStage === 'outside' ? [w.seat.u, w.seat.v + SIT_DV, w.seat.z + SIT_Z] : w.seen === false ? [2.1, 9.4, 8] : w.pos;
         const [x, foot] = P(...pos);
         const y = foot - w.emH * 0.7;
         // lead the shot a little in the walking direction (smoothed velocity)
@@ -3573,6 +3665,7 @@
 
   // ---------- control panel (control.html) through the standby server ----------
   function statusOf(w) {
+    if (w.passStage) return ({leaving:'stepping out', outside:'outside on re-entry pass', returning:'returning to seat'})[w.passStage];
     if (w.usher) return w.task === 'kick' ? 'usher, kicking someone out' : w.task === 'spot' ? 'usher, going to a talker' : w.leaving ? 'usher, leaving' : 'usher';
     if (w.jan) return w.task === 'escort' ? 'janny, escorting' : w.task === 'shush' ? 'janny, shushing' : w.leaving ? 'janny, clocking off' : 'janny';
     if (w.out) return w.outWhy === 'kicked' ? 'kicked by the usher' : w.sitting ? 'banned/muted, waiting for a janny' : 'banned/muted, leaving';
@@ -3684,7 +3777,7 @@
       // House lights up while the film keeps playing (on: false dims them again)
       case 'lights': show.lightsOn = !!c.on && show.phase === 'film'; applyPhase(); break;
       // Show over: everyone stands up and leaves, new arrivals wait until the next Seating (on: false stops it)
-      case 'houseOut': houseOut = !!c.on; nextLeaver = 0; break;
+      case 'houseOut': houseOut = !!c.on; nextLeaver = 0; if (houseOut) closeReentryPasses(); break;
       case 'reset': show.intermissionUntil = 0; applyPhase(); resetHall(); break;
       case 'remove': removeNick(key); break;
       case 'reeducate': if (!inRoom()) reeducate(key); break;   // (in the room it comes back as a room event, on every screen)
@@ -3749,6 +3842,7 @@
     SB.faceEmote(w.em, w.emName, 1);
     placeItem(w);
     walkers.set(w.key, w);
+    if (m.steppedOut) { w.passWanted = true; waitOutside(w); }
     return true;
   }
   // the room's screen picker and litter clock (fullAt is server time: shift it by the server's clock offset)
@@ -3767,7 +3861,7 @@
     if (s) {
       if (s.phase !== show.phase) setPhase(s.phase);
       Object.assign(show, { shot: s.shot, lightsOn: !!s.lightsOn, auto: !!s.auto });
-      if (houseOut !== !!s.houseOut) { houseOut = !!s.houseOut; nextLeaver = 0; }
+      if (houseOut !== !!s.houseOut) { houseOut = !!s.houseOut; nextLeaver = 0; if (houseOut) closeReentryPasses(); }
       roomShow(s, ev.now);
       applyPhase();
     }
@@ -3781,13 +3875,13 @@
     }
     const want = new Map(ev.roster.map((m) => [m.nick.toLowerCase(), m]));
     // gone from the room while this screen was away: out (staff and anyone already leaving stay)
-    for (const w of [...walkers.values()]) if (!w.jan && !w.usher && !w.out && !w.leaving && !want.has(w.key)) removeWalker(w);
+    for (const w of [...walkers.values()]) if (!w.jan && !w.usher && !w.out && (!w.leaving || w.passStage) && !want.has(w.key)) removeWalker(w);
     for (let i = arrivals.length - 1; i >= 0; i--) if (!want.has(arrivals[i].nick.toLowerCase())) arrivals.splice(i, 1);
     const now = performance.now();
     for (const [key, m] of want) {
-      if (walkers.has(key)) continue;
+      if (walkers.has(key)) { applyPass(walkers.get(key), m.steppedOut === true); continue; }
       const queued = arrivals.find((a) => a.nick.toLowerCase() === key);
-      if (queued) { queued.seat = m.seat; continue; }
+      if (queued) { queued.seat = m.seat; queued.steppedOut = m.steppedOut === true; continue; }
       if (m.seat && seatNow(m)) continue;
       arrivals.push({ ...shortMsg(m), at: now });   // waiting outside, or a seat this screen has taken already
     }
@@ -3797,6 +3891,15 @@
     const key = String(ev.nick || '').toLowerCase();
     switch (ev.t) {
       case 'snapshot': applySnapshot(ev); break;
+      case 'reentryPass': {
+        const w = walkers.get(key);
+        if (w) applyPass(w, ev.away === true);
+        const queued = arrivals.find(a => a.nick.toLowerCase() === key);
+        if (queued) queued.steppedOut = ev.away === true;
+        const early = pendingSnapshot?.roster.find(m => m.nick.toLowerCase() === key);
+        if (early) early.steppedOut = ev.away === true;
+        break;
+      }
       case 'show': if (ev.show) { roomShow(ev.show, ev.now); applyPhase(); } break;
       case 'seat': {
         const a = arrivals.find((x) => x.nick.toLowerCase() === key);
@@ -3819,6 +3922,7 @@
       case 'clear': resetHall(); break;
       case 'remove': {
         const w = walkers.get(key);
+        if (w?.passStage || w?.passWanted) { removeNick(key); break; }
         // the leading screen's usher kicked them (or they went home): the same exit here, without the usher
         if ((ev.why === 'kicked' || ev.why === 'home') && w && w.sitting && !w.out) {
           goingOut(w, ev.why === 'kicked' ? '🔦 kicked' : '💤 heading home');
@@ -3877,7 +3981,7 @@
       const down = $('stage').classList.contains('lights-down');
       const out = [];
       for (const w of walkers.values()) {
-        if (!w.pos || !w.em) continue;
+        if (!w.pos || !w.em || w.passStage === 'outside') continue;
         const items = [];
         for (const im of [w.item, w.cap]) {
           if (!im || im.style.display === 'none' || !im.litSrc) continue;
