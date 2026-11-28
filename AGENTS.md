@@ -128,11 +128,12 @@ folder on the same PC, often at the same time.
   left, and hand the job (or a self-contained part of it) to the other agent when its side has more room.
 - **Claude orchestrates** (owner, 28 Nov 2026). Claude Code (Opus 5.5) is the main orchestrator: it plans the work,
   divides it between itself and Astra along the line above, hands Astra its briefs and checks the results.
-  An Astra job runs in the **Codex app** with GPT-6.2 Astra (high effort, normal speed), owner, 28 Nov 2026. The
-  owner's ChatGPT account offers `gpt-6.2-astra` only to the app; the Codex CLI (`codex exec`) stops at the older
-  `gpt-6-astra`, so Claude doesn't start Astra jobs from the CLI. Claude writes the brief (`roxy3d/ASTRA-NN-*.md`) on
-  the job's own branch and worktree and gives the owner a one-line prompt to send in the app. Follow-ups go to the
-  same app thread, so Astra keeps its context. Astra ends with a STATUS line; Claude then checks the result.
+  Claude runs an Astra job with `codex exec` (owner, 28 Nov 2026): model `gpt-6.2-astra`, high effort, default
+  service tier, from a brief file (`roxy3d/ASTRA-NN-*.md`) on the job's own branch and worktree. GPT-6.2 Astra needs
+  Codex CLI 0.172 or newer (0.159 and 0.167 were refused); run `codex update` from PowerShell, not Git Bash, if the
+  CLI falls behind. Each job keeps one Codex session: Claude notes the session id in `PROGRESS.md` and sends
+  follow-ups with `codex exec resume <id>`, so Astra keeps its context. Astra ends with a STATUS line; Claude then
+  checks the result. A new job starts a new session that reads this file, `PROGRESS.md` and its brief.
 - **Watch Astra's weekly usage** (owner, 28 Nov 2026). Claude checks the Codex weekly usage
   (`bash roxy3d/tools/codex-usage.sh`) before handing Astra a job, when it reports progress, and at least once per
   working session. As soon as less than 10% remains (90% or more used), Claude tells the owner so the owner can act.
