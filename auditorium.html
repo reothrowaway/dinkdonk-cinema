@@ -84,6 +84,8 @@
   #house-curtain.closed > i { transform:scaleX(1) }
   @media (prefers-reduced-motion:reduce) { #house-curtain, #house-curtain > i { transition:none } }
   #preshow.framing { background: #060708; filter: none }
+  #ps-notice { position:absolute; inset:0; z-index:5 }
+  #preshow.with-notice > :not(#ps-notice) { display:none }
   #preshow.framing::after, #preshow.framing > :not(#ps-chart) { display: none }
   #ps-chart { position:absolute; top:50%; left:0; transform:translateY(-50%); width:100%; aspect-ratio:1.85;
     box-shadow:inset 0 0 0 4px #f8f5e9; color:#f8f5e9; text-align:center; font: bold 26px/1.15 Arial,sans-serif;
@@ -389,6 +391,8 @@
       <section id="ps-break" hidden><h2>Intermission</h2><strong id="ps-break-time"></strong>
         <p id="ps-break-caption">Time remaining</p></section>
       <div id="ps-pops"></div>
+      <section class="lantern-slide" id="ps-notice" hidden><div class="lantern-words">
+        <small>House notice</small><strong id="ps-notice-text"></strong></div></section>
       <div id="ps-chart" hidden><div id="chart-marks"></div><strong id="chart-format"></strong>
         <span id="chart-key">Solid 2% · Dashed 5%</span></div>
     </div>
@@ -400,6 +404,8 @@
 </div>
 <script>window.DD_ROOM_CAPS = 'vote';   // room events this page plays (queue 50; shared/cinema.js)</script>
 <script>window.DD_ROOM_PAGE = 'auditorium';   // shared room (web/PLAN-shared-rooms.md); ?room=0 turns it off</script>
+<link rel="stylesheet" href="shared/house-notice.css">
+<script src="shared/house-notice.js"></script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="concepts/preshow-quiz/deck.js"></script>
@@ -561,6 +567,11 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    const notice = !green && !show.intermissionUntil && show.screen === 'notice' && !!show.noticeText;
+    $('preshow').classList.toggle('with-notice', notice);
+    $('ps-notice').hidden = !notice;
+    $('ps-notice').classList.toggle('long', (show.noticeText || '').length > 56);
+    if ($('ps-notice-text').textContent !== (show.noticeText || '')) $('ps-notice-text').textContent = show.noticeText || '';
     const curtain = $('house-curtain');
     const closeCurtain = show.screen === 'curtain' && !show.intermissionUntil && !alwaysGreen;
     if (closeCurtain) curtain.classList.add('used');
@@ -3777,16 +3788,17 @@
         // Film again after Movie / Film outro: push in now (the lights are already down, so no 10 s wait)
         const again = c.value === 'film' && show.phase === 'film' && (show.shot !== 'push' || show.lightsOn);
         if (c.value === show.phase) show.lightsOn = false;   // the phase's own button dims the house lights again
-        if (c.value === 'film') { show.screen = 'auto'; show.intermissionUntil = 0; }   // Film puts the film on the screen
+        if (c.value === 'film') { HouseNotice.forget(show); show.screen = 'auto'; show.intermissionUntil = 0; }   // Film puts the film on the screen
         setPhase(c.value, true);
         if (again) { director.screenAt = now; director.outro = false; endFollow(); pushWanted = true; }
         show.shot = 'push';
         break;
       }
       // Movie: the film starts on the screen with no push in (the wide shot stays; follows still work)
-      case 'movie': show.intermissionUntil = 0; show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
+      case 'movie': HouseNotice.forget(show); show.intermissionUntil = 0; show.screen = 'auto'; setPhase('film', true); director.screenAt = 0; director.outro = false; show.shot = 'movie'; break;
       // the panel's screen picker (the room sends the same as a 'show' event)
-      case 'screen': if (screenChoices.includes(c.value)) { show.intermissionUntil = 0; show.screen = c.value; applyPhase(); } break;
+      case 'screen': if (screenChoices.includes(c.value)) { HouseNotice.forget(show); show.intermissionUntil = 0; show.screen = c.value; applyPhase(); } break;
+      case 'houseNotice': if (HouseNotice.apply(show, c)) applyPhase(); break;
       case 'intermission':
         // A shared room broadcasts one authoritative deadline; isolated and older screens use the local clock.
         if (!(inRoom() && roomHasBreakClock) && [0, 5, 10, 15].includes(c.minutes)) {
@@ -3826,7 +3838,7 @@
       case 'lights': show.lightsOn = !!c.on && show.phase === 'film'; applyPhase(); break;
       // Show over: everyone stands up and leaves, new arrivals wait until the next Seating (on: false stops it)
       case 'houseOut': houseOut = !!c.on; nextLeaver = 0; if (houseOut) closeReentryPasses(); break;
-      case 'reset': show.intermissionUntil = 0; applyPhase(); resetHall(); break;
+      case 'reset': HouseNotice.apply(show, {withdraw:true}); show.intermissionUntil = 0; applyPhase(); resetHall(); break;
       case 'remove': removeNick(key); break;
       case 'reeducate': if (!inRoom()) reeducate(key); break;   // (in the room it comes back as a room event, on every screen)
       case 'add':
@@ -3895,7 +3907,10 @@
   }
   // the room's screen picker and litter clock (fullAt is server time: shift it by the server's clock offset)
   function roomShow(s, serverNow) {
-    if (screenChoices.includes(s.screen)) show.screen = s.screen;
+    if (s.screen === 'notice' && HouseNotice.text(s.noticeText)) {
+      show.screen = 'notice'; show.noticeText = HouseNotice.text(s.noticeText);
+      show.noticePrevious = screenChoices.includes(s.noticePrevious) ? s.noticePrevious : 'auto';
+    } else if (screenChoices.includes(s.screen)) { HouseNotice.forget(show); show.screen = s.screen; }
     if (typeof s.litter === 'boolean') show.litter = s.litter;
     const off = Number.isFinite(serverNow) ? Date.now() - serverNow : 0;
     roomHasBreakClock = Object.hasOwn(s, 'intermissionUntil');
@@ -3995,7 +4010,7 @@
         timedShow: preshowEvents && { event: preshowEvents.status().event, cue: preshowEvents.status().cue },
         settings: currentSettings(), urlSettings,   // the panel shows what this screen uses, and its URL's values
         preshow: { phase: show.phase, shot: show.shot, lightsOn: show.lightsOn, houseOut, auto: show.auto, download: show.download, alwaysGreen,
-          screen: show.screen, intermissionRemaining: breakSeconds(), litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
+          screen: show.screen, noticeText: show.noticeText || '', intermissionRemaining: breakSeconds(), litter: show.litter, litterIn: litterIn(), litterPieces: litterShown },
         house: { capacity: seats.length, occupied: guests(), waiting: arrivals.length, queueLimit: MAX_QUEUE },
         shots: window.DD_SHOTS?.state?.() || null,   // Brief 102: the panel enables T1 / T2 / T3 from this
         jannies: L ? { area: janArea(), setting: JAN_AREA, duty: dutyActive(), count: [...jannies.values()].filter((j) => !j.leaving).length } : null,

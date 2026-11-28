@@ -15,6 +15,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cinema control</title>
 <link rel="stylesheet" href="./concepts/seating-plan/plan.css">
+<link rel="stylesheet" href="./shared/house-notice.css">
+<script src="./shared/house-notice.js"></script>
 <script defer src="./concepts/seating-plan/plan.js"></script>
 <style>
   :root {
@@ -238,6 +240,8 @@
   #mscard details { margin-top: 12px; }
   #mscard summary { cursor: pointer; color: var(--dim); }
   #mscard textarea { max-width: 260px; height: 70px; }
+  #notice-draft { width:100%; resize:vertical; margin:6px 0 }
+  #notice-preview { max-width:340px; margin:5px 0 9px }
 
   /* ---------- narrow: docked beside OBS ---------- */
   @media (max-width: 760px) {
@@ -426,6 +430,13 @@
             <button id="break-start">Start break</button><button id="break-end" disabled>End break</button></div>
           <div id="break-status" class="state"></div>
         </div>
+        <details class="grp box"><summary>House notice</summary>
+          <label for="notice-draft">Message (up to 120 characters)</label>
+          <textarea id="notice-draft" rows="2" maxlength="120" placeholder="Write a message for the auditorium"></textarea>
+          <div id="notice-preview" class="lantern-slide" aria-label="Slide preview" hidden><div class="lantern-words"><small>House notice</small><strong id="notice-copy"></strong></div></div>
+          <div class="btns"><button id="notice-project" disabled>Project notice</button><button id="notice-withdraw" disabled>Withdraw notice</button></div>
+          <div id="notice-state" class="state" role="status"></div>
+        </details>
         <div class="grp box">
           <div class="grp-l">Screen and floor</div>
           <div class="btns">
@@ -434,6 +445,7 @@
               <option value="loading">Slide: The feature will begin shortly</option><option value="audience">Slide: In the audience</option>
               <option value="chart-flat">Framing chart · Flat 1.85:1</option><option value="chart-scope">Framing chart · Scope 2.39:1</option>
               <option value="curtain">Close house curtains</option>
+              <option value="notice" disabled>House notice</option>
               <option value="film">The film</option></select></label>
             <button id="litter" class="tog" title="About 10 min after the hall is 60% full, popcorn, cups and wrappers pile up on the floor. Off sweeps it all up">Litter: on</button>
           </div>
@@ -570,6 +582,22 @@
   // The auditorium-only controls name their scene: right after a switch to the Lobby, a refresh still in flight left the
   // "Reset auditorium" button showing, and a click reset the LOBBY (Codex audit 15 Nov 2026, C4)
   const aud = (c) => send({ ...c, page: 'auditorium' });
+  let roomNoticeKnown = false;
+  $('notice-draft').oninput = () => {
+    const text = HouseNotice.text($('notice-draft').value);
+    $('notice-copy').textContent = text;
+    $('notice-preview').hidden = !text;
+    $('notice-preview').classList.toggle('long', text.length > 56);
+    $('notice-project').disabled = !text;
+  };
+  $('notice-project').onclick = () => aud({cmd:'houseNotice', text:HouseNotice.text($('notice-draft').value)});
+  $('notice-withdraw').onclick = () => aud({cmd:'houseNotice', withdraw:true});
+  function showNoticeState(show, onBreak) {
+    const message = show?.screen === 'notice' && HouseNotice.text(show.noticeText);
+    $('notice-withdraw').disabled = !message;
+    const status = message ? (onBreak ? 'After intermission · ' : 'Projected notice · ') + message : '';
+    if ($('notice-state').textContent !== status) $('notice-state').textContent = status;
+  }
   $('break-start').onclick = () => aud({cmd:'intermission', minutes:Number($('break-length').value)});
   $('break-end').onclick = () => aud({cmd:'intermission', minutes:0});
   for (const b of document.querySelectorAll('[data-phase]')) b.onclick = () => aud({ cmd: 'phase', value: b.dataset.phase });
@@ -676,9 +704,11 @@
       if (!res.ok) throw new Error();
       serverTime = Date.parse(res.headers.get('Date')) || Date.now();
       r = await res.json();
-    } catch { breakRoomKnown = false; $('roomcard').hidden = true; return; }   // an older server: no shared room
+    } catch { breakRoomKnown = false; roomNoticeKnown = false; $('roomcard').hidden = true; return; }   // an older server: no shared room
     $('roomcard').hidden = false;
     const a = r.auditorium;
+    roomNoticeKnown = Object.hasOwn(a.show || {}, 'noticeText');
+    if (roomNoticeKnown) showNoticeState(a.show, !!a.show.intermissionUntil);
     breakRoomKnown = Object.hasOwn(a.show || {}, 'intermissionUntil');
     if (breakRoomKnown) {
       const until = a.show.intermissionUntil;
@@ -1029,6 +1059,7 @@
     $('movie').classList.toggle('on', shot === 'movie');
     if (document.activeElement !== $('screenpick')) $('screenpick').value = preshow?.screen || 'auto';
     if (!breakRoomKnown) showBreakControls(preshow?.intermissionRemaining);
+    if (!roomNoticeKnown) showNoticeState(preshow, preshow?.intermissionRemaining != null);
     const litterOn = preshow?.litter ?? true;
     $('litter').textContent = `Litter: ${litterOn ? 'on' : 'off'}`;
     $('litter').classList.toggle('on', litterOn);

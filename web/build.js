@@ -45,6 +45,7 @@ if (fs.existsSync(OUT)) {
 // server
 for (const f of ['server.js', 'package.json']) copy(path.join(WEB, f), path.join(OUT, f));
 copy(path.join(STANDBY, 'shared', 'room.js'), path.join(OUT, 'room.js'));   // shared room state (web/PLAN-shared-rooms.md)
+copy(path.join(STANDBY, 'shared', 'house-notice.js'), path.join(OUT, 'house-notice.js'));
 copy(path.join(STANDBY, 'shared', 'settings.js'), path.join(OUT, 'settings.js'));   // the panel's scene settings (per room)
 copyTree(path.join(WEB, 'node_modules'), path.join(OUT, 'node_modules'));
 copyTree(path.join(WEB, 'deploy'), path.join(OUT, 'deploy'));

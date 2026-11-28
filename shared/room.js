@@ -27,6 +27,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const HouseNotice = require('./house-notice');
 
 const LOBBY = { CAP: 40, HARD_CAP: 55, CROWD: 14 };              // lobby.html CAP, HARD_CAP, CROWD
 const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.html MAX_QUEUE, QUEUE_QUIET_MS
@@ -116,7 +117,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       lobby: { roster: [], director: freshDirector() },
       auditorium: { roster: [], director: freshDirector(),
         show: { phase: 'seating', shot: 'push', lightsOn: false, houseOut: false, auto: true,
-          screen: 'auto', intermissionUntil: 0, litter: true, fullAt: 0 } },
+          screen: 'auto', noticeText: '', intermissionUntil: 0, litter: true, fullAt: 0 } },
     },
   };
   // chat memory (not saved): last emotes and room per nick, like shared/cinema.js
@@ -567,7 +568,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'peek': if (page === 'lobby') peek(typeof c.spot === 'string' ? c.spot : 'any'); break;   // (test hook too)   // (no panel button: a test hook, /ctl/cmd {cmd: 'gag'})
       case 'reset':
         P.roster = [];
-        if (page === 'auditorium') { P.show.houseOut = false; P.show.fullAt = 0; P.show.intermissionUntil = 0; emitShow(); }
+        if (page === 'auditorium') { HouseNotice.apply(P.show, {withdraw:true}); P.show.houseOut = false; P.show.fullAt = 0; P.show.intermissionUntil = 0; emitShow(); }
         d.wantNext = false;
         emit(page, { t: 'clear' });
         log(`room: ${page} cleared from the panel`);
@@ -618,13 +619,14 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
         if (c.value === s.phase) s.lightsOn = false;
         s.phase = c.value; s.shot = 'push'; s.auto = false;
         if (c.value === 'seating' && s.houseOut) { s.houseOut = false; seatQueue(); }   // as the page's setPhase
-        if (c.value === 'film' && (s.screen !== 'auto' || s.intermissionUntil)) { s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); }
+        if (c.value === 'film' && (s.screen !== 'auto' || s.intermissionUntil)) { HouseNotice.forget(s); s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); }
         break;
-      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; if (s.screen !== 'auto' || s.intermissionUntil) { s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); } break;
+      case 'movie': s.phase = 'film'; s.shot = 'movie'; s.auto = false; if (s.screen !== 'auto' || s.intermissionUntil) { HouseNotice.forget(s); s.screen = 'auto'; s.intermissionUntil = 0; emitShow(); } break;
       case 'outro': if (s.phase === 'film') s.shot = 'outro'; break;
       case 'phaseAuto': s.auto = !!c.on; break;
       // the panel's cinema screen picker: auto follows the phase (slides, then the film), or one slide / the film held
-      case 'screen': if (SCREENS.includes(c.value)) { s.screen = c.value; s.intermissionUntil = 0; emitShow(); } break;
+      case 'screen': if (SCREENS.includes(c.value)) { HouseNotice.forget(s); s.screen = c.value; s.intermissionUntil = 0; emitShow(); } break;
+      case 'houseNotice': if (HouseNotice.apply(s, c)) emitShow(); break;
       case 'intermission':
         if ([0, 5, 10, 15].includes(c.minutes)) {
           if (c.minutes && s.intermissionUntil) break;
