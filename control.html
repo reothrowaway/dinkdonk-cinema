@@ -20,6 +20,7 @@
 <script src="./shared/shadow-round.js"></script>
 <script src="./shared/sing-along.js"></script>
 <script src="./concepts/question-desk/panel.js"></script>
+<script src="./concepts/cinema-mods/cue-desk.js"></script>
 <script defer src="./concepts/seating-plan/plan.js"></script>
 <style>
   :root {
@@ -288,6 +289,14 @@
     #mscard .ms-list td:nth-child(5) { grid-area: m; }
     #mscard .ms-list td:nth-child(6) { grid-area: a; justify-self: end; }
   }
+  #cue-desk{margin:12px 0 16px}#cue-desk summary{cursor:pointer;font-weight:700}#cue-desk[open] summary{margin-bottom:12px}
+  #cue-desk .cue-compose,#cue-desk .cue-call{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:10px 0}
+  #cue-desk label{display:grid;gap:4px;font-size:12px;max-width:100%}#cue-desk input,#cue-desk select{max-width:100%}
+  #cue-desk li>div:first-child{min-width:0;overflow-wrap:anywhere}
+  #cue-desk .cue-call{align-items:center}#cue-desk [data-desk=go]{font-weight:800;padding-inline:22px;background:#254836;color:#e8ffeb;border-color:#739b7c}
+  #cue-desk ol{padding:0;margin:10px 0;list-style:none}#cue-desk li{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding:6px 0}
+  #cue-desk li small{display:block;color:var(--dim);overflow-wrap:anywhere}#cue-desk [data-state=playing] strong{color:#b3eec1}
+  #cue-desk [data-desk=reason],#cue-desk [data-desk=feedback]{font-size:12px;margin:4px 0;color:var(--dim)}
 </style>
 </head>
 <body data-scene="lobby">
@@ -313,6 +322,16 @@
     </div>
   </section>
 
+  <details id="cue-desk" class="card"><summary>Show caller · event cue list</summary>
+    <div class="cue-compose">
+      <label>Room<select data-desk="room"><option value="lobby">Lobby</option><option value="auditorium">Auditorium</option></select></label>
+      <label>Event<select data-desk="event"></select></label><label>Standby note<input data-desk="note" type="text" maxlength="240" placeholder="Optional"></label>
+      <button type="button" data-desk="add">Add cue</button>
+    </div>
+    <strong data-desk="standby" role="status"></strong><div class="cue-call"><button type="button" data-desk="go" disabled>GO</button>
+      <button type="button" data-desk="skip" disabled>Skip next cue</button><button type="button" data-desk="again" disabled>Rearm list</button></div>
+    <p data-desk="reason"></p><ol data-desk="list" aria-label="Event cues"></ol><p data-desk="feedback" role="status"></p>
+  </details>
   <div class="cols">
     <div class="col col-main">
       <!-- the lobby's show: off to the cinema, and the roll-up poll screen -->
@@ -797,6 +816,13 @@
     },
     auditorium: { 'laser-choir': 'Laser Choir', 'aisle-vendor': 'Aisle vendor', 'popcorn-run': 'Popcorn run', 'popcorn-pass': 'Pass the popcorn', 'mic-runner': 'Audience Q&A microphone', 'beach-ball': 'Festival beach ball', 'visual-applause': 'Visual applause', 'organ-lift': 'Rising house organ', 'interval-ices': 'Interval ice creams', 'rain-foley': 'Audience rainstorm' }
   };
+  async function sendRunEvent(page,event,requestId){
+    const reply=await fetch('/ctl/cmd',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({page,cmd:'runEvent',event,requestId}),signal:AbortSignal.timeout(3500)});
+    if(!reply.ok)throw Error('Event command failed');return reply.json();
+  }
+  const cueDesk=window.CinemaCueDesk?.mount($('cue-desk'),eventNames,sendRunEvent);
+  if(!cueDesk)$('cue-desk').hidden=true;
   const eventCards = new Map();
   for (const group of document.querySelectorAll('[data-event-controls]')) {
     const page = group.dataset.eventControls, names = eventNames[page];
@@ -812,10 +838,7 @@
       button.disabled = true;
       status.textContent = 'Sending ' + names[select.value] + '…';
       try {
-        const reply = await fetch('/ctl/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ page, cmd: 'runEvent', event: select.value, requestId: token }), signal: AbortSignal.timeout(3500) });
-        if (!reply.ok) throw Error('Event command failed');
-        const response = await reply.json();
+        const response = await sendRunEvent(page,select.value,token);
         if (!response.screens) { submitted = null; status.textContent = 'Open the ' + page + ' screen to run an event.'; }
       } catch { submitted = null; status.textContent = 'Could not send the event request.'; }
       finally { sending = false; button.disabled = !ready; }
@@ -1047,7 +1070,7 @@
   }
   async function refreshState() {
     let data;
-    try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { $('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
+    try { data = await (await fetch('/ctl/state', { cache: 'no-store', signal: AbortSignal.timeout(3500) })).json(); } catch { cueDesk?.offline();$('screens').textContent = 'The standby server is not reachable (start-standby.bat).'; return; }
     controlVersion = data.controlVersion || 0;
     for (const render of roomSettingCards) render();
     const page = $('page').value;
@@ -1055,7 +1078,9 @@
     const screens = all.filter((s) => (s.page || 'lobby') === page);
     sceneControls(page);
     const blocked = page === 'auditorium' && controlVersion < 2;
-    for (const el of document.querySelectorAll('button:not([data-run-event]), input:not([data-timed-events])')) el.disabled = blocked;
+    for (const el of document.querySelectorAll('button:not([data-run-event]), input:not([data-timed-events])')) {
+      if(!el.closest('#cue-desk'))el.disabled=blocked;
+    }
     $('screens').textContent = screens.length ? `${screens.length} screen${screens.length > 1 ? 's' : ''} open (${screens.map((s) => s.size.join('×')).join(', ')}) - commands go to all of them`
       : 'No screen is open: start the standby screen (or the OBS source) first.';
     $('screens').textContent = blocked ? 'Restart standby-server.js to enable safe auditorium controls.'
@@ -1065,7 +1090,8 @@
     const preferred = list => list.sort((a, b) => (b.obs === true) - (a.obs === true) || b.size[0] * b.size[1] - a.size[0] * a.size[1])[0];
     const s = preferred(screens);
     for (const [room, render] of eventCards) {
-      render(room === page ? s : preferred(all.filter(screen => (screen.page || 'lobby') === room)));
+      const target=room===page?s:preferred(all.filter(screen=>(screen.page||'lobby')===room));
+      render(target);cueDesk?.update(room,target,controlVersion);
     }
     setScreen = s?.settings ? s : null;   // the scene settings show what this screen uses
     if (setBuiltFor === page) showSettings();
