@@ -181,6 +181,9 @@ From the owner, 7-18 Nov 2026. They apply to every agent.
 - Godot runs with `--headless` only. Never flash a window on the owner's screen; compare JSON, not stills.
 
 ### Performance and OBS
+- **Depend on OBS as little as possible** (owner, 28 Nov 2026). Use OBS only for what needs its scenes: the scene
+  switches and cinema transitions (fly-through cut, screen shots T1/T2/T3) and the film capture they show. Visual
+  effects such as the cinema filters belong in the page itself, so they show in any browser, not only in OBS.
 - The owner's OBS browser sources run at a steady 30 fps on purpose (style). Never suggest changing that. Test at 60 (the
   stricter test), confirm at 30 in the portable QA OBS, and add an uncapped leg (no fps limit) to every perf pass.
   Report all three.
