@@ -126,6 +126,11 @@ folder on the same PC, often at the same time.
   the weekly usage of the Claude and the OpenAI accounts is spent about evenly, not to have one agent do almost
   everything. Divide tasks between the two. Before taking on a large job, consider which side has more weekly usage
   left, and hand the job (or a self-contained part of it) to the other agent when its side has more room.
+- **Claude orchestrates** (owner, 28 Nov 2026). Claude Code (Opus 5.5) is the main orchestrator: it plans the work,
+  divides it between itself and Astra along the line above, hands Astra its briefs and checks the results.
+- **Watch Astra's weekly usage** (owner, 28 Nov 2026). Claude checks the Codex weekly usage
+  (`bash roxy3d/tools/codex-usage.sh`) before handing Astra a job, when it reports progress, and at least once per
+  working session. As soon as less than 10% remains (90% or more used), Claude tells the owner so the owner can act.
 - **Hand-offs.** Leave work so the other agent can continue it without asking: a `PROGRESS.md` entry with what
   changed, what was checked, and what is open or unverified. Notes from art jobs go in `roxy3d/NOTES-NN.md` as before.
 - **Second opinions.** A read-only critique or review by the other agent is welcome (drafts, risky changes to shared
