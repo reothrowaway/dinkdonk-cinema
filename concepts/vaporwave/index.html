@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinema looks · DinkDonk</title>
+<style>
+:root{color-scheme:dark;--back:#121217;--panel:#1a191e;--ink:#f5eee5;--mute:#c1b8b7;--line:#474049;--accent:#f4b5b5;font-family:Inter,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--back);color:var(--ink)}main{width:min(1440px,100%);margin:auto;padding:clamp(16px,3.5vw,56px)}header{display:flex;align-items:end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-family:"Baskerville","Georgia",serif;font-weight:normal;font-size:clamp(36px,5vw,68px);margin:0;line-height:.98;letter-spacing:-.045em}
+select,button,input{font:inherit}select{color:var(--ink);border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:8px 32px 8px 10px}
+label{display:grid;gap:4px;color:var(--mute);font-size:.9rem}
+.layout{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(250px,1fr);gap:clamp(16px,2.5vw,40px);align-items:start}
+figure{margin:0}.frame{position:relative;width:100%;aspect-ratio:16/9;background:#0a090b;overflow:hidden}
+.frame img{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#original{clip-path:inset(0 calc(100% - var(--split,0%)) 0 0)}
+#rule{position:absolute;inset-block:0;left:var(--split,0%);width:1px;background:#f8e4d8;pointer-events:none}
+.compare{margin-top:12px}.compare span{display:flex;justify-content:space-between;gap:12px}.compare input{width:100%;accent-color:var(--accent);margin:4px 0}
+figcaption{border-top:1px solid var(--line);margin-top:20px;padding-top:14px}h2{font-family:Georgia,serif;font-size:clamp(23px,2.5vw,36px);font-weight:normal;letter-spacing:-.035em;margin:0 0 6px}p{margin:0;line-height:1.5;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.look{cursor:pointer;padding:0;text-align:left;width:100%;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;overflow:hidden}
+.look img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}.look span{display:block;padding:6px 8px;font-size:.85rem;line-height:1.25}.look[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:0}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #b2e9ed;outline-offset:2px}
+.links{margin-top:18px;display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem}.links a{color:var(--accent)}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:550px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.look span{font-size:.8rem;padding:5px}.links{margin:15px 0 8px}}
+</style></head>
+<body><main>
+<header><h1>Cinema looks</h1><label>Scene<select id="scene"><option value="lobby">Normal lobby</option><option value="moody">Moody lobby</option><option value="aud">Auditorium · seating</option><option value="key">Auditorium · film alignment</option></select></label></header>
+<div class="layout">
+<figure><div class="frame" id="frame"><img id="effect" alt=""><img id="original" alt=""><div id="rule" hidden></div></div>
+<label class="compare" for="split"><span><span>Before / after</span><output id="amount">Full filter</output></span><input type="range" id="split" min="0" max="100" value="0" aria-label="Width of original view from the left"></label>
+<figcaption aria-live="polite"><h2 id="name"></h2><p id="description"></p><p id="placement"></p></figcaption><div class="links"><a href="qa/looks-comparison.mp4">Watch all eight QA looks</a><a href="cinema-looks-in-motion.mp4">Watch the defaults in motion</a><a href="qa/DinkDonk_Cinema_Looks_QA.json" download>QA scene collection</a><a href="cinema-looks-obs.zip" download>OBS filter pack</a><a href="QA-results.md">Test results</a></div>
+</figure>
+<div class="grid" id="grid" aria-label="Cinema filter presets"></div>
+</div></main>
+<script>
+const presets=[
+ ['After-hours mall','cool turquoise shadows and a pink halo on marquee bulbs and wet pavement'],
+ ['Pearl diffusion','a broad pearl glow on the bright signs and wall sconces, with the original room colors intact'],
+ ['Chrome & cyan','icy specular highlights and a steeper contrast curve on the metalwork and wet floor'],
+ ['Pink halation','a coral-red halo around bright lettering, imitating the red spill of film stock'],
+ ['Miami dusk','apricot light and blue-violet shadows across the room'],
+ ['Anamorphic neon','long, narrow blue streaks from the hottest lights'],
+ ['Star-filter glass','small four-point glints on the sharpest bulbs and reflections'],
+ ['Curved CRT','a bowed picture, fine scanlines and slight color separation near the edges'],
+ ['VHS rental','horizontal color bleed and a faint echo beside high-contrast signs'],
+ ['Milk-glass pastels','lifted lavender blacks and mint highlights, like a sun-faded mall postcard'],
+ ['Ultraviolet arcade','deeper indigo shadows and more saturated magenta light'],
+ ['35 mm midnight','warm projector whites, fine stationary grain and a darker edge to the frame'],
+ ['Neon rain','a gentle lens bow, rose bloom, and glossy blue-green reflections around the wet pavement and concessions']
+];
+const scene=document.querySelector('#scene'), grid=document.querySelector('#grid'), split=document.querySelector('#split');
+const placement = {0:'Lobby QA · 75%',1:'Auditorium QA default · 55%',2:'Lobby QA · 65%',4:'Lobby QA · 65%',7:'Lobby QA · 65%',10:'Lobby QA · 60%',11:'Auditorium QA · 70%',12:'Lobby QA default · 85%'};
+let selected=12;
+const photo=(part,thumb=false)=>'frames/'+(thumb?'thumb-':'')+scene.value+'-'+part+'.webp';
+const buttons=presets.map(([name],i)=>{
+ const btn=document.createElement('button');btn.className='look';btn.type='button';
+ const img=document.createElement('img');img.alt='';img.width=256;img.height=144;
+ const title=document.createElement('span');title.textContent=name;
+ btn.append(img,title);btn.addEventListener('click',()=>{selected=i;refresh();});if(i===12)grid.prepend(btn);else grid.append(btn);return btn;
+});
+function compare(){
+ const x=Number(split.value);document.querySelector('#frame').style.setProperty('--split',x+'%');
+ document.querySelector('#rule').hidden=x===0||x===100;document.querySelector('#amount').textContent=x===0?'Full filter':x===100?'Original':x+'% original';
+}
+function refresh(){
+ const [title,note]=presets[selected],keyed=scene.value==='key';
+ document.querySelector('#name').textContent=title;
+ document.querySelector('#placement').textContent=placement[selected] || 'Available in the original filter pack.';
+ const summary=note.charAt(0).toUpperCase()+note.slice(1)+'.';
+ const plateNote=selected===7?'Fine scanlines and color fringing around the auditorium.':selected===12?'Rose halos and cooler polished highlights around the auditorium.':summary;
+ document.querySelector('#description').textContent=(keyed?plateNote:summary)+' '+(keyed?'100% on the keyed auditorium plate.':'85% on the complete scene.');
+ const current=document.querySelector('#effect');current.src=photo(selected);current.alt=scene.selectedOptions[0].text+' with '+title;
+ const old=document.querySelector('#original');old.src=photo('original');old.alt='Original '+scene.selectedOptions[0].text;
+ buttons.forEach((b,i)=>{b.firstChild.src=photo(i,true);b.setAttribute('aria-pressed',String(selected===i));});compare();
+}
+scene.addEventListener('change',refresh);split.addEventListener('input',compare);refresh();
+</script></body></html>

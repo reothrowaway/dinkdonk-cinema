@@ -512,3 +512,16 @@ onto real walls; ripples read as ring outlines in a still - check they stay soft
     + 17 Nov, owner approved draft 37 (gamer lobby, magenta/cyan) for the full render: "alrighty go ahead". RunPod; money
       limit proposed $6, to be confirmed before any pod starts. New pack out10t/ beside out10s.
     + 17 Nov, RunPod limit for the gamer lobby render: "Yes, $6" (test MAX_HOURS=0.5, final 1.2).
+91. SCRAPPED 25 Nov 2026 (owner: "Scrap it", it costs money). Was: recreate the lobby cat with image-to-sculpt
+    (https://github.com/gokayfem/image-to-sculpt). It is a skill for coding agents that turns one image into a 3D
+    sculpt checked against that image: generated side views are registered and screened, one view is held out, every
+    pass is recorded, and Blender replays the build (turntable, .blend, GLB/OBJ/STL).
+    - Today's cat: `roxy3d/roxy_cat.blend`, rendered by `render_cat_pass5.py` and packed by `package_cat_pass5.py`
+      (Pass 5, 2 Nov). The page needs the sheets sleep, sit, stretch and the four walks, 1x and 2x (docs/lobby.md,
+      "Jannies, janitor, cat").
+    - The tool gives a static sculpt only: the new cat still needs a rig and the same animations, rendered from the
+      lobby camera with the same lighting, as before.
+    - Needs a fal API key (FAL_KEY, about $2 per case; asks the money limit first, key never in files), Python with
+      numpy/scipy/scikit-image/Pillow, Blender 5.2+ and ffmpeg. Read the skill's code before installing it.
+    - Open: which picture to start from (Google Images search of his wording first, or his own image).
+    - Usual art workflow: one draft still first, Opus critique, full render only on his word; Blender work by Fable.

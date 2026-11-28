@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cinema mods · DinkDonk Cinema</title>
+<style>
+:root{color-scheme:dark;--bg:#141116;--panel:#211c23;--line:#453940;--text:#fff4e9;--dim:#c4b1ba;--a:#ffd5a6;--on:#382b35;font-family:Inter,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}button,select,a{font:inherit}button,select{cursor:pointer}a{color:var(--a);text-underline-offset:4px}button:focus-visible,select:focus-visible,a:focus-visible,video:focus-visible{outline:3px solid #72ebed;outline-offset:3px}
+header,main{max-width:1710px;margin:auto;padding:0 clamp(16px,3.2vw,56px)}header{display:flex;align-items:center;justify-content:space-between;min-height:70px;border-bottom:1px solid var(--line);gap:12px}
+h1{margin:0;font-size:clamp(20px,2.2vw,31px);letter-spacing:-.04em;font-weight:650}header a{font-size:14px;white-space:nowrap}
+main{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr);gap:clamp(20px,3vw,52px);padding-top:28px;padding-bottom:35px}.screening{min-width:0;align-self:start;position:sticky;top:24px}
+.monitor{background:#080709;position:relative;box-shadow:0 0 0 1px var(--line)}video{width:100%;aspect-ratio:16/9;display:block;background:#080709}.err{position:absolute;inset:20% 8% auto;background:#191419;padding:16px;color:#fff}.err[hidden]{display:none}
+.toolbar,.heading,.controls{display:flex;align-items:center;justify-content:space-between;gap:12px}.toolbar{margin-top:14px;flex-wrap:wrap}.toggle{display:inline-flex;padding:3px;border:1px solid var(--line);border-radius:6px;gap:2px}.toggle button,.compare{padding:7px 12px;border:0;color:var(--dim);background:none;border-radius:3px;font-size:14px}.toggle [aria-pressed=true],.compare[aria-pressed=true]{background:var(--on);color:var(--a)}.compare{border:1px solid var(--line)}
+h2{margin:22px 0 8px;font-family:"Georgia",serif;font-weight:400;font-size:clamp(36px,5.4vw,80px);letter-spacing:-.055em;line-height:1.02}.detail{max-width:62ch;color:var(--dim);font-size:17px;line-height:1.5;margin:0 0 14px}.file{font-size:14px}
+.controls{margin:0 0 12px}.controls label{font-size:15px;color:var(--dim)}select{padding:7px 26px 7px 10px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{border:1px solid var(--line);border-radius:3px;overflow:hidden;padding:0;background:var(--panel);color:var(--text);text-align:left}.card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#100e12}.card span{display:block;padding:8px 10px;font-size:14px;line-height:1.25}.card[aria-pressed=true]{border-color:var(--a);box-shadow:0 0 0 1px var(--a)}.card:hover{border-color:#b98a97}.card[hidden]{display:none}
+@media(max-width:920px){main{grid-template-columns:1fr}.screening{position:static}.choices{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}h2{margin-top:14px}}@media(max-width:450px){main{padding-top:16px}.choices{grid-template-columns:repeat(2,minmax(0,1fr))}.card span{font-size:13px}.detail{font-size:15px}}
+</style>
+<header><h1>DinkDonk Cinema / Mods</h1><a href="events.html">Event screenings</a><a href="README.md">Setup &amp; test notes</a></header>
+<main>
+ <section class="screening" aria-label="Mod preview">
+  <div class="monitor"><video id="player" controls loop playsinline muted preload="metadata" aria-label="Recorded OBS preview"></video><p id="error" class="err" hidden>The local preview is missing. Open this gallery beside its media folder in the cinema workspace.</p></div>
+  <div class="toolbar"><div class="toggle" aria-label="Room"><button data-room="lobby">Lobby</button><button data-room="auditorium">Auditorium</button></div><button class="compare" id="compare" aria-pressed="false">Show original take</button></div>
+  <h2 id="title"></h2><p id="description" class="detail"></p><a class="file" id="source"></a>
+ </section>
+ <section aria-label="Choose a mod">
+  <div class="controls"><label for="group">Browse mods</label><select id="group"><option>All 24</option></select></div>
+  <div id="choices" class="choices"></div>
+ </section>
+</main>
+<script src="catalog.js"></script>
+<script>
+const mods=window.cinemaMods, player=document.getElementById('player'), group=document.getElementById('group');
+const cards=new Map();
+let selected,room,original=false;
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+function render(play) {
+  const take=original?'original':selected.id;
+  const root='media/'+room+'-'+take;
+  document.getElementById('error').hidden=true;
+  player.poster=root+'.webp';player.src=root+'.mp4';
+  if(play && !reduced.matches)player.play().catch(()=>{});
+  document.getElementById('title').textContent=selected.name;
+  document.getElementById('description').textContent=selected.description;
+  const link=document.getElementById('source');
+  if(selected.id==='choir'){link.href='README.md#laser-choir';link.textContent='Open the QA setup';}
+  else {
+    const bank=/^m\d/.test(selected.id);
+    link.href=bank?'cinema-machines.shader':selected.id==='infinity'?'infinity-foyer.shader':'reconstruction.shader';
+    link.textContent=bank?'OBS shader · '+selected.name:'OBS shader';
+  }
+  for(const b of document.querySelectorAll('[data-room]'))b.setAttribute('aria-pressed',String(b.dataset.room===room));
+  const comp=document.getElementById('compare');comp.setAttribute('aria-pressed',String(original));
+  comp.textContent=original?'Return to mod':'Show original take';
+  for(const [id,b] of cards){b.setAttribute('aria-pressed',String(id===selected.id));b.querySelector('img').src='media/'+room+'-'+id+'.webp';}
+  history.replaceState(null,'','#'+new URLSearchParams({mod:selected.id,room}));
+}
+for(const name of new Set(mods.map(m=>m.group)))group.add(new Option(name,name));
+for(const mod of mods){
+  const b=document.createElement('button'), thumb=document.createElement('img'), label=document.createElement('span');
+  thumb.alt='';thumb.loading='lazy';label.textContent=mod.name;b.className='card';b.dataset.group=mod.group;b.append(thumb,label);
+  b.onclick=()=>{selected=mod;original=false;render(true);};
+  document.getElementById('choices').append(b);cards.set(mod.id,b);
+}
+group.onchange=()=>{for(const b of cards.values())b.hidden=group.selectedIndex>0 && b.dataset.group!==group.value;};
+for(const b of document.querySelectorAll('[data-room]'))b.onclick=()=>{room=b.dataset.room;render(true);};
+document.getElementById('compare').onclick=()=>{original=!original;render(true);};
+player.addEventListener('error',()=>{document.getElementById('error').hidden=false;});
+function openLinkedTake(){
+  const hash=new URLSearchParams(location.hash.slice(1));
+  selected=mods.find(mod=>mod.id===hash.get('mod'))||mods.find(mod=>mod.id==='m00');
+  room=hash.get('room')==='auditorium'?'auditorium':'lobby';
+  original=false;
+  if(group.selectedIndex>0 && group.value!==selected.group){group.selectedIndex=0;group.onchange();}
+  render(false);
+}
+window.addEventListener('hashchange',openLinkedTake);
+openLinkedTake();
+</script>
+</html>

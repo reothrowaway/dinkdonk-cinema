@@ -31,6 +31,8 @@ URL options are listed in the comment block at the top of each page and in `READ
 | `roxy3d/qa11/` | auditorium art: only the files `auditorium.html` loads are tracked |
 | `roxy3d/cloud/` | the RunPod render helper (`cloud-render.sh`) and the Brief 57 production bundle |
 | `intro-dinkdonk/` | the DINK DONK intro snipe |
+| [Cinema looks for OBS](concepts/vaporwave/README.md) | optional post-processing shader with thirteen presets for the lobby and auditorium, including a mode that preserves the film cutout |
+| [Cinema mods](concepts/cinema-mods/README.md) | 23 animated OBS transformations and a chat-reactive light installation for the QA rooms, with a local gallery and 4K60 measurements |
 | `concepts/`, `hall-*`, `cinema-*` | earlier design concepts |
 
 Not in the repo (about 30 GB, local only): draft/QA renders, old art packs, render caches, backups, Blender itself
