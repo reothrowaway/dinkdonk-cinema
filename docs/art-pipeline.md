@@ -26,6 +26,7 @@ bundle downloads the same release and checks its official SHA-256.
 | Who | Role |
 |---|---|
 | Owner (the streamer) | Asks for changes, reviews drafts, approves full renders and cloud spend. Nothing is final without the owner's OK. |
+| GPT-6.2 Astra (lobby Blender design) | Use high effort and normal speed (default service tier). Owns the subject research, ImageGen concept, editable scene or prop, Blender renders and revisions after independent critique. |
 | Claude (Claude Code) | Writes the numbered briefs, checks every render, runs read-only critiques, tests staging packs in the page, promotes packs, writes page code, logs in `roxy3d/PROGRESS.md`, runs the RunPod helper. |
 | Codex (Codex CLI) | Renders from the briefs: builds and edits the Blender scenes, renders drafts and production passes, packs the art, writes `NOTES-*.md`. Writes only inside `roxy3d/`. |
 | Codex, read-only | Second opinion on each draft before the next brief (`codex-NN-critique.txt`, `reviews/review-*.md`). |
@@ -176,7 +177,7 @@ re-encode or reformat art or manifests by hand.
 
 ### Lobby prop redesigns
 
-Use the experimental branch for a prop study. Show the owner three labeled images side by side, from left to right:
+GPT-6.2 Astra leads the design pass at high effort and normal speed on the experimental branch. Show the owner three labeled images side by side, from left to right:
 
 | Image | How to make it |
 |---|---|
