@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="./shared/house-notice.css">
 <script src="./shared/house-notice.js"></script>
 <script src="./shared/shadow-round.js"></script>
+<script src="./shared/sing-along.js"></script>
 <script defer src="./concepts/seating-plan/plan.js"></script>
 <style>
   :root {
@@ -438,6 +439,10 @@
           <div class="btns"><button id="notice-project" disabled>Project notice</button><button id="notice-withdraw" disabled>Withdraw notice</button></div>
           <div id="notice-state" class="state" role="status"></div>
         </details>
+        <div class="grp box"><div class="grp-l">House organ sing-along</div>
+          <div class="btns"><button id="song-start" disabled>Play Save Me a Seat</button><button id="song-stop" disabled>Stop song</button></div>
+          <div id="song-state" class="state" role="status"></div>
+        </div>
         <div class="grp box"><div class="grp-l">Audience silhouette</div>
           <div class="btns"><button id="shadow-start" disabled>Start guessing round</button><button id="shadow-end" disabled>End round</button></div>
           <div id="shadow-status" class="state" role="status">Waiting for the shared room.</div>
@@ -599,10 +604,17 @@
   $('notice-withdraw').onclick = () => aud({cmd:'houseNotice', withdraw:true});
   $('shadow-start').onclick = () => aud({cmd:'shadowRound', action:'start'});
   $('shadow-end').onclick = () => aud({cmd:'shadowRound', action:'end'});
+  $('song-start').onclick = () => aud({cmd:'singAlong',action:'start'});
+  $('song-stop').onclick = () => aud({cmd:'singAlong',action:'stop'});
   function showShadowState(room) {
     const show = room?.show, round = show?.shadowRound;
     const ready = room?.screens > 0 && ShadowRound.allowed(show) && Object.hasOwn(show, 'shadowRound');
-    $('shadow-start').disabled = !ready || !!round;
+    $('shadow-start').disabled = !ready || !!round || !!show?.singAlongAt;
+    const songReady = room?.screens>0 && show && Object.hasOwn(show,'singAlongAt') && CinemaSingAlong.allowed(show);
+    $('song-start').disabled = !songReady || !!show?.singAlongAt;
+    $('song-stop').disabled = !show?.singAlongAt;
+    const songStatus = show?.singAlongAt ? 'The 18-second short is on screen.' : songReady ? 'Original organ music and on-screen lyrics.' : 'Open a shared auditorium in Seating or Lights up with the screen on Auto.';
+    if ($('song-state').textContent!==songStatus) $('song-state').textContent=songStatus;
     $('shadow-end').disabled = !round;
     const status = round?.state === 'waiting' ? 'Waiting up to 30 seconds for a seated guest with an emote.' :
       round ? 'Round in progress. Chat can answer with !guess followed by the emote name.' :

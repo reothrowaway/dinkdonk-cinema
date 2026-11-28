@@ -29,6 +29,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const HouseNotice = require('./house-notice');
 const ShadowRound = require('./shadow-round');
+const SingAlong = require('./sing-along');
 
 const LOBBY = { CAP: 40, HARD_CAP: 55, CROWD: 14 };              // lobby.html CAP, HARD_CAP, CROWD
 const AUD = { MAX_QUEUE: 270, QUEUE_QUIET_MS: 10 * 60000 };       // auditorium.html MAX_QUEUE, QUEUE_QUIET_MS
@@ -118,7 +119,7 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       lobby: { roster: [], director: freshDirector() },
       auditorium: { roster: [], director: freshDirector(),
         show: { phase: 'seating', shot: 'push', lightsOn: false, houseOut: false, auto: true,
-          screen: 'auto', noticeText: '', shadowRound: null, intermissionUntil: 0, litter: true, fullAt: 0 } },
+          screen: 'auto', noticeText: '', shadowRound: null, singAlongAt: 0, intermissionUntil: 0, litter: true, fullAt: 0 } },
     },
   };
   // chat memory (not saved): last emotes and room per nick, like shared/cinema.js
@@ -621,6 +622,10 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
     if (page === 'auditorium' && P.show.shadowRound && (!ShadowRound.allowed(P.show) || c.cmd === 'runEvent' || (c.cmd === 'screen' && c.value === 'auto'))) {
       P.show.shadowRound = null; emitShow();
     }
+    if (page === 'auditorium' && P.show.singAlongAt &&
+        (!SingAlong.allowed(P.show) || ['reset','runEvent'].includes(c.cmd) || (c.cmd==='screen' && SCREENS.includes(c.value)))) {
+      P.show.singAlongAt = 0; emitShow();
+    }
     changed();
   }
   function applyShow(c) {
@@ -641,10 +646,14 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
       case 'houseNotice': if (HouseNotice.apply(s, c)) emitShow(); break;
       case 'shadowRound':
         if (c.action === 'end') { s.shadowRound = null; emitShow(); }
-        else if (c.action === 'start' && ShadowRound.allowed(s) && !s.shadowRound) {
+        else if (c.action === 'start' && ShadowRound.allowed(s) && !s.shadowRound && !s.singAlongAt) {
           s.shadowRound = {state:'waiting', end:Date.now() + 30000};
           emitShow();
         }
+        break;
+      case 'singAlong':
+        if (c.action==='start' && SingAlong.allowed(s) && !s.singAlongAt) { s.singAlongAt=Date.now(); emitShow(); }
+        else if (c.action==='stop' && s.singAlongAt) { s.singAlongAt=0; emitShow(); }
         break;
       case 'intermission':
         if ([0, 5, 10, 15].includes(c.minutes)) {
@@ -707,6 +716,9 @@ function createRoom({ file = null, layoutFile = null, emoteNames = () => new Set
   // once a second: queued chatters quiet for 10 min leave the queue, as in the page
   const timer = setInterval(() => {
     const A = state.pages.auditorium;
+    if (A.show.singAlongAt && (!Number.isFinite(A.show.singAlongAt) || !SingAlong.allowed(A.show) || Date.now()>=A.show.singAlongAt+SingAlong.duration)) {
+      A.show.singAlongAt=0; emitShow(); changed();
+    }
     const round = A.show.shadowRound;
     if (round) {
       const now = Date.now();

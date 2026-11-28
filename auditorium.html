@@ -85,6 +85,10 @@
   @media (prefers-reduced-motion:reduce) { #house-curtain, #house-curtain > i { transition:none } }
   #preshow.framing { background: #060708; filter: none }
   #ps-notice { position:absolute; inset:0; z-index:5 }
+  #ps-song { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#191411; z-index:6 }
+  #ps-song.needs-audio { pointer-events:auto; cursor:pointer }
+  #preshow.with-song { filter:none }
+  #preshow.with-song::after, #preshow.with-song > :not(#ps-song) { display:none }
   #preshow.with-notice > :not(#ps-notice) { display:none }
   #preshow.with-shadow > :not(#ps-shadow) { display:none }
   #ps-shadow { position:absolute; inset:0; display:grid; grid-template-rows:auto 1fr auto auto; justify-items:center;
@@ -401,6 +405,7 @@
       <section id="ps-break" hidden><h2>Intermission</h2><strong id="ps-break-time"></strong>
         <p id="ps-break-caption">Time remaining</p></section>
       <div id="ps-pops"></div>
+      <video id="ps-song" hidden playsinline preload="none" tabindex="0" aria-label="Save Me a Seat, a house organ sing-along. Activate to enable sound."></video>
       <section class="lantern-slide" id="ps-notice" hidden><div class="lantern-words">
         <small>House notice</small><strong id="ps-notice-text"></strong></div></section>
       <section id="ps-shadow" hidden><strong id="shadow-heading"></strong><div id="shadow-shape" aria-hidden="true"></div>
@@ -419,6 +424,7 @@
 <link rel="stylesheet" href="shared/house-notice.css">
 <script src="shared/house-notice.js"></script>
 <script src="shared/shadow-round.js"></script>
+<script src="shared/sing-along.js"></script>
 <script src="shared/core.js"></script>
 <script src="shared/cinema.js"></script>
 <script src="concepts/preshow-quiz/deck.js"></script>
@@ -525,6 +531,18 @@
   const QUIZ_SLIDE = SLIDES.length, BALLOT_SLIDE = QUIZ_SLIDE + 1;
   let ballot = null, lastProjectorPhase = '';
   show.intermissionUntil = 0;
+  show.singAlongAt = 0;
+  let songOffset = 0;
+  let songSourceActive = true, songSourceVisible = true;
+  const syncSong = CinemaSingAlong.player($('ps-song'),visible=>$('preshow').classList.toggle('with-song',visible));
+  function drawSong() {
+    const eligible = songSourceActive && songSourceVisible && !document.hidden && !alwaysGreen && !!screenPoly && CinemaSingAlong.allowed({...show,houseOut});
+    syncSong(eligible ? show.singAlongAt : 0,show.singAlongAt+songOffset);
+  }
+  document.addEventListener('visibilitychange',drawSong);
+  window.addEventListener('obsSourceActiveChanged',e=>{ songSourceActive=e.detail?.active!==false; drawSong(); });
+  window.addEventListener('obsSourceVisibleChanged',e=>{ songSourceVisible=e.detail?.visible!==false; drawSong(); });
+  window.addEventListener('pagehide',()=>syncSong(0,0));
   let roomHasBreakClock = false;
   const filmOnScreen = () => !show.intermissionUntil && (show.screen === 'film' || (show.screen === 'auto' && show.phase === 'film'));
   function breakSeconds() {
@@ -608,6 +626,7 @@
       director.screenAt = wantPush ? performance.now() + (dimmed ? 10000 : 0) : 0;
     }
     const green = alwaysGreen || filmOnScreen();
+    drawSong();
     drawShadow();
     const notice = !green && !show.intermissionUntil && show.screen === 'notice' && !!show.noticeText;
     $('preshow').classList.toggle('with-notice', notice);
@@ -3730,7 +3749,7 @@
     if (director.outro && (director.follow || onScreen(now))) director.outro = false;
     const slow = !director.follow && (onScreen(now) || director.outro);
     if (slow && !director.outro) [tx, ty, tz] = screenShot();
-    const eventCamera = !f && !slow && (!reducedShadow.matches && !$('ps-shadow').hidden ? screenShot() : preshowEvents?.camera());
+    const eventCamera = !f && !slow && (!reducedShadow.matches && (!$('ps-shadow').hidden || !$('ps-song').hidden) ? screenShot() : preshowEvents?.camera());
     if (eventCamera) [tx, ty, tz] = eventCamera;
     const fit = (c, half, size) => clamp(c, half, size - half);
     tx = fit(tx, 960 / tz, 1920);
@@ -3955,6 +3974,8 @@
     } else if (screenChoices.includes(s.screen)) { HouseNotice.forget(show); show.screen = s.screen; }
     if (typeof s.litter === 'boolean') show.litter = s.litter;
     const off = Number.isFinite(serverNow) ? Date.now() - serverNow : 0;
+    songOffset = off;
+    show.singAlongAt = Number.isFinite(s.singAlongAt) ? s.singAlongAt : 0;
     shadowOffset = off;
     show.shadowRound = s.shadowRound || null;
     roomHasBreakClock = Object.hasOwn(s, 'intermissionUntil');
@@ -4626,7 +4647,7 @@
       const active = w => walkers.get(w.key) === w && w.sitting && w.seat && w.seen && !w.leaving && !w.out && !w.reeducating;
       preshowEvents = createHouseEvents({
         ready: kind => {
-          if (show.shadowRound?.state === 'playing') return false;
+          if (show.singAlongAt || show.shadowRound?.state === 'playing') return false;
           if (!L || !screenPoly || houseOut || shotsActive || director.follow || director.wantNext || director.outro) return false;
           if (kind === 'popcorn-run') return HALL_ON && dark();
           if (kind === 'aisle-vendor') return HALL_ON && show.phase === 'seating';
