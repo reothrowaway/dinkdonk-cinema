@@ -32,6 +32,7 @@ const extrasFiles = [
   'question-desk/panel.js',
   'double-bill/index.html', 'double-bill/bill.js',
   'double-bill/rundown.html', 'double-bill/rundown.js',
+  'double-bill/handbill.html', 'double-bill/handbill.js',
   'seating-plan/plan.js', 'seating-plan/plan.css',
   'projection-booth/index.html', 'projection-booth/booth.js',
   'projection-booth/sync-leader.html', 'projection-booth/sync-leader.js', 'projection-booth/sync-leader.mp4',

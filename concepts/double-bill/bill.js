@@ -235,6 +235,9 @@
       schedule.set('id'+i,film.key);
     });
     el('rundown').href='./rundown.html#'+schedule;
+    const invitation = new URLSearchParams(schedule);
+    [a,b].forEach((film,i) => { if (film.year) invitation.set('year'+i,film.year); });
+    el('handbill').href='./handbill.html#'+invitation;
     el('status').textContent = films.length + ' films in the ' + (cached ? 'cached ' : '') + 'watch log. Selected ' + a.title + ' and ' + b.title + '.';
     el('program').hidden = false;
     showNotes();
